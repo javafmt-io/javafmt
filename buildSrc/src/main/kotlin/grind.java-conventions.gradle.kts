@@ -1,7 +1,10 @@
+import net.ltgt.gradle.errorprone.CheckSeverity
+import net.ltgt.gradle.errorprone.errorprone
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
     `java-library`
+    id("net.ltgt.errorprone")
 }
 
 val libs = the<VersionCatalogsExtension>().named("libs")
@@ -31,6 +34,8 @@ dependencies {
     testImplementation(libs.findLibrary("junit-jupiter").get())
     testImplementation(libs.findLibrary("assertj-core").get())
     testRuntimeOnly(libs.findLibrary("junit-platform-launcher").get())
+    errorprone(libs.findLibrary("errorprone-core").get())
+    errorprone(libs.findLibrary("nullaway").get())
 }
 
 tasks.withType<Test>().configureEach {
@@ -40,4 +45,14 @@ tasks.withType<Test>().configureEach {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing", "-Werror"))
+    options.errorprone {
+        check("NullAway", CheckSeverity.ERROR)
+        option("NullAway:AnnotatedPackages", "io.github.jschneidereit.grind")
+    }
+}
+
+tasks.named<JavaCompile>("compileTestJava") {
+    options.errorprone {
+        check("NullAway", CheckSeverity.OFF)
+    }
 }

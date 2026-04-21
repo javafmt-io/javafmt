@@ -21,7 +21,7 @@ An opinionated, high-performance Java code formatter for modern LTS (21+). See `
 - **Sealed interfaces + records** for all data types
 - **Immutability everywhere,** `List.of()`, `Map.of()`, `Set.of()`, unmodifiable collections. No mutable state unless absolutely necessary.
 - **Pattern matching** in switch expressions for dispatch
-- **No nulls,** `Optional<T>` at API boundaries, `Objects.requireNonNull` at internal boundaries
+- **No nulls,** `Optional<T>` at API boundaries, `Objects.requireNonNull` at internal boundaries. Every package must have a `package-info.java` annotated `@NullMarked` (JSpecify compile-time enforcement) — `Objects.requireNonNull` is runtime defense-in-depth on top of that, not a replacement.
 - **No checked exceptions** in public API, wrap in unchecked exceptions
 - **Stream API over mutable accumulators.** Prefer `Stream` pipelines + `.toList()` over `ArrayList` + `for` + `.add()`. Mutable state is a code smell — if you are building a list imperatively, express it as a stream pipeline instead. For nullable results (e.g. `scan()`) in pipelines, use `flatMap(x -> Optional.ofNullable(f(x)).stream())` — this both filters nulls and narrows the element type in one step. The intersperse pattern (separator between elements, not after each) uses `.flatMap(e -> Stream.of(separator, e)).skip(1)`.
 - **Lombok,** use `@Slf4j` for logging in all modules; use `@Getter`/`@Setter` instead of hand-writing accessors; prefer records over `@Data` for data modeling. Lombok is `compileOnly` everywhere (annotation processor only, no runtime dep). `slf4j-api` is an `implementation` dep in all modules via `grind.java-conventions`; `grind-cli` bundles `slf4j-simple` as `runtimeOnly` since it has no host runtime to provide a binding.
