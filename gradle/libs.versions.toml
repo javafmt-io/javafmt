@@ -1,0 +1,24 @@
+[versions]
+junit = "6.0.3"
+assertj = "3.27.7"
+jspecify = "1.0.0"
+lombok = "1.18.44"
+slf4j = "2.0.17"
+maven = "3.9.15"
+maven-plugin-tools = "3.15.2"
+maven-plugin-development = "1.0.3"
+
+[libraries]
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+maven-plugin-api = { module = "org.apache.maven:maven-plugin-api", version.ref = "maven" }
+maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugin-annotations", version.ref = "maven-plugin-tools" }
+
+[plugins]
+maven-plugin-development = { id = "org.gradlex.maven-plugin-development", version.ref = "maven-plugin-development" }
