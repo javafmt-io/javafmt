@@ -12,8 +12,14 @@ class GrindTest {
     }
 
     @Test
+    void formatNormalisesWhitespace() {
+        assertThat(Grind.format("class Foo { int x; }"))
+            .isEqualTo("class Foo {\n    int x;\n}");
+    }
+
+    @Test
     void formatIsIdempotent() {
-        final var source = "class Foo {}";
+        final var source = "class Foo { int x; }";
         assertThat(Grind.format(Grind.format(source))).isEqualTo(Grind.format(source));
     }
 }

@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.ir;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public sealed interface Doc
     permits Doc.Text, Doc.Line, Doc.SoftLine, Doc.HardLine,
@@ -41,6 +42,10 @@ public sealed interface Doc
         public Concat {
             Objects.requireNonNull(parts, "parts");
             parts = List.copyOf(parts);
+        }
+
+        public Concat(final Stream<Doc> docs) {
+            this(docs.toList());
         }
     }
 

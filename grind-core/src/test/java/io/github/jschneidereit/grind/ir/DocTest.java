@@ -109,7 +109,19 @@ class DocTest {
 
         @Test
         void nullListThrows() {
-            assertThatNullPointerException().isThrownBy(() -> new Doc.Concat(null));
+            assertThatNullPointerException().isThrownBy(() -> new Doc.Concat((List<Doc>) null));
+        }
+
+        @Test
+        void streamConstructor_collectsElementsInOrder() {
+            final var a = new Doc.Text("a");
+            final var b = new Doc.Text("b");
+            assertThat(new Doc.Concat(Stream.of(a, b)).parts()).containsExactly(a, b);
+        }
+
+        @Test
+        void streamConstructor_emptyStream_producesEmptyConcat() {
+            assertThat(new Doc.Concat(Stream.<Doc>of()).parts()).isEmpty();
         }
     }
 

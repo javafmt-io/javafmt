@@ -56,6 +56,18 @@ class DocBuilderTest {
             assertThat(format("class Foo { int x; }"))
                 .isEqualTo("class Foo {\n    int x;\n}");
         }
+
+        @Test
+        void fieldWithAnnotation_rendersAnnotationInline() {
+            assertThat(format("class Foo { @Getter int x; }"))
+                .isEqualTo("class Foo {\n    @Getter int x;\n}");
+        }
+
+        @Test
+        void fieldWithMultipleAnnotations_renderedInlineSpaceSeparated() {
+            assertThat(format("class Foo { @Getter @Setter int x; }"))
+                .isEqualTo("class Foo {\n    @Getter @Setter int x;\n}");
+        }
     }
 
     @Nested
@@ -65,6 +77,64 @@ class DocBuilderTest {
         void singleNoArgMethod_isIndentedInsideClass() {
             assertThat(format("class Foo { void bar() {} }"))
                 .isEqualTo("class Foo {\n    void bar() {}\n}");
+        }
+
+        @Test
+        void methodWithSingleParamterlessAnnotation_rendersInline() {
+            assertThat(format("class Foo { @Override void bar() {} }"))
+                .isEqualTo("class Foo {\n    @Override void bar() {}\n}");
+        }
+
+        @Test
+        void methodWithParameterizedAnnotation_rendersOnOwnLine() {
+            assertThat(format("class Foo { @SuppressWarnings(\"all\") void bar() {} }"))
+                .isEqualTo("class Foo {\n    @SuppressWarnings(\"all\")\n    void bar() {}\n}");
+        }
+
+        @Test
+        void methodWithMultipleAnnotations_eachOnOwnLine() {
+            assertThat(format("class Foo { @Deprecated @Override void bar() {} }"))
+                .isEqualTo("class Foo {\n    @Deprecated\n    @Override\n    void bar() {}\n}");
+        }
+
+        @Test
+        void methodWithNamedArgAnnotation_rendersOnOwnLine() {
+            assertThat(format("class Foo { @Getter(lazy = true) int bar() { return 42; } }"))
+                .isEqualTo("class Foo {\n    @Getter(lazy = true)\n    int bar() {\n        return 42;\n    }\n}");
+        }
+
+        @Test
+        void methodWithReturnStatement_rendersBody() {
+            assertThat(format("class Foo { int bar() { return 42; } }"))
+                .isEqualTo("class Foo {\n    int bar() {\n        return 42;\n    }\n}");
+        }
+
+        @Test
+        void methodWithExpressionStatement_rendersBody() {
+            assertThat(format("class Foo { void bar() { System.out.println(42); } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        System.out.println(42);\n    }\n}");
+        }
+
+        @Test
+        void methodWithLocalVariable_rendersBody() {
+            assertThat(format("class Foo { int bar() { int x = 1; return x; } }"))
+                .isEqualTo("class Foo {\n    int bar() {\n        int x = 1;\n        return x;\n    }\n}");
+        }
+    }
+
+    @Nested
+    class ClassAnnotationTests {
+
+        @Test
+        void classWithAnnotation_rendersOnOwnLineAboveDeclaration() {
+            assertThat(format("@Accessors(fluent = true) class Foo {}"))
+                .isEqualTo("@Accessors(fluent = true)\nclass Foo {}");
+        }
+
+        @Test
+        void classWithMultipleAnnotations_eachOnOwnLine() {
+            assertThat(format("@Accessors(fluent = true) @Deprecated class Foo {}"))
+                .isEqualTo("@Accessors(fluent = true)\n@Deprecated\nclass Foo {}");
         }
     }
 

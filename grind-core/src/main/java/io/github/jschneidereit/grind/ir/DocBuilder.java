@@ -2,16 +2,19 @@ package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
+import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreeScanner;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.lang.model.element.Modifier;
 
@@ -29,21 +32,14 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitCompilationUnit(final CompilationUnitTree node, final Void p) {
-        final var parts = new ArrayList<Doc>();
-
-        if (node.getPackageName() != null) {
-            parts.add(new Doc.Text("package " + node.getPackageName() + ";"));
-            parts.add(new Doc.HardLine());
-        }
-
-        for (final var decl : node.getTypeDecls()) {
-            final var declDoc = scan(decl, null);
-            if (declDoc != null) {
-                parts.add(declDoc);
-            }
-        }
-
-        return new Doc.Concat(parts);
+        final var pkgStream = node.getPackageName() != null
+            ? Stream.<Doc>of(new Doc.Text("package " + node.getPackageName() + ";"), new Doc.HardLine())
+            : Stream.<Doc>empty();
+        return new Doc.Concat(Stream.concat(
+            pkgStream,
+            node.getTypeDecls().stream()
+                .flatMap(decl -> Optional.ofNullable(scan(decl, null)).stream())
+        ));
     }
 
     @Override
@@ -65,23 +61,22 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
         if (members.isEmpty()) {
             header.append(" {}");
-            return new Doc.Text(header.toString());
+            return prependOwnLineAnnotations(node.getModifiers(), new Doc.Text(header.toString()));
         }
 
         header.append(" {");
-        final var parts = new ArrayList<Doc>();
-        parts.add(new Doc.Text(header.toString()));
-
-        for (var i = 0; i < members.size(); i++) {
-            if (i > 0) {
-                parts.add(new Doc.HardLine());
-            }
-            parts.add(new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), members.get(i)))));
-        }
-
-        parts.add(new Doc.HardLine());
-        parts.add(new Doc.Text("}"));
-        return new Doc.Concat(parts);
+        return prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.<Doc>concat(
+            Stream.<Doc>concat(
+                Stream.of(new Doc.Text(header.toString())),
+                members.stream()
+                    .flatMap(m -> Stream.<Doc>of(
+                        new Doc.HardLine(),
+                        new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))
+                    ))
+                    .skip(1)
+            ),
+            Stream.of(new Doc.HardLine(), new Doc.Text("}"))
+        )));
     }
 
     private Doc buildRecord(final ClassTree node) {
@@ -109,50 +104,49 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         if (components.isEmpty()) {
             componentListDoc = new Doc.Text("()");
         } else {
-            final var compParts = new ArrayList<Doc>();
-            compParts.add(new Doc.SoftLine());
-            for (var i = 0; i < components.size(); i++) {
-                if (i > 0) {
-                    compParts.add(new Doc.Text(","));
-                    compParts.add(new Doc.Line());
-                }
-                final var comp = components.get(i);
-                compParts.add(new Doc.Text(comp.getType() + " " + comp.getName()));
-            }
             componentListDoc = new Doc.Concat(List.of(
                 new Doc.Text("("),
-                new Doc.Indent(new Doc.Concat(compParts)),
+                new Doc.Indent(new Doc.Concat(Stream.concat(
+                    Stream.<Doc>of(new Doc.SoftLine()),
+                    components.stream()
+                        .flatMap(comp -> Stream.<Doc>of(
+                            new Doc.Text(","),
+                            new Doc.Line(),
+                            new Doc.Text(comp.getType() + " " + comp.getName())
+                        ))
+                        .skip(2)
+                ))),
                 new Doc.SoftLine(),
                 new Doc.Text(")")
             ));
         }
 
         if (bodyMembers.isEmpty()) {
-            return new Doc.Group(new Doc.Concat(List.of(
+            return prependOwnLineAnnotations(node.getModifiers(), new Doc.Group(new Doc.Concat(List.of(
                 new Doc.Text(prefix.toString()),
                 componentListDoc,
                 new Doc.Text(" {}")
-            )));
+            ))));
         }
 
-        final var parts = new ArrayList<Doc>();
-        parts.add(new Doc.Text(prefix.toString()));
-        parts.add(componentListDoc);
-        parts.add(new Doc.Text(" {"));
-        for (var i = 0; i < bodyMembers.size(); i++) {
-            if (i > 0) {
-                parts.add(new Doc.HardLine());
-            }
-            parts.add(new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), bodyMembers.get(i)))));
-        }
-        parts.add(new Doc.HardLine());
-        parts.add(new Doc.Text("}"));
-        return new Doc.Concat(parts);
+        return prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.<Doc>concat(
+            Stream.<Doc>concat(
+                Stream.of(new Doc.Text(prefix.toString()), componentListDoc, new Doc.Text(" {")),
+                bodyMembers.stream()
+                    .flatMap(m -> Stream.<Doc>of(
+                        new Doc.HardLine(),
+                        new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))
+                    ))
+                    .skip(1)
+            ),
+            Stream.of(new Doc.HardLine(), new Doc.Text("}"))
+        )));
     }
 
     @Override
     public @Nullable Doc visitVariable(final VariableTree node, final Void p) {
         final var sb = new StringBuilder();
+        renderAnnotations(node.getModifiers(), sb);
         renderModifiers(node.getModifiers(), sb);
         sb.append(node.getType());
         sb.append(" ");
@@ -169,7 +163,13 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         if (node.getName().contentEquals("<init>")) {
             return null;
         }
+        final var annotations = node.getModifiers().getAnnotations();
+        final var inlineAnnotation = annotations.size() == 1 && annotations.get(0).getArguments().isEmpty();
+
         final var sb = new StringBuilder();
+        if (inlineAnnotation) {
+            renderAnnotations(node.getModifiers(), sb);
+        }
         renderModifiers(node.getModifiers(), sb);
         if (node.getReturnType() != null) {
             sb.append(node.getReturnType());
@@ -182,10 +182,60 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             .collect(Collectors.joining(", "));
         sb.append(params);
         sb.append(")");
+
+        final Doc signatureDoc;
         if (node.getBody() != null) {
-            sb.append(" {}");
+            final var stmts = node.getBody().getStatements();
+            if (stmts.isEmpty()) {
+                sb.append(" {}");
+                signatureDoc = new Doc.Text(sb.toString());
+            } else {
+                signatureDoc = new Doc.Concat(Stream.<Doc>concat(
+                    Stream.<Doc>concat(
+                        Stream.of(new Doc.Text(sb + " {")),
+                        stmts.stream()
+                            .flatMap(stmt -> Optional.ofNullable(scan(stmt, null)).stream())
+                            .map(stmtDoc -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), stmtDoc))))
+                    ),
+                    Stream.of(new Doc.HardLine(), new Doc.Text("}"))
+                ));
+            }
+        } else {
+            signatureDoc = new Doc.Text(sb.toString());
         }
-        return new Doc.Text(sb.toString());
+
+        return inlineAnnotation ? signatureDoc : prependOwnLineAnnotations(node.getModifiers(), signatureDoc);
+    }
+
+    @Override
+    public @Nullable Doc visitReturn(final ReturnTree node, final Void p) {
+        if (node.getExpression() == null) {
+            return new Doc.Text("return;");
+        }
+        return new Doc.Text("return " + node.getExpression() + ";");
+    }
+
+    @Override
+    public @Nullable Doc visitExpressionStatement(final ExpressionStatementTree node, final Void p) {
+        return new Doc.Text(node.getExpression() + ";");
+    }
+
+    private static Doc prependOwnLineAnnotations(final ModifiersTree mods, final Doc doc) {
+        final var annotations = mods.getAnnotations();
+        if (annotations.isEmpty()) {
+            return doc;
+        }
+        return new Doc.Concat(Stream.concat(
+            annotations.stream()
+                .flatMap(a -> Stream.<Doc>of(new Doc.Text(a.toString()), new Doc.HardLine())),
+            Stream.of(doc)
+        ));
+    }
+
+    private static void renderAnnotations(final ModifiersTree mods, final StringBuilder sb) {
+        for (final var annotation : mods.getAnnotations()) {
+            sb.append(annotation).append(" ");
+        }
     }
 
     private static void renderModifiers(final ModifiersTree mods, final StringBuilder sb) {
