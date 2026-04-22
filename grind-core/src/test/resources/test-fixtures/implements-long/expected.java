@@ -1,0 +1,13 @@
+class FixtureWithManyInterfaces
+    implements InterfaceAlpha,
+        InterfaceBeta,
+        InterfaceGamma,
+        InterfaceDelta,
+        InterfaceEpsilon,
+        InterfaceZeta,
+        InterfaceEta,
+        InterfaceTheta,
+        InterfaceIota,
+        InterfaceKappa,
+        InterfaceLambda,
+        InterfaceMu {}

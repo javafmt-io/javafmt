@@ -89,4 +89,96 @@ class ClassLikeRendererTest {
                 .isEqualTo("interface Foo {\n    public static final int MAX = 100;\n}");
         }
     }
+
+    @Nested
+    class Supertypes {
+
+        @Test
+        void class_withExtends_rendersSuperclass() {
+            assertThat(format("class Foo extends Bar {}"))
+                .isEqualTo("class Foo extends Bar {}");
+        }
+
+        @Test
+        void class_withImplementsSingle_rendersInterface() {
+            assertThat(format("class Foo implements Runnable {}"))
+                .isEqualTo("class Foo implements Runnable {}");
+        }
+
+        @Test
+        void class_withImplementsMultiple_commaSeparated() {
+            assertThat(format("class Foo implements A, B, C {}"))
+                .isEqualTo("class Foo implements A, B, C {}");
+        }
+
+        @Test
+        void class_withExtendsAndImplements_orderedCorrectly() {
+            assertThat(format("class Foo extends Bar implements A, B {}"))
+                .isEqualTo("class Foo extends Bar implements A, B {}");
+        }
+
+        @Test
+        void interface_withExtendsSingle_usesExtendsKeyword() {
+            assertThat(format("interface Foo extends Bar {}"))
+                .isEqualTo("interface Foo extends Bar {}");
+        }
+
+        @Test
+        void interface_withExtendsMultiple_commaSeparated() {
+            assertThat(format("interface Foo extends A, B, C {}"))
+                .isEqualTo("interface Foo extends A, B, C {}");
+        }
+
+        @Test
+        void class_withGenericSuperclass_rendersOpaqueType() {
+            assertThat(format("class Foo extends Bar<String, Integer> {}"))
+                .isEqualTo("class Foo extends Bar<String, Integer> {}");
+        }
+
+        @Test
+        void class_withLongImplementsList_breaks() {
+            final var source = "class FooBarBaz implements "
+                + "InterfaceAlpha, InterfaceBeta, InterfaceGamma, InterfaceDelta, "
+                + "InterfaceEpsilon, InterfaceZeta, InterfaceEta, InterfaceTheta, "
+                + "InterfaceIota, InterfaceKappa, InterfaceLambda, InterfaceMu {}";
+            assertThat(format(source)).isEqualTo(
+                """
+                class FooBarBaz
+                    implements InterfaceAlpha,
+                        InterfaceBeta,
+                        InterfaceGamma,
+                        InterfaceDelta,
+                        InterfaceEpsilon,
+                        InterfaceZeta,
+                        InterfaceEta,
+                        InterfaceTheta,
+                        InterfaceIota,
+                        InterfaceKappa,
+                        InterfaceLambda,
+                        InterfaceMu {}""");
+        }
+
+        @Test
+        void class_withExtendsAndLongImplementsList_breaks() {
+            final var source = "class FooBarBaz extends SuperBar implements "
+                + "InterfaceAlpha, InterfaceBeta, InterfaceGamma, InterfaceDelta, "
+                + "InterfaceEpsilon, InterfaceZeta, InterfaceEta, InterfaceTheta, "
+                + "InterfaceIota, InterfaceKappa, InterfaceLambda {}";
+            assertThat(format(source)).isEqualTo(
+                """
+                class FooBarBaz
+                    extends SuperBar
+                    implements InterfaceAlpha,
+                        InterfaceBeta,
+                        InterfaceGamma,
+                        InterfaceDelta,
+                        InterfaceEpsilon,
+                        InterfaceZeta,
+                        InterfaceEta,
+                        InterfaceTheta,
+                        InterfaceIota,
+                        InterfaceKappa,
+                        InterfaceLambda {}""");
+        }
+    }
 }

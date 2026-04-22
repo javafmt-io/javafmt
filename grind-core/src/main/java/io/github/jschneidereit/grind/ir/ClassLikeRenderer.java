@@ -7,6 +7,7 @@ import com.sun.source.tree.VariableTree;
 
 import io.github.jschneidereit.grind.GrindConfig;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -17,9 +18,14 @@ import org.jspecify.annotations.Nullable;
 final class ClassLikeRenderer {
 
     static Doc render(final ClassTree node, final String keyword, final Recursor recursor, final GrindConfig config) {
-        final var header = new StringBuilder();
-        ModifierRenderer.renderModifiers(node.getModifiers(), header);
-        header.append(keyword).append(" ").append(node.getSimpleName());
+        final var modifiers = new StringBuilder();
+        ModifierRenderer.renderModifiers(node.getModifiers(), modifiers);
+        final var prefix = modifiers.toString() + keyword + " " + node.getSimpleName();
+
+        final var isInterface = node.getKind() == Tree.Kind.INTERFACE;
+        final var superclass = isInterface ? null : node.getExtendsClause();
+        final var interfaces = node.getImplementsClause();
+        final var headerDoc = buildTypeDeclHeader(new Doc.Text(prefix), superclass, interfaces, isInterface);
 
         final var className = node.getSimpleName().toString();
 
@@ -35,14 +41,14 @@ final class ClassLikeRenderer {
             .toList();
 
         if (members.isEmpty()) {
-            header.append(" {}");
-            return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Text(header.toString()));
+            return ModifierRenderer.prependOwnLineAnnotations(
+                node.getModifiers(),
+                new Doc.Concat(List.of(headerDoc, new Doc.Text(" {}"))));
         }
 
-        header.append(" {");
         return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>concat(
-                Stream.of(new Doc.Text(header.toString())),
+                Stream.of(headerDoc, new Doc.Text(" {")),
                 members.stream()
                     .flatMap(m -> Stream.<Doc>of(
                         new Doc.HardLine(),
@@ -52,6 +58,37 @@ final class ClassLikeRenderer {
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
+    }
+
+    static Doc buildTypeDeclHeader(
+            final Doc prefix,
+            final @Nullable Tree superclass,
+            final List<? extends Tree> interfaces,
+            final boolean interfacesKeywordIsExtends) {
+        if (superclass == null && interfaces.isEmpty()) {
+            return prefix;
+        }
+        final var parts = new ArrayList<Doc>();
+        parts.add(prefix);
+        if (superclass != null) {
+            parts.add(new Doc.Indent(new Doc.Concat(List.of(
+                new Doc.Line(),
+                new Doc.Text("extends " + superclass)
+            ))));
+        }
+        if (!interfaces.isEmpty()) {
+            final var keyword = interfacesKeywordIsExtends ? "extends " : "implements ";
+            final var typesInterior = new Doc.Concat(interfaces.stream()
+                .<Doc>map(t -> new Doc.Text(t.toString()))
+                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
+                .skip(2));
+            parts.add(new Doc.Indent(new Doc.Concat(List.of(
+                new Doc.Line(),
+                new Doc.Text(keyword),
+                new Doc.Group(new Doc.Indent(typesInterior))
+            ))));
+        }
+        return new Doc.Group(new Doc.Concat(parts));
     }
 
     private static @Nullable Doc renderMember(

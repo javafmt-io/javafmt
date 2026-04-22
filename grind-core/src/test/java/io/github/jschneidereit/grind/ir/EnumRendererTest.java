@@ -45,4 +45,10 @@ class EnumRendererTest {
         final var input = "enum Color { BLUE, GREEN, RED }";
         assertThat(format(format(input))).isEqualTo(format(input));
     }
+
+    @Test
+    void enum_withImplements_rendersAfterName() {
+        assertThat(format("enum Status implements Serializable { ACTIVE }"))
+            .isEqualTo("enum Status implements Serializable { ACTIVE }");
+    }
 }

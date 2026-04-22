@@ -15,9 +15,11 @@ import java.util.stream.Stream;
 final class EnumRenderer {
 
     static Doc render(final ClassTree node, final Recursor recursor, final GrindConfig config) {
-        final var header = new StringBuilder();
-        ModifierRenderer.renderModifiers(node.getModifiers(), header);
-        header.append("enum ").append(node.getSimpleName());
+        final var modifiers = new StringBuilder();
+        ModifierRenderer.renderModifiers(node.getModifiers(), modifiers);
+        final var prefix = modifiers.toString() + "enum " + node.getSimpleName();
+        final var headerDoc = ClassLikeRenderer.buildTypeDeclHeader(
+            new Doc.Text(prefix), null, node.getImplementsClause(), false);
 
         final var constants = node.getMembers().stream()
             .filter(m -> m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree)
@@ -39,11 +41,10 @@ final class EnumRenderer {
             .toList();
 
         if (constants.isEmpty() && bodyMembers.isEmpty()) {
-            header.append(" {}");
-            return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Text(header.toString()));
+            return ModifierRenderer.prependOwnLineAnnotations(
+                node.getModifiers(),
+                new Doc.Concat(List.of(headerDoc, new Doc.Text(" {}"))));
         }
-
-        header.append(" {");
 
         if (bodyMembers.isEmpty()) {
             // Group: single-line if fits within 150, multi-line with trailing comma if not.
@@ -59,7 +60,8 @@ final class EnumRenderer {
                 )
             )));
             return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Group(new Doc.Concat(List.of(
-                new Doc.Text(header.toString()),
+                headerDoc,
+                new Doc.Text(" {"),
                 constantsInner,
                 new Doc.Line(),
                 new Doc.Text("}")
@@ -88,7 +90,7 @@ final class EnumRenderer {
         return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.concat(
             Stream.concat(
                 Stream.concat(
-                    Stream.of(new Doc.Text(header.toString())),
+                    Stream.of(headerDoc, new Doc.Text(" {")),
                     constantsDocs
                 ),
                 bodyMembersDocs

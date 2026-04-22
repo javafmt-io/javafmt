@@ -61,18 +61,21 @@ final class RecordRenderer {
             ));
         }
 
+        final var prefixAndComponents = new Doc.Concat(List.of(
+            new Doc.Text(prefix.toString()),
+            componentListDoc
+        ));
+        final var fullHeader = ClassLikeRenderer.buildTypeDeclHeader(
+            prefixAndComponents, null, node.getImplementsClause(), false);
+
         if (bodyMembers.isEmpty()) {
             return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Group(new Doc.Concat(List.of(
-                new Doc.Text(prefix.toString()),
-                componentListDoc,
+                fullHeader,
                 new Doc.Text(" {}")
             ))));
         }
 
-        final var headerDoc = new Doc.Group(new Doc.Concat(List.of(
-            new Doc.Text(prefix.toString()),
-            componentListDoc
-        )));
+        final var headerDoc = new Doc.Group(fullHeader);
         return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>concat(
                 Stream.of(headerDoc, new Doc.Text(" {")),

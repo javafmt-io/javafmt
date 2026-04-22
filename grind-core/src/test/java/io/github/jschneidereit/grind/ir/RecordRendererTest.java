@@ -32,6 +32,12 @@ class RecordRendererTest {
     }
 
     @Test
+    void record_withImplements_rendersAfterComponents() {
+        assertThat(format("record R(int x) implements Comparable<R> {}"))
+            .isEqualTo("record R(int x) implements Comparable<R> {}");
+    }
+
+    @Test
     void recordWithManyComponents_breaksToOnePerLine() {
         final var source = "record LongRecord(FirstVeryLongComponentType firstVeryLongComponentName, SecondVeryLongComponentType secondVeryLongComponent, ThirdVeryLong thirdVeryLong) {}";
         final var expected = """
