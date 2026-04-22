@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ReturnTree;
+import com.sun.source.tree.ThrowTree;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,10 @@ final class SimpleStatementRenderers {
 
     static Doc renderExpressionStatement(final ExpressionStatementTree node) {
         return new Doc.Text(node.getExpression() + ";");
+    }
+
+    static Doc renderThrow(final ThrowTree node) {
+        return new Doc.Text("throw " + node.getExpression() + ";");
     }
 
     private SimpleStatementRenderers() {}

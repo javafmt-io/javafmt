@@ -3,6 +3,7 @@ package io.github.jschneidereit.grind.ir;
 import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.DoWhileLoopTree;
 import com.sun.source.tree.EnhancedForLoopTree;
 import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ForLoopTree;
@@ -11,6 +12,8 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
+import com.sun.source.tree.ThrowTree;
+import com.sun.source.tree.TryTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.tree.WhileLoopTree;
 import com.sun.source.util.TreeScanner;
@@ -119,6 +122,21 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     @Override
     public @Nullable Doc visitWhileLoop(final WhileLoopTree node, final Void p) {
         return LoopRenderer.renderWhile(node, recursor());
+    }
+
+    @Override
+    public @Nullable Doc visitDoWhileLoop(final DoWhileLoopTree node, final Void p) {
+        return LoopRenderer.renderDoWhile(node, recursor());
+    }
+
+    @Override
+    public @Nullable Doc visitThrow(final ThrowTree node, final Void p) {
+        return SimpleStatementRenderers.renderThrow(node);
+    }
+
+    @Override
+    public @Nullable Doc visitTry(final TryTree node, final Void p) {
+        return TryRenderer.render(node, recursor());
     }
 
     private DocBuilder(final GrindConfig config) {
