@@ -3,7 +3,9 @@ package io.github.jschneidereit.grind.ir;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.DefaultCaseLabelTree;
+import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.SwitchExpressionTree;
+import com.sun.source.tree.SwitchTree;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,9 +17,18 @@ import org.jspecify.annotations.Nullable;
 final class SwitchExpressionRenderer {
 
     static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor) {
-        // getExpression().toString() already includes surrounding parens, e.g. "(x)"
-        final var selectorWithParens = node.getExpression().toString();
-        final var caseDocs = node.getCases().stream()
+        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor);
+    }
+
+    static Doc renderSwitch(final SwitchTree node, final Recursor recursor) {
+        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor);
+    }
+
+    private static Doc renderSwitchLike(
+            final String selectorWithParens,
+            final List<? extends CaseTree> cases,
+            final Recursor recursor) {
+        final var caseDocs = cases.stream()
             .flatMap(c -> Optional.ofNullable(renderCase(c, recursor)).stream())
             .toList();
         return new Doc.Concat(Stream.concat(
@@ -50,7 +61,20 @@ final class SwitchExpressionRenderer {
                 .toList();
             return BlockRenderer.buildBlock(prefix + " ->", stmts);
         }
-        return new Doc.Text(prefix + " -> " + body + ";");
+        final Doc bodyDoc;
+        if (body instanceof StatementTree) {
+            final var scanned = recursor.scan(body);
+            bodyDoc = scanned != null ? scanned : new Doc.Text(body.toString().strip());
+        } else {
+            bodyDoc = new Doc.Text(body + ";");
+        }
+        return new Doc.Group(new Doc.Concat(List.of(
+            new Doc.Text(prefix + " ->"),
+            new Doc.IfBreak(
+                new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), bodyDoc))),
+                new Doc.Concat(List.of(new Doc.Text(" "), bodyDoc))
+            )
+        )));
     }
 
     private SwitchExpressionRenderer() {}

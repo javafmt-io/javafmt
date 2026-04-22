@@ -10,6 +10,7 @@ import com.sun.source.tree.IfTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.SwitchExpressionTree;
+import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.tree.WhileLoopTree;
 import com.sun.source.util.TreeScanner;
@@ -83,6 +84,11 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     @Override
     public @Nullable Doc visitExpressionStatement(final ExpressionStatementTree node, final Void p) {
         return SimpleStatementRenderers.renderExpressionStatement(node);
+    }
+
+    @Override
+    public @Nullable Doc visitSwitch(final SwitchTree node, final Void p) {
+        return SwitchExpressionRenderer.renderSwitch(node, recursor());
     }
 
     @Override
