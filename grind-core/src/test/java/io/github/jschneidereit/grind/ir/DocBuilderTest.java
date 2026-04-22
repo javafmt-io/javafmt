@@ -152,6 +152,12 @@ class DocBuilderTest {
         }
 
         @Test
+        void recordWithComponentsAndBodyMember_componentListStaysOnOneLine() {
+            assertThat(format("record R(int x) { void go() {} }"))
+                .isEqualTo("record R(int x) {\n    void go() {}\n}");
+        }
+
+        @Test
         void recordWithManyComponents_breaksToOnePerLine() {
             final var source = "record LongRecord(FirstVeryLongComponentType firstVeryLongComponentName, SecondVeryLongComponentType secondVeryLongComponent, ThirdVeryLong thirdVeryLong) {}";
             final var expected = """
@@ -241,7 +247,7 @@ class DocBuilderTest {
         @Test
         void enumWithBodyMember_separatedByBlankLine() {
             final var source = "enum Status { ACTIVE, INACTIVE; public boolean isActive() { return this == ACTIVE; } }";
-            final var expected = "enum Status {\n    ACTIVE,\n    INACTIVE,\n\n    public boolean isActive() {\n        return this == ACTIVE;\n    }\n}";
+            final var expected = "enum Status {\n    ACTIVE,\n    INACTIVE;\n\n    public boolean isActive() {\n        return this == ACTIVE;\n    }\n}";
             assertThat(format(source)).isEqualTo(expected);
         }
 

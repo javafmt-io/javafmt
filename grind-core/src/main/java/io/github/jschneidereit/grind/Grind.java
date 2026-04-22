@@ -8,11 +8,15 @@ public final class Grind {
 
     private static final int LINE_WIDTH = 150;
 
-    public static String format(final String source) {
+    public static String format(final String source, final GrindConfig config) {
         if (source.isEmpty()) {
             return source;
         }
-        return Printer.print(DocBuilder.build(JavaParser.parse(source)), LINE_WIDTH);
+        return Printer.print(DocBuilder.build(JavaParser.parse(source), config), LINE_WIDTH);
+    }
+
+    public static String format(final String source) {
+        return format(source, GrindConfig.defaults());
     }
 
     private Grind() {}

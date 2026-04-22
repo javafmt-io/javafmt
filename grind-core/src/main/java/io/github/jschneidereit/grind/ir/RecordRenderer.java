@@ -4,6 +4,9 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
 
+import io.github.jschneidereit.grind.GrindConfig;
+
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -11,7 +14,7 @@ import javax.lang.model.element.Modifier;
 
 final class RecordRenderer {
 
-    static Doc render(final ClassTree node, final Recursor recursor) {
+    static Doc render(final ClassTree node, final Recursor recursor, final GrindConfig config) {
         final var prefix = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), prefix);
         prefix.append("record ").append(node.getSimpleName());
@@ -24,10 +27,16 @@ final class RecordRenderer {
             .map(m -> (VariableTree) m)
             .toList();
 
-        final var bodyMembers = node.getMembers().stream()
+        var bodyMemberStream = node.getMembers().stream()
             .filter(m -> !(m instanceof VariableTree v
                 && !v.getModifiers().getFlags().contains(Modifier.STATIC))
-                && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")))
+                && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")));
+
+        if (config.reorderMembers()) {
+            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
+        }
+
+        final var bodyMembers = bodyMemberStream
             .flatMap(m -> java.util.Optional.ofNullable(recursor.scan(m)).stream())
             .toList();
 
@@ -60,9 +69,13 @@ final class RecordRenderer {
             ))));
         }
 
+        final var headerDoc = new Doc.Group(new Doc.Concat(List.of(
+            new Doc.Text(prefix.toString()),
+            componentListDoc
+        )));
         return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>concat(
-                Stream.of(new Doc.Text(prefix.toString()), componentListDoc, new Doc.Text(" {")),
+                Stream.of(headerDoc, new Doc.Text(" {")),
                 bodyMembers.stream()
                     .flatMap(m -> Stream.<Doc>of(
                         new Doc.HardLine(),

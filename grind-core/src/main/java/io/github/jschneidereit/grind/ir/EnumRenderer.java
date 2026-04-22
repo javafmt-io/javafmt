@@ -5,13 +5,16 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.VariableTree;
 
+import io.github.jschneidereit.grind.GrindConfig;
+
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 final class EnumRenderer {
 
-    static Doc render(final ClassTree node, final Recursor recursor) {
+    static Doc render(final ClassTree node, final Recursor recursor, final GrindConfig config) {
         final var header = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), header);
         header.append("enum ").append(node.getSimpleName());
@@ -22,9 +25,15 @@ final class EnumRenderer {
             .sorted(Comparator.comparing(v -> v.getName().toString()))
             .toList();
 
-        final var bodyMembers = node.getMembers().stream()
+        var bodyMemberStream = node.getMembers().stream()
             .filter(m -> !(m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree)
-                && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")))
+                && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")));
+
+        if (config.reorderMembers()) {
+            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
+        }
+
+        final var bodyMembers = bodyMemberStream
             .flatMap(m -> java.util.Optional.ofNullable(recursor.scan(m)).stream())
             .toList();
 
@@ -56,11 +65,13 @@ final class EnumRenderer {
             ))));
         }
 
-        // Has body members: always multi-line, constants each on own line with trailing comma.
-        final var constantsDocs = constants.stream()
-            .<Doc>map(v -> new Doc.Indent(new Doc.Concat(List.of(
+        // Has body members: always multi-line; last constant uses ";" as the required
+        // separator before body declarations, all others use ",".
+        final var n = constants.size();
+        final var constantsDocs = IntStream.range(0, n)
+            .<Doc>mapToObj(i -> new Doc.Indent(new Doc.Concat(List.of(
                 new Doc.HardLine(),
-                new Doc.Text(v.getName().toString() + ",")
+                new Doc.Text(constants.get(i).getName() + (i < n - 1 ? "," : ";"))
             ))));
 
         final Stream<Doc> bodyMembersDocs = Stream.concat(

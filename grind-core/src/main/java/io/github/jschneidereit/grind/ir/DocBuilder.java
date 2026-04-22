@@ -14,6 +14,8 @@ import com.sun.source.tree.VariableTree;
 import com.sun.source.tree.WhileLoopTree;
 import com.sun.source.util.TreeScanner;
 
+import io.github.jschneidereit.grind.GrindConfig;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -22,13 +24,20 @@ import org.jspecify.annotations.Nullable;
 
 public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
+    private final GrindConfig config;
+
     private Recursor recursor() {
         return tree -> scan(tree, null);
     }
 
     public static Doc build(final CompilationUnitTree tree) {
+        return build(tree, GrindConfig.defaults());
+    }
+
+    public static Doc build(final CompilationUnitTree tree, final GrindConfig config) {
         Objects.requireNonNull(tree, "tree");
-        final var doc = new DocBuilder().visitCompilationUnit(tree, null);
+        Objects.requireNonNull(config, "config");
+        final var doc = new DocBuilder(config).visitCompilationUnit(tree, null);
         return Objects.requireNonNull(doc, "visitCompilationUnit returned null");
     }
 
@@ -49,10 +58,10 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     public @Nullable Doc visitClass(final ClassTree node, final Void p) {
         final var recursor = recursor();
         return switch (node.getKind()) {
-            case RECORD -> RecordRenderer.render(node, recursor);
-            case ENUM -> EnumRenderer.render(node, recursor);
-            case INTERFACE -> ClassLikeRenderer.render(node, "interface", recursor);
-            default -> ClassLikeRenderer.render(node, "class", recursor);
+            case RECORD -> RecordRenderer.render(node, recursor, config);
+            case ENUM -> EnumRenderer.render(node, recursor, config);
+            case INTERFACE -> ClassLikeRenderer.render(node, "interface", recursor, config);
+            default -> ClassLikeRenderer.render(node, "class", recursor, config);
         };
     }
 
@@ -106,6 +115,8 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         return LoopRenderer.renderWhile(node, recursor());
     }
 
-    private DocBuilder() {}
+    private DocBuilder(final GrindConfig config) {
+        this.config = config;
+    }
 
 }

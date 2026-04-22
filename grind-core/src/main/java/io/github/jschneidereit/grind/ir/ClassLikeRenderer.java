@@ -4,20 +4,29 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
 
+import io.github.jschneidereit.grind.GrindConfig;
+
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
 final class ClassLikeRenderer {
 
-    static Doc render(final ClassTree node, final String keyword, final Recursor recursor) {
+    static Doc render(final ClassTree node, final String keyword, final Recursor recursor, final GrindConfig config) {
         final var header = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), header);
         header.append(keyword).append(" ").append(node.getSimpleName());
 
-        final var members = node.getMembers().stream()
+        var memberStream = node.getMembers().stream()
             .filter(m -> m instanceof VariableTree
-                || (m instanceof MethodTree mt && !mt.getName().contentEquals("<init>")))
+                || (m instanceof MethodTree mt && !mt.getName().contentEquals("<init>")));
+
+        if (config.reorderMembers()) {
+            memberStream = memberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
+        }
+
+        final var members = memberStream
             .flatMap(m -> java.util.Optional.ofNullable(recursor.scan(m)).stream())
             .toList();
 
