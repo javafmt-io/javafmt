@@ -50,9 +50,11 @@ class LambdaRendererTest {
         assertThat(format("class Foo { void test() { run(x -> { doIt(x); }); } }")).isEqualTo("""
             class Foo {
                 void test() {
-                    run(x -> {
-                        doIt(x);
-                    });
+                    run(
+                        x -> {
+                            doIt(x);
+                        }
+                    );
                 }
             }""".stripIndent());
     }

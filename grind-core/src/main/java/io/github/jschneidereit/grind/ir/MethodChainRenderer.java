@@ -43,18 +43,22 @@ final class MethodChainRenderer {
     }
 
     private static Doc buildCallSuffix(final String head, final List<? extends ExpressionTree> args, final Recursor recursor) {
-        final var parts = Stream.<Doc>concat(
-            Stream.of(new Doc.Text(head + "(")),
-            Stream.concat(renderArgs(args, recursor), Stream.of(new Doc.Text(")")))
-        );
-        return new Doc.Concat(parts);
-    }
-
-    private static Stream<Doc> renderArgs(final List<? extends ExpressionTree> args, final Recursor recursor) {
-        return args.stream()
-            .<Doc>map(arg -> renderArg(arg, recursor))
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
-            .skip(1);
+        if (args.isEmpty()) {
+            return new Doc.Text(head + "()");
+        }
+        final var interior = new Doc.Concat(Stream.concat(
+            Stream.<Doc>of(new Doc.SoftLine()),
+            args.stream()
+                .<Doc>map(arg -> renderArg(arg, recursor))
+                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
+                .skip(2)
+        ));
+        return new Doc.Group(new Doc.Concat(List.of(
+            new Doc.Text(head + "("),
+            new Doc.Indent(interior),
+            new Doc.SoftLine(),
+            new Doc.Text(")")
+        )));
     }
 
     private static Doc renderArg(final ExpressionTree arg, final Recursor recursor) {
