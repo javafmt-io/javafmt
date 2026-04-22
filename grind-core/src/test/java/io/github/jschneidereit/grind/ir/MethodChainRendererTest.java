@@ -39,8 +39,8 @@ class MethodChainRendererTest {
     void longChain_exceedsWidth_breaksBeforeDot() {
         final var input = "class Foo { void test() { "
             + "result.stream()"
-            + ".filter(element -> element.isActive())"
-            + ".map(element -> element.getFullName())"
+            + ".filter(element->element.isActive())"
+            + ".map(element->element.getFullName())"
             + ".sorted(Comparator.naturalOrder())"
             + ".limit(100)"
             + ".collect(Collectors.toList()); } }";
@@ -48,8 +48,8 @@ class MethodChainRendererTest {
             class Foo {
                 void test() {
                     result.stream()
-                            .filter((element)->element.isActive())
-                            .map((element)->element.getFullName())
+                            .filter(element -> element.isActive())
+                            .map(element -> element.getFullName())
                             .sorted(Comparator.naturalOrder())
                             .limit(100)
                             .collect(Collectors.toList());
@@ -61,8 +61,8 @@ class MethodChainRendererTest {
     void returnWithChain_breaksCorrectly() {
         final var input = "class Foo { List<String> test() { return "
             + "result.stream()"
-            + ".filter(element -> element.isActive())"
-            + ".map(element -> element.getFullName())"
+            + ".filter(element-> element.isActive())"
+            + ".map(element ->element.getFullName())"
             + ".sorted(Comparator.naturalOrder())"
             + ".limit(100)"
             + ".collect(Collectors.toList()); } }";
@@ -70,8 +70,8 @@ class MethodChainRendererTest {
             class Foo {
                 List<String> test() {
                     return result.stream()
-                            .filter((element)->element.isActive())
-                            .map((element)->element.getFullName())
+                            .filter(element -> element.isActive())
+                            .map(element -> element.getFullName())
                             .sorted(Comparator.naturalOrder())
                             .limit(100)
                             .collect(Collectors.toList());

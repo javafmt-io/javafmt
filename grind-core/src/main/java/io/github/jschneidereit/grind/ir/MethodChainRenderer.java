@@ -6,7 +6,6 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class MethodChainRenderer {
@@ -28,23 +27,39 @@ final class MethodChainRenderer {
     private static List<Doc> collectLinks(final Tree expr, final Recursor recursor) {
         if (expr instanceof MethodInvocationTree mit
             && mit.getMethodSelect() instanceof MemberSelectTree ms) {
-            final var callSuffix = "." + ms.getIdentifier() + "(" + renderArgs(mit.getArguments()) + ")";
+            final var callSuffix = buildCallSuffix("." + ms.getIdentifier(), mit.getArguments(), recursor);
             if (ms.getExpression() instanceof MethodInvocationTree) {
                 return Stream.concat(
                     collectLinks(ms.getExpression(), recursor).stream(),
-                    Stream.<Doc>of(new Doc.Text(callSuffix))
+                    Stream.<Doc>of(callSuffix)
                 ).toList();
             }
-            return List.of(new Doc.Concat(List.of(renderNonChain(ms.getExpression(), recursor), new Doc.Text(callSuffix))));
+            return List.of(new Doc.Concat(List.of(renderNonChain(ms.getExpression(), recursor), callSuffix)));
         }
         if (expr instanceof MethodInvocationTree mit) {
-            return List.of(new Doc.Text(mit.getMethodSelect() + "(" + renderArgs(mit.getArguments()) + ")"));
+            return List.of(buildCallSuffix(mit.getMethodSelect().toString(), mit.getArguments(), recursor));
         }
         return List.of(renderNonChain(expr, recursor));
     }
 
-    private static String renderArgs(final List<? extends ExpressionTree> args) {
-        return args.stream().map(Object::toString).collect(Collectors.joining(", "));
+    private static Doc buildCallSuffix(final String head, final List<? extends ExpressionTree> args, final Recursor recursor) {
+        final var parts = Stream.<Doc>concat(
+            Stream.of(new Doc.Text(head + "(")),
+            Stream.concat(renderArgs(args, recursor), Stream.of(new Doc.Text(")")))
+        );
+        return new Doc.Concat(parts);
+    }
+
+    private static Stream<Doc> renderArgs(final List<? extends ExpressionTree> args, final Recursor recursor) {
+        return args.stream()
+            .<Doc>map(arg -> renderArg(arg, recursor))
+            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
+            .skip(1);
+    }
+
+    private static Doc renderArg(final ExpressionTree arg, final Recursor recursor) {
+        final var scanned = recursor.scan(arg);
+        return scanned != null ? scanned : new Doc.Text(arg.toString());
     }
 
     private static Doc renderNonChain(final Tree tree, final Recursor recursor) {
