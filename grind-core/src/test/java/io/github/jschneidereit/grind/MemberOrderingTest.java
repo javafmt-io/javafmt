@@ -40,6 +40,14 @@ class MemberOrderingTest {
         }
 
         @Test
+        void constructorBetweenFieldsAndMethods() {
+            assertThat(Grind.format(
+                    "class C { public void go() {} C() {} int x; }",
+                    WITH_ORDERING))
+                .isEqualTo("class C {\n    int x;\n\n    C() {}\n\n    public void go() {}\n}");
+        }
+
+        @Test
         void reorderingIsIdempotent() {
             final var input = "class C { private void priv() {} public static int MAX = 10; int x; public void pub() {} }";
             final var formatted = Grind.format(input, WITH_ORDERING);

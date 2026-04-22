@@ -25,16 +25,17 @@ final class EnumRenderer {
             .sorted(Comparator.comparing(v -> v.getName().toString()))
             .toList();
 
+        final var className = node.getSimpleName().toString();
+
         var bodyMemberStream = node.getMembers().stream()
-            .filter(m -> !(m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree)
-                && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")));
+            .filter(m -> !(m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree));
 
         if (config.reorderMembers()) {
             bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
         }
 
         final var bodyMembers = bodyMemberStream
-            .flatMap(m -> java.util.Optional.ofNullable(recursor.scan(m)).stream())
+            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, className, recursor)).stream())
             .toList();
 
         if (constants.isEmpty() && bodyMembers.isEmpty()) {
@@ -94,6 +95,14 @@ final class EnumRenderer {
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
+    }
+
+    private static @org.jspecify.annotations.Nullable Doc renderBodyMember(
+            final com.sun.source.tree.Tree member, final String className, final Recursor recursor) {
+        if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
+            return ConstructorRenderer.render(mt, className, recursor);
+        }
+        return recursor.scan(member);
     }
 
     private EnumRenderer() {}

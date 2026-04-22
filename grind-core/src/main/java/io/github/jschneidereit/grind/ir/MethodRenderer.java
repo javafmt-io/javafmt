@@ -41,7 +41,7 @@ final class MethodRenderer {
         return inlineAnnotation ? signatureDoc : ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), signatureDoc);
     }
 
-    private static Doc buildLeading(
+    static Doc buildLeading(
             final String modifiers,
             final List<? extends TypeParameterTree> typeParams,
             final String afterTypeParams) {
@@ -71,7 +71,7 @@ final class MethodRenderer {
         )));
     }
 
-    private static Doc renderSignature(
+    static Doc renderSignature(
             final Doc leading,
             final List<? extends VariableTree> params,
             final List<? extends ExpressionTree> throwsList) {
@@ -116,7 +116,7 @@ final class MethodRenderer {
         )));
     }
 
-    private static Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor) {
+    static Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor) {
         if (node.getBody() == null) {
             return new Doc.Concat(List.of(header, new Doc.Text(";")));
         }

@@ -2,14 +2,17 @@ package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 
 import io.github.jschneidereit.grind.GrindConfig;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
+
+import org.jspecify.annotations.Nullable;
 
 final class ClassLikeRenderer {
 
@@ -18,16 +21,17 @@ final class ClassLikeRenderer {
         ModifierRenderer.renderModifiers(node.getModifiers(), header);
         header.append(keyword).append(" ").append(node.getSimpleName());
 
+        final var className = node.getSimpleName().toString();
+
         var memberStream = node.getMembers().stream()
-            .filter(m -> m instanceof VariableTree
-                || (m instanceof MethodTree mt && !mt.getName().contentEquals("<init>")));
+            .filter(m -> m instanceof VariableTree || m instanceof MethodTree);
 
         if (config.reorderMembers()) {
             memberStream = memberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
         }
 
         final var members = memberStream
-            .flatMap(m -> java.util.Optional.ofNullable(recursor.scan(m)).stream())
+            .flatMap(m -> Optional.ofNullable(renderMember(m, className, recursor)).stream())
             .toList();
 
         if (members.isEmpty()) {
@@ -48,6 +52,14 @@ final class ClassLikeRenderer {
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
+    }
+
+    private static @Nullable Doc renderMember(
+            final Tree member, final String className, final Recursor recursor) {
+        if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
+            return ConstructorRenderer.render(mt, className, recursor);
+        }
+        return recursor.scan(member);
     }
 
     private ClassLikeRenderer() {}

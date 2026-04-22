@@ -248,4 +248,63 @@ class MethodRendererTest {
                 .isEqualTo("class Foo {\n    @Getter(lazy = true)\n    int bar() {\n        return 42;\n    }\n}");
         }
     }
+
+    @Nested
+    class Constructors {
+
+        @Test
+        void noArgs_rendersWithClassName() {
+            assertThat(format("class Foo { Foo() {} }"))
+                .isEqualTo("class Foo {\n    Foo() {}\n}");
+        }
+
+        @Test
+        void withParams_rendersLikeMethod() {
+            assertThat(format("class Foo { Foo(int x) { this.x = x; } }"))
+                .isEqualTo("class Foo {\n    Foo(int x) {\n        this.x = x;\n    }\n}");
+        }
+
+        @Test
+        void withModifiers() {
+            assertThat(format("class Foo { public Foo() {} }"))
+                .isEqualTo("class Foo {\n    public Foo() {}\n}");
+        }
+
+        @Test
+        void withSuperCall() {
+            assertThat(format("class Foo { Foo(int x) { super(x); } }"))
+                .isEqualTo("class Foo {\n    Foo(int x) {\n        super(x);\n    }\n}");
+        }
+
+        @Test
+        void withThisCall() {
+            assertThat(format("class Foo { Foo() { this(0); } Foo(int x) {} }"))
+                .isEqualTo("class Foo {\n    Foo() {\n        this(0);\n    }\n\n    Foo(int x) {}\n}");
+        }
+
+        @Test
+        void longParamList_breaks() {
+            final var source = "class Foo { Foo("
+                + "String argumentNumberOne, String argumentNumberTwo, String argumentNumberThree, "
+                + "String argumentNumberFour, String argumentNumberFive, String argumentNumberSix) {} }";
+            assertThat(format(source)).isEqualTo(
+                """
+                class Foo {
+                    Foo(
+                        String argumentNumberOne,
+                        String argumentNumberTwo,
+                        String argumentNumberThree,
+                        String argumentNumberFour,
+                        String argumentNumberFive,
+                        String argumentNumberSix
+                    ) {}
+                }""");
+        }
+
+        @Test
+        void withAnnotations_rendersInline() {
+            assertThat(format("class Foo { @Inject public Foo() {} }"))
+                .isEqualTo("class Foo {\n    @Inject public Foo() {}\n}");
+        }
+    }
 }
