@@ -48,7 +48,7 @@ An opinionated, high-performance Java code formatter for modern LTS (21+). See `
 - **K&R braces**, always required (even single-statement `if`/`for`/`while`), missing braces is a build failure, not an auto-fix
 - **4-space indent**, 4-space continuation indent.
 - **Imports**: static imports first (ASCII sort), blank line, then all non-static imports (ASCII sort, one group — no splitting by origin)
-- **Member ordering**: fields, constructors, public methods, protected, package-private, private, static methods. Preserve declaration order within groups. Exception: in utility classes (final class, no instance state, only a private no-arg constructor to suppress instantiation), pin the private constructor to the very bottom of the class.
+- **Member ordering**: static fields, static initializers, instance fields, instance initializers, constructors, public methods, protected, package-private, private, static methods, nested types. Preserve declaration order within groups. Exception: in utility classes (final class, no instance state, only a private no-arg constructor to suppress instantiation), pin the private constructor to the very bottom of the class. Exception: in `sealed` classes and interfaces, nested types are pinned to the top of the body (ahead of static fields), since permitted-subtype declarations are the primary shape of a sealed hierarchy.
 - **Enums**: alphabetically sorted constants, trailing comma
 - **Records**: one line if fits in 150 chars, otherwise one component per line
 - **Lambdas**: Palantir style, multi-line lambdas on their own lines, body indented relative to the enclosing chain

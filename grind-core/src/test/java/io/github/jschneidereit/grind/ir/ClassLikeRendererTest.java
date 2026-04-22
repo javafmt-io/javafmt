@@ -251,4 +251,176 @@ class ClassLikeRendererTest {
                 .isEqualTo("class Outer {\n    class Inner extends Base implements Runnable {}\n}");
         }
     }
+
+    @Nested
+    class InitBlocks {
+
+        @Test
+        void class_withStaticInitBlock_rendersWithStaticKeyword() {
+            assertThat(format("class Foo { static { x = 1; } }"))
+                .isEqualTo("class Foo {\n    static {\n        x = 1;\n    }\n}");
+        }
+
+        @Test
+        void class_withEmptyStaticInitBlock_rendersOnOneLine() {
+            assertThat(format("class Foo { static {} }"))
+                .isEqualTo("class Foo {\n    static {}\n}");
+        }
+
+        @Test
+        void class_withInstanceInitBlock_rendersWithoutKeyword() {
+            assertThat(format("class Foo { { x = 1; } }"))
+                .isEqualTo("class Foo {\n    {\n        x = 1;\n    }\n}");
+        }
+
+        @Test
+        void class_withEmptyInstanceInitBlock_rendersOnOneLine() {
+            assertThat(format("class Foo { {} }"))
+                .isEqualTo("class Foo {\n    {}\n}");
+        }
+
+        @Test
+        void class_withMultiStatementStaticInit_eachStmtOnOwnLine() {
+            assertThat(format("class Foo { static { a(); b(); c(); } }"))
+                .isEqualTo("class Foo {\n    static {\n        a();\n        b();\n        c();\n    }\n}");
+        }
+
+        @Test
+        void class_withStaticInitAndStaticField_staticFieldFirst() {
+            final var source = "class Foo { static { init(); } static int x = 1; }";
+            assertThat(format(source, new GrindConfig(true)))
+                .isEqualTo("class Foo {\n    static int x = 1;\n\n    static {\n        init();\n    }\n}");
+        }
+
+        @Test
+        void class_withInstanceInitBetweenFieldAndConstructor_ordersCorrectly() {
+            final var source = "class Foo { Foo() {} { init(); } int x; }";
+            assertThat(format(source, new GrindConfig(true)))
+                .isEqualTo(
+                    "class Foo {\n    int x;\n\n    {\n        init();\n    }\n\n    Foo() {}\n}");
+        }
+
+        @Test
+        void class_withBothInitBlocks_ordersStaticFirst() {
+            final var source = "class Foo { { a(); } static { b(); } }";
+            assertThat(format(source, new GrindConfig(true)))
+                .isEqualTo(
+                    "class Foo {\n    static {\n        b();\n    }\n\n    {\n        a();\n    }\n}");
+        }
+
+        @Test
+        void class_withMethodAndInitBlocks_correctInterleaving() {
+            final var source = "class Foo { class Inner {} void m() {} Foo() {} { ib(); } int ix; static { sb(); } static int sx; }";
+            final var expected = """
+                class Foo {
+                    static int sx;
+
+                    static {
+                        sb();
+                    }
+
+                    int ix;
+
+                    {
+                        ib();
+                    }
+
+                    Foo() {}
+
+                    void m() {}
+
+                    class Inner {}
+                }""";
+            assertThat(format(source, new GrindConfig(true))).isEqualTo(expected);
+        }
+
+        @Test
+        void record_withStaticInitBlock_rendersInBody() {
+            assertThat(format("record R(int x) { static { init(); } }"))
+                .isEqualTo("record R(int x) {\n    static {\n        init();\n    }\n}");
+        }
+
+        @Test
+        void enum_withStaticInitBlock_rendersAfterConstants() {
+            assertThat(format("enum E { A; static { init(); } }"))
+                .isEqualTo("enum E {\n    A;\n\n    static {\n        init();\n    }\n}");
+        }
+
+        @Test
+        void enum_withInstanceInitBlock_rendersInBody() {
+            assertThat(format("enum E { A; { init(); } }"))
+                .isEqualTo("enum E {\n    A;\n\n    {\n        init();\n    }\n}");
+        }
+
+        @Test
+        void class_withDeeplyNestedStaticInit_rendersCorrectIndent() {
+            final var source = "class Outer { class Inner { static { init(); } } }";
+            final var expected = """
+                class Outer {
+                    class Inner {
+                        static {
+                            init();
+                        }
+                    }
+                }""";
+            assertThat(format(source)).isEqualTo(expected);
+        }
+    }
+
+    @Nested
+    class SealedNestedTypes {
+
+        @Test
+        void sealedInterface_withNestedPermittedSubtypes_rendersNestedTypesFirst() {
+            final var source = "sealed interface Shape permits Circle, Square { int dim();"
+                + " record Circle(int r) implements Shape {} record Square(int s) implements Shape {} }";
+            final var expected = """
+                sealed interface Shape permits Circle, Square {
+                    record Circle(int r) implements Shape {}
+
+                    record Square(int s) implements Shape {}
+
+                    int dim();
+                }""";
+            assertThat(format(source, new GrindConfig(true))).isEqualTo(expected);
+        }
+
+        @Test
+        void sealedClass_withNestedTypesAndFields_nestedTypesOnTop() {
+            final var source = "sealed class Base permits Sub { void m() {} static int x; class Sub extends Base {} }";
+            final var expected = """
+                sealed class Base permits Sub {
+                    class Sub extends Base {}
+
+                    static int x;
+
+                    void m() {}
+                }""";
+            assertThat(format(source, new GrindConfig(true))).isEqualTo(expected);
+        }
+
+        @Test
+        void nonSealedClass_nestedTypesStayAtBottom() {
+            final var source = "class Foo { class Inner {} int x; }";
+            assertThat(format(source, new GrindConfig(true)))
+                .isEqualTo("class Foo {\n    int x;\n\n    class Inner {}\n}");
+        }
+
+        @Test
+        void sealedInterface_withMultipleNestedTypes_declarationOrderPreservedAmongThem() {
+            final var source = "sealed interface Shape permits Zeta, Alpha {"
+                + " int dim();"
+                + " record Zeta(int z) implements Shape {}"
+                + " record Alpha(int a) implements Shape {} }";
+            final var expected = """
+                sealed interface Shape permits Zeta, Alpha {
+                    record Zeta(int z) implements Shape {}
+
+                    record Alpha(int a) implements Shape {}
+
+                    int dim();
+                }""";
+            assertThat(format(source, new GrindConfig(true))).isEqualTo(expected);
+        }
+    }
 }

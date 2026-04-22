@@ -1,7 +1,9 @@
 package io.github.jschneidereit.grind.ir;
 
+import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 
 import io.github.jschneidereit.grind.GrindConfig;
@@ -33,11 +35,11 @@ final class RecordRenderer {
                 && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")));
 
         if (config.reorderMembers()) {
-            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
+            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(m -> MemberGrouper.group(m, false)));
         }
 
         final var bodyMembers = bodyMemberStream
-            .flatMap(m -> java.util.Optional.ofNullable(recursor.scan(m)).stream())
+            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, recursor)).stream())
             .toList();
 
         final Doc componentListDoc;
@@ -88,6 +90,13 @@ final class RecordRenderer {
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
+    }
+
+    private static @org.jspecify.annotations.Nullable Doc renderBodyMember(final Tree member, final Recursor recursor) {
+        if (member instanceof BlockTree bt) {
+            return InitBlockRenderer.render(bt, recursor);
+        }
+        return recursor.scan(member);
     }
 
     private RecordRenderer() {}

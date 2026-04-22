@@ -28,6 +28,20 @@ final class BlockRenderer {
         ));
     }
 
+    static Doc buildBlock(final List<Doc> stmts) {
+        if (stmts.isEmpty()) {
+            return new Doc.Text("{}");
+        }
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(
+                Stream.<Doc>of(new Doc.Text("{")),
+                stmts.stream()
+                    .<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s))))
+            ),
+            Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}"))
+        ));
+    }
+
     static Stream<Doc> blockParts(final String header, final List<Doc> stmts) {
         return Stream.concat(
             Stream.<Doc>of(new Doc.Text(header + " {")),

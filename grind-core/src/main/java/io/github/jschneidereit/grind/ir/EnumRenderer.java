@@ -1,5 +1,6 @@
 package io.github.jschneidereit.grind.ir;
 
+import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewClassTree;
@@ -33,7 +34,7 @@ final class EnumRenderer {
             .filter(m -> !(m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree));
 
         if (config.reorderMembers()) {
-            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
+            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(m -> MemberGrouper.group(m, false)));
         }
 
         final var bodyMembers = bodyMemberStream
@@ -103,6 +104,9 @@ final class EnumRenderer {
             final com.sun.source.tree.Tree member, final String className, final Recursor recursor) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
             return ConstructorRenderer.render(mt, className, recursor);
+        }
+        if (member instanceof BlockTree bt) {
+            return InitBlockRenderer.render(bt, recursor);
         }
         return recursor.scan(member);
     }

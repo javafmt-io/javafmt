@@ -1,5 +1,6 @@
 package io.github.jschneidereit.grind.ir;
 
+import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
@@ -13,6 +14,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import javax.lang.model.element.Modifier;
+
 import org.jspecify.annotations.Nullable;
 
 final class ClassLikeRenderer {
@@ -25,15 +28,21 @@ final class ClassLikeRenderer {
         final var isInterface = node.getKind() == Tree.Kind.INTERFACE;
         final var superclass = isInterface ? null : node.getExtendsClause();
         final var interfaces = node.getImplementsClause();
-        final var headerDoc = buildTypeDeclHeader(new Doc.Text(prefix), superclass, interfaces, isInterface);
+        final var permits = node.getPermitsClause();
+        final var headerDoc = buildTypeDeclHeader(
+            new Doc.Text(prefix), superclass, interfaces, isInterface, permits);
 
         final var className = node.getSimpleName().toString();
+        final var sealedParent = node.getModifiers().getFlags().contains(Modifier.SEALED);
 
         var memberStream = node.getMembers().stream()
-            .filter(m -> m instanceof VariableTree || m instanceof MethodTree || m instanceof ClassTree);
+            .filter(m -> m instanceof VariableTree
+                || m instanceof MethodTree
+                || m instanceof ClassTree
+                || m instanceof BlockTree);
 
         if (config.reorderMembers()) {
-            memberStream = memberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
+            memberStream = memberStream.sorted(Comparator.comparingInt(m -> MemberGrouper.group(m, sealedParent)));
         }
 
         final var members = memberStream
@@ -65,7 +74,16 @@ final class ClassLikeRenderer {
             final @Nullable Tree superclass,
             final List<? extends Tree> interfaces,
             final boolean interfacesKeywordIsExtends) {
-        if (superclass == null && interfaces.isEmpty()) {
+        return buildTypeDeclHeader(prefix, superclass, interfaces, interfacesKeywordIsExtends, List.of());
+    }
+
+    static Doc buildTypeDeclHeader(
+            final Doc prefix,
+            final @Nullable Tree superclass,
+            final List<? extends Tree> interfaces,
+            final boolean interfacesKeywordIsExtends,
+            final List<? extends Tree> permits) {
+        if (superclass == null && interfaces.isEmpty() && permits.isEmpty()) {
             return prefix;
         }
         final var parts = new ArrayList<Doc>();
@@ -78,23 +96,33 @@ final class ClassLikeRenderer {
         }
         if (!interfaces.isEmpty()) {
             final var keyword = interfacesKeywordIsExtends ? "extends " : "implements ";
-            final var typesInterior = new Doc.Concat(interfaces.stream()
-                .<Doc>map(t -> new Doc.Text(t.toString()))
-                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-                .skip(2));
-            parts.add(new Doc.Indent(new Doc.Concat(List.of(
-                new Doc.Line(),
-                new Doc.Text(keyword),
-                new Doc.Group(new Doc.Indent(typesInterior))
-            ))));
+            parts.add(buildTypeList(keyword, interfaces));
+        }
+        if (!permits.isEmpty()) {
+            parts.add(buildTypeList("permits ", permits));
         }
         return new Doc.Group(new Doc.Concat(parts));
+    }
+
+    private static Doc buildTypeList(final String keyword, final List<? extends Tree> types) {
+        final var typesInterior = new Doc.Concat(types.stream()
+            .<Doc>map(t -> new Doc.Text(t.toString()))
+            .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
+            .skip(2));
+        return new Doc.Indent(new Doc.Concat(List.of(
+            new Doc.Line(),
+            new Doc.Text(keyword),
+            new Doc.Group(new Doc.Indent(typesInterior))
+        )));
     }
 
     private static @Nullable Doc renderMember(
             final Tree member, final String className, final Recursor recursor) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
             return ConstructorRenderer.render(mt, className, recursor);
+        }
+        if (member instanceof BlockTree bt) {
+            return InitBlockRenderer.render(bt, recursor);
         }
         return recursor.scan(member);
     }
