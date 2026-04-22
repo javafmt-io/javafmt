@@ -1,8 +1,10 @@
 package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.BlockTree;
+import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.EnhancedForLoopTree;
 import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ForLoopTree;
@@ -10,13 +12,16 @@ import com.sun.source.tree.IfTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.StatementTree;
+import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.tree.WhileLoopTree;
 import com.sun.source.util.TreeScanner;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -77,13 +82,18 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitClass(final ClassTree node, final Void p) {
-        if (node.getKind() == Tree.Kind.RECORD) {
-            return buildRecord(node);
-        }
+        return switch (node.getKind()) {
+            case RECORD -> buildRecord(node);
+            case ENUM -> buildEnum(node);
+            case INTERFACE -> buildClassLike(node, "interface");
+            default -> buildClassLike(node, "class");
+        };
+    }
 
+    private Doc buildClassLike(final ClassTree node, final String keyword) {
         final var header = new StringBuilder();
         renderModifiers(node.getModifiers(), header);
-        header.append("class ").append(node.getSimpleName());
+        header.append(keyword).append(" ").append(node.getSimpleName());
 
         final var members = node.getMembers().stream()
             .filter(m -> m instanceof VariableTree
@@ -107,6 +117,81 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
                         new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))
                     ))
                     .skip(1)
+            ),
+            Stream.of(new Doc.HardLine(), new Doc.Text("}"))
+        )));
+    }
+
+    private Doc buildEnum(final ClassTree node) {
+        final var header = new StringBuilder();
+        renderModifiers(node.getModifiers(), header);
+        header.append("enum ").append(node.getSimpleName());
+
+        final var constants = node.getMembers().stream()
+            .filter(m -> m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree)
+            .map(m -> (VariableTree) m)
+            .sorted(Comparator.comparing(v -> v.getName().toString()))
+            .toList();
+
+        final var bodyMembers = node.getMembers().stream()
+            .filter(m -> !(m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree)
+                && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")))
+            .map(m -> scan(m, null))
+            .filter(Objects::nonNull)
+            .toList();
+
+        if (constants.isEmpty() && bodyMembers.isEmpty()) {
+            header.append(" {}");
+            return prependOwnLineAnnotations(node.getModifiers(), new Doc.Text(header.toString()));
+        }
+
+        header.append(" {");
+
+        if (bodyMembers.isEmpty()) {
+            // Group: single-line if fits within 150, multi-line with trailing comma if not.
+            // Intersperse constants with ", " (flat) or ",\n    " (break), trailing comma only on break.
+            final var constantsInner = new Doc.Indent(new Doc.Concat(Stream.concat(
+                Stream.<Doc>of(new Doc.Line()),
+                Stream.concat(
+                    constants.stream()
+                        .<Doc>map(v -> new Doc.Text(v.getName().toString()))
+                        .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
+                        .skip(2),
+                    Stream.<Doc>of(new Doc.IfBreak(new Doc.Text(","), new Doc.Text("")))
+                )
+            )));
+            return prependOwnLineAnnotations(node.getModifiers(), new Doc.Group(new Doc.Concat(List.of(
+                new Doc.Text(header.toString()),
+                constantsInner,
+                new Doc.Line(),
+                new Doc.Text("}")
+            ))));
+        }
+
+        // Has body members: always multi-line, constants each on own line with trailing comma.
+        final var constantsDocs = constants.stream()
+            .<Doc>map(v -> new Doc.Indent(new Doc.Concat(List.of(
+                new Doc.HardLine(),
+                new Doc.Text(v.getName().toString() + ",")
+            ))));
+
+        final Stream<Doc> bodyMembersDocs = Stream.concat(
+            Stream.<Doc>of(new Doc.HardLine()),
+            bodyMembers.stream()
+                .flatMap(m -> Stream.<Doc>of(
+                    new Doc.HardLine(),
+                    new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))
+                ))
+                .skip(1)
+        );
+
+        return prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.concat(
+            Stream.concat(
+                Stream.concat(
+                    Stream.of(new Doc.Text(header.toString())),
+                    constantsDocs
+                ),
+                bodyMembersDocs
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
@@ -234,6 +319,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
                 ));
             }
         } else {
+            sb.append(";");
             signatureDoc = new Doc.Text(sb.toString());
         }
 
@@ -245,12 +331,61 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         if (node.getExpression() == null) {
             return new Doc.Text("return;");
         }
+        final var exprDoc = scan(node.getExpression(), null);
+        if (exprDoc != null) {
+            return new Doc.Concat(List.of(
+                new Doc.Text("return "),
+                exprDoc,
+                new Doc.Text(";")
+            ));
+        }
         return new Doc.Text("return " + node.getExpression() + ";");
     }
 
     @Override
     public @Nullable Doc visitExpressionStatement(final ExpressionStatementTree node, final Void p) {
         return new Doc.Text(node.getExpression() + ";");
+    }
+
+    @Override
+    public @Nullable Doc visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
+        // getExpression().toString() already includes surrounding parens, e.g. "(x)"
+        final var selectorWithParens = node.getExpression().toString();
+        final var caseDocs = node.getCases().stream()
+            .flatMap(c -> Optional.ofNullable(scan(c, null)).stream())
+            .toList();
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(
+                Stream.<Doc>of(new Doc.Text("switch " + selectorWithParens + " {")),
+                caseDocs.stream()
+                    .map(d -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), d))))
+            ),
+            Stream.of(new Doc.HardLine(), new Doc.Text("}"))
+        ));
+    }
+
+    @Override
+    public @Nullable Doc visitCase(final CaseTree node, final Void p) {
+        if (node.getCaseKind() != CaseTree.CaseKind.RULE) {
+            return null;
+        }
+        final var isDefault = node.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree);
+        final var labelStr = node.getLabels().stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(", "));
+        final var prefix = isDefault ? "default" : "case " + labelStr;
+
+        final var body = node.getBody();
+        if (body == null) {
+            return null;
+        }
+        if (body instanceof BlockTree blockBody) {
+            final var stmts = blockBody.getStatements().stream()
+                .flatMap(s -> Optional.ofNullable(scan(s, null)).stream())
+                .toList();
+            return buildBlock(prefix + " ->", stmts);
+        }
+        return new Doc.Text(prefix + " -> " + body + ";");
     }
 
     @Override
