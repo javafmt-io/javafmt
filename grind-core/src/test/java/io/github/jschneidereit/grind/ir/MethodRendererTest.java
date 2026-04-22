@@ -166,6 +166,62 @@ class MethodRendererTest {
     }
 
     @Nested
+    class TypeParams {
+
+        @Test
+        void single_rendersBeforeReturnType() {
+            assertThat(format("class Foo { <T> T bar(T x) { return x; } }"))
+                .isEqualTo("class Foo {\n    <T> T bar(T x) {\n        return x;\n    }\n}");
+        }
+
+        @Test
+        void multiple_commaSeparated() {
+            assertThat(format("class Foo { <K, V> Map<K, V> bar() { return null; } }"))
+                .isEqualTo("class Foo {\n    <K, V> Map<K, V> bar() {\n        return null;\n    }\n}");
+        }
+
+        @Test
+        void withBounds_rendersInline() {
+            assertThat(format("class Foo { <T extends Comparable<T>> T max(T a, T b) {} }"))
+                .isEqualTo("class Foo {\n    <T extends Comparable<T>> T max(T a, T b) {}\n}");
+        }
+
+        @Test
+        void noTypeParams_unchanged() {
+            assertThat(format("class Foo { int bar() { return 1; } }"))
+                .isEqualTo("class Foo {\n    int bar() {\n        return 1;\n    }\n}");
+        }
+
+        @Test
+        void longList_breaksTypeParams() {
+            final var source = "class Foo { <"
+                + "TypeParameterAlpha extends Comparable<TypeParameterAlpha>, "
+                + "TypeParameterBeta extends Comparable<TypeParameterBeta>, "
+                + "TypeParameterGamma extends Comparable<TypeParameterGamma>, "
+                + "TypeParameterDelta extends Comparable<TypeParameterDelta>"
+                + "> int bar() { return 0; } }";
+            assertThat(format(source)).isEqualTo(
+                """
+                class Foo {
+                    <
+                        TypeParameterAlpha extends Comparable<TypeParameterAlpha>,
+                        TypeParameterBeta extends Comparable<TypeParameterBeta>,
+                        TypeParameterGamma extends Comparable<TypeParameterGamma>,
+                        TypeParameterDelta extends Comparable<TypeParameterDelta>
+                    > int bar() {
+                        return 0;
+                    }
+                }""");
+        }
+
+        @Test
+        void withAnnotations_rendersAfterAnnotations() {
+            assertThat(format("class Foo { @Override <T> T bar(T x) { return x; } }"))
+                .isEqualTo("class Foo {\n    @Override <T> T bar(T x) {\n        return x;\n    }\n}");
+        }
+    }
+
+    @Nested
     class Annotations {
 
         @Test

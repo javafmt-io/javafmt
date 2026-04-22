@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 
 import java.util.List;
@@ -19,32 +20,66 @@ final class MethodRenderer {
         final var annotations = node.getModifiers().getAnnotations();
         final var inlineAnnotation = annotations.size() == 1 && annotations.get(0).getArguments().isEmpty();
 
-        final var leading = new StringBuilder();
+        final var modifiersText = new StringBuilder();
         if (inlineAnnotation) {
-            ModifierRenderer.renderAnnotations(node.getModifiers(), leading);
+            ModifierRenderer.renderAnnotations(node.getModifiers(), modifiersText);
         }
-        ModifierRenderer.renderModifiers(node.getModifiers(), leading);
-        if (node.getReturnType() != null) {
-            leading.append(node.getReturnType());
-            leading.append(" ");
-        }
-        leading.append(node.getName());
+        ModifierRenderer.renderModifiers(node.getModifiers(), modifiersText);
 
-        final var signature = renderSignature(leading.toString(), node.getParameters(), node.getThrows());
+        final var afterTypeParams = new StringBuilder();
+        if (node.getReturnType() != null) {
+            afterTypeParams.append(node.getReturnType());
+            afterTypeParams.append(" ");
+        }
+        afterTypeParams.append(node.getName());
+
+        final var leading = buildLeading(modifiersText.toString(), node.getTypeParameters(), afterTypeParams.toString());
+
+        final var signature = renderSignature(leading, node.getParameters(), node.getThrows());
         final var signatureDoc = appendBody(signature, node, recursor);
 
         return inlineAnnotation ? signatureDoc : ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), signatureDoc);
     }
 
+    private static Doc buildLeading(
+            final String modifiers,
+            final List<? extends TypeParameterTree> typeParams,
+            final String afterTypeParams) {
+        if (typeParams.isEmpty()) {
+            return new Doc.Text(modifiers + afterTypeParams);
+        }
+        return new Doc.Concat(List.of(
+            new Doc.Text(modifiers),
+            renderTypeParams(typeParams),
+            new Doc.Text(" " + afterTypeParams)
+        ));
+    }
+
+    private static Doc renderTypeParams(final List<? extends TypeParameterTree> typeParams) {
+        final var interior = new Doc.Concat(Stream.<Doc>concat(
+            Stream.<Doc>of(new Doc.SoftLine()),
+            typeParams.stream()
+                .<Doc>map(tp -> new Doc.Text(tp.toString()))
+                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
+                .skip(2)
+        ));
+        return new Doc.Group(new Doc.Concat(List.of(
+            new Doc.Text("<"),
+            new Doc.Indent(interior),
+            new Doc.SoftLine(),
+            new Doc.Text(">")
+        )));
+    }
+
     private static Doc renderSignature(
-            final String leading,
+            final Doc leading,
             final List<? extends VariableTree> params,
             final List<? extends ExpressionTree> throwsList) {
         if (params.isEmpty() && throwsList.isEmpty()) {
-            return new Doc.Text(leading + "()");
+            return new Doc.Concat(List.of(leading, new Doc.Text("()")));
         }
         final Doc paramsPart = params.isEmpty()
-            ? new Doc.Text(leading + "()")
+            ? new Doc.Concat(List.of(leading, new Doc.Text("()")))
             : buildParamsPart(leading, params);
         if (throwsList.isEmpty()) {
             return new Doc.Group(paramsPart);
@@ -52,7 +87,7 @@ final class MethodRenderer {
         return new Doc.Group(new Doc.Concat(List.of(paramsPart, buildThrowsTail(throwsList))));
     }
 
-    private static Doc buildParamsPart(final String leading, final List<? extends VariableTree> params) {
+    private static Doc buildParamsPart(final Doc leading, final List<? extends VariableTree> params) {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
             params.stream()
@@ -61,7 +96,8 @@ final class MethodRenderer {
                 .skip(2)
         ));
         return new Doc.Concat(List.of(
-            new Doc.Text(leading + "("),
+            leading,
+            new Doc.Text("("),
             new Doc.Indent(interior),
             new Doc.SoftLine(),
             new Doc.Text(")")
