@@ -123,7 +123,7 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 | **Line width** | 100 | 150 | Fewer arbitrary wraps means line-level diff changes reflect real changes, not reformatting. Modern monitors and side-by-side diff views handle 150 comfortably. |
 | **Block indent** | 2 spaces | 4 spaces | Deeper visual hierarchy makes nesting obvious without counting spaces. 2-space collapses in wide diffs. |
 | **Import order** | Static first, then non-static (one flat ASCII-sorted group each) | Same | — |
-| **Member ordering** | Author's discretion ("logical order") | Strict: fields → constructors → public → protected → pkg-private → private → static | Reviewers always know where to look for the public API vs internals without reading the whole file. |
+| **Member ordering** | Author's discretion ("logical order") | Strict: fields → constructors → public → protected → pkg-private → private → static. Exception: in a utility class (`final` class with no instance state), the private no-arg constructor is pinned to the bottom. | Reviewers always know where to look for the public API vs internals without reading the whole file. The utility-class exception keeps the uninstantiable-marker out of the way so the eye lands on real behavior first. |
 | **Enum constants** | No sort requirement, trailing comma optional | Alphabetically sorted, trailing comma required | Adding a constant produces a clean 1-line diff with no comma-shuffling on the previous line. |
 | **Brace enforcement** | Required, but missing braces isn't a build failure | Missing braces = build failure (lint, not auto-fix) | Eliminates the class of bugs where a stray `if` silently gains a second statement; reviewers don't have to verify brace scope. |
 | **Annotations** | Fields: same line allowed; methods: own line unless single+no-args | Same as Google | — |
@@ -173,6 +173,7 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 - Private methods
 - Static methods (at the bottom)
 - Within each group: declaration order preserved (don't re-sort)
+- **Utility classes** (a `final` class with no instance state, whose only constructor is a `private` no-arg constructor used solely to suppress instantiation): the private constructor is pinned to the **very bottom** of the class, after all methods. It is an uninstantiable-marker, not meaningful behavior, and belongs out of the way so readers land on the real API first.
 
 ### Enums
 - Enum constants sorted **alphabetically**
