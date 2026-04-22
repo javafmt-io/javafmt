@@ -18,8 +18,6 @@ import java.util.stream.Collectors;
 
 public final class JavaParser {
 
-    private JavaParser() {}
-
     public static CompilationUnitTree parse(final String source) {
         Objects.requireNonNull(source, "source");
 
@@ -71,4 +69,6 @@ public final class JavaParser {
             return source;
         }
     }
+
+    private JavaParser() {}
 }

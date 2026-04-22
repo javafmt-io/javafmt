@@ -9,8 +9,6 @@ import java.util.stream.Stream;
 
 final class BlockRenderer {
 
-    private BlockRenderer() {}
-
     static List<Doc> blockStmts(final StatementTree stmt, final Recursor recursor) {
         if (stmt instanceof BlockTree block) {
             return block.getStatements().stream()
@@ -41,4 +39,6 @@ final class BlockRenderer {
     static String stripTrailingSemicolon(final String s) {
         return s.endsWith(";") ? s.substring(0, s.length() - 1) : s;
     }
+
+    private BlockRenderer() {}
 }

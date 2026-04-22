@@ -13,8 +13,6 @@ public final class Printer {
 
     private record Frame(int indent, Mode mode, Doc doc) {}
 
-    private Printer() {}
-
     public static String print(final Doc doc, final int lineWidth) {
         Objects.requireNonNull(doc, "doc");
 
@@ -109,4 +107,6 @@ public final class Printer {
 
         return rem >= 0;
     }
+
+    private Printer() {}
 }

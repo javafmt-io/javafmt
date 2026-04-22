@@ -8,8 +8,6 @@ import java.util.stream.Collectors;
 
 final class LoopRenderer {
 
-    private LoopRenderer() {}
-
     static Doc renderFor(final ForLoopTree node, final Recursor recursor) {
         final var init = node.getInitializer().stream()
             .map(s -> BlockRenderer.stripTrailingSemicolon(s.toString()))
@@ -34,4 +32,6 @@ final class LoopRenderer {
         // javac wraps the condition in JCParens, so toString() already includes the outer ()
         return BlockRenderer.buildBlock("while " + node.getCondition(), BlockRenderer.blockStmts(node.getStatement(), recursor));
     }
+
+    private LoopRenderer() {}
 }

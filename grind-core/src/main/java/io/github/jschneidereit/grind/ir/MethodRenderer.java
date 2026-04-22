@@ -11,8 +11,6 @@ import org.jspecify.annotations.Nullable;
 
 final class MethodRenderer {
 
-    private MethodRenderer() {}
-
     static @Nullable Doc render(final MethodTree node, final Recursor recursor) {
         if (node.getName().contentEquals("<init>")) {
             return null;
@@ -61,4 +59,6 @@ final class MethodRenderer {
 
         return inlineAnnotation ? signatureDoc : ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), signatureDoc);
     }
+
+    private MethodRenderer() {}
 }

@@ -10,8 +10,6 @@ import org.jspecify.annotations.Nullable;
 
 final class SimpleStatementRenderers {
 
-    private SimpleStatementRenderers() {}
-
     static Doc renderReturn(final ReturnTree node, final Recursor recursor) {
         if (node.getExpression() == null) {
             return new Doc.Text("return;");
@@ -30,4 +28,6 @@ final class SimpleStatementRenderers {
     static Doc renderExpressionStatement(final ExpressionStatementTree node) {
         return new Doc.Text(node.getExpression() + ";");
     }
+
+    private SimpleStatementRenderers() {}
 }

@@ -10,8 +10,6 @@ import java.util.stream.Stream;
 
 final class ClassLikeRenderer {
 
-    private ClassLikeRenderer() {}
-
     static Doc render(final ClassTree node, final String keyword, final Recursor recursor) {
         final var header = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), header);
@@ -42,4 +40,6 @@ final class ClassLikeRenderer {
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
     }
+
+    private ClassLikeRenderer() {}
 }

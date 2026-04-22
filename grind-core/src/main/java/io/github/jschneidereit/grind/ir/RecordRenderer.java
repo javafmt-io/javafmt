@@ -11,8 +11,6 @@ import javax.lang.model.element.Modifier;
 
 final class RecordRenderer {
 
-    private RecordRenderer() {}
-
     static Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), prefix);
@@ -75,4 +73,6 @@ final class RecordRenderer {
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
     }
+
+    private RecordRenderer() {}
 }

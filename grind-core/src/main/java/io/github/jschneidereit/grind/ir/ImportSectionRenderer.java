@@ -7,8 +7,6 @@ import java.util.stream.Stream;
 
 final class ImportSectionRenderer {
 
-    private ImportSectionRenderer() {}
-
     static Stream<Doc> buildImportSection(
             final boolean hasPackage,
             final List<? extends ImportTree> imports) {
@@ -33,4 +31,6 @@ final class ImportSectionRenderer {
             Stream.<Doc>of(new Doc.HardLine())
         ).flatMap(s -> s);
     }
+
+    private ImportSectionRenderer() {}
 }

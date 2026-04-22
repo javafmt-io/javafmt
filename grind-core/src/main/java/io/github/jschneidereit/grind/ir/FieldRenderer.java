@@ -4,8 +4,6 @@ import com.sun.source.tree.VariableTree;
 
 final class FieldRenderer {
 
-    private FieldRenderer() {}
-
     static Doc render(final VariableTree node) {
         final var sb = new StringBuilder();
         ModifierRenderer.renderAnnotations(node.getModifiers(), sb);
@@ -19,4 +17,6 @@ final class FieldRenderer {
         sb.append(";");
         return new Doc.Text(sb.toString());
     }
+
+    private FieldRenderer() {}
 }

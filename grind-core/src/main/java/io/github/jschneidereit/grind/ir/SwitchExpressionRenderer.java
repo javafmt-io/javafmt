@@ -14,8 +14,6 @@ import org.jspecify.annotations.Nullable;
 
 final class SwitchExpressionRenderer {
 
-    private SwitchExpressionRenderer() {}
-
     static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor) {
         // getExpression().toString() already includes surrounding parens, e.g. "(x)"
         final var selectorWithParens = node.getExpression().toString();
@@ -54,4 +52,6 @@ final class SwitchExpressionRenderer {
         }
         return new Doc.Text(prefix + " -> " + body + ";");
     }
+
+    private SwitchExpressionRenderer() {}
 }

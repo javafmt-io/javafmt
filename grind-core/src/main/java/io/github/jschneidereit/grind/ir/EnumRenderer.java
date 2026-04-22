@@ -11,8 +11,6 @@ import java.util.stream.Stream;
 
 final class EnumRenderer {
 
-    private EnumRenderer() {}
-
     static Doc render(final ClassTree node, final Recursor recursor) {
         final var header = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), header);
@@ -86,4 +84,6 @@ final class EnumRenderer {
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
     }
+
+    private EnumRenderer() {}
 }

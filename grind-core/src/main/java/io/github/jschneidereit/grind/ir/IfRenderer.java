@@ -8,8 +8,6 @@ import java.util.stream.Stream;
 
 final class IfRenderer {
 
-    private IfRenderer() {}
-
     static Doc render(final IfTree node, final Recursor recursor) {
         // javac wraps the condition in JCParens, so toString() already includes the outer ()
         final var cond = node.getCondition().toString();
@@ -40,4 +38,6 @@ final class IfRenderer {
             )
         ));
     }
+
+    private IfRenderer() {}
 }

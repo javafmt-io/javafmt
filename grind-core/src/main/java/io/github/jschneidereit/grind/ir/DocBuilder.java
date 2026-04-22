@@ -22,8 +22,6 @@ import org.jspecify.annotations.Nullable;
 
 public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
-    private DocBuilder() {}
-
     private Recursor recursor() {
         return tree -> scan(tree, null);
     }
@@ -107,5 +105,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     public @Nullable Doc visitWhileLoop(final WhileLoopTree node, final Void p) {
         return LoopRenderer.renderWhile(node, recursor());
     }
+
+    private DocBuilder() {}
 
 }

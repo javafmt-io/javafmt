@@ -9,8 +9,6 @@ import javax.lang.model.element.Modifier;
 
 final class ModifierRenderer {
 
-    private ModifierRenderer() {}
-
     static void renderAnnotations(final ModifiersTree mods, final StringBuilder sb) {
         for (final var annotation : mods.getAnnotations()) {
             sb.append(annotation).append(" ");
@@ -36,4 +34,6 @@ final class ModifierRenderer {
             Stream.of(doc)
         ));
     }
+
+    private ModifierRenderer() {}
 }
