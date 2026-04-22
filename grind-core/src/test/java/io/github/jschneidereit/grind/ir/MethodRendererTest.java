@@ -93,6 +93,79 @@ class MethodRendererTest {
     }
 
     @Nested
+    class Throws {
+
+        @Test
+        void singleType_rendersAfterParens() {
+            assertThat(format("class Foo { void bar() throws IOException {} }"))
+                .isEqualTo("class Foo {\n    void bar() throws IOException {}\n}");
+        }
+
+        @Test
+        void multipleTypes_flatWithCommas() {
+            assertThat(format("class Foo { void bar() throws A, B, C {} }"))
+                .isEqualTo("class Foo {\n    void bar() throws A, B, C {}\n}");
+        }
+
+        @Test
+        void noThrows_unchanged() {
+            assertThat(format("class Foo { void bar(int x) { return; } }"))
+                .isEqualTo("class Foo {\n    void bar(int x) {\n        return;\n    }\n}");
+        }
+
+        @Test
+        void longClauseForcesSignatureBreak() {
+            final var source = "class Foo { void someMethod(int a, int b) throws "
+                + "ExceptionAlpha, ExceptionBeta, ExceptionGamma, ExceptionDelta, "
+                + "ExceptionEpsilon, ExceptionZeta, ExceptionEta, ExceptionTheta {} }";
+            assertThat(format(source)).isEqualTo(
+                """
+                class Foo {
+                    void someMethod(
+                        int a,
+                        int b
+                    )
+                        throws ExceptionAlpha, ExceptionBeta, ExceptionGamma, ExceptionDelta, ExceptionEpsilon, ExceptionZeta, ExceptionEta, ExceptionTheta {}
+                }""");
+        }
+
+        @Test
+        void veryLongClauseBreaksThrowsList() {
+            final var source = "class Foo { void someMethod(int a, int b) throws "
+                + "ExceptionAlpha, ExceptionBeta, ExceptionGamma, ExceptionDelta, "
+                + "ExceptionEpsilon, ExceptionZeta, ExceptionEta, ExceptionTheta, "
+                + "ExceptionIota, ExceptionKappa, ExceptionLambda, ExceptionMu, ExceptionNu {} }";
+            assertThat(format(source)).isEqualTo(
+                """
+                class Foo {
+                    void someMethod(
+                        int a,
+                        int b
+                    )
+                        throws ExceptionAlpha,
+                            ExceptionBeta,
+                            ExceptionGamma,
+                            ExceptionDelta,
+                            ExceptionEpsilon,
+                            ExceptionZeta,
+                            ExceptionEta,
+                            ExceptionTheta,
+                            ExceptionIota,
+                            ExceptionKappa,
+                            ExceptionLambda,
+                            ExceptionMu,
+                            ExceptionNu {}
+                }""");
+        }
+
+        @Test
+        void abstractMethod_rendersBeforeSemicolon() {
+            assertThat(format("interface Foo { void bar() throws IOException; }"))
+                .isEqualTo("interface Foo {\n    void bar() throws IOException;\n}");
+        }
+    }
+
+    @Nested
     class Annotations {
 
         @Test
