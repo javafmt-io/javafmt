@@ -1,10 +1,10 @@
 package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.VariableTree;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jspecify.annotations.Nullable;
@@ -18,46 +18,59 @@ final class MethodRenderer {
         final var annotations = node.getModifiers().getAnnotations();
         final var inlineAnnotation = annotations.size() == 1 && annotations.get(0).getArguments().isEmpty();
 
-        final var sb = new StringBuilder();
+        final var leading = new StringBuilder();
         if (inlineAnnotation) {
-            ModifierRenderer.renderAnnotations(node.getModifiers(), sb);
+            ModifierRenderer.renderAnnotations(node.getModifiers(), leading);
         }
-        ModifierRenderer.renderModifiers(node.getModifiers(), sb);
+        ModifierRenderer.renderModifiers(node.getModifiers(), leading);
         if (node.getReturnType() != null) {
-            sb.append(node.getReturnType());
-            sb.append(" ");
+            leading.append(node.getReturnType());
+            leading.append(" ");
         }
-        sb.append(node.getName());
-        sb.append("(");
-        final var params = node.getParameters().stream()
-            .map(param -> param.getType() + " " + param.getName())
-            .collect(Collectors.joining(", "));
-        sb.append(params);
-        sb.append(")");
+        leading.append(node.getName());
 
-        final Doc signatureDoc;
-        if (node.getBody() != null) {
-            final var stmts = node.getBody().getStatements();
-            if (stmts.isEmpty()) {
-                sb.append(" {}");
-                signatureDoc = new Doc.Text(sb.toString());
-            } else {
-                signatureDoc = new Doc.Concat(Stream.<Doc>concat(
-                    Stream.<Doc>concat(
-                        Stream.of(new Doc.Text(sb + " {")),
-                        stmts.stream()
-                            .flatMap(stmt -> Optional.ofNullable(recursor.scan(stmt)).stream())
-                            .map(stmtDoc -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), stmtDoc))))
-                    ),
-                    Stream.of(new Doc.HardLine(), new Doc.Text("}"))
-                ));
-            }
-        } else {
-            sb.append(";");
-            signatureDoc = new Doc.Text(sb.toString());
-        }
+        final var header = renderHeader(leading.toString(), node.getParameters());
+        final var signatureDoc = appendBody(header, node, recursor);
 
         return inlineAnnotation ? signatureDoc : ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), signatureDoc);
+    }
+
+    private static Doc renderHeader(final String leading, final List<? extends VariableTree> params) {
+        if (params.isEmpty()) {
+            return new Doc.Text(leading + "()");
+        }
+        final var interior = new Doc.Concat(Stream.<Doc>concat(
+            Stream.<Doc>of(new Doc.SoftLine()),
+            params.stream()
+                .<Doc>map(p -> new Doc.Text(p.getType() + " " + p.getName()))
+                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
+                .skip(2)
+        ));
+        return new Doc.Group(new Doc.Concat(List.of(
+            new Doc.Text(leading + "("),
+            new Doc.Indent(interior),
+            new Doc.SoftLine(),
+            new Doc.Text(")")
+        )));
+    }
+
+    private static Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor) {
+        if (node.getBody() == null) {
+            return new Doc.Concat(List.of(header, new Doc.Text(";")));
+        }
+        final var stmts = node.getBody().getStatements();
+        if (stmts.isEmpty()) {
+            return new Doc.Concat(List.of(header, new Doc.Text(" {}")));
+        }
+        return new Doc.Concat(Stream.<Doc>concat(
+            Stream.<Doc>concat(
+                Stream.of(header, new Doc.Text(" {")),
+                stmts.stream()
+                    .flatMap(stmt -> Optional.ofNullable(recursor.scan(stmt)).stream())
+                    .map(stmtDoc -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), stmtDoc))))
+            ),
+            Stream.of(new Doc.HardLine(), new Doc.Text("}"))
+        ));
     }
 
     private MethodRenderer() {}

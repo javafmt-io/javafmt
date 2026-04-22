@@ -41,6 +41,58 @@ class MethodRendererTest {
     }
 
     @Nested
+    class ParamList {
+
+        @Test
+        void fitsFlat_staysOnOneLine() {
+            assertThat(format("class Foo { void bar(int a, int b) {} }"))
+                .isEqualTo("class Foo {\n    void bar(int a, int b) {}\n}");
+        }
+
+        @Test
+        void emptyParams_noBreak() {
+            assertThat(format("class Foo { void bar() {} }"))
+                .isEqualTo("class Foo {\n    void bar() {}\n}");
+        }
+
+        @Test
+        void doesNotFit_breaksAllParams() {
+            final var source = "class Foo { void someMethod("
+                + "String argumentNumberOne, String argumentNumberTwo, String argumentNumberThree, "
+                + "String argumentNumberFour, String argumentNumberFive) {} }";
+            assertThat(format(source)).isEqualTo(
+                """
+                class Foo {
+                    void someMethod(
+                        String argumentNumberOne,
+                        String argumentNumberTwo,
+                        String argumentNumberThree,
+                        String argumentNumberFour,
+                        String argumentNumberFive
+                    ) {}
+                }""");
+        }
+
+        @Test
+        void abstractMethod_breaksWithSemicolon() {
+            final var source = "interface Foo { void someMethod("
+                + "String argumentNumberOne, String argumentNumberTwo, String argumentNumberThree, "
+                + "String argumentNumberFour, String argumentNumberFive); }";
+            assertThat(format(source)).isEqualTo(
+                """
+                interface Foo {
+                    void someMethod(
+                        String argumentNumberOne,
+                        String argumentNumberTwo,
+                        String argumentNumberThree,
+                        String argumentNumberFour,
+                        String argumentNumberFive
+                    );
+                }""");
+        }
+    }
+
+    @Nested
     class Annotations {
 
         @Test
