@@ -1,13 +1,20 @@
 package io.github.jschneidereit.grind.ir;
 
+import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.EnhancedForLoopTree;
 import com.sun.source.tree.ExpressionStatementTree;
+import com.sun.source.tree.ForLoopTree;
+import com.sun.source.tree.IfTree;
+import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ReturnTree;
+import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.WhileLoopTree;
 import com.sun.source.util.TreeScanner;
 
 import java.util.List;
@@ -32,14 +39,40 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitCompilationUnit(final CompilationUnitTree node, final Void p) {
-        final var pkgStream = node.getPackageName() != null
+        final var hasPackage = node.getPackageName() != null;
+        final var pkgStream = hasPackage
             ? Stream.<Doc>of(new Doc.Text("package " + node.getPackageName() + ";"), new Doc.HardLine())
             : Stream.<Doc>empty();
         return new Doc.Concat(Stream.concat(
-            pkgStream,
+            Stream.concat(pkgStream, buildImportSection(hasPackage, node.getImports())),
             node.getTypeDecls().stream()
                 .flatMap(decl -> Optional.ofNullable(scan(decl, null)).stream())
         ));
+    }
+
+    private static Stream<Doc> buildImportSection(
+            final boolean hasPackage,
+            final List<? extends ImportTree> imports) {
+        if (imports.isEmpty()) {
+            return Stream.empty();
+        }
+        final var statics = imports.stream()
+            .filter(ImportTree::isStatic)
+            .map(i -> i.getQualifiedIdentifier().toString())
+            .sorted()
+            .toList();
+        final var nonStatics = imports.stream()
+            .filter(i -> !i.isStatic())
+            .map(i -> i.getQualifiedIdentifier().toString())
+            .sorted()
+            .toList();
+        return Stream.of(
+            hasPackage ? Stream.<Doc>of(new Doc.HardLine()) : Stream.<Doc>empty(),
+            statics.stream().flatMap(n -> Stream.<Doc>of(new Doc.Text("import static " + n + ";"), new Doc.HardLine())),
+            !statics.isEmpty() && !nonStatics.isEmpty() ? Stream.<Doc>of(new Doc.HardLine()) : Stream.<Doc>empty(),
+            nonStatics.stream().flatMap(n -> Stream.<Doc>of(new Doc.Text("import " + n + ";"), new Doc.HardLine())),
+            Stream.<Doc>of(new Doc.HardLine())
+        ).flatMap(s -> s);
     }
 
     @Override
@@ -218,6 +251,94 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     @Override
     public @Nullable Doc visitExpressionStatement(final ExpressionStatementTree node, final Void p) {
         return new Doc.Text(node.getExpression() + ";");
+    }
+
+    @Override
+    public @Nullable Doc visitIf(final IfTree node, final Void p) {
+        // javac wraps the condition in JCParens, so toString() already includes the outer ()
+        final var cond = node.getCondition().toString();
+        final var thenStmts = blockStmts(node.getThenStatement());
+        if (node.getElseStatement() == null) {
+            return buildBlock("if " + cond, thenStmts);
+        }
+        if (node.getElseStatement() instanceof IfTree elseIf) {
+            final var elseIfDoc = Objects.requireNonNull(scan(elseIf, null));
+            return new Doc.Concat(Stream.concat(
+                Stream.concat(
+                    blockParts("if " + cond, thenStmts),
+                    Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("} else "))
+                ),
+                Stream.<Doc>of(elseIfDoc)
+            ));
+        }
+        final var elseStmts = blockStmts(node.getElseStatement());
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(
+                blockParts("if " + cond, thenStmts),
+                Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("} else {"))
+            ),
+            Stream.concat(
+                elseStmts.stream()
+                    .<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s)))),
+                Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}"))
+            )
+        ));
+    }
+
+    @Override
+    public @Nullable Doc visitForLoop(final ForLoopTree node, final Void p) {
+        final var init = node.getInitializer().stream()
+            .map(s -> stripTrailingSemicolon(s.toString()))
+            .collect(Collectors.joining(", "));
+        final var cond = node.getCondition() == null ? "" : node.getCondition().toString();
+        final var update = node.getUpdate().stream()
+            .map(s -> stripTrailingSemicolon(s.toString()))
+            .collect(Collectors.joining(", "));
+        return buildBlock("for (" + init + "; " + cond + "; " + update + ")", blockStmts(node.getStatement()));
+    }
+
+    @Override
+    public @Nullable Doc visitEnhancedForLoop(final EnhancedForLoopTree node, final Void p) {
+        final var header = "for (" + node.getVariable().getType() + " " + node.getVariable().getName()
+            + " : " + node.getExpression() + ")";
+        return buildBlock(header, blockStmts(node.getStatement()));
+    }
+
+    @Override
+    public @Nullable Doc visitWhileLoop(final WhileLoopTree node, final Void p) {
+        // javac wraps the condition in JCParens, so toString() already includes the outer ()
+        return buildBlock("while " + node.getCondition(), blockStmts(node.getStatement()));
+    }
+
+    private List<Doc> blockStmts(final StatementTree stmt) {
+        if (stmt instanceof BlockTree block) {
+            return block.getStatements().stream()
+                .flatMap(s -> Optional.ofNullable(scan(s, null)).stream())
+                .toList();
+        }
+        return Optional.ofNullable(scan(stmt, null)).map(List::of).orElse(List.of());
+    }
+
+    private Doc buildBlock(final String header, final List<Doc> stmts) {
+        if (stmts.isEmpty()) {
+            return new Doc.Text(header + " {}");
+        }
+        return new Doc.Concat(Stream.concat(
+            blockParts(header, stmts),
+            Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}"))
+        ));
+    }
+
+    private Stream<Doc> blockParts(final String header, final List<Doc> stmts) {
+        return Stream.concat(
+            Stream.<Doc>of(new Doc.Text(header + " {")),
+            stmts.stream()
+                .<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s))))
+        );
+    }
+
+    private static String stripTrailingSemicolon(final String s) {
+        return s.endsWith(";") ? s.substring(0, s.length() - 1) : s;
     }
 
     private static Doc prependOwnLineAnnotations(final ModifiersTree mods, final Doc doc) {

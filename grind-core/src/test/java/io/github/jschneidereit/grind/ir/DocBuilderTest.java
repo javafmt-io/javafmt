@@ -165,6 +165,43 @@ class DocBuilderTest {
     }
 
     @Nested
+    class ImportTests {
+
+        @Test
+        void unsortedNonStaticImports_areSorted() {
+            assertThat(format("""
+                    import java.util.List;
+                    import java.io.File;
+                    class Foo {}"""))
+                .isEqualTo("import java.io.File;\nimport java.util.List;\n\nclass Foo {}");
+        }
+
+        @Test
+        void mixedImports_staticFirstThenBlankLineThenNonStatic() {
+            assertThat(format("""
+                    import java.util.List;
+                    import static java.util.Collections.emptyList;
+                    class Foo {}"""))
+                .isEqualTo("import static java.util.Collections.emptyList;\n\nimport java.util.List;\n\nclass Foo {}");
+        }
+
+        @Test
+        void alreadySortedImports_areIdempotent() {
+            final var source = "import java.io.File;\nimport java.util.List;\nclass Foo {}";
+            assertThat(format(format(source))).isEqualTo(format(source));
+        }
+
+        @Test
+        void importsAfterPackage_haveBlankLineSeparator() {
+            assertThat(format("""
+                    package com.example;
+                    import java.util.List;
+                    class Foo {}"""))
+                .isEqualTo("package com.example;\n\nimport java.util.List;\n\nclass Foo {}");
+        }
+    }
+
+    @Nested
     class MultipleMembersTests {
 
         @Test
