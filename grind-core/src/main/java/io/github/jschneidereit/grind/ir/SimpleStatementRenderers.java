@@ -5,7 +5,6 @@ import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.ThrowTree;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
@@ -26,7 +25,11 @@ final class SimpleStatementRenderers {
         return new Doc.Text("return " + node.getExpression() + ";");
     }
 
-    static Doc renderExpressionStatement(final ExpressionStatementTree node) {
+    static Doc renderExpressionStatement(final ExpressionStatementTree node, final Recursor recursor) {
+        final var exprDoc = recursor.scan(node.getExpression());
+        if (exprDoc != null) {
+            return new Doc.Concat(List.of(exprDoc, new Doc.Text(";")));
+        }
         return new Doc.Text(node.getExpression() + ";");
     }
 

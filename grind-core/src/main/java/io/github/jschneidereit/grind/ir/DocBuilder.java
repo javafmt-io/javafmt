@@ -8,6 +8,7 @@ import com.sun.source.tree.EnhancedForLoopTree;
 import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.ForLoopTree;
 import com.sun.source.tree.IfTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.SwitchExpressionTree;
@@ -86,7 +87,12 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitExpressionStatement(final ExpressionStatementTree node, final Void p) {
-        return SimpleStatementRenderers.renderExpressionStatement(node);
+        return SimpleStatementRenderers.renderExpressionStatement(node, recursor());
+    }
+
+    @Override
+    public @Nullable Doc visitMethodInvocation(final MethodInvocationTree node, final Void p) {
+        return MethodChainRenderer.render(node, recursor());
     }
 
     @Override
