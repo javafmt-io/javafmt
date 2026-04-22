@@ -38,6 +38,12 @@ class RecordRendererTest {
     }
 
     @Test
+    void record_withNestedClass_stillRenders() {
+        assertThat(format("record R(int x) { class Helper {} }"))
+            .isEqualTo("record R(int x) {\n    class Helper {}\n}");
+    }
+
+    @Test
     void recordWithManyComponents_breaksToOnePerLine() {
         final var source = "record LongRecord(FirstVeryLongComponentType firstVeryLongComponentName, SecondVeryLongComponentType secondVeryLongComponent, ThirdVeryLong thirdVeryLong) {}";
         final var expected = """

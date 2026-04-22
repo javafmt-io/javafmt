@@ -51,4 +51,11 @@ class EnumRendererTest {
         assertThat(format("enum Status implements Serializable { ACTIVE }"))
             .isEqualTo("enum Status implements Serializable { ACTIVE }");
     }
+
+    @Test
+    void enum_withNestedClass_stillRenders() {
+        final var source = "enum Status { ACTIVE; class Helper {} }";
+        final var expected = "enum Status {\n    ACTIVE;\n\n    class Helper {}\n}";
+        assertThat(format(source)).isEqualTo(expected);
+    }
 }

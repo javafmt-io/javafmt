@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.ir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.jschneidereit.grind.GrindConfig;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.printer.Printer;
 
@@ -20,6 +21,10 @@ class ClassLikeRendererTest {
 
     private static String format(final String source) {
         return Printer.print(DocBuilder.build(JavaParser.parse(source)), WIDTH);
+    }
+
+    private static String format(final String source, final GrindConfig config) {
+        return Printer.print(DocBuilder.build(JavaParser.parse(source), config), WIDTH);
     }
 
     @Nested
@@ -179,6 +184,71 @@ class ClassLikeRendererTest {
                         InterfaceIota,
                         InterfaceKappa,
                         InterfaceLambda {}""");
+        }
+    }
+
+    @Nested
+    class NestedTypes {
+
+        @Test
+        void class_withNestedClass_rendersInBody() {
+            assertThat(format("class Outer { class Inner {} }"))
+                .isEqualTo("class Outer {\n    class Inner {}\n}");
+        }
+
+        @Test
+        void class_withNestedInterface_rendersInBody() {
+            assertThat(format("class Outer { interface Inner {} }"))
+                .isEqualTo("class Outer {\n    interface Inner {}\n}");
+        }
+
+        @Test
+        void class_withNestedRecord_rendersInBody() {
+            assertThat(format("class Outer { record Inner(int x) {} }"))
+                .isEqualTo("class Outer {\n    record Inner(int x) {}\n}");
+        }
+
+        @Test
+        void class_withNestedEnum_rendersInBody() {
+            assertThat(format("class Outer { enum Inner { A } }"))
+                .isEqualTo("class Outer {\n    enum Inner { A }\n}");
+        }
+
+        @Test
+        void interface_withNestedClass_rendersInBody() {
+            assertThat(format("interface Outer { class Inner {} }"))
+                .isEqualTo("interface Outer {\n    class Inner {}\n}");
+        }
+
+        @Test
+        void class_withMethodAndNestedClass_declarationOrderPreserved() {
+            assertThat(format("class Outer { void a() {} class Inner {} }"))
+                .isEqualTo("class Outer {\n    void a() {}\n\n    class Inner {}\n}");
+        }
+
+        @Test
+        void class_withNestedClassThenMethod_reorderedSortsMethodFirst() {
+            final var source = "class Outer { class Inner {} void a() {} }";
+            assertThat(format(source, new GrindConfig(true)))
+                .isEqualTo("class Outer {\n    void a() {}\n\n    class Inner {}\n}");
+        }
+
+        @Test
+        void class_withFieldAndNestedClass_bothRender() {
+            assertThat(format("class Outer { int x; class Inner {} }"))
+                .isEqualTo("class Outer {\n    int x;\n\n    class Inner {}\n}");
+        }
+
+        @Test
+        void class_withDeeplyNestedTypes_rendersAllLevels() {
+            assertThat(format("class A { class B { class C {} } }"))
+                .isEqualTo("class A {\n    class B {\n        class C {}\n    }\n}");
+        }
+
+        @Test
+        void class_withNestedClassThatHasExtends_rendersFullHeader() {
+            assertThat(format("class Outer { class Inner extends Base implements Runnable {} }"))
+                .isEqualTo("class Outer {\n    class Inner extends Base implements Runnable {}\n}");
         }
     }
 }

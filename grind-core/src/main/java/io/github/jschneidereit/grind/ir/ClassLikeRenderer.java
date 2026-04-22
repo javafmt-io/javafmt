@@ -30,7 +30,7 @@ final class ClassLikeRenderer {
         final var className = node.getSimpleName().toString();
 
         var memberStream = node.getMembers().stream()
-            .filter(m -> m instanceof VariableTree || m instanceof MethodTree);
+            .filter(m -> m instanceof VariableTree || m instanceof MethodTree || m instanceof ClassTree);
 
         if (config.reorderMembers()) {
             memberStream = memberStream.sorted(Comparator.comparingInt(MemberGrouper::group));
