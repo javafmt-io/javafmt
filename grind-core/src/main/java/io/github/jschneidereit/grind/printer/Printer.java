@@ -65,10 +65,69 @@ public final class Printer {
                 case Doc.IfBreak(var breakContents, var flatContents) ->
                     stack.push(new Frame(frame.indent(), frame.mode(),
                         frame.mode() == Mode.BREAK ? breakContents : flatContents));
+                case Doc.Fill(var parts) -> {
+                    final var newFrames = expandFill(parts, frame.indent(), lineWidth, col);
+                    for (var i = newFrames.size() - 1; i >= 0; i--) {
+                        stack.push(newFrames.get(i));
+                    }
+                }
             }
         }
 
         return sb.toString();
+    }
+
+    private static java.util.List<Frame> expandFill(final java.util.List<Doc> parts, final int indent, final int lineWidth, final int col) {
+        final var out = new java.util.ArrayList<Frame>();
+        var currentCol = col;
+        for (var i = 0; i < parts.size(); i++) {
+            final var part = parts.get(i);
+            final var isSep = (i & 1) == 1;
+            if (!isSep) {
+                out.add(new Frame(indent, Mode.FLAT, part));
+                currentCol += flatWidth(part);
+            } else {
+                final var nextContent = parts.get(i + 1);
+                final var sepFlatWidth = part instanceof Doc.Line ? 1 : 0;
+                if (fits(lineWidth - currentCol - sepFlatWidth, nextContent, indent)) {
+                    out.add(new Frame(indent, Mode.FLAT, part));
+                    currentCol += sepFlatWidth;
+                } else {
+                    out.add(new Frame(indent, Mode.BREAK, part));
+                    currentCol = indent;
+                }
+            }
+        }
+        return out;
+    }
+
+    private static int flatWidth(final Doc doc) {
+        var total = 0;
+        final var work = new ArrayDeque<Doc>();
+        work.push(doc);
+        while (!work.isEmpty()) {
+            final var d = work.pop();
+            switch (d) {
+                case Doc.Text(var s) -> total += s.length();
+                case Doc.Line() -> total += 1;
+                case Doc.SoftLine() -> { /* 0 in flat */ }
+                case Doc.HardLine() -> { return Integer.MAX_VALUE / 2; }
+                case Doc.Indent(var inner) -> work.push(inner);
+                case Doc.Group(var inner) -> work.push(inner);
+                case Doc.IfBreak(var br, var flat) -> work.push(flat);
+                case Doc.Concat(var ps) -> {
+                    for (var i = ps.size() - 1; i >= 0; i--) {
+                        work.push(ps.get(i));
+                    }
+                }
+                case Doc.Fill(var ps) -> {
+                    for (var i = ps.size() - 1; i >= 0; i--) {
+                        work.push(ps.get(i));
+                    }
+                }
+            }
+        }
+        return total;
     }
 
     /**
@@ -102,6 +161,11 @@ public final class Printer {
                     work.push(new Frame(frame.indent(), Mode.FLAT, d));
                 case Doc.IfBreak ifBreak ->
                     work.push(new Frame(frame.indent(), Mode.FLAT, ifBreak.flatContents()));
+                case Doc.Fill(var parts) -> {
+                    for (var i = parts.size() - 1; i >= 0; i--) {
+                        work.push(new Frame(frame.indent(), Mode.FLAT, parts.get(i)));
+                    }
+                }
             }
         }
 

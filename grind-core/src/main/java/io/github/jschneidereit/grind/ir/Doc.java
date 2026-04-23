@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 
 public sealed interface Doc
     permits Doc.Text, Doc.Line, Doc.SoftLine, Doc.HardLine,
-    Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak {
+    Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak, Doc.Fill {
 
     record Text(String value) implements Doc {
         public Text {
@@ -53,6 +53,22 @@ public sealed interface Doc
         public IfBreak {
             Objects.requireNonNull(breakContents, "breakContents");
             Objects.requireNonNull(flatContents, "flatContents");
+        }
+    }
+
+    record Fill(List<Doc> parts) implements Doc {
+        public Fill {
+            Objects.requireNonNull(parts, "parts");
+            parts = List.copyOf(parts);
+            if ((parts.size() & 1) == 0) {
+                throw new IllegalArgumentException("Fill parts must alternate content/separator/.../content (odd length)");
+            }
+            for (var i = 1; i < parts.size(); i += 2) {
+                final var sep = parts.get(i);
+                if (!(sep instanceof Line) && !(sep instanceof SoftLine)) {
+                    throw new IllegalArgumentException("Fill separators must be Line or SoftLine, got: " + sep.getClass().getSimpleName());
+                }
+            }
         }
     }
 }
