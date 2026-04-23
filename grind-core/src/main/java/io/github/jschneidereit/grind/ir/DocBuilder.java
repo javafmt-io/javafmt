@@ -94,6 +94,9 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             || tree instanceof DoWhileLoopTree
             || tree instanceof ThrowTree
             || tree instanceof TryTree
+            || tree instanceof AssertTree
+            || tree instanceof SynchronizedTree
+            || tree instanceof LabeledStatementTree
             || tree instanceof NewArrayTree
             || tree instanceof TypeCastTree
             || tree instanceof ParenthesizedTree
@@ -442,6 +445,21 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     @Override
     public @Nullable Doc visitTry(final TryTree node, final Void p) {
         return TryRenderer.render(node, recursor());
+    }
+
+    @Override
+    public @Nullable Doc visitAssert(final AssertTree node, final Void p) {
+        return SimpleStatementRenderers.renderAssert(node, recursor());
+    }
+
+    @Override
+    public @Nullable Doc visitSynchronized(final SynchronizedTree node, final Void p) {
+        return SimpleStatementRenderers.renderSynchronized(node, recursor());
+    }
+
+    @Override
+    public @Nullable Doc visitLabeledStatement(final LabeledStatementTree node, final Void p) {
+        return SimpleStatementRenderers.renderLabeled(node, recursor());
     }
 
     private DocBuilder(final ParsedUnit unit, final GrindConfig config) {

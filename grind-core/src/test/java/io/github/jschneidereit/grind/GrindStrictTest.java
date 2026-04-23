@@ -17,7 +17,7 @@ class GrindStrictTest {
 
     @Test
     void strictThrowsWhenANodeWouldFallBackToToString() {
-        final var source = "class Foo { void m(Object lock) { synchronized (lock) { int x = 1; } } }";
+        final var source = "class Foo { int m(int x) { return switch (x) { case 1 -> { yield 42; } default -> 0; }; } }";
         assertThatThrownBy(() -> Grind.formatStrict(source))
             .isInstanceOf(UnhandledSyntaxException.class);
     }
