@@ -1,6 +1,9 @@
 package io.github.jschneidereit.grind;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
+import io.github.jschneidereit.grind.parser.JavaParser;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -109,11 +112,20 @@ class GrindFixtureTest {
         final var formatted = Grind.format(input);
         assertThat(formatted).isEqualTo(expected);
         assertThat(Grind.format(formatted)).isEqualTo(formatted);
+        assertWellFormed(name, formatted);
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("idempotentFixtures")
     void idempotent(final String name, final String source) {
-        assertThat(Grind.format(source)).isEqualTo(source);
+        final var formatted = Grind.format(source);
+        assertThat(formatted).isEqualTo(source);
+        assertWellFormed(name, formatted);
+    }
+
+    private static void assertWellFormed(final String name, final String formatted) {
+        assertThatCode(() -> JavaParser.parseUnit(formatted))
+            .as("formatted output for fixture '%s' must re-parse without errors", name)
+            .doesNotThrowAnyException();
     }
 }
