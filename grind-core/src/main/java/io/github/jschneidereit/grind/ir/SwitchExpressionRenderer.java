@@ -17,15 +17,15 @@ import org.jspecify.annotations.Nullable;
 final class SwitchExpressionRenderer {
 
     static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor, attacher);
+        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor, attacher);
     }
 
     static Doc renderSwitch(final SwitchTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor, attacher);
+        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor, attacher);
     }
 
     private static Doc renderSwitchLike(
-            final String selectorWithParens,
+            final Doc selectorWithParens,
             final List<? extends CaseTree> cases,
             final Recursor recursor,
             final LeadingCommentAttacher attacher) {
@@ -34,7 +34,7 @@ final class SwitchExpressionRenderer {
             .toList();
         return new Doc.Concat(Stream.concat(
             Stream.concat(
-                Stream.<Doc>of(new Doc.Text("switch " + selectorWithParens + " {")),
+                Stream.<Doc>of(new Doc.Text("switch "), selectorWithParens, new Doc.Text(" {")),
                 caseDocs.stream()
                     .map(d -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), d))))
             ),

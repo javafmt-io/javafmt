@@ -5,6 +5,7 @@ import com.sun.source.tree.StatementTree;
 
 import io.github.jschneidereit.grind.parser.CommentToken;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -74,6 +75,22 @@ final class BlockRenderer {
 
     static String stripTrailingSemicolon(final String s) {
         return s.endsWith(";") ? s.substring(0, s.length() - 1) : s;
+    }
+
+    static Doc stripTrailingSemicolonDoc(final Doc doc) {
+        if (doc instanceof Doc.Text(var value) && value.endsWith(";")) {
+            return new Doc.Text(value.substring(0, value.length() - 1));
+        }
+        if (doc instanceof Doc.Concat(var parts) && !parts.isEmpty()) {
+            final var last = parts.get(parts.size() - 1);
+            final var stripped = stripTrailingSemicolonDoc(last);
+            if (stripped != last) {
+                final var newParts = new ArrayList<>(parts);
+                newParts.set(newParts.size() - 1, stripped);
+                return new Doc.Concat(newParts);
+            }
+        }
+        return doc;
     }
 
     private BlockRenderer() {}

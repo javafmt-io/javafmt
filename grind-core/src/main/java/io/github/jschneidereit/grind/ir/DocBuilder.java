@@ -78,7 +78,20 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             || tree instanceof ThrowTree
             || tree instanceof TryTree
             || tree instanceof NewArrayTree
-            || tree instanceof TypeCastTree;
+            || tree instanceof TypeCastTree
+            || tree instanceof ParenthesizedTree
+            || tree instanceof InstanceOfTree
+            || tree instanceof BindingPatternTree
+            || tree instanceof DeconstructionPatternTree
+            || tree instanceof PatternCaseLabelTree
+            || tree instanceof BinaryTree
+            || tree instanceof UnaryTree
+            || tree instanceof ConditionalExpressionTree
+            || tree instanceof NewClassTree
+            || tree instanceof AssignmentTree
+            || tree instanceof CompoundAssignmentTree
+            || tree instanceof MemberSelectTree
+            || tree instanceof ArrayAccessTree;
     }
 
     private static Doc textFallback(final Tree tree) {
@@ -166,6 +179,193 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             scanOrText(node.getType()),
             new Doc.Text(") "),
             scanOrText(node.getExpression())));
+    }
+
+    @Override
+    public @Nullable Doc visitParenthesized(final ParenthesizedTree node, final Void p) {
+        return new Doc.Concat(List.of(
+            new Doc.Text("("),
+            scanOrText(node.getExpression()),
+            new Doc.Text(")")));
+    }
+
+    @Override
+    public @Nullable Doc visitInstanceOf(final InstanceOfTree node, final Void p) {
+        final var pattern = node.getPattern();
+        final var rhs = pattern != null ? scanOrText(pattern) : scanOrText(node.getType());
+        return new Doc.Concat(List.of(
+            scanOrText(node.getExpression()),
+            new Doc.Text(" instanceof "),
+            rhs));
+    }
+
+    @Override
+    public @Nullable Doc visitBindingPattern(final BindingPatternTree node, final Void p) {
+        final var variable = node.getVariable();
+        final var typeText = variable.getType() == null ? "var" : variable.getType().toString();
+        return new Doc.Text(typeText + " " + variable.getName());
+    }
+
+    @Override
+    public @Nullable Doc visitDeconstructionPattern(final DeconstructionPatternTree node, final Void p) {
+        final var nested = node.getNestedPatterns().stream()
+            .<Doc>map(this::scanOrText)
+            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
+            .skip(1);
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(
+                Stream.<Doc>of(scanOrText(node.getDeconstructor()), new Doc.Text("(")),
+                nested),
+            Stream.<Doc>of(new Doc.Text(")"))));
+    }
+
+    @Override
+    public @Nullable Doc visitPatternCaseLabel(final PatternCaseLabelTree node, final Void p) {
+        return scanOrText(node.getPattern());
+    }
+
+    @Override
+    public @Nullable Doc visitBinary(final BinaryTree node, final Void p) {
+        return new Doc.Concat(List.of(
+            scanOrText(node.getLeftOperand()),
+            new Doc.Text(" " + operatorText(node) + " "),
+            scanOrText(node.getRightOperand())));
+    }
+
+    @Override
+    public @Nullable Doc visitUnary(final UnaryTree node, final Void p) {
+        final var op = unaryOperatorText(node.getKind());
+        final var postfix = node.getKind() == Tree.Kind.POSTFIX_INCREMENT || node.getKind() == Tree.Kind.POSTFIX_DECREMENT;
+        return postfix
+            ? new Doc.Concat(List.of(scanOrText(node.getExpression()), new Doc.Text(op)))
+            : new Doc.Concat(List.of(new Doc.Text(op), scanOrText(node.getExpression())));
+    }
+
+    @Override
+    public @Nullable Doc visitNewClass(final NewClassTree node, final Void p) {
+        final var args = node.getArguments();
+        final var argsDoc = args.isEmpty()
+            ? (Doc) new Doc.Text("()")
+            : new Doc.Concat(Stream.concat(
+                Stream.concat(
+                    Stream.<Doc>of(new Doc.Text("(")),
+                    args.stream()
+                        .<Doc>map(this::scanOrText)
+                        .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
+                        .skip(1)),
+                Stream.<Doc>of(new Doc.Text(")"))));
+        final var body = node.getClassBody();
+        final var headParts = List.<Doc>of(new Doc.Text("new "), scanOrText(node.getIdentifier()), argsDoc);
+        if (body == null) {
+            return new Doc.Concat(headParts);
+        }
+        final var members = body.getMembers().stream()
+            .<Doc>flatMap(m -> Optional.ofNullable(scan(m, null)).stream())
+            .<Doc>map(d -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), new Doc.HardLine(), d))))
+            .toList();
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(
+                headParts.stream(),
+                Stream.<Doc>of(new Doc.Text(" {"))),
+            Stream.concat(
+                members.stream(),
+                Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}")))));
+    }
+
+    @Override
+    public @Nullable Doc visitAssignment(final AssignmentTree node, final Void p) {
+        return new Doc.Concat(List.of(
+            scanOrText(node.getVariable()),
+            new Doc.Text(" = "),
+            scanOrText(node.getExpression())));
+    }
+
+    @Override
+    public @Nullable Doc visitCompoundAssignment(final CompoundAssignmentTree node, final Void p) {
+        return new Doc.Concat(List.of(
+            scanOrText(node.getVariable()),
+            new Doc.Text(" " + compoundOperatorText(node.getKind()) + " "),
+            scanOrText(node.getExpression())));
+    }
+
+    @Override
+    public @Nullable Doc visitMemberSelect(final MemberSelectTree node, final Void p) {
+        return new Doc.Concat(List.of(
+            scanOrText(node.getExpression()),
+            new Doc.Text("." + node.getIdentifier())));
+    }
+
+    @Override
+    public @Nullable Doc visitArrayAccess(final ArrayAccessTree node, final Void p) {
+        return new Doc.Concat(List.of(
+            scanOrText(node.getExpression()),
+            new Doc.Text("["),
+            scanOrText(node.getIndex()),
+            new Doc.Text("]")));
+    }
+
+    private static String compoundOperatorText(final Tree.Kind kind) {
+        return switch (kind) {
+            case MULTIPLY_ASSIGNMENT -> "*=";
+            case DIVIDE_ASSIGNMENT -> "/=";
+            case REMAINDER_ASSIGNMENT -> "%=";
+            case PLUS_ASSIGNMENT -> "+=";
+            case MINUS_ASSIGNMENT -> "-=";
+            case LEFT_SHIFT_ASSIGNMENT -> "<<=";
+            case RIGHT_SHIFT_ASSIGNMENT -> ">>=";
+            case UNSIGNED_RIGHT_SHIFT_ASSIGNMENT -> ">>>=";
+            case AND_ASSIGNMENT -> "&=";
+            case XOR_ASSIGNMENT -> "^=";
+            case OR_ASSIGNMENT -> "|=";
+            default -> throw new IllegalStateException("Unexpected compound assignment: " + kind);
+        };
+    }
+
+    @Override
+    public @Nullable Doc visitConditionalExpression(final ConditionalExpressionTree node, final Void p) {
+        return new Doc.Concat(List.of(
+            scanOrText(node.getCondition()),
+            new Doc.Text(" ? "),
+            scanOrText(node.getTrueExpression()),
+            new Doc.Text(" : "),
+            scanOrText(node.getFalseExpression())));
+    }
+
+    private static String operatorText(final BinaryTree node) {
+        return switch (node.getKind()) {
+            case MULTIPLY -> "*";
+            case DIVIDE -> "/";
+            case REMAINDER -> "%";
+            case PLUS -> "+";
+            case MINUS -> "-";
+            case LEFT_SHIFT -> "<<";
+            case RIGHT_SHIFT -> ">>";
+            case UNSIGNED_RIGHT_SHIFT -> ">>>";
+            case LESS_THAN -> "<";
+            case GREATER_THAN -> ">";
+            case LESS_THAN_EQUAL -> "<=";
+            case GREATER_THAN_EQUAL -> ">=";
+            case EQUAL_TO -> "==";
+            case NOT_EQUAL_TO -> "!=";
+            case AND -> "&";
+            case XOR -> "^";
+            case OR -> "|";
+            case CONDITIONAL_AND -> "&&";
+            case CONDITIONAL_OR -> "||";
+            default -> throw new IllegalStateException("Unexpected binary operator: " + node.getKind());
+        };
+    }
+
+    private static String unaryOperatorText(final Tree.Kind kind) {
+        return switch (kind) {
+            case POSTFIX_INCREMENT, PREFIX_INCREMENT -> "++";
+            case POSTFIX_DECREMENT, PREFIX_DECREMENT -> "--";
+            case UNARY_PLUS -> "+";
+            case UNARY_MINUS -> "-";
+            case BITWISE_COMPLEMENT -> "~";
+            case LOGICAL_COMPLEMENT -> "!";
+            default -> throw new IllegalStateException("Unexpected unary operator: " + kind);
+        };
     }
 
     private Doc scanOrText(final Tree tree) {

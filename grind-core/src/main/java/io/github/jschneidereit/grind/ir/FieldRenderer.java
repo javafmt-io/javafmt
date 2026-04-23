@@ -10,7 +10,7 @@ final class FieldRenderer {
         final var sb = new StringBuilder();
         ModifierRenderer.renderAnnotations(node.getModifiers(), sb);
         ModifierRenderer.renderModifiers(node.getModifiers(), sb);
-        sb.append(node.getType());
+        sb.append(node.getType() == null ? "var" : node.getType());
         sb.append(" ");
         sb.append(node.getName());
         if (node.getInitializer() == null) {

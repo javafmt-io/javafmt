@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 final class TryRenderer {
 
     static Doc render(final TryTree node, final Recursor recursor) {
+        final var header = buildHeader(node, recursor);
         final var tryStmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
         final var catchStream = node.getCatches().stream().flatMap(c -> catchParts(c, recursor));
         final var finallyBlock = node.getFinallyBlock();
@@ -18,11 +19,27 @@ final class TryRenderer {
                 .map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s))))
         );
         return new Doc.Concat(Stream.of(
-            BlockRenderer.blockParts("try", tryStmts),
+            BlockRenderer.blockParts(header, tryStmts),
             catchStream,
             finallyStream,
             Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}"))
         ).flatMap(s -> s));
+    }
+
+    private static Doc buildHeader(final TryTree node, final Recursor recursor) {
+        final var resources = node.getResources();
+        if (resources == null || resources.isEmpty()) {
+            return new Doc.Text("try");
+        }
+        final var rendered = resources.stream()
+            .<Doc>map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scanOrText(r)))
+            .flatMap(d -> Stream.<Doc>of(new Doc.Text("; "), d))
+            .skip(1)
+            .toList();
+        return new Doc.Concat(Stream.concat(
+            Stream.<Doc>of(new Doc.Text("try (")),
+            Stream.concat(rendered.stream(), Stream.<Doc>of(new Doc.Text(")")))
+        ));
     }
 
     private static Stream<Doc> catchParts(final CatchTree c, final Recursor recursor) {

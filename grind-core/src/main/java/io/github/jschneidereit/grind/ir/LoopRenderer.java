@@ -47,43 +47,40 @@ final class LoopRenderer {
     private static Doc renderPart(final Tree tree, final Recursor recursor, final boolean stripSemicolon) {
         final var scanned = recursor.scan(tree);
         if (scanned != null) {
-            return stripSemicolon ? stripTrailingSemicolonDoc(scanned) : scanned;
+            return stripSemicolon ? BlockRenderer.stripTrailingSemicolonDoc(scanned) : scanned;
         }
         final var text = tree.toString();
         return new Doc.Text(stripSemicolon ? BlockRenderer.stripTrailingSemicolon(text) : text);
     }
 
-    private static Doc stripTrailingSemicolonDoc(final Doc doc) {
-        if (doc instanceof Doc.Text(var value) && value.endsWith(";")) {
-            return new Doc.Text(value.substring(0, value.length() - 1));
-        }
-        if (doc instanceof Doc.Concat(var parts) && !parts.isEmpty()) {
-            final var last = parts.get(parts.size() - 1);
-            final var stripped = stripTrailingSemicolonDoc(last);
-            if (stripped != last) {
-                final var newParts = new ArrayList<>(parts);
-                newParts.set(newParts.size() - 1, stripped);
-                return new Doc.Concat(newParts);
-            }
-        }
-        return doc;
-    }
-
     static Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor) {
-        final var header = "for (" + node.getVariable().getType() + " " + node.getVariable().getName()
-            + " : " + node.getExpression() + ")";
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor));
+        final var variable = node.getVariable();
+        final var typeText = variable.getType() == null ? "var" : variable.getType().toString();
+        final var header = new Doc.Concat(List.of(
+            new Doc.Text("for (" + typeText + " " + variable.getName() + " : "),
+            recursor.scanOrText(node.getExpression()),
+            new Doc.Text(")")
+        ));
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
     }
 
     static Doc renderWhile(final WhileLoopTree node, final Recursor recursor) {
-        return BlockRenderer.buildBlock("while " + node.getCondition(), BlockRenderer.blockStmts(node.getStatement(), recursor));
+        final var header = new Doc.Concat(List.of(
+            new Doc.Text("while "),
+            recursor.scanOrText(node.getCondition())
+        ));
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
     }
 
     static Doc renderDoWhile(final DoWhileLoopTree node, final Recursor recursor) {
         final var stmts = BlockRenderer.blockStmts(node.getStatement(), recursor);
         return new Doc.Concat(Stream.concat(
             BlockRenderer.blockParts("do", stmts),
-            Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("} while " + node.getCondition() + ";"))
+            Stream.<Doc>of(
+                new Doc.HardLine(),
+                new Doc.Text("} while "),
+                recursor.scanOrText(node.getCondition()),
+                new Doc.Text(";"))
         ));
     }
 
