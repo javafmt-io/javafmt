@@ -137,14 +137,16 @@ final class MethodRenderer {
         final var body = node.getBody();
         final var stmts = body.getStatements();
         final var interior = attacher.interior(body);
-        if (stmts.isEmpty() && interior.isEmpty()) {
+        final var tail = attacher.tail(body);
+        if (stmts.isEmpty() && interior.isEmpty() && tail.isEmpty()) {
             return new Doc.Concat(List.of(header, new Doc.Text(" {}")));
         }
         final var stmtDocs = stmts.stream()
             .flatMap(stmt -> Optional.ofNullable(recursor.scan(stmt)).stream())
             .toList();
         final var interiorDocs = interior.stream().<Doc>map(CommentDocs::renderComment).toList();
-        final var all = Stream.concat(interiorDocs.stream(), stmtDocs.stream()).toList();
+        final var tailDocs = tail.stream().<Doc>map(CommentDocs::renderComment).toList();
+        final var all = Stream.of(interiorDocs, stmtDocs, tailDocs).flatMap(List::stream).toList();
         return new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>concat(
                 Stream.of(header, new Doc.Text(" {")),

@@ -482,6 +482,11 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             public java.util.List<io.github.jschneidereit.grind.parser.CommentToken> interior(final Tree node) {
                 return unit.interiorOf(node);
             }
+
+            @Override
+            public java.util.List<io.github.jschneidereit.grind.parser.CommentToken> tail(final Tree node) {
+                return unit.tailOf(node);
+            }
         };
     }
 

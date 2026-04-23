@@ -11,4 +11,8 @@ interface LeadingCommentAttacher {
     Doc attach(Tree node, Doc doc);
 
     List<CommentToken> interior(Tree node);
+
+    default List<CommentToken> tail(final Tree node) {
+        return List.of();
+    }
 }

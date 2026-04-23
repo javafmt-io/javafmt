@@ -15,7 +15,8 @@ public record ParsedUnit(
         List<CommentToken> fileFooter,
         Map<Tree, List<CommentToken>> leading,
         Map<Tree, List<CommentToken>> trailing,
-        Map<Tree, List<CommentToken>> interior) {
+        Map<Tree, List<CommentToken>> interior,
+        Map<Tree, List<CommentToken>> tail) {
 
     @SuppressWarnings("IdentityHashMapUsage")
     public ParsedUnit {
@@ -25,14 +26,27 @@ public record ParsedUnit(
         Objects.requireNonNull(leading, "leading");
         Objects.requireNonNull(trailing, "trailing");
         Objects.requireNonNull(interior, "interior");
+        Objects.requireNonNull(tail, "tail");
         fileHeader = List.copyOf(fileHeader);
         fileFooter = List.copyOf(fileFooter);
         final IdentityHashMap<Tree, List<CommentToken>> leadingCopy = new IdentityHashMap<>(leading);
         final IdentityHashMap<Tree, List<CommentToken>> trailingCopy = new IdentityHashMap<>(trailing);
         final IdentityHashMap<Tree, List<CommentToken>> interiorCopy = new IdentityHashMap<>(interior);
+        final IdentityHashMap<Tree, List<CommentToken>> tailCopy = new IdentityHashMap<>(tail);
         leading = Collections.unmodifiableMap(leadingCopy);
         trailing = Collections.unmodifiableMap(trailingCopy);
         interior = Collections.unmodifiableMap(interiorCopy);
+        tail = Collections.unmodifiableMap(tailCopy);
+    }
+
+    public ParsedUnit(
+            final CompilationUnitTree tree,
+            final List<CommentToken> fileHeader,
+            final List<CommentToken> fileFooter,
+            final Map<Tree, List<CommentToken>> leading,
+            final Map<Tree, List<CommentToken>> trailing,
+            final Map<Tree, List<CommentToken>> interior) {
+        this(tree, fileHeader, fileFooter, leading, trailing, interior, Map.of());
     }
 
     public List<CommentToken> leadingOf(final Tree node) {
@@ -45,5 +59,9 @@ public record ParsedUnit(
 
     public List<CommentToken> interiorOf(final Tree node) {
         return interior.getOrDefault(node, List.of());
+    }
+
+    public List<CommentToken> tailOf(final Tree node) {
+        return tail.getOrDefault(node, List.of());
     }
 }

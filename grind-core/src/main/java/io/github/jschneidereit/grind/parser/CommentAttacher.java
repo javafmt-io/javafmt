@@ -45,6 +45,7 @@ final class CommentAttacher {
         final var leading = new IdentityHashMap<Tree, List<CommentToken>>();
         final var trailing = new IdentityHashMap<Tree, List<CommentToken>>();
         final var interior = new IdentityHashMap<Tree, List<CommentToken>>();
+        final var tail = new IdentityHashMap<Tree, List<CommentToken>>();
 
         var idx = 0;
         for (final var c : comments) {
@@ -76,11 +77,15 @@ final class CommentAttacher {
                         interior.computeIfAbsent(slot.owner(), k -> new ArrayList<>()).add(c);
                     }
                 }
-                case TAIL -> { }
+                case TAIL -> {
+                    if (slot.owner() != null) {
+                        tail.computeIfAbsent(slot.owner(), k -> new ArrayList<>()).add(c);
+                    }
+                }
             }
         }
 
-        return new ParsedUnit(tree, fileHeader, fileFooter, leading, trailing, interior);
+        return new ParsedUnit(tree, fileHeader, fileFooter, leading, trailing, interior, tail);
     }
 
     private static boolean sameLine(final String source, final int from, final int to) {
@@ -278,7 +283,7 @@ final class CommentAttacher {
                 prevEnd = pos.getEndPosition(cu, child);
             }
             if (emitTail && containerHi > prevEnd) {
-                slots.add(new Slot(prev, null, prevEnd, containerHi, Kind.TAIL));
+                slots.add(new Slot(prev, container, prevEnd, containerHi, Kind.TAIL));
             }
         }
 
