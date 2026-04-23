@@ -95,7 +95,7 @@ final class MethodRenderer {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
             params.stream()
-                .<Doc>map(p -> attacher.attach(p, new Doc.Text(p.getType() + " " + p.getName())))
+                .<Doc>map(p -> attacher.attach(p, new Doc.Text(renderParam(p))))
                 .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
                 .skip(2)
         ));
@@ -106,6 +106,16 @@ final class MethodRenderer {
             new Doc.SoftLine(),
             new Doc.Text(")")
         ));
+    }
+
+    private static String renderParam(final VariableTree p) {
+        final var sb = new StringBuilder();
+        ModifierRenderer.renderAnnotations(p.getModifiers(), sb);
+        ModifierRenderer.renderModifiers(p.getModifiers(), sb);
+        sb.append(p.getType() == null ? "var" : p.getType());
+        sb.append(" ");
+        sb.append(p.getName());
+        return sb.toString();
     }
 
     private static Doc buildThrowsTail(final List<? extends ExpressionTree> throwsList, final Recursor recursor) {

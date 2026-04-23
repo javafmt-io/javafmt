@@ -6,6 +6,7 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class MethodChainRenderer {
@@ -27,7 +28,7 @@ final class MethodChainRenderer {
     private static List<Doc> collectLinks(final Tree expr, final Recursor recursor) {
         if (expr instanceof MethodInvocationTree mit
             && mit.getMethodSelect() instanceof MemberSelectTree ms) {
-            final var callSuffix = buildCallSuffix("." + ms.getIdentifier(), mit.getArguments(), recursor);
+            final var callSuffix = buildCallSuffix("." + typeArgs(mit) + ms.getIdentifier(), mit.getArguments(), recursor);
             if (ms.getExpression() instanceof MethodInvocationTree) {
                 return Stream.concat(
                     collectLinks(ms.getExpression(), recursor).stream(),
@@ -37,9 +38,19 @@ final class MethodChainRenderer {
             return List.of(new Doc.Concat(List.of(renderNonChain(ms.getExpression(), recursor), callSuffix)));
         }
         if (expr instanceof MethodInvocationTree mit) {
-            return List.of(buildCallSuffix(mit.getMethodSelect().toString(), mit.getArguments(), recursor));
+            return List.of(buildCallSuffix(typeArgs(mit) + mit.getMethodSelect(), mit.getArguments(), recursor));
         }
         return List.of(renderNonChain(expr, recursor));
+    }
+
+    private static String typeArgs(final MethodInvocationTree mit) {
+        final var args = mit.getTypeArguments();
+        if (args.isEmpty()) {
+            return "";
+        }
+        return args.stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(", ", "<", ">"));
     }
 
     private static Doc buildCallSuffix(final String head, final List<? extends ExpressionTree> args, final Recursor recursor) {
