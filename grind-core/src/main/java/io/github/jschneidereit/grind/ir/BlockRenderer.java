@@ -3,6 +3,8 @@ package io.github.jschneidereit.grind.ir;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.StatementTree;
 
+import io.github.jschneidereit.grind.parser.CommentToken;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -19,23 +21,39 @@ final class BlockRenderer {
     }
 
     static Doc buildBlock(final String header, final List<Doc> stmts) {
-        if (stmts.isEmpty()) {
-            return new Doc.Text(header + " {}");
+        return buildBlock(header, stmts, List.of());
+    }
+
+    static Doc buildBlock(final String header, final List<Doc> stmts, final List<CommentToken> interior) {
+        return buildBlock(new Doc.Text(header), stmts, interior);
+    }
+
+    static Doc buildBlock(final Doc header, final List<Doc> stmts, final List<CommentToken> interior) {
+        if (stmts.isEmpty() && interior.isEmpty()) {
+            return new Doc.Concat(List.of(header, new Doc.Text(" {}")));
         }
+        final var interiorDocs = interior.stream().<Doc>map(CommentDocs::renderComment).toList();
+        final var all = Stream.concat(interiorDocs.stream(), stmts.stream()).toList();
         return new Doc.Concat(Stream.concat(
-            blockParts(header, stmts),
+            blockParts(header, all),
             Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}"))
         ));
     }
 
     static Doc buildBlock(final List<Doc> stmts) {
-        if (stmts.isEmpty()) {
+        return buildBlock(stmts, List.of());
+    }
+
+    static Doc buildBlock(final List<Doc> stmts, final List<CommentToken> interior) {
+        if (stmts.isEmpty() && interior.isEmpty()) {
             return new Doc.Text("{}");
         }
+        final var interiorDocs = interior.stream().<Doc>map(CommentDocs::renderComment).toList();
+        final var all = Stream.concat(interiorDocs.stream(), stmts.stream()).toList();
         return new Doc.Concat(Stream.concat(
             Stream.concat(
                 Stream.<Doc>of(new Doc.Text("{")),
-                stmts.stream()
+                all.stream()
                     .<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s))))
             ),
             Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}"))
@@ -43,8 +61,12 @@ final class BlockRenderer {
     }
 
     static Stream<Doc> blockParts(final String header, final List<Doc> stmts) {
+        return blockParts(new Doc.Text(header), stmts);
+    }
+
+    static Stream<Doc> blockParts(final Doc header, final List<Doc> stmts) {
         return Stream.concat(
-            Stream.<Doc>of(new Doc.Text(header + " {")),
+            Stream.<Doc>of(header, new Doc.Text(" {")),
             stmts.stream()
                 .<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s))))
         );

@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
 
 final class ClassLikeRenderer {
 
-    static Doc render(final ClassTree node, final String keyword, final Recursor recursor, final GrindConfig config) {
+    static Doc render(final ClassTree node, final String keyword, final Recursor recursor, final GrindConfig config, final LeadingCommentAttacher attacher) {
         final var modifiers = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), modifiers);
         final var prefix = modifiers.toString() + keyword + " " + node.getSimpleName();
@@ -30,7 +30,7 @@ final class ClassLikeRenderer {
         final var interfaces = node.getImplementsClause();
         final var permits = node.getPermitsClause();
         final var headerDoc = buildTypeDeclHeader(
-            new Doc.Text(prefix), superclass, interfaces, isInterface, permits);
+            new Doc.Text(prefix), superclass, interfaces, isInterface, permits, recursor);
 
         final var className = node.getSimpleName().toString();
         final var sealedParent = node.getModifiers().getFlags().contains(Modifier.SEALED);
@@ -46,7 +46,7 @@ final class ClassLikeRenderer {
         }
 
         final var members = memberStream
-            .flatMap(m -> Optional.ofNullable(renderMember(m, className, recursor)).stream())
+            .flatMap(m -> Optional.ofNullable(renderMember(m, className, recursor, attacher)).stream())
             .toList();
 
         if (members.isEmpty()) {
@@ -73,8 +73,9 @@ final class ClassLikeRenderer {
             final Doc prefix,
             final @Nullable Tree superclass,
             final List<? extends Tree> interfaces,
-            final boolean interfacesKeywordIsExtends) {
-        return buildTypeDeclHeader(prefix, superclass, interfaces, interfacesKeywordIsExtends, List.of());
+            final boolean interfacesKeywordIsExtends,
+            final Recursor recursor) {
+        return buildTypeDeclHeader(prefix, superclass, interfaces, interfacesKeywordIsExtends, List.of(), recursor);
     }
 
     static Doc buildTypeDeclHeader(
@@ -82,7 +83,8 @@ final class ClassLikeRenderer {
             final @Nullable Tree superclass,
             final List<? extends Tree> interfaces,
             final boolean interfacesKeywordIsExtends,
-            final List<? extends Tree> permits) {
+            final List<? extends Tree> permits,
+            final Recursor recursor) {
         if (superclass == null && interfaces.isEmpty() && permits.isEmpty()) {
             return prefix;
         }
@@ -91,22 +93,23 @@ final class ClassLikeRenderer {
         if (superclass != null) {
             parts.add(new Doc.Indent(new Doc.Concat(List.of(
                 new Doc.Line(),
-                new Doc.Text("extends " + superclass)
+                new Doc.Text("extends "),
+                recursor.scanOrText(superclass)
             ))));
         }
         if (!interfaces.isEmpty()) {
             final var keyword = interfacesKeywordIsExtends ? "extends " : "implements ";
-            parts.add(buildTypeList(keyword, interfaces));
+            parts.add(buildTypeList(keyword, interfaces, recursor));
         }
         if (!permits.isEmpty()) {
-            parts.add(buildTypeList("permits ", permits));
+            parts.add(buildTypeList("permits ", permits, recursor));
         }
         return new Doc.Group(new Doc.Concat(parts));
     }
 
-    private static Doc buildTypeList(final String keyword, final List<? extends Tree> types) {
+    private static Doc buildTypeList(final String keyword, final List<? extends Tree> types, final Recursor recursor) {
         final var typesInterior = new Doc.Concat(types.stream()
-            .<Doc>map(t -> new Doc.Text(t.toString()))
+            .<Doc>map(recursor::scanOrText)
             .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
             .skip(2));
         return new Doc.Indent(new Doc.Concat(List.of(
@@ -117,12 +120,12 @@ final class ClassLikeRenderer {
     }
 
     private static @Nullable Doc renderMember(
-            final Tree member, final String className, final Recursor recursor) {
+            final Tree member, final String className, final Recursor recursor, final LeadingCommentAttacher attacher) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
-            return ConstructorRenderer.render(mt, className, recursor);
+            return attacher.attach(mt, ConstructorRenderer.render(mt, className, recursor, attacher));
         }
         if (member instanceof BlockTree bt) {
-            return InitBlockRenderer.render(bt, recursor);
+            return attacher.attach(bt, InitBlockRenderer.render(bt, recursor, attacher));
         }
         return recursor.scan(member);
     }

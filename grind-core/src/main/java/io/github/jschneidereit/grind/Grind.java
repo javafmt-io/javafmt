@@ -12,7 +12,7 @@ public final class Grind {
         if (source.isEmpty()) {
             return source;
         }
-        return Printer.print(DocBuilder.build(JavaParser.parse(source), config), LINE_WIDTH);
+        return Printer.print(DocBuilder.build(JavaParser.parseUnit(source), config), LINE_WIDTH);
     }
 
     public static String format(final String source) {

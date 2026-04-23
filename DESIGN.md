@@ -127,7 +127,7 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 | **Enum constants** | No sort requirement, trailing comma optional | Alphabetically sorted, trailing comma required | Adding a constant produces a clean 1-line diff with no comma-shuffling on the previous line. |
 | **Brace enforcement** | Required, but missing braces isn't a build failure | Missing braces = build failure (lint, not auto-fix) | Eliminates the class of bugs where a stray `if` silently gains a second statement; reviewers don't have to verify brace scope. |
 | **Annotations** | Fields: same line allowed; methods: own line unless single+no-args | Same as Google | — |
-| **Javadoc / comments** | Required on all visible members | Left alone (v1) | — |
+| **Javadoc / comments** | Required on all visible members | Preserved verbatim, every position | — |
 | **Method chains** | Not specified | Break before `.` if chain doesn't fit | — |
 | **Records** | Not specified | One line if fits, else one component per line | — |
 
@@ -228,7 +228,9 @@ Follows Google Java Style annotation placement rules:
   ```
 
 ### Javadoc / comments
-- **Left alone** — the formatter does not touch comments or Javadoc (v1)
+- **Preserved verbatim** — every `//`, `/* */`, and `/** */` in the input appears in the output with its original text intact. No re-wrapping, no `*`-alignment changes, no stripping.
+- All positions are covered: file-header comments above `package`, leading comments on declarations (class/interface/enum/record/method/constructor/field/init block/enum constant), comments on imports, comments between statements, trailing same-line comments (`int x = 1; // note`), comments inside argument and parameter lists, and comments inside empty blocks (`{ /* note */ }`).
+- Continuation lines of multi-line block comments have their original source column stripped and are re-indented to the current position, so alignment is preserved when the declaration moves.
 
 ### Blank lines
 - One blank line between methods

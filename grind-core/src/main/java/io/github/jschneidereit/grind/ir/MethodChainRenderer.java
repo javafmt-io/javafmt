@@ -62,13 +62,11 @@ final class MethodChainRenderer {
     }
 
     private static Doc renderArg(final ExpressionTree arg, final Recursor recursor) {
-        final var scanned = recursor.scan(arg);
-        return scanned != null ? scanned : new Doc.Text(arg.toString());
+        return recursor.scanOrText(arg);
     }
 
     private static Doc renderNonChain(final Tree tree, final Recursor recursor) {
-        final var scanned = recursor.scan(tree);
-        return scanned != null ? scanned : new Doc.Text(tree.toString());
+        return recursor.scanOrText(tree);
     }
 
     private MethodChainRenderer() {}

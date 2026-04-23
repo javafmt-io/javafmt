@@ -15,12 +15,12 @@ import java.util.stream.Stream;
 
 final class EnumRenderer {
 
-    static Doc render(final ClassTree node, final Recursor recursor, final GrindConfig config) {
+    static Doc render(final ClassTree node, final Recursor recursor, final GrindConfig config, final LeadingCommentAttacher attacher) {
         final var modifiers = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), modifiers);
         final var prefix = modifiers.toString() + "enum " + node.getSimpleName();
         final var headerDoc = ClassLikeRenderer.buildTypeDeclHeader(
-            new Doc.Text(prefix), null, node.getImplementsClause(), false);
+            new Doc.Text(prefix), null, node.getImplementsClause(), false, recursor);
 
         final var constants = node.getMembers().stream()
             .filter(m -> m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree)
@@ -38,7 +38,7 @@ final class EnumRenderer {
         }
 
         final var bodyMembers = bodyMemberStream
-            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, className, recursor)).stream())
+            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, className, recursor, attacher)).stream())
             .toList();
 
         if (constants.isEmpty() && bodyMembers.isEmpty()) {
@@ -54,7 +54,7 @@ final class EnumRenderer {
                 Stream.<Doc>of(new Doc.Line()),
                 Stream.concat(
                     constants.stream()
-                        .<Doc>map(v -> new Doc.Text(v.getName().toString()))
+                        .<Doc>map(v -> attacher.attach(v, renderConstant(v, recursor)))
                         .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
                         .skip(2),
                     Stream.<Doc>of(new Doc.IfBreak(new Doc.Text(","), new Doc.Text("")))
@@ -75,7 +75,10 @@ final class EnumRenderer {
         final var constantsDocs = IntStream.range(0, n)
             .<Doc>mapToObj(i -> new Doc.Indent(new Doc.Concat(List.of(
                 new Doc.HardLine(),
-                new Doc.Text(constants.get(i).getName() + (i < n - 1 ? "," : ";"))
+                attacher.attach(constants.get(i), new Doc.Concat(List.of(
+                    renderConstant(constants.get(i), recursor),
+                    new Doc.Text(i < n - 1 ? "," : ";")
+                )))
             ))));
 
         final Stream<Doc> bodyMembersDocs = Stream.concat(
@@ -100,13 +103,28 @@ final class EnumRenderer {
         )));
     }
 
+    private static Doc renderConstant(final VariableTree v, final Recursor recursor) {
+        final var name = v.getName().toString();
+        if (!(v.getInitializer() instanceof NewClassTree nc) || nc.getArguments().isEmpty()) {
+            return new Doc.Text(name);
+        }
+        final var argsInterior = nc.getArguments().stream()
+            .<Doc>map(recursor::scanOrText)
+            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
+            .skip(1);
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(Stream.<Doc>of(new Doc.Text(name + "(")), argsInterior),
+            Stream.<Doc>of(new Doc.Text(")"))));
+    }
+
     private static @org.jspecify.annotations.Nullable Doc renderBodyMember(
-            final com.sun.source.tree.Tree member, final String className, final Recursor recursor) {
+            final com.sun.source.tree.Tree member, final String className, final Recursor recursor,
+            final LeadingCommentAttacher attacher) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
-            return ConstructorRenderer.render(mt, className, recursor);
+            return attacher.attach(mt, ConstructorRenderer.render(mt, className, recursor, attacher));
         }
         if (member instanceof BlockTree bt) {
-            return InitBlockRenderer.render(bt, recursor);
+            return attacher.attach(bt, InitBlockRenderer.render(bt, recursor, attacher));
         }
         return recursor.scan(member);
     }

@@ -3,25 +3,70 @@ package io.github.jschneidereit.grind.ir;
 import com.sun.source.tree.DoWhileLoopTree;
 import com.sun.source.tree.EnhancedForLoopTree;
 import com.sun.source.tree.ForLoopTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.WhileLoopTree;
 
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 final class LoopRenderer {
 
     static Doc renderFor(final ForLoopTree node, final Recursor recursor) {
-        final var init = node.getInitializer().stream()
-            .map(s -> BlockRenderer.stripTrailingSemicolon(s.toString()))
-            .collect(Collectors.joining(", "));
-        final var cond = node.getCondition() == null ? "" : node.getCondition().toString();
-        final var update = node.getUpdate().stream()
-            .map(s -> BlockRenderer.stripTrailingSemicolon(s.toString()))
-            .collect(Collectors.joining(", "));
-        return BlockRenderer.buildBlock(
-            "for (" + init + "; " + cond + "; " + update + ")",
-            BlockRenderer.blockStmts(node.getStatement(), recursor)
-        );
+        final var header = buildForHeader(node, recursor);
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
+    }
+
+    private static Doc buildForHeader(final ForLoopTree node, final Recursor recursor) {
+        final var parts = new ArrayList<Doc>();
+        parts.add(new Doc.Text("for ("));
+        joinInto(parts, node.getInitializer(), recursor, true);
+        parts.add(new Doc.Text("; "));
+        if (node.getCondition() != null) {
+            parts.add(renderPart(node.getCondition(), recursor, false));
+        }
+        parts.add(new Doc.Text("; "));
+        joinInto(parts, node.getUpdate(), recursor, true);
+        parts.add(new Doc.Text(")"));
+        return new Doc.Concat(parts);
+    }
+
+    private static void joinInto(
+            final List<Doc> parts,
+            final List<? extends Tree> trees,
+            final Recursor recursor,
+            final boolean stripSemicolon) {
+        for (var i = 0; i < trees.size(); i++) {
+            if (i > 0) {
+                parts.add(new Doc.Text(", "));
+            }
+            parts.add(renderPart(trees.get(i), recursor, stripSemicolon));
+        }
+    }
+
+    private static Doc renderPart(final Tree tree, final Recursor recursor, final boolean stripSemicolon) {
+        final var scanned = recursor.scan(tree);
+        if (scanned != null) {
+            return stripSemicolon ? stripTrailingSemicolonDoc(scanned) : scanned;
+        }
+        final var text = tree.toString();
+        return new Doc.Text(stripSemicolon ? BlockRenderer.stripTrailingSemicolon(text) : text);
+    }
+
+    private static Doc stripTrailingSemicolonDoc(final Doc doc) {
+        if (doc instanceof Doc.Text(var value) && value.endsWith(";")) {
+            return new Doc.Text(value.substring(0, value.length() - 1));
+        }
+        if (doc instanceof Doc.Concat(var parts) && !parts.isEmpty()) {
+            final var last = parts.get(parts.size() - 1);
+            final var stripped = stripTrailingSemicolonDoc(last);
+            if (stripped != last) {
+                final var newParts = new ArrayList<>(parts);
+                newParts.set(newParts.size() - 1, stripped);
+                return new Doc.Concat(newParts);
+            }
+        }
+        return doc;
     }
 
     static Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor) {
@@ -31,13 +76,11 @@ final class LoopRenderer {
     }
 
     static Doc renderWhile(final WhileLoopTree node, final Recursor recursor) {
-        // javac wraps the condition in JCParens, so toString() already includes the outer ()
         return BlockRenderer.buildBlock("while " + node.getCondition(), BlockRenderer.blockStmts(node.getStatement(), recursor));
     }
 
     static Doc renderDoWhile(final DoWhileLoopTree node, final Recursor recursor) {
         final var stmts = BlockRenderer.blockStmts(node.getStatement(), recursor);
-        // javac wraps the condition in JCParens, so toString() already includes the outer ()
         return new Doc.Concat(Stream.concat(
             BlockRenderer.blockParts("do", stmts),
             Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("} while " + node.getCondition() + ";"))

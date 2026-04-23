@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 final class MethodRenderer {
 
-    static @Nullable Doc render(final MethodTree node, final Recursor recursor) {
+    static @Nullable Doc render(final MethodTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
         if (node.getName().contentEquals("<init>")) {
             return null;
         }
@@ -33,10 +33,10 @@ final class MethodRenderer {
         }
         afterTypeParams.append(node.getName());
 
-        final var leading = buildLeading(modifiersText.toString(), node.getTypeParameters(), afterTypeParams.toString());
+        final var leading = buildLeading(modifiersText.toString(), node.getTypeParameters(), afterTypeParams.toString(), recursor);
 
-        final var signature = renderSignature(leading, node.getParameters(), node.getThrows());
-        final var signatureDoc = appendBody(signature, node, recursor);
+        final var signature = renderSignature(leading, node.getParameters(), node.getThrows(), attacher, recursor);
+        final var signatureDoc = appendBody(signature, node, recursor, attacher);
 
         return inlineAnnotation ? signatureDoc : ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), signatureDoc);
     }
@@ -44,22 +44,23 @@ final class MethodRenderer {
     static Doc buildLeading(
             final String modifiers,
             final List<? extends TypeParameterTree> typeParams,
-            final String afterTypeParams) {
+            final String afterTypeParams,
+            final Recursor recursor) {
         if (typeParams.isEmpty()) {
             return new Doc.Text(modifiers + afterTypeParams);
         }
         return new Doc.Concat(List.of(
             new Doc.Text(modifiers),
-            renderTypeParams(typeParams),
+            renderTypeParams(typeParams, recursor),
             new Doc.Text(" " + afterTypeParams)
         ));
     }
 
-    private static Doc renderTypeParams(final List<? extends TypeParameterTree> typeParams) {
+    private static Doc renderTypeParams(final List<? extends TypeParameterTree> typeParams, final Recursor recursor) {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
             typeParams.stream()
-                .<Doc>map(tp -> new Doc.Text(tp.toString()))
+                .<Doc>map(recursor::scanOrText)
                 .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
                 .skip(2)
         ));
@@ -74,24 +75,27 @@ final class MethodRenderer {
     static Doc renderSignature(
             final Doc leading,
             final List<? extends VariableTree> params,
-            final List<? extends ExpressionTree> throwsList) {
+            final List<? extends ExpressionTree> throwsList,
+            final LeadingCommentAttacher attacher,
+            final Recursor recursor) {
         if (params.isEmpty() && throwsList.isEmpty()) {
             return new Doc.Concat(List.of(leading, new Doc.Text("()")));
         }
         final Doc paramsPart = params.isEmpty()
             ? new Doc.Concat(List.of(leading, new Doc.Text("()")))
-            : buildParamsPart(leading, params);
+            : buildParamsPart(leading, params, attacher);
         if (throwsList.isEmpty()) {
             return new Doc.Group(paramsPart);
         }
-        return new Doc.Group(new Doc.Concat(List.of(paramsPart, buildThrowsTail(throwsList))));
+        return new Doc.Group(new Doc.Concat(List.of(paramsPart, buildThrowsTail(throwsList, recursor))));
     }
 
-    private static Doc buildParamsPart(final Doc leading, final List<? extends VariableTree> params) {
+    private static Doc buildParamsPart(
+            final Doc leading, final List<? extends VariableTree> params, final LeadingCommentAttacher attacher) {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
             params.stream()
-                .<Doc>map(p -> new Doc.Text(p.getType() + " " + p.getName()))
+                .<Doc>map(p -> attacher.attach(p, new Doc.Text(p.getType() + " " + p.getName())))
                 .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
                 .skip(2)
         ));
@@ -104,9 +108,9 @@ final class MethodRenderer {
         ));
     }
 
-    private static Doc buildThrowsTail(final List<? extends ExpressionTree> throwsList) {
+    private static Doc buildThrowsTail(final List<? extends ExpressionTree> throwsList, final Recursor recursor) {
         final var typesInterior = new Doc.Concat(throwsList.stream()
-            .<Doc>map(e -> new Doc.Text(e.toString()))
+            .<Doc>map(recursor::scanOrText)
             .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
             .skip(2));
         return new Doc.Indent(new Doc.Concat(List.of(
@@ -116,20 +120,26 @@ final class MethodRenderer {
         )));
     }
 
-    static Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor) {
+    static Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
         if (node.getBody() == null) {
             return new Doc.Concat(List.of(header, new Doc.Text(";")));
         }
-        final var stmts = node.getBody().getStatements();
-        if (stmts.isEmpty()) {
+        final var body = node.getBody();
+        final var stmts = body.getStatements();
+        final var interior = attacher.interior(body);
+        if (stmts.isEmpty() && interior.isEmpty()) {
             return new Doc.Concat(List.of(header, new Doc.Text(" {}")));
         }
+        final var stmtDocs = stmts.stream()
+            .flatMap(stmt -> Optional.ofNullable(recursor.scan(stmt)).stream())
+            .toList();
+        final var interiorDocs = interior.stream().<Doc>map(CommentDocs::renderComment).toList();
+        final var all = Stream.concat(interiorDocs.stream(), stmtDocs.stream()).toList();
         return new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>concat(
                 Stream.of(header, new Doc.Text(" {")),
-                stmts.stream()
-                    .flatMap(stmt -> Optional.ofNullable(recursor.scan(stmt)).stream())
-                    .map(stmtDoc -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), stmtDoc))))
+                all.stream()
+                    .map(d -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), d))))
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         ));

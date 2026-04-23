@@ -4,7 +4,7 @@ import com.sun.source.tree.MethodTree;
 
 final class ConstructorRenderer {
 
-    static Doc render(final MethodTree node, final String className, final Recursor recursor) {
+    static Doc render(final MethodTree node, final String className, final Recursor recursor, final LeadingCommentAttacher attacher) {
         final var annotations = node.getModifiers().getAnnotations();
         final var inlineAnnotation = annotations.size() == 1 && annotations.get(0).getArguments().isEmpty();
 
@@ -14,9 +14,9 @@ final class ConstructorRenderer {
         }
         ModifierRenderer.renderModifiers(node.getModifiers(), modifiersText);
 
-        final var leading = MethodRenderer.buildLeading(modifiersText.toString(), node.getTypeParameters(), className);
-        final var signature = MethodRenderer.renderSignature(leading, node.getParameters(), node.getThrows());
-        final var signatureDoc = MethodRenderer.appendBody(signature, node, recursor);
+        final var leading = MethodRenderer.buildLeading(modifiersText.toString(), node.getTypeParameters(), className, recursor);
+        final var signature = MethodRenderer.renderSignature(leading, node.getParameters(), node.getThrows(), attacher, recursor);
+        final var signatureDoc = MethodRenderer.appendBody(signature, node, recursor, attacher);
 
         return inlineAnnotation ? signatureDoc : ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), signatureDoc);
     }

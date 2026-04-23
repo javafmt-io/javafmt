@@ -16,7 +16,7 @@ import javax.lang.model.element.Modifier;
 
 final class RecordRenderer {
 
-    static Doc render(final ClassTree node, final Recursor recursor, final GrindConfig config) {
+    static Doc render(final ClassTree node, final Recursor recursor, final GrindConfig config, final LeadingCommentAttacher attacher) {
         final var prefix = new StringBuilder();
         ModifierRenderer.renderModifiers(node.getModifiers(), prefix);
         prefix.append("record ").append(node.getSimpleName());
@@ -39,7 +39,7 @@ final class RecordRenderer {
         }
 
         final var bodyMembers = bodyMemberStream
-            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, recursor)).stream())
+            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, recursor, attacher)).stream())
             .toList();
 
         final Doc componentListDoc;
@@ -51,11 +51,8 @@ final class RecordRenderer {
                 new Doc.Indent(new Doc.Concat(Stream.concat(
                     Stream.<Doc>of(new Doc.SoftLine()),
                     components.stream()
-                        .flatMap(comp -> Stream.<Doc>of(
-                            new Doc.Text(","),
-                            new Doc.Line(),
-                            new Doc.Text(comp.getType() + " " + comp.getName())
-                        ))
+                        .<Doc>map(comp -> attacher.attach(comp, new Doc.Text(comp.getType() + " " + comp.getName())))
+                        .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
                         .skip(2)
                 ))),
                 new Doc.SoftLine(),
@@ -68,7 +65,7 @@ final class RecordRenderer {
             componentListDoc
         ));
         final var fullHeader = ClassLikeRenderer.buildTypeDeclHeader(
-            prefixAndComponents, null, node.getImplementsClause(), false);
+            prefixAndComponents, null, node.getImplementsClause(), false, recursor);
 
         if (bodyMembers.isEmpty()) {
             return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Group(new Doc.Concat(List.of(
@@ -92,9 +89,10 @@ final class RecordRenderer {
         )));
     }
 
-    private static @org.jspecify.annotations.Nullable Doc renderBodyMember(final Tree member, final Recursor recursor) {
+    private static @org.jspecify.annotations.Nullable Doc renderBodyMember(
+            final Tree member, final Recursor recursor, final LeadingCommentAttacher attacher) {
         if (member instanceof BlockTree bt) {
-            return InitBlockRenderer.render(bt, recursor);
+            return attacher.attach(bt, InitBlockRenderer.render(bt, recursor, attacher));
         }
         return recursor.scan(member);
     }

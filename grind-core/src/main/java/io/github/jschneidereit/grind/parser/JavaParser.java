@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.parser;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.JavacTask;
+import com.sun.source.util.Trees;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -19,6 +20,10 @@ import java.util.stream.Collectors;
 public final class JavaParser {
 
     public static CompilationUnitTree parse(final String source) {
+        return parseUnit(source).tree();
+    }
+
+    public static ParsedUnit parseUnit(final String source) {
         Objects.requireNonNull(source, "source");
 
         final var compiler = ToolProvider.getSystemJavaCompiler();
@@ -48,7 +53,10 @@ public final class JavaParser {
             if (!iterator.hasNext()) {
                 throw new ParseException("Parser produced no compilation units", List.of());
             }
-            return iterator.next();
+            final var unit = iterator.next();
+            final var positions = Trees.instance(task).getSourcePositions();
+            final var comments = CommentScanner.scan(source);
+            return CommentAttacher.attach(unit, source, positions, comments);
 
         } catch (IOException e) {
             throw new ParseException("I/O error during parsing", e);

@@ -19,10 +19,7 @@ final class LambdaRenderer {
     }
 
     private static Doc renderExpressionBody(final LambdaExpressionTree node, final String paramList, final Recursor recursor) {
-        final var body = node.getBody();
-        final var scanned = recursor.scan(body);
-        final var bodyDoc = scanned != null ? scanned : new Doc.Text(body.toString());
-        return new Doc.Concat(List.of(new Doc.Text(paramList + " -> "), bodyDoc));
+        return new Doc.Concat(List.of(new Doc.Text(paramList + " -> "), recursor.scanOrText(node.getBody())));
     }
 
     private static Doc renderBlockBody(final LambdaExpressionTree node, final String paramList, final Recursor recursor) {

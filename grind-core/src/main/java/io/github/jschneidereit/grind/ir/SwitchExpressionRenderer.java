@@ -16,20 +16,21 @@ import org.jspecify.annotations.Nullable;
 
 final class SwitchExpressionRenderer {
 
-    static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor) {
-        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor);
+    static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor, attacher);
     }
 
-    static Doc renderSwitch(final SwitchTree node, final Recursor recursor) {
-        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor);
+    static Doc renderSwitch(final SwitchTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+        return renderSwitchLike(node.getExpression().toString(), node.getCases(), recursor, attacher);
     }
 
     private static Doc renderSwitchLike(
             final String selectorWithParens,
             final List<? extends CaseTree> cases,
-            final Recursor recursor) {
+            final Recursor recursor,
+            final LeadingCommentAttacher attacher) {
         final var caseDocs = cases.stream()
-            .flatMap(c -> Optional.ofNullable(renderCase(c, recursor)).stream())
+            .flatMap(c -> Optional.ofNullable(renderCase(c, recursor, attacher)).stream())
             .toList();
         return new Doc.Concat(Stream.concat(
             Stream.concat(
@@ -41,15 +42,24 @@ final class SwitchExpressionRenderer {
         ));
     }
 
-    static @Nullable Doc renderCase(final CaseTree node, final Recursor recursor) {
+    static @Nullable Doc renderCase(final CaseTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
         if (node.getCaseKind() != CaseTree.CaseKind.RULE) {
             return null;
         }
         final var isDefault = node.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree);
-        final var labelStr = node.getLabels().stream()
-            .map(Object::toString)
-            .collect(Collectors.joining(", "));
-        final var prefix = isDefault ? "default" : "case " + labelStr;
+        final Doc prefixDoc;
+        if (isDefault) {
+            prefixDoc = new Doc.Text("default");
+        } else {
+            final var labelParts = new java.util.ArrayList<Doc>();
+            labelParts.add(new Doc.Text("case "));
+            node.getLabels().stream()
+                .<Doc>map(recursor::scanOrText)
+                .flatMap(d -> java.util.stream.Stream.<Doc>of(new Doc.Text(", "), d))
+                .skip(1)
+                .forEach(labelParts::add);
+            prefixDoc = new Doc.Concat(labelParts);
+        }
 
         final var body = node.getBody();
         if (body == null) {
@@ -59,17 +69,17 @@ final class SwitchExpressionRenderer {
             final var stmts = blockBody.getStatements().stream()
                 .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
                 .toList();
-            return BlockRenderer.buildBlock(prefix + " ->", stmts);
+            return BlockRenderer.buildBlock(
+                new Doc.Concat(List.of(prefixDoc, new Doc.Text(" ->"))),
+                stmts,
+                attacher.interior(blockBody));
         }
-        final Doc bodyDoc;
-        if (body instanceof StatementTree) {
-            final var scanned = recursor.scan(body);
-            bodyDoc = scanned != null ? scanned : new Doc.Text(body.toString().strip());
-        } else {
-            bodyDoc = new Doc.Text(body + ";");
-        }
+        final Doc bodyDoc = body instanceof StatementTree
+            ? recursor.scanOrText(body)
+            : new Doc.Text(body + ";");
         return new Doc.Group(new Doc.Concat(List.of(
-            new Doc.Text(prefix + " ->"),
+            prefixDoc,
+            new Doc.Text(" ->"),
             new Doc.IfBreak(
                 new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), bodyDoc))),
                 new Doc.Concat(List.of(new Doc.Text(" "), bodyDoc))
