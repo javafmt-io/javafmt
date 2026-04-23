@@ -49,8 +49,25 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             return null;
         }
         final var result = isHandled(tree) ? super.scan(tree, null) : null;
-        final var rendered = result != null ? result : textFallback(tree);
+        final Doc rendered;
+        if (result != null) {
+            rendered = result;
+        } else {
+            if (config.strict() && !isLosslessFallback(tree)) {
+                throw new UnhandledSyntaxException(tree);
+            }
+            rendered = textFallback(tree);
+        }
         return attacher.attach(tree, rendered);
+    }
+
+    private static boolean isLosslessFallback(final Tree tree) {
+        return switch (tree.getKind()) {
+            case IDENTIFIER, PRIMITIVE_TYPE, BOOLEAN_LITERAL, CHAR_LITERAL, DOUBLE_LITERAL,
+                FLOAT_LITERAL, INT_LITERAL, LONG_LITERAL, NULL_LITERAL, STRING_LITERAL,
+                MODIFIERS, EMPTY_STATEMENT, BREAK, CONTINUE -> true;
+            default -> false;
+        };
     }
 
     @Override
