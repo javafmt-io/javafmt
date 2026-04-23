@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.jschneidereit.grind.parser.CommentScanner;
 import io.github.jschneidereit.grind.parser.CommentToken;
+import io.github.jschneidereit.grind.parser.JavaParser;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -61,6 +62,42 @@ class DogfoodTest {
 
         assertThat(lostTotal[0])
             .withFailMessage("Lost %d comment(s) when formatting grind's own source:%n%s", lostTotal[0], report)
+            .isZero();
+    }
+
+    @Test
+    void formatProducesSyntacticallyValidOutputForEveryGrindCoreSourceFile() throws IOException {
+        final var grindCoreMain = Paths.get("src/main/java").toAbsolutePath();
+        assertThat(grindCoreMain).exists();
+
+        final var report = new StringBuilder();
+        final var failures = new int[] {0};
+
+        try (final Stream<Path> stream = Files.walk(grindCoreMain)) {
+            stream.filter(p -> p.toString().endsWith(".java"))
+                .sorted()
+                .forEach(p -> {
+                    final var source = readString(p);
+                    final String formatted;
+                    try {
+                        formatted = Grind.format(source);
+                    } catch (final RuntimeException e) {
+                        return;
+                    }
+                    try {
+                        JavaParser.parseUnit(formatted);
+                    } catch (final RuntimeException e) {
+                        failures[0]++;
+                        report.append(grindCoreMain.relativize(p))
+                            .append(": formatted output failed to re-parse: ")
+                            .append(e.getMessage())
+                            .append('\n');
+                    }
+                });
+        }
+
+        assertThat(failures[0])
+            .withFailMessage("%d grind-core file(s) formatted to unparseable output:%n%s", failures[0], report)
             .isZero();
     }
 
