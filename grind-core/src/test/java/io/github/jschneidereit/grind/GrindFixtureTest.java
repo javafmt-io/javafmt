@@ -8,6 +8,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,7 +27,7 @@ class GrindFixtureTest {
             return listing
                 .filter(Files::isDirectory)
                 .filter(dir -> Files.exists(dir.resolve("input.java")))
-                .<Arguments>map(dir -> {
+                .map(dir -> {
                     final var expected = dir.resolve("expected.java");
                     if (!Files.exists(expected)) {
                         throw new IllegalStateException(
@@ -37,7 +38,26 @@ class GrindFixtureTest {
                         read(dir.resolve("input.java")),
                         read(expected));
                 })
-                .sorted((a, b) -> ((String) a.get()[0]).compareTo((String) b.get()[0]))
+                .sorted(Comparator.comparing(a -> ((String) a.get()[0])))
+                .toList()
+                .stream();
+        }
+    }
+
+    static Stream<Arguments> idempotentFixtures() throws URISyntaxException, IOException {
+        final var root = GrindFixtureTest.class.getClassLoader().getResource("test-fixtures/idempotent");
+        if (root == null) {
+            return Stream.empty();
+        }
+        final var dir = Paths.get(root.toURI());
+        try (final var listing = Files.list(dir)) {
+            return listing
+                .filter(path -> path.getFileName().toString().endsWith(".java"))
+                .<Arguments>map(path -> {
+                    final var name = path.getFileName().toString();
+                    return Arguments.of(name.substring(0, name.length() - ".java".length()), read(path));
+                })
+                .sorted(Comparator.comparing(a -> ((String) a.get()[0])))
                 .toList()
                 .stream();
         }
@@ -57,5 +77,11 @@ class GrindFixtureTest {
         final var formatted = Grind.format(input);
         assertThat(formatted).isEqualTo(expected);
         assertThat(Grind.format(formatted)).isEqualTo(formatted);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("idempotentFixtures")
+    void idempotent(final String name, final String source) {
+        assertThat(Grind.format(source)).isEqualTo(source);
     }
 }
