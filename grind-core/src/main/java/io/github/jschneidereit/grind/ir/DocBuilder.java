@@ -97,6 +97,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             || tree instanceof AssertTree
             || tree instanceof SynchronizedTree
             || tree instanceof LabeledStatementTree
+            || tree instanceof YieldTree
             || tree instanceof NewArrayTree
             || tree instanceof TypeCastTree
             || tree instanceof ParenthesizedTree
@@ -460,6 +461,11 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     @Override
     public @Nullable Doc visitLabeledStatement(final LabeledStatementTree node, final Void p) {
         return SimpleStatementRenderers.renderLabeled(node, recursor());
+    }
+
+    @Override
+    public @Nullable Doc visitYield(final YieldTree node, final Void p) {
+        return SimpleStatementRenderers.renderYield(node, recursor());
     }
 
     private DocBuilder(final ParsedUnit unit, final GrindConfig config) {

@@ -6,6 +6,7 @@ import com.sun.source.tree.LabeledStatementTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.ThrowTree;
+import com.sun.source.tree.YieldTree;
 
 import java.util.List;
 
@@ -36,6 +37,13 @@ final class SimpleStatementRenderers {
             new Doc.Text(")")));
         final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
         return BlockRenderer.buildBlock(header, stmts, List.of());
+    }
+
+    static Doc renderYield(final YieldTree node, final Recursor recursor) {
+        return new Doc.Concat(List.of(
+            new Doc.Text("yield "),
+            recursor.scanOrText(node.getValue()),
+            new Doc.Text(";")));
     }
 
     static Doc renderLabeled(final LabeledStatementTree node, final Recursor recursor) {
