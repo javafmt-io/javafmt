@@ -1,5 +1,11 @@
-class Fixture {
-    void test() {
-        throw new RuntimeException("error");
-    }
+class   Fixture
+{
+    void test( )
+{
+
+
+	throw new   RuntimeException(  "error"  )  ;
+
+
+  }
 }

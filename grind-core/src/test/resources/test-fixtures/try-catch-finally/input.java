@@ -1,11 +1,15 @@
-class Fixture {
-    void test() {
-        try {
-            riskyOp();
-        } catch (Exception e) {
-            handleException(e);
-        } finally {
-            cleanup();
-        }
-    }
-}
+class Fixture{
+  void test( ){
+
+
+     try{riskyOp( ) ;
+		}
+             catch(Exception e)
+   {   handleException(e)  ;}  finally
+{
+	cleanup( )  ;
+  }
+
+
+     }
+ }

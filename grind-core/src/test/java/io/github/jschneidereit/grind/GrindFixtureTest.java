@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -26,22 +27,53 @@ class GrindFixtureTest {
         try (final var listing = Files.list(root)) {
             return listing
                 .filter(Files::isDirectory)
-                .filter(dir -> Files.exists(dir.resolve("input.java")))
-                .map(dir -> {
-                    final var expected = dir.resolve("expected.java");
-                    if (!Files.exists(expected)) {
-                        throw new IllegalStateException(
-                            "Fixture '" + dir.getFileName() + "' has input.java but no expected.java");
-                    }
-                    return Arguments.of(
-                        dir.getFileName().toString(),
-                        read(dir.resolve("input.java")),
-                        read(expected));
-                })
+                .filter(dir -> !dir.getFileName().toString().equals("idempotent"))
+                .flatMap(GrindFixtureTest::variants)
                 .sorted(Comparator.comparing(a -> ((String) a.get()[0])))
                 .toList()
                 .stream();
         }
+    }
+
+    private static Stream<Arguments> variants(final Path dir) {
+        final var expected = dir.resolve("expected.java");
+        if (!Files.exists(expected)) {
+            throw new IllegalStateException(
+                "Fixture '" + dir.getFileName() + "' has no expected.java");
+        }
+        final var expectedContent = read(expected);
+        final var inputs = inputFiles(dir);
+        if (inputs.isEmpty()) {
+            throw new IllegalStateException(
+                "Fixture '" + dir.getFileName() + "' has no input files");
+        }
+        return inputs.stream()
+            .map(input -> Arguments.of(displayName(dir, input), read(input), expectedContent));
+    }
+
+    private static List<Path> inputFiles(final Path dir) {
+        try (final var listing = Files.list(dir)) {
+            return listing
+                .filter(path -> {
+                    final var name = path.getFileName().toString();
+                    return name.equals("input.java")
+                        || (name.startsWith("input-") && name.endsWith(".java"));
+                })
+                .sorted()
+                .toList();
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static String displayName(final Path dir, final Path input) {
+        final var fixture = dir.getFileName().toString();
+        final var name = input.getFileName().toString();
+        if (name.equals("input.java")) {
+            return fixture;
+        }
+        final var variant = name.substring("input-".length(), name.length() - ".java".length());
+        return fixture + "-" + variant;
     }
 
     static Stream<Arguments> idempotentFixtures() throws URISyntaxException, IOException {
