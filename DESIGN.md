@@ -127,7 +127,7 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 | **Enum constants** | No sort requirement, trailing comma optional | Alphabetically sorted, trailing comma required | Adding a constant produces a clean 1-line diff with no comma-shuffling on the previous line. |
 | **Brace enforcement** | Required, but missing braces isn't a build failure | Missing braces = build failure (lint, not auto-fix) | Eliminates the class of bugs where a stray `if` silently gains a second statement; reviewers don't have to verify brace scope. |
 | **Annotations** | Fields: same line allowed; methods: own line unless single+no-args | Same as Google | — |
-| **Javadoc / comments** | Required on all visible members | Preserved verbatim, every position | — |
+| **Javadoc / comments** | Required on all visible members; block-comment continuation lines reindented at layout time; IDE directives (`//noinspection`, `CHECKSTYLE:OFF`) preserved exactly | Parity with google-java-format: token-precise attachment, layout-time continuation reindent, directive safelist, verbatim content | grind matches google-java-format's industry-leading handling; this is a non-negotiable correctness bar, not a style choice. |
 | **Method chains** | Not specified | Break before `.` if chain doesn't fit | — |
 | **Records** | Not specified | One line if fits, else one component per line | — |
 
@@ -228,9 +228,15 @@ Follows Google Java Style annotation placement rules:
   ```
 
 ### Javadoc / comments
-- **Preserved verbatim** — every `//`, `/* */`, and `/** */` in the input appears in the output with its original text intact. No re-wrapping, no `*`-alignment changes, no stripping.
-- All positions are covered: file-header comments above `package`, leading comments on declarations (class/interface/enum/record/method/constructor/field/init block/enum constant), comments on imports, comments between statements, trailing same-line comments (`int x = 1; // note`), comments inside argument and parameter lists, and comments inside empty blocks (`{ /* note */ }`).
-- Continuation lines of multi-line block comments have their original source column stripped and are re-indented to the current position, so alignment is preserved when the declaration moves.
+
+The standard to beat is google-java-format. Its comment handling is industry-leading: token-precise attachment, layout-time reindentation, and principled handling of IDE/tool directives. grind targets parity.
+
+- **Preserved verbatim** — every `//`, `/* */`, and `/** */` in the input appears in the output with its original text intact. No re-wrapping, no `*`-alignment changes, no stripping of the comment's own content. (Javadoc reflow is a v2 candidate, explicitly out of scope for v1.)
+- **Token-precise attachment.** Comments attach to source *tokens*, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` lands at the right place without requiring a bespoke attacher case per AST shape. This matches google-java-format's `JavaInput.Token#getToksBefore()` / `getToksAfter()` model and is the precondition for "every position" actually meaning every position.
+- **All positions are covered**: file-header comments above `package`, leading comments on declarations (class/interface/enum/record/method/constructor/field/init block/enum constant), comments on imports, comments between statements, trailing same-line comments (`int x = 1; // note`), comments inside argument and parameter lists, comments inside empty blocks (`{ /* note */ }`), and comments between the last statement of a block and its closing brace.
+- **Layout-time reindentation.** Continuation lines of multi-line block comments are re-indented to the comment's *final* output column, not its source column — so alignment is preserved when the enclosing declaration moves under formatting. This is resolved in the printer after layout decisions are made, not at `Doc` construction.
+- **Directive safelist.** IDE and tooling directives are preserved byte-for-byte with no reindent and no width-sensitive decisions: `// noinspection …`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE …`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-…$`, and their block-comment equivalents. (This is separate from grind's own on/off directives, which *control* formatting rather than protect a specific comment.)
+- **String / text-block safety.** The scanner recognises `//` and `/*` only outside string literals, character literals, and text blocks. `//` inside a `String` or `"""…"""` is never treated as a comment.
 
 ### Blank lines
 - One blank line between methods

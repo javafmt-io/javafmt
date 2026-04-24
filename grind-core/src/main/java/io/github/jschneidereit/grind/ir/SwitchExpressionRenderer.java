@@ -9,28 +9,26 @@ import com.sun.source.tree.SwitchTree;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jspecify.annotations.Nullable;
 
 final class SwitchExpressionRenderer {
 
-    static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor, attacher);
+    static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor) {
+        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor);
     }
 
-    static Doc renderSwitch(final SwitchTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor, attacher);
+    static Doc renderSwitch(final SwitchTree node, final Recursor recursor) {
+        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor);
     }
 
     private static Doc renderSwitchLike(
             final Doc selectorWithParens,
             final List<? extends CaseTree> cases,
-            final Recursor recursor,
-            final LeadingCommentAttacher attacher) {
+            final Recursor recursor) {
         final var caseDocs = cases.stream()
-            .flatMap(c -> Optional.ofNullable(renderCase(c, recursor, attacher)).stream())
+            .<Doc>map(recursor::scanOrText)
             .toList();
         return new Doc.Concat(Stream.concat(
             Stream.concat(

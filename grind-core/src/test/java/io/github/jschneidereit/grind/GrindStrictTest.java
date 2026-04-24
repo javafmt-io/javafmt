@@ -21,4 +21,11 @@ class GrindStrictTest {
         assertThatThrownBy(() -> Grind.formatStrict(source))
             .isInstanceOf(UnhandledSyntaxException.class);
     }
+
+    @Test
+    void strictThrowsOnColonFormSwitchCase() {
+        final var source = "class Foo { void m(int x) { switch (x) { case 1: doIt(); break; default: fallback(); } } void doIt() {} void fallback() {} }";
+        assertThatThrownBy(() -> Grind.formatStrict(source))
+            .isInstanceOf(UnhandledSyntaxException.class);
+    }
 }

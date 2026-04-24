@@ -116,7 +116,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     }
 
     private static Doc textFallback(final Tree tree) {
-        final var s = tree.toString();
+        final var s = tree.toString().stripTrailing();
         if (s.indexOf('\n') < 0 && s.indexOf('\r') < 0) {
             return new Doc.Text(s);
         }
@@ -400,12 +400,12 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitSwitch(final SwitchTree node, final Void p) {
-        return SwitchExpressionRenderer.renderSwitch(node, recursor(), attacher);
+        return SwitchExpressionRenderer.renderSwitch(node, recursor());
     }
 
     @Override
     public @Nullable Doc visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
-        return SwitchExpressionRenderer.renderSwitch(node, recursor(), attacher);
+        return SwitchExpressionRenderer.renderSwitch(node, recursor());
     }
 
     @Override
