@@ -19,10 +19,6 @@ public final class Grind {
         return format(source, GrindConfig.defaults());
     }
 
-    public static String formatStrict(final String source) {
-        return doFormat(source, GrindConfig.defaults().withStrict(true));
-    }
-
     public static FormatResult formatWithResult(final String source) {
         return formatWithResult(source, GrindConfig.defaults());
     }

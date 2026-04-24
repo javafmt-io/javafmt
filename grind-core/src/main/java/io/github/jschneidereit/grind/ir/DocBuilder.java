@@ -18,6 +18,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     private final GrindConfig config;
     private final ParsedUnit unit;
     private final LeadingCommentAttacher attacher;
+    private final java.util.List<Tree> fallbacks = new java.util.ArrayList<>();
 
     private Recursor recursor() {
         return tree -> scan(tree, null);
@@ -37,11 +38,20 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     }
 
     public static Doc build(final ParsedUnit unit, final GrindConfig config) {
+        return buildWithFallbacks(unit, config).doc();
+    }
+
+    static BuildResult buildWithFallbacks(final ParsedUnit unit, final GrindConfig config) {
         Objects.requireNonNull(unit, "unit");
         Objects.requireNonNull(config, "config");
-        final var doc = new DocBuilder(unit, config).visitCompilationUnit(unit.tree(), null);
-        return Objects.requireNonNull(doc, "visitCompilationUnit returned null");
+        final var builder = new DocBuilder(unit, config);
+        final var doc = builder.visitCompilationUnit(unit.tree(), null);
+        return new BuildResult(
+            Objects.requireNonNull(doc, "visitCompilationUnit returned null"),
+            List.copyOf(builder.fallbacks));
     }
+
+    record BuildResult(Doc doc, List<Tree> fallbacks) {}
 
     @Override
     public @Nullable Doc scan(final @Nullable Tree tree, final Void p) {
@@ -53,21 +63,10 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         if (result != null) {
             rendered = result;
         } else {
-            if (config.strict() && !isLosslessFallback(tree)) {
-                throw new UnhandledSyntaxException(tree);
-            }
+            fallbacks.add(tree);
             rendered = textFallback(tree);
         }
         return attacher.attach(tree, rendered);
-    }
-
-    private static boolean isLosslessFallback(final Tree tree) {
-        return switch (tree.getKind()) {
-            case IDENTIFIER, PRIMITIVE_TYPE, BOOLEAN_LITERAL, CHAR_LITERAL, DOUBLE_LITERAL,
-                FLOAT_LITERAL, INT_LITERAL, LONG_LITERAL, NULL_LITERAL, STRING_LITERAL,
-                MODIFIERS, EMPTY_STATEMENT, BREAK, CONTINUE -> true;
-            default -> false;
-        };
     }
 
     @Override
