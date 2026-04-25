@@ -12,6 +12,6 @@ public record FormatResult(String output, List<Diagnostic> diagnostics) {
     }
 
     public boolean hasErrors() {
-        return diagnostics.stream().anyMatch(d -> d.kind() == Diagnostic.Kind.PARSE_ERROR);
+        return diagnostics.stream().anyMatch(Diagnostic::isError);
     }
 }

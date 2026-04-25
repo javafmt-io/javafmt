@@ -2,9 +2,12 @@ package io.github.jschneidereit.grind.parser;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.JavacTask;
+import com.sun.source.util.SourcePositions;
 import com.sun.source.util.Trees;
 
-import javax.tools.Diagnostic;
+import io.github.jschneidereit.grind.Diagnostic;
+import io.github.jschneidereit.grind.Position;
+
 import javax.tools.DiagnosticCollector;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
@@ -12,8 +15,8 @@ import javax.tools.ToolProvider;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -39,14 +42,17 @@ public final class JavaParser {
             final var trees = task.parse();
 
             final var errors = diagnostics.getDiagnostics().stream()
-                    .filter(d -> d.getKind() == Diagnostic.Kind.ERROR)
+                    .filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR)
                     .toList();
 
             if (!errors.isEmpty()) {
                 final var message = errors.stream()
                         .map(d -> d.getMessage(Locale.ROOT))
                         .collect(Collectors.joining("; "));
-                throw new ParseException(message, errors);
+                final var asDiagnostics = errors.stream()
+                        .<Diagnostic>map(d -> new Diagnostic.ParseError(d.getMessage(Locale.ROOT), positionOf(d)))
+                        .toList();
+                throw new ParseException(message, asDiagnostics);
             }
 
             final var iterator = trees.iterator();
@@ -61,6 +67,30 @@ public final class JavaParser {
         } catch (IOException e) {
             throw new ParseException("I/O error during parsing", e);
         }
+    }
+
+    private static Position positionOf(final javax.tools.Diagnostic<? extends JavaFileObject> d) {
+        final var offset = d.getStartPosition();
+        final var line = d.getLineNumber();
+        final var column = d.getColumnNumber();
+        if (offset == javax.tools.Diagnostic.NOPOS) {
+            return Position.UNKNOWN;
+        }
+        return new Position(
+            line == javax.tools.Diagnostic.NOPOS ? 0 : (int) line,
+            column == javax.tools.Diagnostic.NOPOS ? 0 : (int) column,
+            (int) offset);
+    }
+
+    static Position positionOf(final SourcePositions positions, final CompilationUnitTree unit, final com.sun.source.tree.Tree node) {
+        final var offset = positions.getStartPosition(unit, node);
+        if (offset < 0) {
+            return Position.UNKNOWN;
+        }
+        final var lineMap = unit.getLineMap();
+        final var line = (int) lineMap.getLineNumber(offset);
+        final var column = (int) lineMap.getColumnNumber(offset);
+        return new Position(line, column, (int) offset);
     }
 
     private static final class InMemoryJavaFileObject extends SimpleJavaFileObject {

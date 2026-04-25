@@ -1,19 +1,22 @@
 package io.github.jschneidereit.grind.parser;
 
+import io.github.jschneidereit.grind.Diagnostic;
+
 import lombok.Getter;
 
-import javax.tools.Diagnostic;
-import javax.tools.JavaFileObject;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 
-@SuppressWarnings("serial")
 public final class ParseException extends RuntimeException {
 
-    @Getter
-    private final List<Diagnostic<? extends JavaFileObject>> diagnostics;
+    @Serial
+    private static final long serialVersionUID = 1L;
 
-    ParseException(final String message, final List<Diagnostic<? extends JavaFileObject>> diagnostics) {
+    @Getter
+    private final transient List<Diagnostic> diagnostics;
+
+    ParseException(final String message, final List<Diagnostic> diagnostics) {
         super(message);
         this.diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
     }
@@ -22,5 +25,4 @@ public final class ParseException extends RuntimeException {
         super(message, cause);
         this.diagnostics = List.of();
     }
-
 }

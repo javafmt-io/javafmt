@@ -28,15 +28,18 @@ public final class Grind {
             return new FormatResult(source, List.of());
         }
         try {
-            return new FormatResult(doFormat(source, config), List.of());
+            final var unit = JavaParser.parseUnit(source);
+            final var built = DocBuilder.buildWithFallbacks(unit, config);
+            return new FormatResult(Printer.print(built.doc(), LINE_WIDTH), built.diagnostics());
         } catch (final ParseException e) {
-            final var msg = e.getMessage();
-            return new FormatResult(source, List.of(Diagnostic.parseError(msg == null ? e.toString() : msg)));
+            final var diagnostics = e.getDiagnostics();
+            if (diagnostics.isEmpty()) {
+                final var msg = e.getMessage();
+                return new FormatResult(source, List.of(new Diagnostic.ParseError(
+                    msg == null ? e.toString() : msg, Position.UNKNOWN)));
+            }
+            return new FormatResult(source, diagnostics);
         }
-    }
-
-    private static String doFormat(final String source, final GrindConfig config) {
-        return Printer.print(DocBuilder.build(JavaParser.parseUnit(source), config), LINE_WIDTH);
     }
 
     private Grind() {}

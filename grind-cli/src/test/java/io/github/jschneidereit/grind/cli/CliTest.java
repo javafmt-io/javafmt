@@ -72,7 +72,7 @@ class CliTest {
         final var exit = Cli.run(new String[] {}, streamOf("class {"), print(out), print(err));
         assertThat(exit).isEqualTo(1);
         assertThat(out.toString(StandardCharsets.UTF_8)).isEqualTo("class {");
-        assertThat(err.toString(StandardCharsets.UTF_8)).contains("PARSE_ERROR");
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("error:");
     }
 
     private static InputStream streamOf(final String s) {

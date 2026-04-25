@@ -85,7 +85,7 @@ final class CommentAttacher {
             }
         }
 
-        return new ParsedUnit(tree, fileHeader, fileFooter, leading, trailing, interior, tail);
+        return new ParsedUnit(tree, positions, fileHeader, fileFooter, leading, trailing, interior, tail);
     }
 
     private static boolean sameLine(final String source, final int from, final int to) {

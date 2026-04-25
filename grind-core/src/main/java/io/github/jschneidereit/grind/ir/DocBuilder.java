@@ -3,8 +3,11 @@ package io.github.jschneidereit.grind.ir;
 import com.sun.source.tree.*;
 import com.sun.source.util.TreeScanner;
 
+import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.GrindConfig;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
+
+import java.util.Set;
 
 import java.util.List;
 import java.util.Objects;
@@ -15,10 +18,23 @@ import org.jspecify.annotations.Nullable;
 
 public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
+    private static final Set<Tree.Kind> EXPECTED_FALLBACK_KINDS = Set.of(
+        Tree.Kind.IDENTIFIER, Tree.Kind.PRIMITIVE_TYPE,
+        Tree.Kind.BOOLEAN_LITERAL, Tree.Kind.CHAR_LITERAL,
+        Tree.Kind.DOUBLE_LITERAL, Tree.Kind.FLOAT_LITERAL,
+        Tree.Kind.INT_LITERAL, Tree.Kind.LONG_LITERAL,
+        Tree.Kind.NULL_LITERAL, Tree.Kind.STRING_LITERAL,
+        Tree.Kind.MODIFIERS, Tree.Kind.EMPTY_STATEMENT,
+        Tree.Kind.BREAK, Tree.Kind.CONTINUE,
+        Tree.Kind.TYPE_PARAMETER,
+        Tree.Kind.CONSTANT_CASE_LABEL,
+        Tree.Kind.UNION_TYPE);
+
     private final GrindConfig config;
     private final ParsedUnit unit;
     private final LeadingCommentAttacher attacher;
     private final java.util.List<Tree> fallbacks = new java.util.ArrayList<>();
+    private final java.util.List<Diagnostic> diagnostics = new java.util.ArrayList<>();
 
     private Recursor recursor() {
         return tree -> scan(tree, null);
@@ -41,17 +57,18 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         return buildWithFallbacks(unit, config).doc();
     }
 
-    static BuildResult buildWithFallbacks(final ParsedUnit unit, final GrindConfig config) {
+    public static BuildResult buildWithFallbacks(final ParsedUnit unit, final GrindConfig config) {
         Objects.requireNonNull(unit, "unit");
         Objects.requireNonNull(config, "config");
         final var builder = new DocBuilder(unit, config);
         final var doc = builder.visitCompilationUnit(unit.tree(), null);
         return new BuildResult(
             Objects.requireNonNull(doc, "visitCompilationUnit returned null"),
-            List.copyOf(builder.fallbacks));
+            List.copyOf(builder.fallbacks),
+            List.copyOf(builder.diagnostics));
     }
 
-    record BuildResult(Doc doc, List<Tree> fallbacks) {}
+    public record BuildResult(Doc doc, List<Tree> fallbacks, List<Diagnostic> diagnostics) {}
 
     @Override
     public @Nullable Doc scan(final @Nullable Tree tree, final Void p) {
@@ -64,6 +81,11 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             rendered = result;
         } else {
             fallbacks.add(tree);
+            if (!EXPECTED_FALLBACK_KINDS.contains(tree.getKind())) {
+                diagnostics.add(new Diagnostic.Warning(
+                    "fell back to javac pretty-printer for " + tree.getKind(),
+                    unit.positionOf(tree)));
+            }
             rendered = textFallback(tree);
         }
         return attacher.attach(tree, rendered);
@@ -490,6 +512,26 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     }
 
     private static ParsedUnit emptyUnit(final CompilationUnitTree tree) {
-        return new ParsedUnit(tree, List.of(), List.of(), java.util.Map.of(), java.util.Map.of(), java.util.Map.of());
+        return new ParsedUnit(
+            tree,
+            NO_POSITIONS,
+            List.of(),
+            List.of(),
+            java.util.Map.of(),
+            java.util.Map.of(),
+            java.util.Map.of(),
+            java.util.Map.of());
     }
+
+    private static final com.sun.source.util.SourcePositions NO_POSITIONS = new com.sun.source.util.SourcePositions() {
+        @Override
+        public long getStartPosition(final CompilationUnitTree file, final Tree tree) {
+            return javax.tools.Diagnostic.NOPOS;
+        }
+
+        @Override
+        public long getEndPosition(final CompilationUnitTree file, final Tree tree) {
+            return javax.tools.Diagnostic.NOPOS;
+        }
+    };
 }

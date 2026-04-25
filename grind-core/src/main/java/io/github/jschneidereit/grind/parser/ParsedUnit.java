@@ -2,6 +2,9 @@ package io.github.jschneidereit.grind.parser;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.util.SourcePositions;
+
+import io.github.jschneidereit.grind.Position;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -11,6 +14,7 @@ import java.util.Objects;
 
 public record ParsedUnit(
         CompilationUnitTree tree,
+        SourcePositions sourcePositions,
         List<CommentToken> fileHeader,
         List<CommentToken> fileFooter,
         Map<Tree, List<CommentToken>> leading,
@@ -21,6 +25,7 @@ public record ParsedUnit(
     @SuppressWarnings("IdentityHashMapUsage")
     public ParsedUnit {
         Objects.requireNonNull(tree, "tree");
+        Objects.requireNonNull(sourcePositions, "sourcePositions");
         Objects.requireNonNull(fileHeader, "fileHeader");
         Objects.requireNonNull(fileFooter, "fileFooter");
         Objects.requireNonNull(leading, "leading");
@@ -39,16 +44,6 @@ public record ParsedUnit(
         tail = Collections.unmodifiableMap(tailCopy);
     }
 
-    public ParsedUnit(
-            final CompilationUnitTree tree,
-            final List<CommentToken> fileHeader,
-            final List<CommentToken> fileFooter,
-            final Map<Tree, List<CommentToken>> leading,
-            final Map<Tree, List<CommentToken>> trailing,
-            final Map<Tree, List<CommentToken>> interior) {
-        this(tree, fileHeader, fileFooter, leading, trailing, interior, Map.of());
-    }
-
     public List<CommentToken> leadingOf(final Tree node) {
         return leading.getOrDefault(node, List.of());
     }
@@ -63,5 +58,9 @@ public record ParsedUnit(
 
     public List<CommentToken> tailOf(final Tree node) {
         return tail.getOrDefault(node, List.of());
+    }
+
+    public Position positionOf(final Tree node) {
+        return JavaParser.positionOf(sourcePositions, tree, node);
     }
 }

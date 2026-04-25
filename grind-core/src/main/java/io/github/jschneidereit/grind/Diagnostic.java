@@ -1,14 +1,16 @@
 package io.github.jschneidereit.grind;
 
-public record Diagnostic(Kind kind, String message) {
+public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.Warning {
 
-    public enum Kind { PARSE_ERROR, WARNING }
+    String message();
 
-    public static Diagnostic parseError(final String message) {
-        return new Diagnostic(Kind.PARSE_ERROR, message);
+    Position position();
+
+    default boolean isError() {
+        return this instanceof ParseError;
     }
 
-    public static Diagnostic warning(final String message) {
-        return new Diagnostic(Kind.WARNING, message);
-    }
+    record ParseError(String message, Position position) implements Diagnostic {}
+
+    record Warning(String message, Position position) implements Diagnostic {}
 }

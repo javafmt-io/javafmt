@@ -13,13 +13,17 @@ class FormatResultTest {
     }
 
     @Test
-    void formatWithResultOnInvalidSourceReportsParseError() {
+    void formatWithResultOnInvalidSourceReportsParseErrorWithPosition() {
         final var garbage = "class {";
         final var result = Grind.formatWithResult(garbage);
         assertThat(result.output()).isEqualTo(garbage);
         assertThat(result.hasErrors()).isTrue();
-        assertThat(result.diagnostics()).hasSize(1);
-        assertThat(result.diagnostics().get(0).kind()).isEqualTo(Diagnostic.Kind.PARSE_ERROR);
+        assertThat(result.diagnostics()).isNotEmpty();
+        assertThat(result.diagnostics()).allMatch(Diagnostic::isError);
+        final var d = result.diagnostics().get(0);
+        assertThat(d).isInstanceOf(Diagnostic.ParseError.class);
+        assertThat(d.position().line()).isPositive();
+        assertThat(d.position().column()).isPositive();
     }
 
     @Test
@@ -35,5 +39,13 @@ class FormatResultTest {
         final var result = Grind.formatWithResult("");
         assertThat(result.output()).isEmpty();
         assertThat(result.diagnostics()).isEmpty();
+    }
+
+    @Test
+    void warningsDoNotFlipHasErrors() {
+        final var result = new FormatResult(
+            "ok",
+            java.util.List.of(new Diagnostic.Warning("just fyi", new Position(1, 1, 0))));
+        assertThat(result.hasErrors()).isFalse();
     }
 }
