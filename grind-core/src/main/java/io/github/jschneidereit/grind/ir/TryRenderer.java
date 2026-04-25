@@ -31,10 +31,8 @@ final class TryRenderer {
         if (resources == null || resources.isEmpty()) {
             return new Doc.Text("try");
         }
-        final var rendered = resources.stream()
-            .<Doc>map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scanOrText(r)))
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text("; "), d))
-            .skip(1)
+        final var rendered = Doc.intersperse(new Doc.Text("; "), resources.stream()
+            .<Doc>map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scanOrText(r))))
             .toList();
         return new Doc.Concat(Stream.concat(
             Stream.<Doc>of(new Doc.Text("try (")),

@@ -50,10 +50,8 @@ final class RecordRenderer {
                 new Doc.Text("("),
                 new Doc.Indent(new Doc.Concat(Stream.concat(
                     Stream.<Doc>of(new Doc.SoftLine()),
-                    components.stream()
-                        .<Doc>map(comp -> attacher.attach(comp, new Doc.Text(comp.getType() + " " + comp.getName())))
-                        .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-                        .skip(2)
+                    Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), components.stream()
+                        .map(comp -> attacher.attach(comp, new Doc.Text(comp.getType() + " " + comp.getName()))))
                 ))),
                 new Doc.SoftLine(),
                 new Doc.Text(")")
@@ -78,12 +76,8 @@ final class RecordRenderer {
         return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>concat(
                 Stream.of(headerDoc, new Doc.Text(" {")),
-                bodyMembers.stream()
-                    .flatMap(m -> Stream.<Doc>of(
-                        new Doc.HardLine(),
-                        new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))
-                    ))
-                    .skip(1)
+                Doc.intersperse(new Doc.HardLine(), bodyMembers.stream()
+                    .<Doc>map(m -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))))
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));

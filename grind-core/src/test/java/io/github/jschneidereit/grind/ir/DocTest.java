@@ -192,6 +192,92 @@ class DocTest {
     }
 
     @Nested
+    class IntersperseTests {
+
+        private static final Doc A = new Doc.Text("a");
+        private static final Doc B = new Doc.Text("b");
+        private static final Doc C = new Doc.Text("c");
+        private static final Doc SEP = new Doc.Text(",");
+        private static final Doc S1 = new Doc.Text(",");
+        private static final Doc S2 = new Doc.Line();
+
+        @Test
+        void singleSeparator_emptyStream_isEmpty() {
+            assertThat(Doc.intersperse(SEP, Stream.<Doc>of()).toList()).isEmpty();
+        }
+
+        @Test
+        void singleSeparator_singleElement_unchanged() {
+            assertThat(Doc.intersperse(SEP, Stream.of(A)).toList()).containsExactly(A);
+        }
+
+        @Test
+        void singleSeparator_twoElements_interspersed() {
+            assertThat(Doc.intersperse(SEP, Stream.of(A, B)).toList()).containsExactly(A, SEP, B);
+        }
+
+        @Test
+        void singleSeparator_threeElements_interspersed() {
+            assertThat(Doc.intersperse(SEP, Stream.of(A, B, C)).toList())
+                .containsExactly(A, SEP, B, SEP, C);
+        }
+
+        @Test
+        void singleSeparator_nullSeparatorThrows() {
+            assertThatNullPointerException().isThrownBy(() -> Doc.intersperse((Doc) null, Stream.of(A)));
+        }
+
+        @Test
+        void singleSeparator_nullStreamThrows() {
+            assertThatNullPointerException().isThrownBy(() -> Doc.intersperse(SEP, (Stream<Doc>) null));
+        }
+
+        @Test
+        void listSeparator_emptyStream_isEmpty() {
+            assertThat(Doc.intersperse(List.of(S1, S2), Stream.<Doc>of()).toList()).isEmpty();
+        }
+
+        @Test
+        void listSeparator_singleElement_unchanged() {
+            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of(A)).toList()).containsExactly(A);
+        }
+
+        @Test
+        void listSeparator_twoElements_interspersed() {
+            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of(A, B)).toList())
+                .containsExactly(A, S1, S2, B);
+        }
+
+        @Test
+        void listSeparator_threeElements_interspersed() {
+            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of(A, B, C)).toList())
+                .containsExactly(A, S1, S2, B, S1, S2, C);
+        }
+
+        @Test
+        void listSeparator_emptyList_returnsPartsUnchanged() {
+            assertThat(Doc.intersperse(List.<Doc>of(), Stream.of(A, B, C)).toList())
+                .containsExactly(A, B, C);
+        }
+
+        @Test
+        void listSeparator_singletonList_behavesLikeSingleSeparator() {
+            assertThat(Doc.intersperse(List.of(SEP), Stream.of(A, B, C)).toList())
+                .containsExactly(A, SEP, B, SEP, C);
+        }
+
+        @Test
+        void listSeparator_nullSeparatorThrows() {
+            assertThatNullPointerException().isThrownBy(() -> Doc.intersperse((List<Doc>) null, Stream.of(A)));
+        }
+
+        @Test
+        void listSeparator_nullStreamThrows() {
+            assertThatNullPointerException().isThrownBy(() -> Doc.intersperse(List.of(SEP), (Stream<Doc>) null));
+        }
+    }
+
+    @Nested
     class IfBreakTests {
 
         @Test

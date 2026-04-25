@@ -57,12 +57,10 @@ final class MethodChainRenderer {
         if (args.isEmpty()) {
             return new Doc.Text(head + "()");
         }
-        final var interior = new Doc.Concat(Stream.concat(
+        final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
-            args.stream()
-                .<Doc>map(arg -> renderArg(arg, recursor))
-                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-                .skip(2)
+            Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), args.stream()
+                .<Doc>map(arg -> renderArg(arg, recursor)))
         ));
         return new Doc.Group(new Doc.Concat(List.of(
             new Doc.Text(head + "("),

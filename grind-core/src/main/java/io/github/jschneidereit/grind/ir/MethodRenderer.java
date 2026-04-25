@@ -59,10 +59,8 @@ final class MethodRenderer {
     private static Doc renderTypeParams(final List<? extends TypeParameterTree> typeParams, final Recursor recursor) {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
-            typeParams.stream()
-                .<Doc>map(recursor::scanOrText)
-                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-                .skip(2)
+            Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), typeParams.stream()
+                .<Doc>map(recursor::scanOrText))
         ));
         return new Doc.Group(new Doc.Concat(List.of(
             new Doc.Text("<"),
@@ -97,10 +95,8 @@ final class MethodRenderer {
             final Recursor recursor) {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
-            params.stream()
-                .<Doc>map(p -> attacher.attach(p, renderParam(p, recursor)))
-                .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-                .skip(2)
+            Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), params.stream()
+                .<Doc>map(p -> attacher.attach(p, renderParam(p, recursor))))
         ));
         return new Doc.Concat(List.of(
             leading,
@@ -124,10 +120,9 @@ final class MethodRenderer {
     }
 
     private static Doc buildThrowsTail(final List<? extends ExpressionTree> throwsList, final Recursor recursor) {
-        final var typesInterior = new Doc.Concat(throwsList.stream()
-            .<Doc>map(recursor::scanOrText)
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-            .skip(2));
+        final var typesInterior = new Doc.Concat(Doc.intersperse(
+            List.of(new Doc.Text(","), new Doc.Line()),
+            throwsList.stream().<Doc>map(recursor::scanOrText)));
         return new Doc.Indent(new Doc.Concat(List.of(
             new Doc.Line(),
             new Doc.Text("throws "),

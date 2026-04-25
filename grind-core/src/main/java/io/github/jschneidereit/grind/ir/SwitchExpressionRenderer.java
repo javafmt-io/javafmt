@@ -51,10 +51,8 @@ final class SwitchExpressionRenderer {
         } else {
             final var labelParts = new java.util.ArrayList<Doc>();
             labelParts.add(new Doc.Text("case "));
-            node.getLabels().stream()
-                .<Doc>map(recursor::scanOrText)
-                .flatMap(d -> java.util.stream.Stream.<Doc>of(new Doc.Text(", "), d))
-                .skip(1)
+            Doc.intersperse(new Doc.Text(", "), node.getLabels().stream()
+                .<Doc>map(recursor::scanOrText))
                 .forEach(labelParts::add);
             prefixDoc = new Doc.Concat(labelParts);
         }

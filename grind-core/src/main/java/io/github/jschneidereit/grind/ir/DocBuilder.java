@@ -153,11 +153,9 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         if (s.indexOf('\n') < 0 && s.indexOf('\r') < 0) {
             return new Doc.Text(s);
         }
-        return new Doc.Concat(java.util.Arrays.stream(s.split("\n", -1))
+        return new Doc.Concat(Doc.intersperse(new Doc.HardLine(), java.util.Arrays.stream(s.split("\n", -1))
             .map(line -> line.endsWith("\r") ? line.substring(0, line.length() - 1) : line)
-            .<Doc>map(Doc.Text::new)
-            .flatMap(t -> Stream.<Doc>of(new Doc.HardLine(), t))
-            .skip(1));
+            .<Doc>map(Doc.Text::new)));
     }
 
     @Override
@@ -231,10 +229,8 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
                 Stream.concat(prefix, dims),
                 Stream.<Doc>of(new Doc.Text(brace + "}"))));
         }
-        final var elements = initializers.stream()
-            .<Doc>map(this::scanOrText)
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
-            .skip(1);
+        final var elements = Doc.intersperse(new Doc.Text(", "), initializers.stream()
+            .<Doc>map(this::scanOrText));
         return new Doc.Concat(Stream.concat(
             Stream.concat(
                 Stream.concat(prefix, dims),
@@ -278,10 +274,8 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitDeconstructionPattern(final DeconstructionPatternTree node, final Void p) {
-        final var nested = node.getNestedPatterns().stream()
-            .<Doc>map(this::scanOrText)
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
-            .skip(1);
+        final var nested = Doc.intersperse(new Doc.Text(", "), node.getNestedPatterns().stream()
+            .<Doc>map(this::scanOrText));
         return new Doc.Concat(Stream.concat(
             Stream.concat(
                 Stream.<Doc>of(scanOrText(node.getDeconstructor()), new Doc.Text("(")),
@@ -319,10 +313,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             : new Doc.Concat(Stream.concat(
                 Stream.concat(
                     Stream.<Doc>of(new Doc.Text("(")),
-                    args.stream()
-                        .<Doc>map(this::scanOrText)
-                        .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
-                        .skip(1)),
+                    Doc.intersperse(new Doc.Text(", "), args.stream().<Doc>map(this::scanOrText))),
                 Stream.<Doc>of(new Doc.Text(")"))));
         final var body = node.getClassBody();
         final var headParts = List.<Doc>of(new Doc.Text("new "), scanOrText(node.getIdentifier()), argsDoc);

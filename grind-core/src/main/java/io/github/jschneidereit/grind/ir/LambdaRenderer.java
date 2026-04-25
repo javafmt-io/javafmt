@@ -35,10 +35,8 @@ final class LambdaRenderer {
         if (params.size() == 1 && params.get(0).getType() == null) {
             return new Doc.Text(params.get(0).getName().toString());
         }
-        final var interior = params.stream()
-            .<Doc>map(p -> renderParam(p, recursor))
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
-            .skip(1);
+        final var interior = Doc.intersperse(new Doc.Text(", "), params.stream()
+            .<Doc>map(p -> renderParam(p, recursor)));
         return new Doc.Concat(Stream.concat(
             Stream.<Doc>of(new Doc.Text("(")),
             Stream.concat(interior, Stream.<Doc>of(new Doc.Text(")")))

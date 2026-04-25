@@ -1,5 +1,6 @@
 package io.github.jschneidereit.grind.ir;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -7,6 +8,20 @@ import java.util.stream.Stream;
 public sealed interface Doc
     permits Doc.Text, Doc.Line, Doc.SoftLine, Doc.HardLine,
     Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak, Doc.Fill {
+
+    static Stream<Doc> intersperse(final Doc separator, final Stream<Doc> parts) {
+        Objects.requireNonNull(separator, "separator");
+        Objects.requireNonNull(parts, "parts");
+        return parts.flatMap(d -> Stream.of(separator, d)).skip(1);
+    }
+
+    static Stream<Doc> intersperse(final List<Doc> separator, final Stream<Doc> parts) {
+        Objects.requireNonNull(separator, "separator");
+        Objects.requireNonNull(parts, "parts");
+        final var sepArray = separator.toArray(Doc[]::new);
+        return parts.flatMap(d -> Stream.concat(Arrays.stream(sepArray), Stream.of(d)))
+            .skip(sepArray.length);
+    }
 
     record Text(String value) implements Doc {
         public Text {

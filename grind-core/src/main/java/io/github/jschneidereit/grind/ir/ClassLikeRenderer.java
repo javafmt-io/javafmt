@@ -58,12 +58,8 @@ final class ClassLikeRenderer {
         return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>concat(
                 Stream.of(headerDoc, new Doc.Text(" {")),
-                members.stream()
-                    .flatMap(m -> Stream.<Doc>of(
-                        new Doc.HardLine(),
-                        new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))
-                    ))
-                    .skip(1)
+                Doc.intersperse(new Doc.HardLine(), members.stream()
+                    .<Doc>map(m -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))))
             ),
             Stream.of(new Doc.HardLine(), new Doc.Text("}"))
         )));
@@ -108,10 +104,9 @@ final class ClassLikeRenderer {
     }
 
     private static Doc buildTypeList(final String keyword, final List<? extends Tree> types, final Recursor recursor) {
-        final var typesInterior = new Doc.Concat(types.stream()
-            .<Doc>map(recursor::scanOrText)
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-            .skip(2));
+        final var typesInterior = new Doc.Concat(Doc.intersperse(
+            List.of(new Doc.Text(","), new Doc.Line()),
+            types.stream().<Doc>map(recursor::scanOrText)));
         return new Doc.Indent(new Doc.Concat(List.of(
             new Doc.Line(),
             new Doc.Text(keyword),

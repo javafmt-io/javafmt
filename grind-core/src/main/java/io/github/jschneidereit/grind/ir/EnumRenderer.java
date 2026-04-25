@@ -53,10 +53,8 @@ final class EnumRenderer {
             final var constantsInner = new Doc.Indent(new Doc.Concat(Stream.concat(
                 Stream.<Doc>of(new Doc.Line()),
                 Stream.concat(
-                    constants.stream()
-                        .<Doc>map(v -> attacher.attach(v, renderConstant(v, recursor)))
-                        .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
-                        .skip(2),
+                    Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), constants.stream()
+                        .map(v -> attacher.attach(v, renderConstant(v, recursor)))),
                     Stream.<Doc>of(new Doc.IfBreak(new Doc.Text(","), new Doc.Text("")))
                 )
             )));
@@ -83,12 +81,8 @@ final class EnumRenderer {
 
         final Stream<Doc> bodyMembersDocs = Stream.concat(
             Stream.<Doc>of(new Doc.HardLine()),
-            bodyMembers.stream()
-                .flatMap(m -> Stream.<Doc>of(
-                    new Doc.HardLine(),
-                    new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))
-                ))
-                .skip(1)
+            Doc.intersperse(new Doc.HardLine(), bodyMembers.stream()
+                .<Doc>map(m -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), m)))))
         );
 
         return ModifierRenderer.prependOwnLineAnnotations(node.getModifiers(), new Doc.Concat(Stream.concat(
@@ -108,10 +102,8 @@ final class EnumRenderer {
         if (!(v.getInitializer() instanceof NewClassTree nc) || nc.getArguments().isEmpty()) {
             return new Doc.Text(name);
         }
-        final var argsInterior = nc.getArguments().stream()
-            .<Doc>map(recursor::scanOrText)
-            .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
-            .skip(1);
+        final var argsInterior = Doc.intersperse(new Doc.Text(", "), nc.getArguments().stream()
+            .<Doc>map(recursor::scanOrText));
         return new Doc.Concat(Stream.concat(
             Stream.concat(Stream.<Doc>of(new Doc.Text(name + "(")), argsInterior),
             Stream.<Doc>of(new Doc.Text(")"))));
