@@ -30,6 +30,7 @@ An opinionated, high-performance Java code formatter for modern LTS (21+). See `
 
 - **AssertJ only,** never use JUnit's `assertEquals`, `assertTrue`, `assertNull`, etc. All assertions must use AssertJ's fluent `assertThat(...)` API.
 - **Fixture-based tests** for formatting rules: `test-fixtures/<category>/input.java` + `expected.java` pairs, loaded by parameterized tests.
+- **Idempotent fixtures** (where `format(x) == x`) live as single files at `test-fixtures/idempotent/<name>.java` — no input/expected split. Use this when the contract under test is "this canonical shape is preserved", not "this transformation happens".
 - **Unit tests** for internal components (Doc algebra, Printer, individual rules).
 - **Idempotency**: `format(format(x))` must equal `format(x)`. Test this.
 - **Parameterized tests**: prefer `@ParameterizedTest` over repeated `@Test` methods wherever the same assertion logic runs against multiple inputs.

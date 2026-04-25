@@ -4,27 +4,68 @@ import io.github.jschneidereit.grind.parser.CommentToken;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 final class CommentDocs {
+
+    private static final int TAB_WIDTH = 4;
 
     static Doc renderComment(final CommentToken comment) {
         final var lines = Arrays.stream(comment.text().split("\n", -1))
             .map(line -> line.endsWith("\r") ? line.substring(0, line.length() - 1) : line)
             .toList();
-        final var strip = comment.startColumn();
-        return new Doc.Concat(java.util.stream.IntStream.range(0, lines.size())
-            .<Doc>mapToObj(i -> new Doc.Text(i == 0 ? lines.get(i) : stripLeading(lines.get(i), strip)))
-            .flatMap(t -> Stream.<Doc>of(new Doc.HardLine(), t))
-            .skip(1));
+        if (lines.size() == 1) {
+            return new Doc.Text(lines.get(0));
+        }
+        final var strip = computeStrip(lines, comment.startColumn());
+        return new Doc.Concat(Stream.<Doc>concat(
+            Stream.of(new Doc.Text(lines.get(0))),
+            IntStream.range(1, lines.size()).boxed()
+                .flatMap(i -> Stream.<Doc>of(new Doc.HardLine(), new Doc.Text(stripCols(lines.get(i), strip))))));
     }
 
-    private static String stripLeading(final String line, final int max) {
-        var n = 0;
-        while (n < max && n < line.length() && line.charAt(n) == ' ') {
-            n++;
+    private static int computeStrip(final List<String> lines, final int openerCol) {
+        return Math.min(openerCol, lines.stream()
+            .skip(1)
+            .filter(line -> !line.isBlank())
+            .mapToInt(CommentDocs::leadingCols)
+            .min()
+            .orElse(openerCol));
+    }
+
+    private static int leadingCols(final String line) {
+        var col = 0;
+        for (var i = 0; i < line.length(); i++) {
+            final var c = line.charAt(i);
+            if (c == ' ') {
+                col++;
+            } else if (c == '\t') {
+                col = (col / TAB_WIDTH + 1) * TAB_WIDTH;
+            } else {
+                break;
+            }
         }
-        return line.substring(n);
+        return col;
+    }
+
+    private static String stripCols(final String line, final int strip) {
+        var col = 0;
+        var i = 0;
+        while (i < line.length()) {
+            final var c = line.charAt(i);
+            if (c == ' ') {
+                col++;
+                i++;
+            } else if (c == '\t') {
+                col = (col / TAB_WIDTH + 1) * TAB_WIDTH;
+                i++;
+            } else {
+                break;
+            }
+        }
+        final var remaining = Math.max(0, col - strip);
+        return " ".repeat(remaining) + line.substring(i);
     }
 
     static Doc prepend(final List<CommentToken> comments, final Doc doc) {
