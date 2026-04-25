@@ -439,7 +439,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitThrow(final ThrowTree node, final Void p) {
-        return SimpleStatementRenderers.renderThrow(node);
+        return SimpleStatementRenderers.renderThrow(node, recursor());
     }
 
     @Override

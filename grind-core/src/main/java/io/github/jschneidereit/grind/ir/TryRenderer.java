@@ -44,9 +44,12 @@ final class TryRenderer {
 
     private static Stream<Doc> catchParts(final CatchTree c, final Recursor recursor) {
         final var param = c.getParameter();
-        final var header = "} catch (" + param.getType() + " " + param.getName() + ") {";
+        final Doc header = new Doc.Concat(List.of(
+            new Doc.Text("} catch ("),
+            recursor.scanOrText(param.getType()),
+            new Doc.Text(" " + param.getName() + ") {")));
         return Stream.concat(
-            Stream.<Doc>of(new Doc.HardLine(), new Doc.Text(header)),
+            Stream.<Doc>of(new Doc.HardLine(), header),
             BlockRenderer.blockStmts(c.getBlock(), recursor).stream()
                 .map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s))))
         );

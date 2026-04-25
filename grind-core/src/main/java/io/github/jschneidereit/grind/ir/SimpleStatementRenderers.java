@@ -76,8 +76,11 @@ final class SimpleStatementRenderers {
         return new Doc.Text(node.getExpression() + ";");
     }
 
-    static Doc renderThrow(final ThrowTree node) {
-        return new Doc.Text("throw " + node.getExpression() + ";");
+    static Doc renderThrow(final ThrowTree node, final Recursor recursor) {
+        return new Doc.Concat(List.of(
+            new Doc.Text("throw "),
+            recursor.scanOrText(node.getExpression()),
+            new Doc.Text(";")));
     }
 
     private SimpleStatementRenderers() {}

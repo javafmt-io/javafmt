@@ -35,7 +35,8 @@ class RendererCoverageTest {
         // Known renderer gaps: children are expressions that should recurse,
         // not be toString'd. Remove from this set when a dedicated renderer lands.
         Tree.Kind.TYPE_PARAMETER,
-        Tree.Kind.CONSTANT_CASE_LABEL);
+        Tree.Kind.CONSTANT_CASE_LABEL,
+        Tree.Kind.UNION_TYPE);
 
     private static final Set<String> EXPECTED_FALLBACK_FIXTURES = Set.of(
         "switch-colon-form-preserved",
