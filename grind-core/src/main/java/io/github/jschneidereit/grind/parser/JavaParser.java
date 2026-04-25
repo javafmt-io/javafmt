@@ -29,6 +29,8 @@ public final class JavaParser {
     public static ParsedUnit parseUnit(final String source) {
         Objects.requireNonNull(source, "source");
 
+        final var stripped = !source.isEmpty() && source.charAt(0) == '﻿' ? source.substring(1) : source;
+
         final var compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null) {
             throw new IllegalStateException("No system Java compiler available; run on a JDK, not a JRE");
@@ -37,7 +39,7 @@ public final class JavaParser {
         final var diagnostics = new DiagnosticCollector<JavaFileObject>();
 
         try (final var fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8)) {
-            final var fileObject = new InMemoryJavaFileObject(source);
+            final var fileObject = new InMemoryJavaFileObject(stripped);
             final var task = (JavacTask) compiler.getTask(null, fileManager, diagnostics, null, null, List.of(fileObject));
             final var trees = task.parse();
 
@@ -61,8 +63,8 @@ public final class JavaParser {
             }
             final var unit = iterator.next();
             final var positions = Trees.instance(task).getSourcePositions();
-            final var comments = CommentScanner.scan(source);
-            return CommentAttacher.attach(unit, source, positions, comments);
+            final var comments = CommentScanner.scan(stripped);
+            return CommentAttacher.attach(unit, stripped, positions, comments);
 
         } catch (IOException e) {
             throw new AssertionError(e);

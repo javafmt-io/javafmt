@@ -171,6 +171,103 @@ class CommentAuditTest {
         return i;
     }
 
+    @Test
+    void trailingLineCommentStaysTrailing_doesNotBecomeLeadingOnNext() {
+        final var source = """
+            class C {
+                int x; // suffix
+                int y;
+            }
+            """;
+
+        final var formatted = Grind.format(source);
+        final var lines = formatted.split("\n", -1);
+
+        final var xLine = lineContaining(lines, "int x;");
+        final var yLine = lineContaining(lines, "int y;");
+
+        assertThat(xLine).as("trailing comment must stay on the same line as `int x;` in:%n%s", formatted)
+            .contains("// suffix");
+        assertThat(yLine).as("trailing comment must not migrate to leading of `int y;` in:%n%s", formatted)
+            .doesNotContain("// suffix");
+    }
+
+    @Test
+    void leadingJavadocStaysLeading_doesNotBecomeTrailingOnPrev() {
+        final var source = """
+            class C {
+                int x;
+
+                /** doc on y */
+                int y;
+            }
+            """;
+
+        final var formatted = Grind.format(source);
+        final var lines = formatted.split("\n", -1);
+
+        final var docLineIdx = indexOfLineContaining(lines, "/** doc on y */");
+        final var yLineIdx = indexOfLineContaining(lines, "int y;");
+
+        assertThat(docLineIdx).as("javadoc must appear in:%n%s", formatted).isNotNegative();
+        assertThat(yLineIdx).as("`int y;` must appear in:%n%s", formatted).isNotNegative();
+        assertThat(docLineIdx).as("javadoc must remain on a line before `int y;` in:%n%s", formatted)
+            .isLessThan(yLineIdx);
+        assertThat(lines[docLineIdx]).as("javadoc must not piggyback onto `int x;` in:%n%s", formatted)
+            .doesNotContain("int x;");
+    }
+
+    @Test
+    void interiorBlockCommentStaysInsideBraces() {
+        final var source = """
+            class C {
+                void m() {
+                    // pure interior
+                }
+            }
+            """;
+
+        final var formatted = Grind.format(source);
+        final var lines = formatted.split("\n", -1);
+
+        final var openIdx = indexOfLineContaining(lines, "void m() {");
+        final var commentIdx = indexOfLineContaining(lines, "// pure interior");
+
+        assertThat(openIdx).as("opening brace of `m` must appear in:%n%s", formatted).isNotNegative();
+        assertThat(commentIdx).as("interior comment must appear in:%n%s", formatted).isNotNegative();
+        assertThat(commentIdx).as("interior comment must stay inside the method body in:%n%s", formatted)
+            .isGreaterThan(openIdx);
+
+        final var closeIdx = indexOfFirstLineEqualingFrom(lines, commentIdx, "    }");
+        assertThat(closeIdx).as("closing brace of `m` must follow the interior comment in:%n%s", formatted)
+            .isNotNegative();
+    }
+
+    private static String lineContaining(final String[] lines, final String needle) {
+        return java.util.Arrays.stream(lines)
+            .filter(l -> l.contains(needle))
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("no line contains: " + needle));
+    }
+
+    private static int indexOfLineContaining(final String[] lines, final String needle) {
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].contains(needle)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static int indexOfFirstLineEqualingFrom(final String[] lines, final int from, final String exact) {
+        for (var i = from; i < lines.length; i++) {
+            if (lines[i].equals(exact)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     static Stream<Arguments> commentFixtureInputs() throws URISyntaxException, IOException {
         final var fixturesRoot = CommentAuditTest.class.getClassLoader().getResource("test-fixtures");
         if (fixturesRoot == null) {

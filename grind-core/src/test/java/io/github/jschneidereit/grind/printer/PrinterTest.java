@@ -229,6 +229,23 @@ class PrinterTest {
                 new Doc.Text("a"), new Doc.Text(","), new Doc.Text("b"))))
                 .isInstanceOf(IllegalArgumentException.class);
         }
+
+        @Test
+        void fill_hardLineInsideContent_forcesNextSeparatorToBreak() {
+            // HardLine has flatWidth = Integer.MAX_VALUE/2, so once a Fill content contains one,
+            // currentCol in the pack loop is poisoned to a huge value: the immediately following
+            // separator sees no room and breaks even though the rendered cursor is at column 1
+            // after the HardLine. After that break currentCol resets to indent and packing resumes
+            // normally. Documenting this so a future change doesn't quietly alter the behavior.
+            final var contentWithHardLine = new Doc.Concat(List.of(
+                new Doc.Text("a"), new Doc.HardLine(), new Doc.Text("b")));
+            final var doc = new Doc.Fill(List.of(
+                contentWithHardLine, new Doc.Line(),
+                new Doc.Text("c"), new Doc.Line(),
+                new Doc.Text("d")));
+
+            assertThat(new Printer(80).print(doc)).isEqualTo("a\nb\nc d");
+        }
     }
 
     @Nested

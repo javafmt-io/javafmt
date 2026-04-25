@@ -25,7 +25,8 @@ class DocTest {
             new Doc.Indent(new Doc.Text("i")),
             new Doc.Group(new Doc.Text("g")),
             new Doc.Concat(List.of()),
-            new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")));
+            new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")),
+            new Doc.Fill(List.of(new Doc.Text("a"), new Doc.Line(), new Doc.Text("b"))));
     }
 
     @ParameterizedTest

@@ -38,6 +38,7 @@ final class CommentAttacher {
 
         final var slots = new ArrayList<Slot>();
         collectCompilationUnit(tree, source, positions, slots);
+        // Sort by (hi asc, lo asc) so the innermost slot fires first when two slots enclose the same comment.
         slots.sort(Comparator.<Slot>comparingLong(Slot::hi).thenComparingLong(Slot::lo));
 
         final var fileHeader = new ArrayList<CommentToken>();

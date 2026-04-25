@@ -1,6 +1,7 @@
 package io.github.jschneidereit.grind.parser;
 
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.VariableTree;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,5 +65,40 @@ class JavaParserTest {
     void throwsOnSyntaxError() {
         assertThatThrownBy(() -> JavaParser.parse("class {"))
                 .isInstanceOf(ParseException.class);
+    }
+
+    @Test
+    void parsesSourceWithUtf8Bom() {
+        final var bom = "﻿";
+        final var tree = JavaParser.parse(bom + "class Foo {}");
+
+        assertThat(tree.getTypeDecls()).hasSize(1);
+        final var decl = (ClassTree) tree.getTypeDecls().getFirst();
+        assertThat(decl.getSimpleName().toString()).isEqualTo("Foo");
+    }
+
+    @Test
+    void crlfLineEndingsProduceCorrectLineNumbers() {
+        final var unit = JavaParser.parseUnit("class Foo {\r\n    int x;\r\n}\r\n");
+        final var cls = (ClassTree) unit.tree().getTypeDecls().getFirst();
+        final var field = (VariableTree) cls.getMembers().getFirst();
+
+        assertThat(unit.positionOf(field).line()).isEqualTo(2);
+    }
+
+    @Test
+    void packageInfoStyleFileHeaderJavadocSurvivesAsFileHeader() {
+        // Reproduces a suspected gap in CommentAttacher: a leading Javadoc on a file with
+        // only a package declaration should be captured as the file header, not silently lost.
+        final var source = """
+            /** package summary */
+            package com.example;
+            """;
+
+        final var unit = JavaParser.parseUnit(source);
+
+        assertThat(unit.fileHeader())
+            .extracting(CommentToken::text)
+            .containsExactly("/** package summary */");
     }
 }
