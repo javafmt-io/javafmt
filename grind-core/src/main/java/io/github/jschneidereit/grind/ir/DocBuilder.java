@@ -545,10 +545,10 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             NO_POSITIONS,
             List.of(),
             List.of(),
-            java.util.Map.of(),
-            java.util.Map.of(),
-            java.util.Map.of(),
-            java.util.Map.of());
+            new java.util.IdentityHashMap<>(),
+            new java.util.IdentityHashMap<>(),
+            new java.util.IdentityHashMap<>(),
+            new java.util.IdentityHashMap<>());
     }
 
     private static final com.sun.source.util.SourcePositions NO_POSITIONS = new com.sun.source.util.SourcePositions() {

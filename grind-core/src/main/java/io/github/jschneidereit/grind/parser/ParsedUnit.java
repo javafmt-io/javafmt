@@ -6,23 +6,28 @@ import com.sun.source.util.SourcePositions;
 
 import io.github.jschneidereit.grind.Position;
 
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Parsed compilation unit with comments attached to AST nodes.
+ *
+ * <p>Comment-channel maps ({@code leading}, {@code trailing}, {@code interior}, {@code tail})
+ * are typed as {@link IdentityHashMap} because lookup must be by reference identity, not
+ * equality: javac may produce {@code .equals}-equal {@link Tree} instances for distinct
+ * source positions.
+ */
 public record ParsedUnit(
         CompilationUnitTree tree,
         SourcePositions sourcePositions,
         List<CommentToken> fileHeader,
         List<CommentToken> fileFooter,
-        Map<Tree, List<CommentToken>> leading,
-        Map<Tree, List<CommentToken>> trailing,
-        Map<Tree, List<CommentToken>> interior,
-        Map<Tree, List<CommentToken>> tail) {
+        IdentityHashMap<Tree, List<CommentToken>> leading,
+        IdentityHashMap<Tree, List<CommentToken>> trailing,
+        IdentityHashMap<Tree, List<CommentToken>> interior,
+        IdentityHashMap<Tree, List<CommentToken>> tail) {
 
-    @SuppressWarnings("IdentityHashMapUsage")
     public ParsedUnit {
         Objects.requireNonNull(tree, "tree");
         Objects.requireNonNull(sourcePositions, "sourcePositions");
@@ -34,14 +39,10 @@ public record ParsedUnit(
         Objects.requireNonNull(tail, "tail");
         fileHeader = List.copyOf(fileHeader);
         fileFooter = List.copyOf(fileFooter);
-        final IdentityHashMap<Tree, List<CommentToken>> leadingCopy = new IdentityHashMap<>(leading);
-        final IdentityHashMap<Tree, List<CommentToken>> trailingCopy = new IdentityHashMap<>(trailing);
-        final IdentityHashMap<Tree, List<CommentToken>> interiorCopy = new IdentityHashMap<>(interior);
-        final IdentityHashMap<Tree, List<CommentToken>> tailCopy = new IdentityHashMap<>(tail);
-        leading = Collections.unmodifiableMap(leadingCopy);
-        trailing = Collections.unmodifiableMap(trailingCopy);
-        interior = Collections.unmodifiableMap(interiorCopy);
-        tail = Collections.unmodifiableMap(tailCopy);
+        leading = new IdentityHashMap<>(leading);
+        trailing = new IdentityHashMap<>(trailing);
+        interior = new IdentityHashMap<>(interior);
+        tail = new IdentityHashMap<>(tail);
     }
 
     public List<CommentToken> leadingOf(final Tree node) {
