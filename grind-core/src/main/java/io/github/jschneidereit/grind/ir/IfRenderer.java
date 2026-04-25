@@ -10,7 +10,7 @@ final class IfRenderer {
 
     static Doc render(final IfTree node, final Recursor recursor) {
         // javac wraps the condition in JCParens, so the rendered condition already includes the outer ()
-        final var condDoc = recursor.scanOrText(node.getCondition());
+        final var condDoc = recursor.scan(node.getCondition());
         final var header = new Doc.Concat(List.of(new Doc.Text("if "), condDoc));
         final var thenStmts = BlockRenderer.blockStmts(node.getThenStatement(), recursor);
         if (node.getElseStatement() == null) {

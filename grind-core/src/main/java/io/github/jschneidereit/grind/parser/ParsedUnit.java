@@ -20,6 +20,7 @@ import java.util.Objects;
  */
 public record ParsedUnit(
         CompilationUnitTree tree,
+        String source,
         SourcePositions sourcePositions,
         List<CommentToken> fileHeader,
         List<CommentToken> fileFooter,
@@ -30,6 +31,7 @@ public record ParsedUnit(
 
     public ParsedUnit {
         Objects.requireNonNull(tree, "tree");
+        Objects.requireNonNull(source, "source");
         Objects.requireNonNull(sourcePositions, "sourcePositions");
         Objects.requireNonNull(fileHeader, "fileHeader");
         Objects.requireNonNull(fileFooter, "fileFooter");
@@ -43,6 +45,15 @@ public record ParsedUnit(
         trailing = new IdentityHashMap<>(trailing);
         interior = new IdentityHashMap<>(interior);
         tail = new IdentityHashMap<>(tail);
+    }
+
+    public String sourceOf(final Tree node) {
+        final var start = sourcePositions.getStartPosition(tree, node);
+        final var end = sourcePositions.getEndPosition(tree, node);
+        if (start < 0 || end < 0 || end > source.length() || start > end) {
+            throw new IllegalStateException("no source positions for " + node.getKind() + ": " + node);
+        }
+        return source.substring((int) start, (int) end);
     }
 
     public List<CommentToken> leadingOf(final Tree node) {

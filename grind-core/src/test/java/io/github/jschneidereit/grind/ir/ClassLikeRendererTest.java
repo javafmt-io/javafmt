@@ -20,11 +20,11 @@ class ClassLikeRendererTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return Printer.print(DocBuilder.build(JavaParser.parse(source)), WIDTH);
+        return Printer.print(DocBuilder.build(JavaParser.parseUnit(source)), WIDTH);
     }
 
     private static String format(final String source, final GrindConfig config) {
-        return Printer.print(DocBuilder.build(JavaParser.parse(source), config), WIDTH);
+        return Printer.print(DocBuilder.build(JavaParser.parseUnit(source), config), WIDTH);
     }
 
     @Nested

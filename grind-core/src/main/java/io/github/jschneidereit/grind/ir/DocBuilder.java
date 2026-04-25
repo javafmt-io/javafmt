@@ -5,9 +5,8 @@ import com.sun.source.util.TreeScanner;
 
 import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.GrindConfig;
+import io.github.jschneidereit.grind.parser.CommentToken;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
-
-import java.util.Set;
 
 import java.util.List;
 import java.util.Objects;
@@ -18,31 +17,17 @@ import org.jspecify.annotations.Nullable;
 
 public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
-    private static final Set<Tree.Kind> EXPECTED_FALLBACK_KINDS = Set.of(
-        Tree.Kind.IDENTIFIER, Tree.Kind.PRIMITIVE_TYPE,
-        Tree.Kind.BOOLEAN_LITERAL, Tree.Kind.CHAR_LITERAL,
-        Tree.Kind.DOUBLE_LITERAL, Tree.Kind.FLOAT_LITERAL,
-        Tree.Kind.INT_LITERAL, Tree.Kind.LONG_LITERAL,
-        Tree.Kind.NULL_LITERAL, Tree.Kind.STRING_LITERAL,
-        Tree.Kind.MODIFIERS, Tree.Kind.EMPTY_STATEMENT,
-        Tree.Kind.BREAK, Tree.Kind.CONTINUE,
-        Tree.Kind.TYPE_PARAMETER,
-        Tree.Kind.CONSTANT_CASE_LABEL,
-        Tree.Kind.UNION_TYPE,
-        Tree.Kind.PARAMETERIZED_TYPE,
-        Tree.Kind.ARRAY_TYPE);
-
     private final GrindConfig config;
     private final ParsedUnit unit;
     private final LeadingCommentAttacher attacher;
-    private final java.util.List<Tree> fallbacks = new java.util.ArrayList<>();
     private final java.util.List<Diagnostic> diagnostics = new java.util.ArrayList<>();
 
     private Recursor recursor() {
         return new Recursor() {
             @Override
-            public @Nullable Doc scan(final Tree node) {
-                return DocBuilder.this.scan(node, null);
+            public Doc scan(final Tree node) {
+                Objects.requireNonNull(node, "node");
+                return Objects.requireNonNull(DocBuilder.this.scan(node, null));
             }
 
             @Override
@@ -50,15 +35,6 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
                 diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(at)));
             }
         };
-    }
-
-    public static Doc build(final CompilationUnitTree tree) {
-        return build(tree, GrindConfig.defaults());
-    }
-
-    public static Doc build(final CompilationUnitTree tree, final GrindConfig config) {
-        Objects.requireNonNull(tree, "tree");
-        return build(emptyUnit(tree), config);
     }
 
     public static Doc build(final ParsedUnit unit) {
@@ -76,86 +52,38 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         final var doc = builder.visitCompilationUnit(unit.tree(), null);
         return new BuildResult(
             Objects.requireNonNull(doc, "visitCompilationUnit returned null"),
-            List.copyOf(builder.fallbacks),
             List.copyOf(builder.diagnostics));
     }
 
-    public record BuildResult(Doc doc, List<Tree> fallbacks, List<Diagnostic> diagnostics) {}
+    public record BuildResult(Doc doc, List<Diagnostic> diagnostics) {}
 
     @Override
     public @Nullable Doc scan(final @Nullable Tree tree, final Void p) {
         if (tree == null) {
             return null;
         }
-        final var result = isHandled(tree) ? super.scan(tree, null) : null;
-        final Doc rendered;
-        if (result != null) {
-            rendered = result;
-        } else {
-            fallbacks.add(tree);
-            if (!EXPECTED_FALLBACK_KINDS.contains(tree.getKind())) {
-                diagnostics.add(new Diagnostic.Warning(
-                    "fell back to javac pretty-printer for " + tree.getKind(),
-                    unit.positionOf(tree)));
-            }
-            rendered = textFallback(tree);
+        return attacher.attach(tree, dispatch(tree));
+    }
+
+    private Doc dispatch(final Tree tree) {
+        final var result = super.scan(tree, null);
+        if (result == null) {
+            throw new IllegalStateException(unhandledMessage(tree.getKind(), tree));
         }
-        return attacher.attach(tree, rendered);
+        return result;
+    }
+
+    private static String unhandledMessage(final Tree.Kind kind, final Tree tree) {
+        return switch (kind) {
+            case MODULE, EXPORTS, OPENS, PROVIDES, REQUIRES, USES ->
+                "modules not yet supported: " + kind;
+            default -> "no renderer for " + kind + ": " + tree;
+        };
     }
 
     @Override
     public @Nullable Doc reduce(final @Nullable Doc r1, final @Nullable Doc r2) {
-        return null;
-    }
-
-    private static boolean isHandled(final Tree tree) {
-        return tree instanceof CompilationUnitTree
-            || tree instanceof ClassTree
-            || tree instanceof MethodTree
-            || tree instanceof VariableTree
-            || tree instanceof ReturnTree
-            || tree instanceof ExpressionStatementTree
-            || tree instanceof MethodInvocationTree
-            || tree instanceof LambdaExpressionTree
-            || tree instanceof SwitchTree
-            || tree instanceof SwitchExpressionTree
-            || tree instanceof CaseTree
-            || tree instanceof IfTree
-            || tree instanceof ForLoopTree
-            || tree instanceof EnhancedForLoopTree
-            || tree instanceof WhileLoopTree
-            || tree instanceof DoWhileLoopTree
-            || tree instanceof ThrowTree
-            || tree instanceof TryTree
-            || tree instanceof AssertTree
-            || tree instanceof SynchronizedTree
-            || tree instanceof LabeledStatementTree
-            || tree instanceof YieldTree
-            || tree instanceof NewArrayTree
-            || tree instanceof TypeCastTree
-            || tree instanceof ParenthesizedTree
-            || tree instanceof InstanceOfTree
-            || tree instanceof BindingPatternTree
-            || tree instanceof DeconstructionPatternTree
-            || tree instanceof PatternCaseLabelTree
-            || tree instanceof BinaryTree
-            || tree instanceof UnaryTree
-            || tree instanceof ConditionalExpressionTree
-            || tree instanceof NewClassTree
-            || tree instanceof AssignmentTree
-            || tree instanceof CompoundAssignmentTree
-            || tree instanceof MemberSelectTree
-            || tree instanceof ArrayAccessTree;
-    }
-
-    private static Doc textFallback(final Tree tree) {
-        final var s = tree.toString().stripTrailing();
-        if (s.indexOf('\n') < 0 && s.indexOf('\r') < 0) {
-            return new Doc.Text(s);
-        }
-        return new Doc.Concat(Doc.intersperse(new Doc.HardLine(), java.util.Arrays.stream(s.split("\n", -1))
-            .map(line -> line.endsWith("\r") ? line.substring(0, line.length() - 1) : line)
-            .<Doc>map(Doc.Text::new)));
+        throw new AssertionError("unexpected tree merge: r1=" + r1 + " r2=" + r2);
     }
 
     @Override
@@ -430,7 +358,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     }
 
     private Doc scanOrText(final Tree tree) {
-        return recursor().scanOrText(tree);
+        return recursor().scan(tree);
     }
 
     @Override
@@ -508,49 +436,197 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         return SimpleStatementRenderers.renderYield(node, recursor());
     }
 
-    private DocBuilder(final ParsedUnit unit, final GrindConfig config) {
-        this.unit = unit;
-        this.config = config;
-        this.attacher = new LeadingCommentAttacher() {
-            @Override
-            public Doc attach(final Tree node, final Doc doc) {
-                final var withLeading = CommentDocs.prepend(unit.leadingOf(node), doc);
-                return CommentDocs.appendTrailing(withLeading, unit.trailingOf(node));
-            }
+    @Override
+    public @Nullable Doc visitIdentifier(final IdentifierTree node, final Void p) {
+        return new Doc.Text(node.getName().toString());
+    }
 
-            @Override
-            public java.util.List<io.github.jschneidereit.grind.parser.CommentToken> interior(final Tree node) {
-                return unit.interiorOf(node);
-            }
+    @Override
+    public @Nullable Doc visitPrimitiveType(final PrimitiveTypeTree node, final Void p) {
+        return new Doc.Text(node.getPrimitiveTypeKind().name().toLowerCase(java.util.Locale.ROOT));
+    }
 
-            @Override
-            public java.util.List<io.github.jschneidereit.grind.parser.CommentToken> tail(final Tree node) {
-                return unit.tailOf(node);
-            }
+    @Override
+    public @Nullable Doc visitLiteral(final LiteralTree node, final Void p) {
+        final var text = unit.sourceOf(node);
+        if (text.indexOf('\n') < 0 && text.indexOf('\r') < 0) {
+            return new Doc.Text(text);
+        }
+        return new Doc.Concat(Doc.intersperse(new Doc.HardLine(), java.util.Arrays.stream(text.split("\n", -1))
+            .map(line -> line.endsWith("\r") ? line.substring(0, line.length() - 1) : line)
+            .<Doc>map(Doc.Text::new)));
+    }
+
+    @Override
+    public @Nullable Doc visitEmptyStatement(final EmptyStatementTree node, final Void p) {
+        return new Doc.Text(";");
+    }
+
+    @Override
+    public @Nullable Doc visitBreak(final BreakTree node, final Void p) {
+        return node.getLabel() == null
+            ? new Doc.Text("break;")
+            : new Doc.Text("break " + node.getLabel() + ";");
+    }
+
+    @Override
+    public @Nullable Doc visitContinue(final ContinueTree node, final Void p) {
+        return node.getLabel() == null
+            ? new Doc.Text("continue;")
+            : new Doc.Text("continue " + node.getLabel() + ";");
+    }
+
+    @Override
+    public @Nullable Doc visitConstantCaseLabel(final ConstantCaseLabelTree node, final Void p) {
+        return scanOrText(node.getConstantExpression());
+    }
+
+    @Override
+    public @Nullable Doc visitDefaultCaseLabel(final DefaultCaseLabelTree node, final Void p) {
+        return new Doc.Text("default");
+    }
+
+    @Override
+    public @Nullable Doc visitArrayType(final ArrayTypeTree node, final Void p) {
+        return new Doc.Concat(List.of(scanOrText(node.getType()), new Doc.Text("[]")));
+    }
+
+    @Override
+    public @Nullable Doc visitParameterizedType(final ParameterizedTypeTree node, final Void p) {
+        final var args = node.getTypeArguments();
+        if (args.isEmpty()) {
+            return new Doc.Concat(List.of(scanOrText(node.getType()), new Doc.Text("<>")));
+        }
+        final var argDocs = Doc.intersperse(new Doc.Text(", "), args.stream().<Doc>map(this::scanOrText));
+        return new Doc.Concat(Stream.concat(
+            Stream.<Doc>of(scanOrText(node.getType()), new Doc.Text("<")),
+            Stream.concat(argDocs, Stream.<Doc>of(new Doc.Text(">")))));
+    }
+
+    @Override
+    public @Nullable Doc visitUnionType(final UnionTypeTree node, final Void p) {
+        return new Doc.Concat(Doc.intersperse(new Doc.Text(" | "), node.getTypeAlternatives().stream()
+            .<Doc>map(this::scanOrText)));
+    }
+
+    @Override
+    public @Nullable Doc visitIntersectionType(final IntersectionTypeTree node, final Void p) {
+        return new Doc.Concat(Doc.intersperse(new Doc.Text(" & "), node.getBounds().stream()
+            .<Doc>map(this::scanOrText)));
+    }
+
+    @Override
+    public @Nullable Doc visitWildcard(final WildcardTree node, final Void p) {
+        return switch (node.getKind()) {
+            case EXTENDS_WILDCARD -> new Doc.Concat(List.of(new Doc.Text("? extends "), scanOrText(node.getBound())));
+            case SUPER_WILDCARD -> new Doc.Concat(List.of(new Doc.Text("? super "), scanOrText(node.getBound())));
+            case UNBOUNDED_WILDCARD -> new Doc.Text("?");
+            default -> throw new IllegalStateException("unexpected wildcard kind: " + node.getKind());
         };
     }
 
-    private static ParsedUnit emptyUnit(final CompilationUnitTree tree) {
-        return new ParsedUnit(
-            tree,
-            NO_POSITIONS,
-            List.of(),
-            List.of(),
-            new java.util.IdentityHashMap<>(),
-            new java.util.IdentityHashMap<>(),
-            new java.util.IdentityHashMap<>(),
-            new java.util.IdentityHashMap<>());
+    @Override
+    public @Nullable Doc visitTypeParameter(final TypeParameterTree node, final Void p) {
+        final var nameDoc = (Doc) new Doc.Text(node.getName().toString());
+        final var bounds = node.getBounds();
+        if (bounds.isEmpty()) {
+            return nameDoc;
+        }
+        final var boundDocs = Doc.intersperse(new Doc.Text(" & "), bounds.stream().<Doc>map(this::scanOrText));
+        return new Doc.Concat(Stream.concat(
+            Stream.<Doc>of(nameDoc, new Doc.Text(" extends ")),
+            boundDocs));
     }
 
-    private static final com.sun.source.util.SourcePositions NO_POSITIONS = new com.sun.source.util.SourcePositions() {
+    @Override
+    public @Nullable Doc visitAnnotatedType(final AnnotatedTypeTree node, final Void p) {
+        return new Doc.Concat(Stream.concat(
+            node.getAnnotations().stream().<Doc>flatMap(a -> Stream.<Doc>of(scanOrText(a), new Doc.Text(" "))),
+            Stream.<Doc>of(scanOrText(node.getUnderlyingType()))));
+    }
+
+    @Override
+    public @Nullable Doc visitAnnotation(final AnnotationTree node, final Void p) {
+        final var prefix = new Doc.Concat(List.of(new Doc.Text("@"), scanOrText(node.getAnnotationType())));
+        final var args = node.getArguments();
+        if (args.isEmpty()) {
+            return prefix;
+        }
+        final var argDocs = Doc.intersperse(new Doc.Text(", "), args.stream().<Doc>map(this::scanOrText));
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(Stream.<Doc>of(prefix, new Doc.Text("(")), argDocs),
+            Stream.<Doc>of(new Doc.Text(")"))));
+    }
+
+    @Override
+    public @Nullable Doc visitBlock(final BlockTree node, final Void p) {
+        final var stmts = node.getStatements().stream()
+            .<Doc>flatMap(s -> Optional.ofNullable(scan(s, null)).stream())
+            .toList();
+        return BlockRenderer.buildBlock(stmts, attacher.interior(node));
+    }
+
+    @Override
+    public @Nullable Doc visitCatch(final CatchTree node, final Void p) {
+        final var param = node.getParameter();
+        final var header = new Doc.Concat(List.of(
+            new Doc.Text("catch ("),
+            scanOrText(param.getType()),
+            new Doc.Text(" " + param.getName() + ")")));
+        final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor());
+        return BlockRenderer.buildBlock(header, stmts, attacher.interior(node.getBlock()));
+    }
+
+    @Override
+    public @Nullable Doc visitModifiers(final ModifiersTree node, final Void p) {
+        final var sb = new StringBuilder();
+        ModifierRenderer.renderAnnotations(node, sb);
+        ModifierRenderer.renderModifiers(node, sb);
+        final var text = sb.toString().stripTrailing();
+        return new Doc.Text(text);
+    }
+
+    @Override
+    public @Nullable Doc visitMemberReference(final MemberReferenceTree node, final Void p) {
+        final var qualifier = scanOrText(node.getQualifierExpression());
+        final var name = node.getMode() == MemberReferenceTree.ReferenceMode.NEW
+            ? "new"
+            : node.getName().toString();
+        final var typeArgs = node.getTypeArguments();
+        if (typeArgs == null || typeArgs.isEmpty()) {
+            return new Doc.Concat(List.of(qualifier, new Doc.Text("::" + name)));
+        }
+        final var argDocs = Doc.intersperse(new Doc.Text(", "), typeArgs.stream().<Doc>map(this::scanOrText));
+        return new Doc.Concat(Stream.concat(
+            Stream.concat(
+                Stream.<Doc>of(qualifier, new Doc.Text("::<")),
+                argDocs),
+            Stream.<Doc>of(new Doc.Text(">" + name))));
+    }
+
+    private DocBuilder(final ParsedUnit unit, final GrindConfig config) {
+        this.unit = unit;
+        this.config = config;
+        this.attacher = new CommentAttacher(unit);
+    }
+
+    private record CommentAttacher(ParsedUnit unit) implements LeadingCommentAttacher {
+
         @Override
-        public long getStartPosition(final CompilationUnitTree file, final Tree tree) {
-            return javax.tools.Diagnostic.NOPOS;
+        public Doc attach(final Tree node, final Doc doc) {
+            final var withLeading = CommentDocs.prepend(unit.leadingOf(node), doc);
+            return CommentDocs.appendTrailing(withLeading, unit.trailingOf(node));
         }
 
         @Override
-        public long getEndPosition(final CompilationUnitTree file, final Tree tree) {
-            return javax.tools.Diagnostic.NOPOS;
+        public List<CommentToken> interior(final Tree node) {
+            return unit.interiorOf(node);
         }
-    };
+
+        @Override
+        public List<CommentToken> tail(final Tree node) {
+            return unit.tailOf(node);
+        }
+    }
+
 }

@@ -71,11 +71,11 @@ final class MethodChainRenderer {
     }
 
     private static Doc renderArg(final ExpressionTree arg, final Recursor recursor) {
-        return recursor.scanOrText(arg);
+        return recursor.scan(arg);
     }
 
     private static Doc renderNonChain(final Tree tree, final Recursor recursor) {
-        return recursor.scanOrText(tree);
+        return recursor.scan(tree);
     }
 
     private MethodChainRenderer() {}

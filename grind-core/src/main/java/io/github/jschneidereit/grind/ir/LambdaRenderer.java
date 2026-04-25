@@ -19,7 +19,7 @@ final class LambdaRenderer {
     }
 
     private static Doc renderExpressionBody(final LambdaExpressionTree node, final Doc paramList, final Recursor recursor) {
-        return new Doc.Concat(List.of(paramList, new Doc.Text(" -> "), recursor.scanOrText(node.getBody())));
+        return new Doc.Concat(List.of(paramList, new Doc.Text(" -> "), recursor.scan(node.getBody())));
     }
 
     private static Doc renderBlockBody(final LambdaExpressionTree node, final Doc paramList, final Recursor recursor) {
@@ -48,7 +48,7 @@ final class LambdaRenderer {
             return new Doc.Text(param.getName().toString());
         }
         return new Doc.Concat(List.of(
-            recursor.scanOrText(param.getType()),
+            recursor.scan(param.getType()),
             new Doc.Text(" " + param.getName())));
     }
 

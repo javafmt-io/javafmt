@@ -90,7 +90,7 @@ final class ClassLikeRenderer {
             parts.add(new Doc.Indent(new Doc.Concat(List.of(
                 new Doc.Line(),
                 new Doc.Text("extends "),
-                recursor.scanOrText(superclass)
+                recursor.scan(superclass)
             ))));
         }
         if (!interfaces.isEmpty()) {
@@ -106,7 +106,7 @@ final class ClassLikeRenderer {
     private static Doc buildTypeList(final String keyword, final List<? extends Tree> types, final Recursor recursor) {
         final var typesInterior = new Doc.Concat(Doc.intersperse(
             List.of(new Doc.Text(","), new Doc.Line()),
-            types.stream().<Doc>map(recursor::scanOrText)));
+            types.stream().<Doc>map(recursor::scan)));
         return new Doc.Indent(new Doc.Concat(List.of(
             new Doc.Line(),
             new Doc.Text(keyword),

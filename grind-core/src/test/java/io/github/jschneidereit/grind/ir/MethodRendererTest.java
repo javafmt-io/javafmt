@@ -13,7 +13,7 @@ class MethodRendererTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return Printer.print(DocBuilder.build(JavaParser.parse(source)), WIDTH);
+        return Printer.print(DocBuilder.build(JavaParser.parseUnit(source)), WIDTH);
     }
 
     @Test

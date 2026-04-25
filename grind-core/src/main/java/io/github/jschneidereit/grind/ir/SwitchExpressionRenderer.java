@@ -11,16 +11,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import org.jspecify.annotations.Nullable;
-
 final class SwitchExpressionRenderer {
 
     static Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor) {
-        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor);
+        return renderSwitchLike(recursor.scan(node.getExpression()), node.getCases(), recursor);
     }
 
     static Doc renderSwitch(final SwitchTree node, final Recursor recursor) {
-        return renderSwitchLike(recursor.scanOrText(node.getExpression()), node.getCases(), recursor);
+        return renderSwitchLike(recursor.scan(node.getExpression()), node.getCases(), recursor);
     }
 
     private static Doc renderSwitchLike(
@@ -28,7 +26,7 @@ final class SwitchExpressionRenderer {
             final List<? extends CaseTree> cases,
             final Recursor recursor) {
         final var caseDocs = cases.stream()
-            .<Doc>map(recursor::scanOrText)
+            .<Doc>map(recursor::scan)
             .toList();
         return new Doc.Concat(Stream.concat(
             Stream.concat(
@@ -40,26 +38,14 @@ final class SwitchExpressionRenderer {
         ));
     }
 
-    static @Nullable Doc renderCase(final CaseTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    static Doc renderCase(final CaseTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+        final var prefixDoc = renderLabels(node, recursor);
         if (node.getCaseKind() != CaseTree.CaseKind.RULE) {
-            return null;
+            return renderColonForm(prefixDoc, node, recursor);
         }
-        final var isDefault = node.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree);
-        final Doc prefixDoc;
-        if (isDefault) {
-            prefixDoc = new Doc.Text("default");
-        } else {
-            final var labelParts = new java.util.ArrayList<Doc>();
-            labelParts.add(new Doc.Text("case "));
-            Doc.intersperse(new Doc.Text(", "), node.getLabels().stream()
-                .<Doc>map(recursor::scanOrText))
-                .forEach(labelParts::add);
-            prefixDoc = new Doc.Concat(labelParts);
-        }
-
         final var body = node.getBody();
         if (body == null) {
-            return null;
+            return new Doc.Concat(List.of(prefixDoc, new Doc.Text(" ->")));
         }
         if (body instanceof BlockTree blockBody) {
             final var stmts = blockBody.getStatements().stream()
@@ -71,7 +57,7 @@ final class SwitchExpressionRenderer {
                 attacher.interior(blockBody));
         }
         final Doc bodyDoc = body instanceof StatementTree
-            ? recursor.scanOrText(body)
+            ? recursor.scan(body)
             : new Doc.Text(body + ";");
         return new Doc.Group(new Doc.Concat(List.of(
             prefixDoc,
@@ -81,6 +67,32 @@ final class SwitchExpressionRenderer {
                 new Doc.Concat(List.of(new Doc.Text(" "), bodyDoc))
             )
         )));
+    }
+
+    private static Doc renderLabels(final CaseTree node, final Recursor recursor) {
+        final var isDefault = node.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree);
+        if (isDefault) {
+            return new Doc.Text("default");
+        }
+        final var labelParts = new java.util.ArrayList<Doc>();
+        labelParts.add(new Doc.Text("case "));
+        Doc.intersperse(new Doc.Text(", "), node.getLabels().stream()
+            .<Doc>map(recursor::scan))
+            .forEach(labelParts::add);
+        return new Doc.Concat(labelParts);
+    }
+
+    private static Doc renderColonForm(final Doc prefixDoc, final CaseTree node, final Recursor recursor) {
+        final var prefix = new Doc.Concat(List.of(prefixDoc, new Doc.Text(":")));
+        final var stmts = node.getStatements().stream()
+            .<Doc>flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
+            .toList();
+        if (stmts.isEmpty()) {
+            return prefix;
+        }
+        return new Doc.Concat(Stream.concat(
+            Stream.<Doc>of(prefix),
+            stmts.stream().map(s -> new Doc.Indent(new Doc.Concat(List.of(new Doc.HardLine(), s))))));
     }
 
     private SwitchExpressionRenderer() {}

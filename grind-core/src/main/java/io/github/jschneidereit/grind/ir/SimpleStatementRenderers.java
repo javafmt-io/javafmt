@@ -15,7 +15,7 @@ import org.jspecify.annotations.Nullable;
 final class SimpleStatementRenderers {
 
     static Doc renderAssert(final AssertTree node, final Recursor recursor) {
-        final var cond = recursor.scanOrText(node.getCondition());
+        final var cond = recursor.scan(node.getCondition());
         if (node.getDetail() == null) {
             return new Doc.Concat(List.of(new Doc.Text("assert "), cond, new Doc.Text(";")));
         }
@@ -23,7 +23,7 @@ final class SimpleStatementRenderers {
             new Doc.Text("assert "),
             cond,
             new Doc.Text(" : "),
-            recursor.scanOrText(node.getDetail()),
+            recursor.scan(node.getDetail()),
             new Doc.Text(";")));
     }
 
@@ -33,7 +33,7 @@ final class SimpleStatementRenderers {
             : node.getExpression();
         final var header = new Doc.Concat(List.of(
             new Doc.Text("synchronized ("),
-            recursor.scanOrText(inner),
+            recursor.scan(inner),
             new Doc.Text(")")));
         final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
         return BlockRenderer.buildBlock(header, stmts, List.of());
@@ -42,7 +42,7 @@ final class SimpleStatementRenderers {
     static Doc renderYield(final YieldTree node, final Recursor recursor) {
         return new Doc.Concat(List.of(
             new Doc.Text("yield "),
-            recursor.scanOrText(node.getValue()),
+            recursor.scan(node.getValue()),
             new Doc.Text(";")));
     }
 
@@ -50,7 +50,7 @@ final class SimpleStatementRenderers {
         return new Doc.Concat(List.of(
             new Doc.Text(node.getLabel() + ":"),
             new Doc.HardLine(),
-            recursor.scanOrText(node.getStatement())));
+            recursor.scan(node.getStatement())));
     }
 
     static Doc renderReturn(final ReturnTree node, final Recursor recursor) {
@@ -79,7 +79,7 @@ final class SimpleStatementRenderers {
     static Doc renderThrow(final ThrowTree node, final Recursor recursor) {
         return new Doc.Concat(List.of(
             new Doc.Text("throw "),
-            recursor.scanOrText(node.getExpression()),
+            recursor.scan(node.getExpression()),
             new Doc.Text(";")));
     }
 

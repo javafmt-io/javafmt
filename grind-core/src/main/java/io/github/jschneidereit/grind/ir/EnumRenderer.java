@@ -103,7 +103,7 @@ final class EnumRenderer {
             return new Doc.Text(name);
         }
         final var argsInterior = Doc.intersperse(new Doc.Text(", "), nc.getArguments().stream()
-            .<Doc>map(recursor::scanOrText));
+            .<Doc>map(recursor::scan));
         return new Doc.Concat(Stream.concat(
             Stream.concat(Stream.<Doc>of(new Doc.Text(name + "(")), argsInterior),
             Stream.<Doc>of(new Doc.Text(")"))));

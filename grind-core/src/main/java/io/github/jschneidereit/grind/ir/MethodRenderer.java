@@ -60,7 +60,7 @@ final class MethodRenderer {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
             Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), typeParams.stream()
-                .<Doc>map(recursor::scanOrText))
+                .<Doc>map(recursor::scan))
         ));
         return new Doc.Group(new Doc.Concat(List.of(
             new Doc.Text("<"),
@@ -111,7 +111,7 @@ final class MethodRenderer {
         final var prefix = new StringBuilder();
         ModifierRenderer.renderAnnotations(p.getModifiers(), prefix);
         ModifierRenderer.renderModifiers(p.getModifiers(), prefix);
-        final var typeDoc = p.getType() == null ? new Doc.Text("var") : recursor.scanOrText(p.getType());
+        final var typeDoc = p.getType() == null ? new Doc.Text("var") : recursor.scan(p.getType());
         return new Doc.Concat(List.of(
             new Doc.Text(prefix.toString()),
             typeDoc,
@@ -122,7 +122,7 @@ final class MethodRenderer {
     private static Doc buildThrowsTail(final List<? extends ExpressionTree> throwsList, final Recursor recursor) {
         final var typesInterior = new Doc.Concat(Doc.intersperse(
             List.of(new Doc.Text(","), new Doc.Line()),
-            throwsList.stream().<Doc>map(recursor::scanOrText)));
+            throwsList.stream().<Doc>map(recursor::scan)));
         return new Doc.Indent(new Doc.Concat(List.of(
             new Doc.Line(),
             new Doc.Text("throws "),

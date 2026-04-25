@@ -32,7 +32,7 @@ final class TryRenderer {
             return new Doc.Text("try");
         }
         final var rendered = Doc.intersperse(new Doc.Text("; "), resources.stream()
-            .<Doc>map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scanOrText(r))))
+            .<Doc>map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scan(r))))
             .toList();
         return new Doc.Concat(Stream.concat(
             Stream.<Doc>of(new Doc.Text("try (")),
@@ -44,7 +44,7 @@ final class TryRenderer {
         final var param = c.getParameter();
         final Doc header = new Doc.Concat(List.of(
             new Doc.Text("} catch ("),
-            recursor.scanOrText(param.getType()),
+            recursor.scan(param.getType()),
             new Doc.Text(" " + param.getName() + ") {")));
         return Stream.concat(
             Stream.<Doc>of(new Doc.HardLine(), header),

@@ -10,7 +10,7 @@ final class FieldRenderer {
         final var prefix = new StringBuilder();
         ModifierRenderer.renderAnnotations(node.getModifiers(), prefix);
         ModifierRenderer.renderModifiers(node.getModifiers(), prefix);
-        final var typeDoc = node.getType() == null ? new Doc.Text("var") : recursor.scanOrText(node.getType());
+        final var typeDoc = node.getType() == null ? new Doc.Text("var") : recursor.scan(node.getType());
         final var head = new Doc.Concat(List.of(
             new Doc.Text(prefix.toString()),
             typeDoc,
@@ -22,7 +22,7 @@ final class FieldRenderer {
         return new Doc.Concat(List.of(
             head,
             new Doc.Text(" = "),
-            recursor.scanOrText(node.getInitializer()),
+            recursor.scan(node.getInitializer()),
             new Doc.Text(";")
         ));
     }
