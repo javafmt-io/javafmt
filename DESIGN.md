@@ -136,8 +136,19 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 
 ### Braces
 - **K&R style** (opening brace on same line)
-- **Always required** — even for single-statement `if`/`else`/`for`/`while`. Formatter should **fail** (not silently fix) if braces are missing. This is a lint rule, not a format rule.
-  - _Decision_: core library returns errors for lint violations alongside formatted output
+- **Always required** — even for single-statement `if`/`else`/`for`/`while`/`do-while`.
+- **Safe rewrites.** grind applies a fixed set of semantics-preserving mechanical rewrites alongside formatting. Every rewrite emits a `Warning` diagnostic. Rewrites are not configurable. See the [Safe rewrites](#safe-rewrites) section below for the catalog.
+
+### Safe rewrites
+
+Rewrites that (a) preserve semantics, (b) require zero judgment, (c) are universally uncontroversial. Applied unconditionally. Each emits a `Warning` per occurrence.
+
+1. **Add braces** to braceless `if`/`else`/`for`/`while`/`do-while` bodies.
+2. **Add `final`** to parameters and locals that are effectively final (never reassigned).
+3. **Replace declared type with `var`** on locals whose initializer's expression type exactly matches the declared type.
+4. **Move `default`** to the last position in arrow-form switches.
+
+Non-safe transformations (colon-form switch rewrites, refactorings, opinionated style changes) are out of scope.
 
 ### Single-line constructs
 - `if (condition) { doSomething(); }` — allowed on one line if it fits within 150 chars

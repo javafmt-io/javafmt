@@ -6,10 +6,11 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
-@FunctionalInterface
 interface Recursor {
 
     @Nullable Doc scan(Tree node);
+
+    void emitWarning(String message, Tree at);
 
     default Doc scanOrText(final Tree node) {
         return Optional.ofNullable(scan(node))

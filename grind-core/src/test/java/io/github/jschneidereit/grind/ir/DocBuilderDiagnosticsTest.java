@@ -49,4 +49,108 @@ class DocBuilderDiagnosticsTest {
         final var result = Grind.formatWithResult("class Foo { int x; }");
         assertThat(result.diagnostics()).isEmpty();
     }
+
+    @Test
+    void bracelessIfBodyEmitsAddedBracesWarning() {
+        final var source = """
+                class Fixture {
+                    void test(int x) {
+                        if (x > 0) doStuff();
+                    }
+
+                    void doStuff() {}
+                }
+                """;
+        final var unit = JavaParser.parseUnit(source);
+        final var built = DocBuilder.buildWithFallbacks(unit, GrindConfig.defaults());
+
+        final var braceWarnings = built.diagnostics().stream()
+            .filter(d -> d instanceof Diagnostic.Warning)
+            .filter(d -> d.message().contains("braces"))
+            .toList();
+
+        assertThat(braceWarnings).hasSize(1);
+        assertThat(braceWarnings.get(0).position().line()).isEqualTo(3);
+        assertThat(braceWarnings.get(0).position().column()).isPositive();
+    }
+
+    @Test
+    void bracelessIfElseBodyEmitsTwoWarnings() {
+        final var source = """
+                class Fixture {
+                    void test(int x) {
+                        if (x > 0) doStuff();
+                        else fallback();
+                    }
+
+                    void doStuff() {}
+                    void fallback() {}
+                }
+                """;
+        final var unit = JavaParser.parseUnit(source);
+        final var built = DocBuilder.buildWithFallbacks(unit, GrindConfig.defaults());
+
+        final var braceWarnings = built.diagnostics().stream()
+            .filter(d -> d instanceof Diagnostic.Warning)
+            .filter(d -> d.message().contains("braces"))
+            .toList();
+
+        assertThat(braceWarnings).hasSize(2);
+    }
+
+    @Test
+    void bracelessLoopsEachEmitOneWarning() {
+        final var source = """
+                class Fixture {
+                    void test(int n, int[] xs) {
+                        for (int i = 0; i < n; i++) doStuff();
+                        for (int x : xs) doStuff();
+                        while (n > 0) n--;
+                        do doStuff(); while (n > 0);
+                    }
+
+                    void doStuff() {}
+                }
+                """;
+        final var unit = JavaParser.parseUnit(source);
+        final var built = DocBuilder.buildWithFallbacks(unit, GrindConfig.defaults());
+
+        final var braceWarnings = built.diagnostics().stream()
+            .filter(d -> d instanceof Diagnostic.Warning)
+            .filter(d -> d.message().contains("braces"))
+            .toList();
+
+        assertThat(braceWarnings).hasSize(4);
+        assertThat(braceWarnings).allSatisfy(w -> assertThat(w.position().line()).isPositive());
+    }
+
+    @Test
+    void alreadyBracedConstructsEmitNoBraceWarnings() {
+        final var source = """
+                class Fixture {
+                    void test(int x) {
+                        if (x > 0) {
+                            doStuff();
+                        } else {
+                            fallback();
+                        }
+                        for (int i = 0; i < x; i++) {
+                            doStuff();
+                        }
+                        while (x > 0) {
+                            x--;
+                        }
+                    }
+
+                    void doStuff() {}
+                    void fallback() {}
+                }
+                """;
+        final var result = Grind.formatWithResult(source);
+        final var braceWarnings = result.diagnostics().stream()
+            .filter(d -> d instanceof Diagnostic.Warning)
+            .filter(d -> d.message().contains("braces"))
+            .toList();
+        assertThat(braceWarnings).isEmpty();
+    }
 }

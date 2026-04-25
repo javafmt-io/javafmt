@@ -18,6 +18,7 @@ final class BlockRenderer {
                 .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
                 .toList();
         }
+        recursor.emitWarning("added braces around single-statement body", stmt);
         return Optional.ofNullable(recursor.scan(stmt)).map(List::of).orElse(List.of());
     }
 

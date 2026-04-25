@@ -39,7 +39,17 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     private final java.util.List<Diagnostic> diagnostics = new java.util.ArrayList<>();
 
     private Recursor recursor() {
-        return tree -> scan(tree, null);
+        return new Recursor() {
+            @Override
+            public @Nullable Doc scan(final Tree node) {
+                return DocBuilder.this.scan(node, null);
+            }
+
+            @Override
+            public void emitWarning(final String message, final Tree at) {
+                diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(at)));
+            }
+        };
     }
 
     public static Doc build(final CompilationUnitTree tree) {
