@@ -8,7 +8,6 @@ import com.sun.source.tree.VariableTree;
 
 import io.github.jschneidereit.grind.GrindConfig;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -29,16 +28,12 @@ final class RecordRenderer {
             .map(m -> (VariableTree) m)
             .toList();
 
-        var bodyMemberStream = node.getMembers().stream()
+        final var bodyMemberStream = node.getMembers().stream()
             .filter(m -> !(m instanceof VariableTree v
                 && !v.getModifiers().getFlags().contains(Modifier.STATIC))
                 && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")));
 
-        if (config.reorderMembers()) {
-            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(m -> MemberGrouper.group(m, false)));
-        }
-
-        final var bodyMembers = bodyMemberStream
+        final var bodyMembers = MemberReorderer.reorder(bodyMemberStream, config, false, recursor)
             .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, recursor, attacher)).stream())
             .toList();
 

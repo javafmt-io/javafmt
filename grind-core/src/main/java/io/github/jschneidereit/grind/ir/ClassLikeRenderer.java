@@ -9,7 +9,6 @@ import com.sun.source.tree.VariableTree;
 import io.github.jschneidereit.grind.GrindConfig;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -35,17 +34,13 @@ final class ClassLikeRenderer {
         final var className = node.getSimpleName().toString();
         final var sealedParent = node.getModifiers().getFlags().contains(Modifier.SEALED);
 
-        var memberStream = node.getMembers().stream()
+        final var memberStream = node.getMembers().stream()
             .filter(m -> m instanceof VariableTree
                 || m instanceof MethodTree
                 || m instanceof ClassTree
                 || m instanceof BlockTree);
 
-        if (config.reorderMembers()) {
-            memberStream = memberStream.sorted(Comparator.comparingInt(m -> MemberGrouper.group(m, sealedParent)));
-        }
-
-        final var members = memberStream
+        final var members = MemberReorderer.reorder(memberStream, config, sealedParent, recursor)
             .flatMap(m -> Optional.ofNullable(renderMember(m, className, recursor, attacher)).stream())
             .toList();
 

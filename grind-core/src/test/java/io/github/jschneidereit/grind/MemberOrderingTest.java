@@ -82,6 +82,53 @@ class MemberOrderingTest {
     }
 
     @Nested
+    class SealedClassMemberOrdering {
+
+        @Test
+        void nestedTypesPinnedTop_aheadOfStaticFields() {
+            final var input = "sealed interface Shape permits Circle, Square { static final int DIM = 2; final class Circle implements Shape {} final class Square implements Shape {} }";
+            final var formatted = Grind.format(input, WITH_ORDERING);
+            assertThat(formatted.indexOf("Circle"))
+                .isLessThan(formatted.indexOf("DIM"));
+            assertThat(formatted.indexOf("Square"))
+                .isLessThan(formatted.indexOf("DIM"));
+        }
+    }
+
+    @Nested
+    class ForwardReferenceSafety {
+
+        @Test
+        void forwardReferenceBetweenStaticFinals_preservesSourceOrder() {
+            final var input = "class C { static final int A = B; static final int B = 1; private void priv() {} }";
+            final var result = Grind.formatWithResult(input, WITH_ORDERING);
+            assertThat(result.output().indexOf("static final int A"))
+                .isLessThan(result.output().indexOf("static final int B"));
+            assertThat(result.output().indexOf("static final int B"))
+                .isLessThan(result.output().indexOf("priv"));
+        }
+
+        @Test
+        void forwardReferenceBetweenStaticFinals_emitsWarning() {
+            final var input = "class C { static final int A = B; static final int B = 1; }";
+            final var result = Grind.formatWithResult(input, WITH_ORDERING);
+            assertThat(result.diagnostics())
+                .filteredOn(d -> !d.isError())
+                .extracting(Diagnostic::message)
+                .anySatisfy(m -> assertThat(m).contains("forward reference").contains("'B'").contains("'A'"));
+        }
+
+        @Test
+        void noForwardReference_stillReorders() {
+            final var input = "class C { private void priv() {} static final int A = 1; }";
+            final var result = Grind.formatWithResult(input, WITH_ORDERING);
+            assertThat(result.output().indexOf("static final int A"))
+                .isLessThan(result.output().indexOf("priv"));
+            assertThat(result.diagnostics()).isEmpty();
+        }
+    }
+
+    @Nested
     class RecordBodyMemberOrdering {
 
         @Test

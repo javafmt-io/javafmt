@@ -10,31 +10,33 @@ import javax.lang.model.element.Modifier;
 
 final class MemberGrouper {
 
-    static int group(final Tree member, final boolean sealedParent) {
+    static MemberGroup group(final Tree member, final boolean sealedParent) {
         return switch (member) {
-            case ClassTree c -> sealedParent ? 0 : 11;
-            case VariableTree v -> v.getModifiers().getFlags().contains(Modifier.STATIC) ? 1 : 3;
-            case BlockTree b -> b.isStatic() ? 2 : 4;
+            case ClassTree c -> sealedParent ? MemberGroup.NESTED_TYPE_SEALED : MemberGroup.NESTED_TYPE_NORMAL;
+            case VariableTree v -> v.getModifiers().getFlags().contains(Modifier.STATIC)
+                ? MemberGroup.STATIC_FIELD
+                : MemberGroup.INSTANCE_FIELD;
+            case BlockTree b -> b.isStatic() ? MemberGroup.STATIC_INITIALIZER : MemberGroup.INSTANCE_INITIALIZER;
             case MethodTree m -> {
                 if (m.getName().contentEquals("<init>")) {
-                    yield 5;
+                    yield MemberGroup.CONSTRUCTOR;
                 }
                 final var flags = m.getModifiers().getFlags();
                 if (flags.contains(Modifier.STATIC)) {
-                    yield 10;
+                    yield MemberGroup.STATIC_METHOD;
                 }
                 if (flags.contains(Modifier.PUBLIC)) {
-                    yield 6;
+                    yield MemberGroup.PUBLIC_METHOD;
                 }
                 if (flags.contains(Modifier.PROTECTED)) {
-                    yield 7;
+                    yield MemberGroup.PROTECTED_METHOD;
                 }
                 if (!flags.contains(Modifier.PRIVATE)) {
-                    yield 8;
+                    yield MemberGroup.PACKAGE_METHOD;
                 }
-                yield 9;
+                yield MemberGroup.PRIVATE_METHOD;
             }
-            case null, default -> 12;
+            default -> MemberGroup.UNKNOWN;
         };
     }
 

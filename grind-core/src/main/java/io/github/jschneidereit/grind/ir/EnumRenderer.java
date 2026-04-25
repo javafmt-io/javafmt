@@ -30,14 +30,10 @@ final class EnumRenderer {
 
         final var className = node.getSimpleName().toString();
 
-        var bodyMemberStream = node.getMembers().stream()
+        final var bodyMemberStream = node.getMembers().stream()
             .filter(m -> !(m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree));
 
-        if (config.reorderMembers()) {
-            bodyMemberStream = bodyMemberStream.sorted(Comparator.comparingInt(m -> MemberGrouper.group(m, false)));
-        }
-
-        final var bodyMembers = bodyMemberStream
+        final var bodyMembers = MemberReorderer.reorder(bodyMemberStream, config, false, recursor)
             .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, className, recursor, attacher)).stream())
             .toList();
 
