@@ -73,10 +73,6 @@ final class BlockRenderer {
         );
     }
 
-    static String stripTrailingSemicolon(final String s) {
-        return s.endsWith(";") ? s.substring(0, s.length() - 1) : s;
-    }
-
     static Doc stripTrailingSemicolonDoc(final Doc doc) {
         if (doc instanceof Doc.Text(var value) && value.endsWith(";")) {
             return new Doc.Text(value.substring(0, value.length() - 1));

@@ -28,7 +28,9 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         Tree.Kind.BREAK, Tree.Kind.CONTINUE,
         Tree.Kind.TYPE_PARAMETER,
         Tree.Kind.CONSTANT_CASE_LABEL,
-        Tree.Kind.UNION_TYPE);
+        Tree.Kind.UNION_TYPE,
+        Tree.Kind.PARAMETERIZED_TYPE,
+        Tree.Kind.ARRAY_TYPE);
 
     private final GrindConfig config;
     private final ParsedUnit unit;
@@ -202,15 +204,31 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitNewArray(final NewArrayTree node, final Void p) {
-        if (node.getInitializers() == null || node.getInitializers().isEmpty()) {
-            return new Doc.Text(node.toString());
+        final var type = node.getType();
+        final var dimensions = node.getDimensions();
+        final var initializers = node.getInitializers();
+        final var prefix = type == null
+            ? Stream.<Doc>empty()
+            : Stream.<Doc>of(new Doc.Text("new "), scanOrText(type));
+        final var dims = dimensions.stream()
+            .<Doc>flatMap(d -> Stream.<Doc>of(new Doc.Text("["), scanOrText(d), new Doc.Text("]")));
+        if (initializers == null) {
+            return new Doc.Concat(Stream.concat(prefix, dims));
         }
-        final var elements = node.getInitializers().stream()
+        final var brace = type == null ? "{" : " {";
+        if (initializers.isEmpty()) {
+            return new Doc.Concat(Stream.concat(
+                Stream.concat(prefix, dims),
+                Stream.<Doc>of(new Doc.Text(brace + "}"))));
+        }
+        final var elements = initializers.stream()
             .<Doc>map(this::scanOrText)
             .flatMap(d -> Stream.<Doc>of(new Doc.Text(", "), d))
             .skip(1);
         return new Doc.Concat(Stream.concat(
-            Stream.concat(Stream.<Doc>of(new Doc.Text("{")), elements),
+            Stream.concat(
+                Stream.concat(prefix, dims),
+                Stream.concat(Stream.<Doc>of(new Doc.Text(brace)), elements)),
             Stream.<Doc>of(new Doc.Text("}"))));
     }
 
@@ -244,8 +262,8 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     @Override
     public @Nullable Doc visitBindingPattern(final BindingPatternTree node, final Void p) {
         final var variable = node.getVariable();
-        final var typeText = variable.getType() == null ? "var" : variable.getType().toString();
-        return new Doc.Text(typeText + " " + variable.getName());
+        final var typeDoc = variable.getType() == null ? new Doc.Text("var") : scanOrText(variable.getType());
+        return new Doc.Concat(List.of(typeDoc, new Doc.Text(" " + variable.getName())));
     }
 
     @Override

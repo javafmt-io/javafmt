@@ -36,7 +36,9 @@ class RendererCoverageTest {
         // not be toString'd. Remove from this set when a dedicated renderer lands.
         Tree.Kind.TYPE_PARAMETER,
         Tree.Kind.CONSTANT_CASE_LABEL,
-        Tree.Kind.UNION_TYPE);
+        Tree.Kind.UNION_TYPE,
+        Tree.Kind.PARAMETERIZED_TYPE,
+        Tree.Kind.ARRAY_TYPE);
 
     private static final Set<String> EXPECTED_FALLBACK_FIXTURES = Set.of(
         "switch-colon-form-preserved",

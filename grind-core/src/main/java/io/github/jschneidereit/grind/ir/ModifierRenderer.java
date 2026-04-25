@@ -45,6 +45,8 @@ final class ModifierRenderer {
             return doc;
         }
         return new Doc.Concat(Stream.concat(
+            // Annotations are left alone in v1 (see CLAUDE.md formatting rules); javac's
+            // pretty-printer text is the contract here, not a fallback to fix.
             annotations.stream()
                 .flatMap(a -> Stream.<Doc>of(new Doc.Text(a.toString()), new Doc.HardLine())),
             Stream.of(doc)

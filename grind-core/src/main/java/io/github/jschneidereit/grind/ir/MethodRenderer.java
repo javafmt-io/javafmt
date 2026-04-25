@@ -83,7 +83,7 @@ final class MethodRenderer {
         }
         final Doc paramsPart = params.isEmpty()
             ? new Doc.Concat(List.of(leading, new Doc.Text("()")))
-            : buildParamsPart(leading, params, attacher);
+            : buildParamsPart(leading, params, attacher, recursor);
         if (throwsList.isEmpty()) {
             return new Doc.Group(paramsPart);
         }
@@ -91,11 +91,14 @@ final class MethodRenderer {
     }
 
     private static Doc buildParamsPart(
-            final Doc leading, final List<? extends VariableTree> params, final LeadingCommentAttacher attacher) {
+            final Doc leading,
+            final List<? extends VariableTree> params,
+            final LeadingCommentAttacher attacher,
+            final Recursor recursor) {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
             params.stream()
-                .<Doc>map(p -> attacher.attach(p, new Doc.Text(renderParam(p))))
+                .<Doc>map(p -> attacher.attach(p, renderParam(p, recursor)))
                 .flatMap(d -> Stream.<Doc>of(new Doc.Text(","), new Doc.Line(), d))
                 .skip(2)
         ));
@@ -108,14 +111,16 @@ final class MethodRenderer {
         ));
     }
 
-    private static String renderParam(final VariableTree p) {
-        final var sb = new StringBuilder();
-        ModifierRenderer.renderAnnotations(p.getModifiers(), sb);
-        ModifierRenderer.renderModifiers(p.getModifiers(), sb);
-        sb.append(p.getType() == null ? "var" : p.getType());
-        sb.append(" ");
-        sb.append(p.getName());
-        return sb.toString();
+    private static Doc renderParam(final VariableTree p, final Recursor recursor) {
+        final var prefix = new StringBuilder();
+        ModifierRenderer.renderAnnotations(p.getModifiers(), prefix);
+        ModifierRenderer.renderModifiers(p.getModifiers(), prefix);
+        final var typeDoc = p.getType() == null ? new Doc.Text("var") : recursor.scanOrText(p.getType());
+        return new Doc.Concat(List.of(
+            new Doc.Text(prefix.toString()),
+            typeDoc,
+            new Doc.Text(" " + p.getName())
+        ));
     }
 
     private static Doc buildThrowsTail(final List<? extends ExpressionTree> throwsList, final Recursor recursor) {

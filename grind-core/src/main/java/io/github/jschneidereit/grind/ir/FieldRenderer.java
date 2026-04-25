@@ -7,22 +7,22 @@ import java.util.List;
 final class FieldRenderer {
 
     static Doc render(final VariableTree node, final Recursor recursor) {
-        final var sb = new StringBuilder();
-        ModifierRenderer.renderAnnotations(node.getModifiers(), sb);
-        ModifierRenderer.renderModifiers(node.getModifiers(), sb);
-        sb.append(node.getType() == null ? "var" : node.getType());
-        sb.append(" ");
-        sb.append(node.getName());
+        final var prefix = new StringBuilder();
+        ModifierRenderer.renderAnnotations(node.getModifiers(), prefix);
+        ModifierRenderer.renderModifiers(node.getModifiers(), prefix);
+        final var typeDoc = node.getType() == null ? new Doc.Text("var") : recursor.scanOrText(node.getType());
+        final var head = new Doc.Concat(List.of(
+            new Doc.Text(prefix.toString()),
+            typeDoc,
+            new Doc.Text(" " + node.getName())
+        ));
         if (node.getInitializer() == null) {
-            sb.append(";");
-            return new Doc.Text(sb.toString());
+            return new Doc.Concat(List.of(head, new Doc.Text(";")));
         }
-        sb.append(" = ");
-        final var initScanned = recursor.scan(node.getInitializer());
-        final Doc initDoc = initScanned != null ? initScanned : new Doc.Text(node.getInitializer().toString());
         return new Doc.Concat(List.of(
-            new Doc.Text(sb.toString()),
-            initDoc,
+            head,
+            new Doc.Text(" = "),
+            recursor.scanOrText(node.getInitializer()),
             new Doc.Text(";")
         ));
     }

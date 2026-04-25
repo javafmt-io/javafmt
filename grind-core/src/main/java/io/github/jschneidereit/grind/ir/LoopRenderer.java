@@ -45,19 +45,17 @@ final class LoopRenderer {
     }
 
     private static Doc renderPart(final Tree tree, final Recursor recursor, final boolean stripSemicolon) {
-        final var scanned = recursor.scan(tree);
-        if (scanned != null) {
-            return stripSemicolon ? BlockRenderer.stripTrailingSemicolonDoc(scanned) : scanned;
-        }
-        final var text = tree.toString();
-        return new Doc.Text(stripSemicolon ? BlockRenderer.stripTrailingSemicolon(text) : text);
+        final var doc = recursor.scanOrText(tree);
+        return stripSemicolon ? BlockRenderer.stripTrailingSemicolonDoc(doc) : doc;
     }
 
     static Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor) {
         final var variable = node.getVariable();
-        final var typeText = variable.getType() == null ? "var" : variable.getType().toString();
+        final var typeDoc = variable.getType() == null ? new Doc.Text("var") : recursor.scanOrText(variable.getType());
         final var header = new Doc.Concat(List.of(
-            new Doc.Text("for (" + typeText + " " + variable.getName() + " : "),
+            new Doc.Text("for ("),
+            typeDoc,
+            new Doc.Text(" " + variable.getName() + " : "),
             recursor.scanOrText(node.getExpression()),
             new Doc.Text(")")
         ));
