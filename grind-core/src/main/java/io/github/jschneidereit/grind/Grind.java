@@ -30,7 +30,7 @@ public final class Grind {
         try {
             final var unit = JavaParser.parseUnit(source);
             final var built = DocBuilder.buildWithFallbacks(unit, config);
-            return new FormatResult(Printer.print(built.doc(), LINE_WIDTH), built.diagnostics());
+            return new FormatResult(new Printer(LINE_WIDTH).print(built.doc()), built.diagnostics());
         } catch (final ParseException e) {
             final var diagnostics = e.getDiagnostics();
             if (diagnostics.isEmpty()) {

@@ -20,9 +20,4 @@ public final class ParseException extends RuntimeException {
         super(message);
         this.diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
     }
-
-    ParseException(final String message, final Throwable cause) {
-        super(message, cause);
-        this.diagnostics = List.of();
-    }
 }

@@ -65,7 +65,7 @@ public final class JavaParser {
             return CommentAttacher.attach(unit, source, positions, comments);
 
         } catch (IOException e) {
-            throw new ParseException("I/O error during parsing", e);
+            throw new AssertionError(e);
         }
     }
 

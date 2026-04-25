@@ -8,6 +8,7 @@ import io.github.jschneidereit.grind.GrindConfig;
 import io.github.jschneidereit.grind.parser.CommentToken;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -452,7 +453,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         if (text.indexOf('\n') < 0 && text.indexOf('\r') < 0) {
             return new Doc.Text(text);
         }
-        return new Doc.Concat(Doc.intersperse(new Doc.HardLine(), java.util.Arrays.stream(text.split("\n", -1))
+        return new Doc.Concat(Doc.intersperse(new Doc.HardLine(), Arrays.stream(text.split("\n", -1))
             .map(line -> line.endsWith("\r") ? line.substring(0, line.length() - 1) : line)
             .<Doc>map(Doc.Text::new)));
     }

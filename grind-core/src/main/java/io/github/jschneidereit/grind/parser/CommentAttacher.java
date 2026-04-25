@@ -89,9 +89,6 @@ final class CommentAttacher {
     }
 
     private static boolean sameLine(final String source, final int from, final int to) {
-        if (from < 0 || to > source.length() || from > to) {
-            return false;
-        }
         for (var i = from; i < to; i++) {
             final var c = source.charAt(i);
             if (c != ' ' && c != '\t') {

@@ -21,12 +21,12 @@ class PrinterTest {
 
         @Test
         void text_emitsValue() {
-            assertThat(Printer.print(new Doc.Text("hello"), 80)).isEqualTo("hello");
+            assertThat(new Printer(80).print(new Doc.Text("hello"))).isEqualTo("hello");
         }
 
         @Test
         void text_empty_emitsNothing() {
-            assertThat(Printer.print(new Doc.Text(""), 80)).isEmpty();
+            assertThat(new Printer(80).print(new Doc.Text(""))).isEmpty();
         }
     }
 
@@ -35,13 +35,13 @@ class PrinterTest {
 
         @Test
         void concat_empty_emitsNothing() {
-            assertThat(Printer.print(new Doc.Concat(List.of()), 80)).isEmpty();
+            assertThat(new Printer(80).print(new Doc.Concat(List.of()))).isEmpty();
         }
 
         @Test
         void concat_ofTexts_concatenates() {
             final var doc = new Doc.Concat(List.of(new Doc.Text("ab"), new Doc.Text("cd")));
-            assertThat(Printer.print(doc, 80)).isEqualTo("abcd");
+            assertThat(new Printer(80).print(doc)).isEqualTo("abcd");
         }
     }
 
@@ -50,7 +50,7 @@ class PrinterTest {
 
         @Test
         void hardLine_emitsNewline() {
-            assertThat(Printer.print(new Doc.HardLine(), 80)).isEqualTo("\n");
+            assertThat(new Printer(80).print(new Doc.HardLine())).isEqualTo("\n");
         }
 
         @Test
@@ -58,7 +58,7 @@ class PrinterTest {
             final var doc = new Doc.Indent(new Doc.Concat(List.of(
                 new Doc.HardLine(),
                 new Doc.Text("x"))));
-            assertThat(Printer.print(doc, 80)).isEqualTo("\n    x");
+            assertThat(new Printer(80).print(doc)).isEqualTo("\n    x");
         }
 
         @Test
@@ -67,7 +67,7 @@ class PrinterTest {
                 new Doc.Text("a"),
                 new Doc.HardLine(),
                 new Doc.Text("b"))));
-            assertThat(Printer.print(doc, 100)).isEqualTo("a\nb");
+            assertThat(new Printer(100).print(doc)).isEqualTo("a\nb");
         }
     }
 
@@ -76,7 +76,7 @@ class PrinterTest {
 
         @Test
         void line_atRoot_emitsNewline() {
-            assertThat(Printer.print(new Doc.Line(), 80)).isEqualTo("\n");
+            assertThat(new Printer(80).print(new Doc.Line())).isEqualTo("\n");
         }
 
         @ParameterizedTest
@@ -86,7 +86,7 @@ class PrinterTest {
                 new Doc.Text("hello"),
                 new Doc.Line(),
                 new Doc.Text("world"))));
-            assertThat(Printer.print(doc, lineWidth)).isEqualTo(expected);
+            assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
         }
 
         static Stream<Arguments> lineFitCases() {
@@ -103,7 +103,7 @@ class PrinterTest {
 
         @Test
         void softLine_atRoot_emitsNewline() {
-            assertThat(Printer.print(new Doc.SoftLine(), 80)).isEqualTo("\n");
+            assertThat(new Printer(80).print(new Doc.SoftLine())).isEqualTo("\n");
         }
 
         @ParameterizedTest
@@ -113,7 +113,7 @@ class PrinterTest {
                 new Doc.Text("ab"),
                 new Doc.SoftLine(),
                 new Doc.Text("cd"))));
-            assertThat(Printer.print(doc, lineWidth)).isEqualTo(expected);
+            assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
         }
 
         static Stream<Arguments> softLineFitCases() {
@@ -132,7 +132,7 @@ class PrinterTest {
             final var doc = new Doc.Indent(new Doc.Concat(List.of(
                 new Doc.HardLine(),
                 new Doc.Text("x"))));
-            assertThat(Printer.print(doc, 80)).isEqualTo("\n    x");
+            assertThat(new Printer(80).print(doc)).isEqualTo("\n    x");
         }
 
         @Test
@@ -140,7 +140,7 @@ class PrinterTest {
             final var doc = new Doc.Indent(new Doc.Indent(new Doc.Concat(List.of(
                 new Doc.HardLine(),
                 new Doc.Text("x")))));
-            assertThat(Printer.print(doc, 80)).isEqualTo("\n        x");
+            assertThat(new Printer(80).print(doc)).isEqualTo("\n        x");
         }
     }
 
@@ -150,13 +150,13 @@ class PrinterTest {
         @Test
         void ifBreak_atRoot_usesBreakContents() {
             final var doc = new Doc.IfBreak(new Doc.Text("B"), new Doc.Text("F"));
-            assertThat(Printer.print(doc, 80)).isEqualTo("B");
+            assertThat(new Printer(80).print(doc)).isEqualTo("B");
         }
 
         @Test
         void ifBreak_insideFittingGroup_usesFlatContents() {
             final var doc = new Doc.Group(new Doc.IfBreak(new Doc.Text("B"), new Doc.Text("F")));
-            assertThat(Printer.print(doc, 80)).isEqualTo("F");
+            assertThat(new Printer(80).print(doc)).isEqualTo("F");
         }
     }
 
@@ -176,21 +176,21 @@ class PrinterTest {
 
         @Test
         void fill_allFitOnOneLine_keepsOnOneLine() {
-            assertThat(Printer.print(fill("a", "b", "c"), 80)).isEqualTo("a b c");
+            assertThat(new Printer(80).print(fill("a", "b", "c"))).isEqualTo("a b c");
         }
 
         @Test
         void fill_packsAsManyAsFitPerLine() {
             // "aaa bbb ccc ddd" = 15. At width 8: "aaa bbb" (7) fits, "ccc" doesn't fit with " ccc" (11>8), break;
             //                                     "ccc ddd" (7) fits on second line.
-            assertThat(Printer.print(fill("aaa", "bbb", "ccc", "ddd"), 8))
+            assertThat(new Printer(8).print(fill("aaa", "bbb", "ccc", "ddd")))
                 .isEqualTo("aaa bbb\nccc ddd");
         }
 
         @Test
         void fill_breaksBeforeItemThatWontFit() {
             // Width 5: "aaa" (3) fits, " bb" (6) doesn't, break; "bb cc" (5) fits.
-            assertThat(Printer.print(fill("aaa", "bb", "cc"), 5))
+            assertThat(new Printer(5).print(fill("aaa", "bb", "cc")))
                 .isEqualTo("aaa\nbb cc");
         }
 
@@ -202,9 +202,9 @@ class PrinterTest {
                 new Doc.Text("bb"), new Doc.Line(),
                 new Doc.Text("cc"))));
             // Group at width 5: "aaa bb cc" = 9 > 5 so all break.
-            assertThat(Printer.print(grp, 5)).isEqualTo("aaa\nbb\ncc");
+            assertThat(new Printer(5).print(grp)).isEqualTo("aaa\nbb\ncc");
             // Fill at width 5: packs partial lines.
-            assertThat(Printer.print(fill("aaa", "bb", "cc"), 5)).isEqualTo("aaa\nbb cc");
+            assertThat(new Printer(5).print(fill("aaa", "bb", "cc"))).isEqualTo("aaa\nbb cc");
         }
 
         @Test
@@ -213,8 +213,8 @@ class PrinterTest {
                 new Doc.Text("aa"), new Doc.SoftLine(),
                 new Doc.Text("bb"), new Doc.SoftLine(),
                 new Doc.Text("cc")));
-            assertThat(Printer.print(doc, 80)).isEqualTo("aabbcc");
-            assertThat(Printer.print(doc, 3)).isEqualTo("aa\nbb\ncc");
+            assertThat(new Printer(80).print(doc)).isEqualTo("aabbcc");
+            assertThat(new Printer(3).print(doc)).isEqualTo("aa\nbb\ncc");
         }
 
         @Test
@@ -236,14 +236,14 @@ class PrinterTest {
 
         @Test
         void group_whenColAlreadyExceedsLineWidth_alwaysBreaks() {
-            // col=6 after Text("123456"), lineWidth=5 → fits(-1, …) → false immediately
+            // col=6 after Text("123456"), lineWidth=5 → remaining=-1, group always breaks
             final var doc = new Doc.Concat(List.of(
                 new Doc.Text("123456"),
                 new Doc.Group(new Doc.Concat(List.of(
                     new Doc.Text("a"),
                     new Doc.Line(),
                     new Doc.Text("b"))))));
-            assertThat(Printer.print(doc, 5)).isEqualTo("123456a\nb");
+            assertThat(new Printer(5).print(doc)).isEqualTo("123456a\nb");
         }
     }
 
@@ -265,12 +265,12 @@ class PrinterTest {
         @Test
         void groupWithIndentedLines_fitsFlat() {
             // flat rendering: "{ x: 1, y: 2 }" = 14 chars
-            assertThat(Printer.print(blockDoc(), 14)).isEqualTo("{ x: 1, y: 2 }");
+            assertThat(new Printer(14).print(blockDoc())).isEqualTo("{ x: 1, y: 2 }");
         }
 
         @Test
         void groupWithIndentedLines_breaksBeyondWidth() {
-            assertThat(Printer.print(blockDoc(), 13)).isEqualTo("{\n    x: 1,\n    y: 2\n}");
+            assertThat(new Printer(13).print(blockDoc())).isEqualTo("{\n    x: 1,\n    y: 2\n}");
         }
     }
 }

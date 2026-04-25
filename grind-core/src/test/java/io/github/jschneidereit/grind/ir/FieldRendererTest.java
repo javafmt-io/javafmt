@@ -12,7 +12,7 @@ class FieldRendererTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return Printer.print(DocBuilder.build(JavaParser.parseUnit(source)), WIDTH);
+        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source)));
     }
 
     @Test

@@ -2,7 +2,6 @@ package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.ImportTree;
 
-import io.github.jschneidereit.grind.parser.CommentToken;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
 
 import java.util.Comparator;
@@ -44,12 +43,8 @@ final class ImportSectionRenderer {
             : CommentDocs.prepend(leading, lineDoc);
         final var withTrailing = trailing.isEmpty()
             ? withLeading
-            : appendInline(withLeading, trailing);
+            : CommentDocs.appendTrailing(withLeading, trailing);
         return Stream.of(withTrailing, new Doc.HardLine());
-    }
-
-    private static Doc appendInline(final Doc doc, final List<CommentToken> comments) {
-        return CommentDocs.appendTrailing(doc, comments);
     }
 
     private ImportSectionRenderer() {}
