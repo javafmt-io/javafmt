@@ -101,6 +101,14 @@ class DocBuilderTest {
     }
 
     @Test
+    void reduce_throwsAssertionError_signalingUnreachableMergePath() {
+        final var builder = new DocBuilder(JavaParser.parseUnit("class Foo {}"), GrindConfig.defaults());
+        assertThatThrownBy(() -> builder.reduce(new Doc.Text("a"), new Doc.Text("b")))
+            .isInstanceOf(AssertionError.class)
+            .hasMessageContaining("unexpected tree merge");
+    }
+
+    @Test
     void unhandledTreeKindThrowsWithKindAndNodeText() {
         final var realUnit = JavaParser.parseUnit("class Foo {}");
         final var synthetic = new Tree() {

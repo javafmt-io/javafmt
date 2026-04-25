@@ -605,7 +605,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             Stream.<Doc>of(new Doc.Text(">" + name))));
     }
 
-    private DocBuilder(final ParsedUnit unit, final GrindConfig config) {
+    DocBuilder(final ParsedUnit unit, final GrindConfig config) {
         this.unit = unit;
         this.config = config;
         this.attacher = new CommentAttacher(unit);
