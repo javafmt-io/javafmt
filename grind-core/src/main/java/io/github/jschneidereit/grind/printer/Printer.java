@@ -58,7 +58,7 @@ public record Printer(int lineWidth) {
                     }
                 }
                 case Doc.Group(var d) -> {
-                    final var mode = (frame.mode() == Mode.FLAT || flatWidth(d) <= lineWidth - col)
+                    final var mode = (frame.mode() == Mode.FLAT || fits(d, lineWidth - col))
                         ? Mode.FLAT : Mode.BREAK;
                     stack.push(new Frame(frame.indent(), mode, d));
                 }
@@ -89,7 +89,7 @@ public record Printer(int lineWidth) {
             } else {
                 final var nextContent = parts.get(i + 1);
                 final var sepFlatWidth = part instanceof Doc.Line ? 1 : 0;
-                if (flatWidth(nextContent) <= lineWidth - currentCol - sepFlatWidth) {
+                if (fits(nextContent, lineWidth - currentCol - sepFlatWidth)) {
                     out.add(new Frame(indent, Mode.FLAT, part));
                     currentCol += sepFlatWidth;
                 } else {
@@ -101,6 +101,58 @@ public record Printer(int lineWidth) {
         return out;
     }
 
+    // Group-fit predicate, short-circuiting the moment the running budget goes negative.
+    // The previous implementation walked the entire subtree per Group decision (O(n) per
+    // call → O(n²) overall under deeply nested Groups in BREAK mode); this stops as soon
+    // as the answer is decidable, so each call is bounded by min(subtree size, remaining + 1).
+    // HardLine is treated as "doesn't fit flat" — it can never be rendered flat.
+    private static boolean fits(final Doc doc, final int remaining) {
+        if (remaining < 0) {
+            return false;
+        }
+        var budget = remaining;
+        final var work = new ArrayDeque<Doc>();
+        work.push(doc);
+        while (!work.isEmpty()) {
+            final var d = work.pop();
+            switch (d) {
+                case Doc.Text(var s) -> {
+                    budget -= s.length();
+                    if (budget < 0) {
+                        return false;
+                    }
+                }
+                case Doc.Line() -> {
+                    budget -= 1;
+                    if (budget < 0) {
+                        return false;
+                    }
+                }
+                case Doc.SoftLine() -> { /* 0 in flat */ }
+                case Doc.HardLine() -> { return false; }
+                case Doc.Indent(var inner) -> work.push(inner);
+                case Doc.Group(var inner) -> work.push(inner);
+                case Doc.IfBreak ifBreak -> work.push(ifBreak.flatContents());
+                case Doc.Concat(var ps) -> {
+                    for (var i = ps.size() - 1; i >= 0; i--) {
+                        work.push(ps.get(i));
+                    }
+                }
+                case Doc.Fill(var ps) -> {
+                    for (var i = ps.size() - 1; i >= 0; i--) {
+                        work.push(ps.get(i));
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    // Used only to advance currentCol past a Fill content part already committed to FLAT.
+    // Returns Integer.MAX_VALUE / 2 on HardLine: a sentinel that intentionally poisons the
+    // running column so the next Fill separator is forced to BREAK (see
+    // PrinterTest#fill_hardLineInsideContent_forcesNextSeparatorToBreak). Don't reuse this
+    // for fit decisions — call fits(...) instead.
     private static int flatWidth(final Doc doc) {
         var total = 0;
         final var work = new ArrayDeque<Doc>();

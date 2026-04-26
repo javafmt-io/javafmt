@@ -10,6 +10,7 @@ maven-plugin-development = "1.0.3"
 errorprone-plugin = "5.1.0"
 errorprone = "2.49.0"
 nullaway = "0.13.4"
+jmh = "0.7.3"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -28,3 +29,4 @@ maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugi
 [plugins]
 maven-plugin-development = { id = "org.gradlex.maven-plugin-development", version.ref = "maven-plugin-development" }
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmh" }

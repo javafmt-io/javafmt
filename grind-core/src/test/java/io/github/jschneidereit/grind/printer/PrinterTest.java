@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -288,6 +290,35 @@ class PrinterTest {
         @Test
         void groupWithIndentedLines_breaksBeyondWidth() {
             assertThat(new Printer(13).print(blockDoc())).isEqualTo("{\n    x: 1,\n    y: 2\n}");
+        }
+    }
+
+    @Nested
+    class ScalingTests {
+
+        private static Doc nestedGroups(final int n) {
+            var inner = (Doc) new Doc.Text("x");
+            for (var i = 0; i < n; i++) {
+                inner = new Doc.Group(new Doc.Concat(List.of(
+                    new Doc.Text("g"),
+                    new Doc.Line(),
+                    inner)));
+            }
+            return inner;
+        }
+
+        @Test
+        @Timeout(value = 2, unit = TimeUnit.SECONDS)
+        void deeplyNestedGroupDecisions_runInLinearTime() {
+            // Each nested Group must make its own fit decision (mode=BREAK propagates inward
+            // because lineWidth=1 forces every Group to break). A naive flat-width walker
+            // re-traverses the entire remaining subtree per Group → O(n²); a short-circuiting
+            // fits(remaining) predicate stops at the first overflow → O(n) total. The bound
+            // here is generous (well under a second under O(n), many seconds under O(n²)) so
+            // it fails loudly if a future change reintroduces full-subtree walks for fit checks.
+            final var n = 50_000;
+            final var rendered = new Printer(1).print(nestedGroups(n));
+            assertThat(rendered).hasSize(2 * n + 1);
         }
     }
 }
