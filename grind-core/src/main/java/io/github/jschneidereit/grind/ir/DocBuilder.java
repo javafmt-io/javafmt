@@ -110,7 +110,9 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             case RECORD -> RecordRenderer.render(node, recursor, config, attacher);
             case ENUM -> EnumRenderer.render(node, recursor, config, attacher);
             case INTERFACE -> ClassLikeRenderer.render(node, "interface", recursor, config, attacher);
-            default -> ClassLikeRenderer.render(node, "class", recursor, config, attacher);
+            case ANNOTATION_TYPE -> ClassLikeRenderer.render(node, "@interface", recursor, config, attacher);
+            case CLASS -> ClassLikeRenderer.render(node, "class", recursor, config, attacher);
+            default -> throw new IllegalStateException("unexpected class kind: " + node.getKind());
         };
     }
 
