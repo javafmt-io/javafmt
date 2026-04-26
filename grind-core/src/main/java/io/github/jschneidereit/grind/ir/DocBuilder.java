@@ -84,7 +84,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc reduce(final @Nullable Doc r1, final @Nullable Doc r2) {
-        throw new AssertionError("unexpected tree merge: r1=" + r1 + " r2=" + r2);
+        throw new IllegalStateException("unexpected tree merge: r1=" + r1 + " r2=" + r2);
     }
 
     @Override

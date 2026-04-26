@@ -101,10 +101,10 @@ class DocBuilderTest {
     }
 
     @Test
-    void reduce_throwsAssertionError_signalingUnreachableMergePath() {
+    void reduce_throwsIllegalStateException_signalingUnreachableMergePath() {
         final var builder = new DocBuilder(JavaParser.parseUnit("class Foo {}"), GrindConfig.defaults());
         assertThatThrownBy(() -> builder.reduce(new Doc.Text("a"), new Doc.Text("b")))
-            .isInstanceOf(AssertionError.class)
+            .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("unexpected tree merge");
     }
 
