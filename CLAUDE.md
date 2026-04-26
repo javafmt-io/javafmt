@@ -8,6 +8,18 @@ An opinionated, high-performance Java code formatter for modern LTS (21+). See `
 
 - **Always use `gradle`**, never `./gradlew`
 
+## Code intelligence (Claude Code)
+
+This repo enables two LSP plugins for contributors using Claude Code (`.claude/settings.json`):
+`jdtls-lsp` for Java and `kotlin-lsp` for Kotlin (`buildSrc/**/*.kts`, `*.kt`). One-time setup
+per contributor: run `/plugins install jdtls-lsp` and `/plugins install kotlin-lsp`, then
+`/reload-plugins`.
+
+Use the LSP tool for symbol-level work: `goToDefinition`, `findReferences`, `goToImplementation`,
+`hover` (for types), `documentSymbol`, `workspaceSymbol`, and call hierarchy. Use `rg` only for
+text-level searches (string literals, TODO scans, comments). Note: jdtls indexes for ~30–60s on
+first use after a clean build.
+
 ## Development process
 
 - **TDD is mandatory.** Write a failing test first, then the minimum code to pass, then refactor. No production code without a failing test that motivates it.

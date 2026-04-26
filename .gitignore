@@ -31,4 +31,5 @@ hs_err_pid*
 *.build_artifacts.txt
 
 # Claude Code local memory
-.claude/
+.claude/*
+!.claude/settings.json
