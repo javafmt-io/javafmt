@@ -158,28 +158,34 @@ public record WadlerLindigPrintStrategy() implements PrintStrategy {
     }
 
     // Wadler-Lindig has no native Fill combinator. The greedy per-separator pack from
-    // GreedyPrintStrategy is preserved here verbatim — including its HardLine sentinel
-    // (see PrinterTest#fill_hardLineInsideContent_forcesNextSeparatorToBreak). Reformulating
-    // Fill as nested Groups is the principled WL alternative but would change every Fill
-    // callsite's output and is out of scope for this strategy.
+    // GreedyPrintStrategy is preserved here verbatim. Reformulating Fill as nested Groups
+    // is the principled WL alternative but would change every Fill callsite's output and
+    // is out of scope for this strategy.
     private static List<Frame> expandFill(final List<Doc> parts, final int indent, final int col, final int lineWidth) {
         final var out = new java.util.ArrayList<Frame>();
         var currentCol = col;
+        var forceBreakNextSep = false;
         for (var i = 0; i < parts.size(); i++) {
             final var part = parts.get(i);
             final var isSep = (i & 1) == 1;
             if (!isSep) {
                 out.add(new Frame(indent, Mode.FLAT, part));
-                currentCol += flatWidth(part);
+                final var w = flatWidthOrBreak(part);
+                if (w < 0) {
+                    forceBreakNextSep = true;
+                } else {
+                    currentCol += w;
+                }
             } else {
                 final var nextContent = parts.get(i + 1);
                 final var sepFlatWidth = part instanceof Doc.Line ? 1 : 0;
-                if (fitsFlat(nextContent, lineWidth - currentCol - sepFlatWidth)) {
+                if (!forceBreakNextSep && fitsFlat(nextContent, lineWidth - currentCol - sepFlatWidth)) {
                     out.add(new Frame(indent, Mode.FLAT, part));
                     currentCol += sepFlatWidth;
                 } else {
                     out.add(new Frame(indent, Mode.BREAK, part));
                     currentCol = indent;
+                    forceBreakNextSep = false;
                 }
             }
         }
@@ -228,7 +234,8 @@ public record WadlerLindigPrintStrategy() implements PrintStrategy {
         return true;
     }
 
-    private static int flatWidth(final Doc doc) {
+    // See GreedyPrintStrategy#flatWidthOrBreak.
+    private static int flatWidthOrBreak(final Doc doc) {
         var total = 0;
         final var work = new ArrayDeque<Doc>();
         work.push(doc);
@@ -238,7 +245,7 @@ public record WadlerLindigPrintStrategy() implements PrintStrategy {
                 case Doc.Text(var s) -> total += s.length();
                 case Doc.Line() -> total += 1;
                 case Doc.SoftLine() -> { /* 0 in flat */ }
-                case Doc.HardLine() -> { return Integer.MAX_VALUE / 2; }
+                case Doc.HardLine() -> { return -1; }
                 case Doc.Indent(var inner) -> work.push(inner);
                 case Doc.Group(var inner) -> work.push(inner);
                 case Doc.IfBreak ifBreak -> work.push(ifBreak.flatContents());

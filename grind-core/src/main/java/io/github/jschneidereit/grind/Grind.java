@@ -4,6 +4,7 @@ import io.github.jschneidereit.grind.ir.DocBuilder;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.parser.ParseException;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
+import io.github.jschneidereit.grind.printer.PrintStrategy;
 import io.github.jschneidereit.grind.printer.Printer;
 
 import java.util.List;
@@ -25,6 +26,10 @@ public final class Grind {
     }
 
     public static FormatResult formatWithResult(final String source, final GrindConfig config) {
+        return formatWithResult(source, config, PrintStrategy.wadlerLindig());
+    }
+
+    static FormatResult formatWithResult(final String source, final GrindConfig config, final PrintStrategy strategy) {
         if (source.isEmpty()) {
             return new FormatResult(source, List.of());
         }
@@ -34,13 +39,17 @@ public final class Grind {
         } catch (final ParseException e) {
             return parseExceptionToResult(source, e);
         }
-        return formatParsed(source, unit, config);
+        return formatParsed(source, unit, config, strategy);
     }
 
     static FormatResult formatParsed(final String source, final ParsedUnit unit, final GrindConfig config) {
+        return formatParsed(source, unit, config, PrintStrategy.wadlerLindig());
+    }
+
+    static FormatResult formatParsed(final String source, final ParsedUnit unit, final GrindConfig config, final PrintStrategy strategy) {
         try {
             final var built = DocBuilder.buildWithFallbacks(unit, config);
-            return new FormatResult(new Printer(LINE_WIDTH).print(built.doc()), built.diagnostics());
+            return new FormatResult(new Printer(LINE_WIDTH, strategy).print(built.doc()), built.diagnostics());
         } catch (final RuntimeException | AssertionError t) {
             final var msg = t.getMessage();
             return new FormatResult(source, List.of(new Diagnostic.ParseError(

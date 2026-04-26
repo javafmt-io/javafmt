@@ -81,21 +81,28 @@ public record GreedyPrintStrategy() implements PrintStrategy {
     private static List<Frame> expandFill(final List<Doc> parts, final int indent, final int col, final int lineWidth) {
         final var out = new java.util.ArrayList<Frame>();
         var currentCol = col;
+        var forceBreakNextSep = false;
         for (var i = 0; i < parts.size(); i++) {
             final var part = parts.get(i);
             final var isSep = (i & 1) == 1;
             if (!isSep) {
                 out.add(new Frame(indent, Mode.FLAT, part));
-                currentCol += flatWidth(part);
+                final var w = flatWidthOrBreak(part);
+                if (w < 0) {
+                    forceBreakNextSep = true;
+                } else {
+                    currentCol += w;
+                }
             } else {
                 final var nextContent = parts.get(i + 1);
                 final var sepFlatWidth = part instanceof Doc.Line ? 1 : 0;
-                if (fits(nextContent, lineWidth - currentCol - sepFlatWidth)) {
+                if (!forceBreakNextSep && fits(nextContent, lineWidth - currentCol - sepFlatWidth)) {
                     out.add(new Frame(indent, Mode.FLAT, part));
                     currentCol += sepFlatWidth;
                 } else {
                     out.add(new Frame(indent, Mode.BREAK, part));
                     currentCol = indent;
+                    forceBreakNextSep = false;
                 }
             }
         }
@@ -148,12 +155,12 @@ public record GreedyPrintStrategy() implements PrintStrategy {
         return true;
     }
 
-    // Used only to advance currentCol past a Fill content part already committed to FLAT.
-    // Returns Integer.MAX_VALUE / 2 on HardLine: a sentinel that intentionally poisons the
-    // running column so the next Fill separator is forced to BREAK (see
-    // PrinterTest#fill_hardLineInsideContent_forcesNextSeparatorToBreak). Don't reuse this
-    // for fit decisions — call fits(...) instead.
-    private static int flatWidth(final Doc doc) {
+    // Returns the flat-render width of `doc`, or -1 if it contains a HardLine.
+    // The -1 is a flag (not a width): in Fill content it tells the caller to force
+    // the next separator to BREAK, since the line ends after the HardLine regardless
+    // of where the rendered cursor lands. See
+    // PrinterTest#fill_hardLineInsideContent_forcesNextSeparatorToBreak.
+    private static int flatWidthOrBreak(final Doc doc) {
         var total = 0;
         final var work = new ArrayDeque<Doc>();
         work.push(doc);
@@ -163,7 +170,7 @@ public record GreedyPrintStrategy() implements PrintStrategy {
                 case Doc.Text(var s) -> total += s.length();
                 case Doc.Line() -> total += 1;
                 case Doc.SoftLine() -> { /* 0 in flat */ }
-                case Doc.HardLine() -> { return Integer.MAX_VALUE / 2; }
+                case Doc.HardLine() -> { return -1; }
                 case Doc.Indent(var inner) -> work.push(inner);
                 case Doc.Group(var inner) -> work.push(inner);
                 case Doc.IfBreak ifBreak -> work.push(ifBreak.flatContents());
