@@ -58,7 +58,7 @@ first use after a clean build.
 ## Formatting rules (what grind enforces)
 
 - **150-character line width**
-- **K&R braces**, always required (even single-statement `if`/`for`/`while`), missing braces is a build failure, not an auto-fix
+- **K&R braces**, always required (even single-statement `if`/`for`/`while`); missing braces are auto-fixed by the `NeedBraces` lint rule
 - **4-space indent**, 4-space continuation indent.
 - **Imports**: static imports first (ASCII sort), blank line, then all non-static imports (ASCII sort, one group — no splitting by origin)
 - **Member ordering**: static fields, static initializers, instance fields, instance initializers, constructors, public methods, protected, package-private, private, static methods, nested types. Preserve declaration order within groups. Exception: in utility classes (final class, no instance state, only a private no-arg constructor to suppress instantiation), pin the private constructor to the very bottom of the class. Exception: in `sealed` classes and interfaces, nested types are pinned to the top of the body (ahead of static fields), since permitted-subtype declarations are the primary shape of a sealed hierarchy.

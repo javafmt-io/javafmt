@@ -7,6 +7,7 @@ import io.github.jschneidereit.grind.lint.FinalLocalVariable;
 import io.github.jschneidereit.grind.lint.FinalParameters;
 import io.github.jschneidereit.grind.lint.LintEngine;
 import io.github.jschneidereit.grind.lint.LintRule;
+import io.github.jschneidereit.grind.lint.NeedBraces;
 import io.github.jschneidereit.grind.lint.RemoveUnusedImports;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.parser.ParseException;
@@ -26,7 +27,8 @@ public final class Grind {
         new FinalParameters(),
         new ArrayTrailingComma(),
         new ExplodeStarImports(),
-        new RemoveUnusedImports());
+        new RemoveUnusedImports(),
+        new NeedBraces());
 
     private static final LintEngine LINT_ENGINE = new LintEngine(LINT_RULES);
 
