@@ -9,6 +9,8 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.SwitchExpressionTree;
+import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
@@ -228,7 +230,38 @@ final class CommentAttacher {
         @Override
         public Void visitCase(final CaseTree node, final Void p) {
             collect(node, node.getLabels(), false);
+            if (node.getCaseKind() != CaseTree.CaseKind.RULE) {
+                collectColonFormBody(node);
+            }
             return super.visitCase(node, null);
+        }
+
+        @Override
+        public Void visitSwitch(final SwitchTree node, final Void p) {
+            collect(node, node.getCases(), false);
+            return super.visitSwitch(node, null);
+        }
+
+        @Override
+        public Void visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
+            collect(node, node.getCases(), false);
+            return super.visitSwitchExpression(node, null);
+        }
+
+        private void collectColonFormBody(final CaseTree node) {
+            final var stmts = node.getStatements();
+            if (stmts.isEmpty()) {
+                return;
+            }
+            final var labels = node.getLabels();
+            if (labels.isEmpty()) {
+                return;
+            }
+            final var lastLabelEnd = pos.getEndPosition(cu, labels.get(labels.size() - 1));
+            if (lastLabelEnd < 0) {
+                return;
+            }
+            collectWithLo(node, lastLabelEnd, stmts, false);
         }
 
         @Override

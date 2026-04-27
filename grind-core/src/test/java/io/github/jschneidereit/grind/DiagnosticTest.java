@@ -19,4 +19,12 @@ class DiagnosticTest {
         final Diagnostic d = new Diagnostic.Warning("hmm", new Position(2, 3, 4));
         assertThat(d.isError()).isFalse();
     }
+
+    @Test
+    void lintErrorIsAnError() {
+        final Diagnostic d = new Diagnostic.LintError("nope", new Position(5, 6, 7));
+        assertThat(d.isError()).isTrue();
+        assertThat(d.message()).isEqualTo("nope");
+        assertThat(d.position()).isEqualTo(new Position(5, 6, 7));
+    }
 }

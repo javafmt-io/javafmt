@@ -2,7 +2,9 @@ package io.github.jschneidereit.grind;
 
 import io.github.jschneidereit.grind.ir.DocBuilder;
 import io.github.jschneidereit.grind.lint.ArrayTrailingComma;
+import io.github.jschneidereit.grind.lint.DefaultComesLast;
 import io.github.jschneidereit.grind.lint.ExplodeStarImports;
+import io.github.jschneidereit.grind.lint.FallThrough;
 import io.github.jschneidereit.grind.lint.FinalLocalVariable;
 import io.github.jschneidereit.grind.lint.FinalParameters;
 import io.github.jschneidereit.grind.lint.LintEngine;
@@ -28,7 +30,9 @@ public final class Grind {
         new ArrayTrailingComma(),
         new ExplodeStarImports(),
         new RemoveUnusedImports(),
-        new NeedBraces());
+        new NeedBraces(),
+        new FallThrough(),
+        new DefaultComesLast());
 
     private static final LintEngine LINT_ENGINE = new LintEngine(LINT_RULES);
 

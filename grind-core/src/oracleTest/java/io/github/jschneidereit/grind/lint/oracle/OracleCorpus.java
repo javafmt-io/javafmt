@@ -62,6 +62,37 @@ public final class OracleCorpus {
             .isEmpty();
     }
 
+    /**
+     * For rules that may either auto-fix or warn-only: every Checkstyle violation grind
+     * doesn't fix away on output must be matched by at least one grind diagnostic whose
+     * message contains {@code diagnosticMessageSubstring}. The match is by message
+     * substring, not subtype, since callers care that grind reported <em>something</em>
+     * about the case it didn't silently rewrite.
+     */
+    public static void assertGrindFixesOrReports(
+            final String name,
+            final String source,
+            final String diagnosticMessageSubstring,
+            final String checkClassName,
+            final Map<String, String> checkProperties) {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(diagnosticMessageSubstring, "diagnosticMessageSubstring");
+        final var result = Grind.formatWithResult(source);
+        final var formatted = result.output();
+        final var violations = CheckstyleOracle.run(formatted, checkClassName, checkProperties);
+        if (violations.isEmpty()) {
+            return;
+        }
+        final var hasMatchingDiagnostic = result.diagnostics().stream()
+            .anyMatch(d -> d.message().contains(diagnosticMessageSubstring));
+        assertThat(hasMatchingDiagnostic)
+            .as("grind output for corpus file '%s' still has %s violations and no diagnostic "
+                    + "containing '%s'; output:%n%s%nresidual violations: %s%ngrind diagnostics: %s",
+                name, simpleName(checkClassName), diagnosticMessageSubstring, formatted,
+                violations, result.diagnostics())
+            .isTrue();
+    }
+
     public static void assertCorpusExercisesRule(
             final String corpusSubdir,
             final String checkClassName,
