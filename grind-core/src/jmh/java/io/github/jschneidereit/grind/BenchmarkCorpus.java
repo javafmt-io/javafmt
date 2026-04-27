@@ -10,9 +10,9 @@ import java.util.List;
  * is a measurable fraction of total format time, but small enough that the whole
  * corpus formats well under one millisecond per strategy on a developer laptop.
  */
-final class BenchmarkCorpus {
+public final class BenchmarkCorpus {
 
-    static final String METHOD_CHAINS = """
+    public static final String METHOD_CHAINS = """
         package demo;
 
         import java.util.Comparator;
@@ -56,7 +56,7 @@ final class BenchmarkCorpus {
         }
         """;
 
-    static final String WIDE_RECORDS = """
+    public static final String WIDE_RECORDS = """
         package demo;
 
         import java.time.Instant;
@@ -120,7 +120,7 @@ final class BenchmarkCorpus {
         ) {}
         """;
 
-    static final String NESTED_CONDITIONALS = """
+    public static final String NESTED_CONDITIONALS = """
         package demo;
 
         class NestedConditionals {
@@ -170,7 +170,7 @@ final class BenchmarkCorpus {
         }
         """;
 
-    static final List<String> ALL = List.of(METHOD_CHAINS, WIDE_RECORDS, NESTED_CONDITIONALS);
+    public static final List<String> ALL = List.of(METHOD_CHAINS, WIDE_RECORDS, NESTED_CONDITIONALS);
 
     private BenchmarkCorpus() {}
 }

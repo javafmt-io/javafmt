@@ -1,26 +1,51 @@
 package io.github.jschneidereit.grind.parser;
 
 import com.sun.source.tree.CompilationUnitTree;
-import com.sun.source.util.JavacTask;
 import com.sun.source.util.SourcePositions;
-import com.sun.source.util.Trees;
+import com.sun.tools.javac.api.JavacTrees;
+import com.sun.tools.javac.file.JavacFileManager;
+import com.sun.tools.javac.parser.ParserFactory;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.util.Context;
+import com.sun.tools.javac.util.Log;
 
 import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.Position;
 
 import javax.tools.DiagnosticCollector;
+import javax.tools.DiagnosticListener;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
-import javax.tools.ToolProvider;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Parses Java source by driving javac's parser directly via {@code com.sun.tools.javac.*}
+ * internals, skipping {@code JavaCompiler.getTask} and therefore
+ * {@code BasicJavacTask.initPlugins} — the {@link java.util.ServiceLoader} walk over javac's
+ * URL classpath that dominated parse cost after we eliminated the boot-classpath scan in the
+ * {@code StandardJavaFileManager}-reuse pass.
+ *
+ * <p><b>Threading.</b> A {@link Context} is cached in a {@link ThreadLocal}; each
+ * thread's parser, log, trees, and interned name table live for that thread's lifetime.
+ * Concurrent calls from different threads each use their own context and do not contend.
+ * A single thread's calls are serialized through its context. The diagnostic listener
+ * registered on the {@link Log} is a per-context indirection that delegates to a
+ * {@link DiagnosticCollector} swapped in at the start of each call.
+ *
+ * <p><b>Module access.</b> This class references {@code com.sun.tools.javac.*} packages
+ * which are only available with {@code --add-exports} for {@code jdk.compiler}'s
+ * {@code api}, {@code parser}, {@code tree}, and {@code util} packages. The
+ * grind-core jar declares these via the {@code Add-Exports} manifest attribute (JEP 261)
+ * so consumers on the classpath inherit access automatically; module-system consumers
+ * must add the exports explicitly.
+ */
 public final class JavaParser {
+
+    private static final ThreadLocal<ParseContext> CONTEXTS = ThreadLocal.withInitial(ParseContext::new);
 
     public static CompilationUnitTree parse(final String source) {
         return parseUnit(source).tree();
@@ -31,17 +56,18 @@ public final class JavaParser {
 
         final var stripped = !source.isEmpty() && source.charAt(0) == '﻿' ? source.substring(1) : source;
 
-        final var compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) {
-            throw new IllegalStateException("No system Java compiler available; run on a JDK, not a JRE");
-        }
-
+        final var pc = CONTEXTS.get();
         final var diagnostics = new DiagnosticCollector<JavaFileObject>();
+        final var fileObject = new InMemoryJavaFileObject(stripped);
 
-        try (final var fileManager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8)) {
-            final var fileObject = new InMemoryJavaFileObject(stripped);
-            final var task = (JavacTask) compiler.getTask(null, fileManager, diagnostics, null, null, List.of(fileObject));
-            final var trees = task.parse();
+        pc.diagnosticsRef.current = diagnostics;
+        try {
+            pc.log.useSource(fileObject);
+            pc.log.nerrors = 0;
+            pc.log.nwarnings = 0;
+
+            final var parser = pc.factory.newParser(stripped, false, true, true);
+            final JCTree.JCCompilationUnit unit = parser.parseCompilationUnit();
 
             final var errors = diagnostics.getDiagnostics().stream()
                     .filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR)
@@ -57,17 +83,11 @@ public final class JavaParser {
                 throw new ParseException(message, asDiagnostics);
             }
 
-            final var iterator = trees.iterator();
-            if (!iterator.hasNext()) {
-                throw new ParseException("Parser produced no compilation units", List.of());
-            }
-            final var unit = iterator.next();
-            final var positions = Trees.instance(task).getSourcePositions();
+            final var positions = pc.trees.getSourcePositions();
             final var comments = CommentScanner.scan(stripped);
             return CommentAttacher.attach(unit, stripped, positions, comments);
-
-        } catch (IOException e) {
-            throw new AssertionError(e);
+        } finally {
+            pc.diagnosticsRef.current = EMPTY_COLLECTOR;
         }
     }
 
@@ -93,6 +113,35 @@ public final class JavaParser {
         final var line = (int) lineMap.getLineNumber(offset);
         final var column = (int) lineMap.getColumnNumber(offset);
         return new Position(line, column, (int) offset);
+    }
+
+    private static final DiagnosticCollector<JavaFileObject> EMPTY_COLLECTOR = new DiagnosticCollector<>();
+
+    private static final class DiagnosticsRef implements DiagnosticListener<JavaFileObject> {
+
+        DiagnosticCollector<JavaFileObject> current = EMPTY_COLLECTOR;
+
+        @Override
+        public void report(final javax.tools.Diagnostic<? extends JavaFileObject> diagnostic) {
+            current.report(diagnostic);
+        }
+    }
+
+    private static final class ParseContext {
+
+        final DiagnosticsRef diagnosticsRef = new DiagnosticsRef();
+        final ParserFactory factory;
+        final Log log;
+        final JavacTrees trees;
+
+        ParseContext() {
+            final var context = new Context();
+            context.put(DiagnosticListener.class, diagnosticsRef);
+            JavacFileManager.preRegister(context);
+            this.log = Log.instance(context);
+            this.factory = ParserFactory.instance(context);
+            this.trees = JavacTrees.instance(context);
+        }
     }
 
     private static final class InMemoryJavaFileObject extends SimpleJavaFileObject {
