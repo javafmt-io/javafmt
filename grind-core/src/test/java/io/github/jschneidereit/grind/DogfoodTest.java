@@ -11,6 +11,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -19,100 +21,100 @@ class DogfoodTest {
 
     @Test
     void formatPreservesEveryCommentInGrindCoreSource() throws IOException {
-        final var grindCoreMain = Paths.get("src/main/java").toAbsolutePath();
-        assertThat(grindCoreMain).exists();
+        final var batch = loadGrindCoreSources();
+        final var formatted = batchFormat(batch.sources);
 
         final var report = new StringBuilder();
-        final var lostTotal = new int[] {0};
-
-        try (final Stream<Path> stream = Files.walk(grindCoreMain)) {
-            stream.filter(p -> p.toString().endsWith(".java"))
-                .sorted()
-                .forEach(p -> {
-                    final var source = readString(p);
-                    final var before = CommentScanner.scan(source);
-                    final var formatted = Grind.format(source);
-                    final var afterTexts = CommentScanner.scan(formatted).stream()
-                        .map(CommentToken::text)
-                        .toList();
-                    final var missing = before.stream()
-                        .map(CommentToken::text)
-                        .filter(t -> !afterTexts.contains(t))
-                        .toList();
-                    if (!missing.isEmpty()) {
-                        lostTotal[0] += missing.size();
-                        report.append(grindCoreMain.relativize(p))
-                            .append(": lost ").append(missing.size())
-                            .append(" comment(s):\n");
-                        missing.forEach(m -> report.append("    ")
-                            .append(m.length() > 80 ? m.substring(0, 80) + "..." : m)
-                            .append('\n'));
-                    }
-                });
+        var lostTotal = 0;
+        for (var i = 0; i < batch.paths.size(); i++) {
+            final var before = CommentScanner.scan(batch.sources.get(i));
+            final var afterTexts = CommentScanner.scan(formatted.get(i)).stream()
+                .map(CommentToken::text)
+                .toList();
+            final var missing = before.stream()
+                .map(CommentToken::text)
+                .filter(t -> !afterTexts.contains(t))
+                .toList();
+            if (!missing.isEmpty()) {
+                lostTotal += missing.size();
+                report.append(batch.root.relativize(batch.paths.get(i)))
+                    .append(": lost ").append(missing.size())
+                    .append(" comment(s):\n");
+                missing.forEach(m -> report.append("    ")
+                    .append(m.length() > 80 ? m.substring(0, 80) + "..." : m)
+                    .append('\n'));
+            }
         }
 
-        assertThat(lostTotal[0])
-            .withFailMessage("Lost %d comment(s) when formatting grind's own source:%n%s", lostTotal[0], report)
+        final var lost = lostTotal;
+        assertThat(lost)
+            .withFailMessage("Lost %d comment(s) when formatting grind's own source:%n%s", lost, report)
             .isZero();
     }
 
     @Test
     void formatProducesSyntacticallyValidOutputForEveryGrindCoreSourceFile() throws IOException {
-        final var grindCoreMain = Paths.get("src/main/java").toAbsolutePath();
-        assertThat(grindCoreMain).exists();
+        final var batch = loadGrindCoreSources();
+        final var formatted = batchFormat(batch.sources);
+        final var reparseOutcomes = JavaParser.parseUnits(formatted);
 
         final var report = new StringBuilder();
-        final var failures = new int[] {0};
-
-        try (final Stream<Path> stream = Files.walk(grindCoreMain)) {
-            stream.filter(p -> p.toString().endsWith(".java"))
-                .sorted()
-                .forEach(p -> {
-                    final var source = readString(p);
-                    final var formatted = Grind.format(source);
-                    try {
-                        JavaParser.parseUnit(formatted);
-                    } catch (final RuntimeException e) {
-                        failures[0]++;
-                        report.append(grindCoreMain.relativize(p))
-                            .append(": formatted output failed to re-parse: ")
-                            .append(e.getMessage())
-                            .append('\n');
-                    }
-                });
+        var failures = 0;
+        for (var i = 0; i < batch.paths.size(); i++) {
+            if (reparseOutcomes.get(i) instanceof io.github.jschneidereit.grind.parser.ParseOutcome.Failed f) {
+                failures++;
+                report.append(batch.root.relativize(batch.paths.get(i)))
+                    .append(": formatted output failed to re-parse: ")
+                    .append(f.error().getMessage())
+                    .append('\n');
+            }
         }
 
-        assertThat(failures[0])
-            .withFailMessage("%d grind-core file(s) formatted to unparseable output:%n%s", failures[0], report)
+        final var count = failures;
+        assertThat(count)
+            .withFailMessage("%d grind-core file(s) formatted to unparseable output:%n%s", count, report)
             .isZero();
     }
 
     @Test
     void formatRoundTripsEveryGrindCoreSourceFile() throws IOException {
-        final var grindCoreMain = Paths.get("src/main/java").toAbsolutePath();
-        assertThat(grindCoreMain).exists();
+        final var batch = loadGrindCoreSources();
+        final var once = batchFormat(batch.sources);
+        final var twice = batchFormat(once);
 
         final var report = new StringBuilder();
-        final var failures = new int[] {0};
-
-        try (final Stream<Path> stream = Files.walk(grindCoreMain)) {
-            stream.filter(p -> p.toString().endsWith(".java"))
-                .sorted()
-                .forEach(p -> {
-                    final var source = readString(p);
-                    final var once = Grind.format(source);
-                    final var twice = Grind.format(once);
-                    if (!once.equals(twice)) {
-                        failures[0]++;
-                        report.append(grindCoreMain.relativize(p))
-                            .append(": format(format(x)) != format(x)\n");
-                    }
-                });
+        var failures = 0;
+        for (var i = 0; i < batch.paths.size(); i++) {
+            if (!once.get(i).equals(twice.get(i))) {
+                failures++;
+                report.append(batch.root.relativize(batch.paths.get(i)))
+                    .append(": format(format(x)) != format(x)\n");
+            }
         }
 
-        assertThat(failures[0])
-            .withFailMessage("%d grind-core file(s) failed to round-trip:%n%s", failures[0], report)
+        final var count = failures;
+        assertThat(count)
+            .withFailMessage("%d grind-core file(s) failed to round-trip:%n%s", count, report)
             .isZero();
+    }
+
+    private record GrindCoreSources(Path root, List<Path> paths, List<String> sources) {}
+
+    private static GrindCoreSources loadGrindCoreSources() throws IOException {
+        final var root = Paths.get("src/main/java").toAbsolutePath();
+        assertThat(root).exists();
+        try (final Stream<Path> stream = Files.walk(root)) {
+            final var paths = stream.filter(p -> p.toString().endsWith(".java")).sorted().toList();
+            final var sources = paths.stream().map(DogfoodTest::readString).toList();
+            return new GrindCoreSources(root, paths, sources);
+        }
+    }
+
+    private static List<String> batchFormat(final List<String> sources) {
+        final var outcomes = JavaParser.parseUnits(sources);
+        return IntStream.range(0, sources.size())
+            .mapToObj(i -> Grind.formatWithResult(sources.get(i), outcomes.get(i)).output())
+            .toList();
     }
 
     private static String readString(final Path p) {

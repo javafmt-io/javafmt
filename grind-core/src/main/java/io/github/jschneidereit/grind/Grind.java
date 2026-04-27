@@ -3,6 +3,7 @@ package io.github.jschneidereit.grind;
 import io.github.jschneidereit.grind.ir.DocBuilder;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.parser.ParseException;
+import io.github.jschneidereit.grind.parser.ParseOutcome;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
 import io.github.jschneidereit.grind.printer.PrintStrategy;
 import io.github.jschneidereit.grind.printer.Printer;
@@ -27,6 +28,23 @@ public final class Grind {
 
     public static FormatResult formatWithResult(final String source, final GrindConfig config) {
         return formatWithResult(source, config, PrintStrategy.wadlerLindig());
+    }
+
+    /**
+     * Formats {@code source} using a pre-computed parse {@code outcome}, intended for callers
+     * that batch-parsed via {@link JavaParser#parseUnits(List)} and want to amortize the
+     * per-task setup across many files. Failed outcomes round-trip the source unchanged with
+     * the parse diagnostics attached.
+     */
+    public static FormatResult formatWithResult(final String source, final ParseOutcome outcome) {
+        return formatWithResult(source, outcome, GrindConfig.defaults());
+    }
+
+    public static FormatResult formatWithResult(final String source, final ParseOutcome outcome, final GrindConfig config) {
+        return switch (outcome) {
+            case ParseOutcome.Ok ok -> formatParsed(source, ok.unit(), config);
+            case ParseOutcome.Failed failed -> parseExceptionToResult(source, failed.error());
+        };
     }
 
     static FormatResult formatWithResult(final String source, final GrindConfig config, final PrintStrategy strategy) {

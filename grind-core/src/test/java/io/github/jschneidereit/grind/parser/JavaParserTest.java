@@ -87,6 +87,51 @@ class JavaParserTest {
     }
 
     @Test
+    void parseUnitsReturnsOkOutcomesInOrderForValidBatch() {
+        final var sources = java.util.List.of(
+            "class A {}",
+            "class B {}",
+            "record C(int x) {}");
+
+        final var outcomes = JavaParser.parseUnits(sources);
+
+        assertThat(outcomes).hasSize(3);
+        final var names = outcomes.stream()
+            .map(o -> ((ParseOutcome.Ok) o).unit().tree())
+            .map(t -> ((ClassTree) t.getTypeDecls().getFirst()).getSimpleName().toString())
+            .toList();
+        assertThat(names).containsExactly("A", "B", "C");
+    }
+
+    @Test
+    void parseUnitsSurfacesPerSourceParseFailures() {
+        final var sources = java.util.List.of(
+            "class A {}",
+            "class {",
+            "class C {}");
+
+        final var outcomes = JavaParser.parseUnits(sources);
+
+        assertThat(outcomes).hasSize(3);
+        assertThat(outcomes.get(0)).isInstanceOf(ParseOutcome.Ok.class);
+        assertThat(outcomes.get(1)).isInstanceOf(ParseOutcome.Failed.class);
+        assertThat(outcomes.get(2)).isInstanceOf(ParseOutcome.Ok.class);
+    }
+
+    @Test
+    void parseUnitsReturnsEmptyListForEmptyInput() {
+        assertThat(JavaParser.parseUnits(java.util.List.of())).isEmpty();
+    }
+
+    @Test
+    void hasJavacInternalAccessIsFalseWithoutAddExports() {
+        // The default build does not add --add-exports for jdk.compiler internals; the
+        // probe reflects that. If a future fast path opts into the internal-API path,
+        // it should branch on this constant rather than blindly attempting the access.
+        assertThat(JavaParser.HAS_JAVAC_INTERNAL_ACCESS).isFalse();
+    }
+
+    @Test
     void packageInfoStyleFileHeaderJavadocSurvivesAsFileHeader() {
         // Reproduces a suspected gap in CommentAttacher: a leading Javadoc on a file with
         // only a package declaration should be captured as the file header, not silently lost.

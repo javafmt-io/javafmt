@@ -2,6 +2,8 @@ package io.github.jschneidereit.grind.cli;
 
 import io.github.jschneidereit.grind.FormatResult;
 import io.github.jschneidereit.grind.Grind;
+import io.github.jschneidereit.grind.parser.JavaParser;
+import io.github.jschneidereit.grind.parser.ParseOutcome;
 
 import org.jspecify.annotations.Nullable;
 
@@ -15,9 +17,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 
 public final class Cli {
 
@@ -42,6 +45,23 @@ public final class Cli {
     }
 
     private static int runFiles(final Args parsed, final PrintStream err) {
+        // Two-stage: batch-parse on this thread (one JavacTask amortizes initPlugins across
+        // all files), then format-from-parsed in the pool (build/print is independent per
+        // file). Read failures are recorded inline; their slot's source becomes "" so the
+        // index alignment with parseUnits' result list is preserved.
+        final var sources = new ArrayList<String>(parsed.files.size());
+        final var readErrors = new ArrayList<@Nullable FileOutcome>(parsed.files.size());
+        for (final var path : parsed.files) {
+            try {
+                sources.add(Files.readString(path, StandardCharsets.UTF_8));
+                readErrors.add(null);
+            } catch (final IOException e) {
+                sources.add("");
+                readErrors.add(new FileOutcome(2, path + ": read failed: " + e.getMessage()));
+            }
+        }
+        final var outcomes = JavaParser.parseUnits(sources);
+
         final var threads = Math.max(1, parsed.threads);
         final var pool = Executors.newFixedThreadPool(threads, r -> {
             final var t = new Thread(r, "grind-fmt");
@@ -49,8 +69,17 @@ public final class Cli {
             return t;
         });
         try {
-            final List<Future<FileOutcome>> futures = parsed.files.stream()
-                .map(path -> pool.submit(() -> formatOne(path, parsed.check)))
+            final List<Future<FileOutcome>> futures = IntStream.range(0, parsed.files.size())
+                .<Future<FileOutcome>>mapToObj(i -> {
+                    final var readError = readErrors.get(i);
+                    if (readError != null) {
+                        return CompletableFuture.completedFuture(readError);
+                    }
+                    final var path = parsed.files.get(i);
+                    final var source = sources.get(i);
+                    final var outcome = outcomes.get(i);
+                    return pool.submit(() -> formatOne(path, source, outcome, parsed.check));
+                })
                 .toList();
             var worstExit = 0;
             for (final var f : futures) {
@@ -69,14 +98,8 @@ public final class Cli {
         }
     }
 
-    private static FileOutcome formatOne(final Path path, final boolean checkOnly) {
-        final String source;
-        try {
-            source = Files.readString(path, StandardCharsets.UTF_8);
-        } catch (final IOException e) {
-            return new FileOutcome(2, path + ": read failed: " + e.getMessage());
-        }
-        final var result = Grind.formatWithResult(source);
+    private static FileOutcome formatOne(final Path path, final String source, final ParseOutcome outcome, final boolean checkOnly) {
+        final var result = Grind.formatWithResult(source, outcome);
         if (result.hasErrors()) {
             final var first = result.diagnostics().get(0);
             return new FileOutcome(1, path + ": " + first.message());
