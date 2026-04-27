@@ -121,8 +121,7 @@ public record GreedyPrintStrategy() implements PrintStrategy {
         final var work = new ArrayDeque<Doc>();
         work.push(doc);
         while (!work.isEmpty()) {
-            final var d = work.pop();
-            switch (d) {
+            switch (work.pop()) {
                 case Doc.Text(var s) -> {
                     budget -= s.length();
                     if (budget < 0) {
@@ -165,8 +164,7 @@ public record GreedyPrintStrategy() implements PrintStrategy {
         final var work = new ArrayDeque<Doc>();
         work.push(doc);
         while (!work.isEmpty()) {
-            final var d = work.pop();
-            switch (d) {
+            switch (work.pop()) {
                 case Doc.Text(var s) -> total += s.length();
                 case Doc.Line() -> total += 1;
                 case Doc.SoftLine() -> { /* 0 in flat */ }
