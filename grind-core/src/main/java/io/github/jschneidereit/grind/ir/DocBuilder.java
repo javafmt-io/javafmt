@@ -22,21 +22,18 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     private final ParsedUnit unit;
     private final LeadingCommentAttacher attacher;
     private final java.util.List<Diagnostic> diagnostics = new java.util.ArrayList<>();
+    private final Recursor recursor = new Recursor() {
+        @Override
+        public Doc scan(final Tree node) {
+            Objects.requireNonNull(node, "node");
+            return Objects.requireNonNull(DocBuilder.this.scan(node, null));
+        }
 
-    private Recursor recursor() {
-        return new Recursor() {
-            @Override
-            public Doc scan(final Tree node) {
-                Objects.requireNonNull(node, "node");
-                return Objects.requireNonNull(DocBuilder.this.scan(node, null));
-            }
-
-            @Override
-            public void emitWarning(final String message, final Tree at) {
-                diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(at)));
-            }
-        };
-    }
+        @Override
+        public void emitWarning(final String message, final Tree at) {
+            diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(at)));
+        }
+    };
 
     public static Doc build(final ParsedUnit unit) {
         return build(unit, GrindConfig.defaults());
@@ -105,7 +102,6 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitClass(final ClassTree node, final Void p) {
-        final var recursor = recursor();
         return switch (node.getKind()) {
             case RECORD -> RecordRenderer.render(node, recursor, config, attacher);
             case ENUM -> EnumRenderer.render(node, recursor, config, attacher);
@@ -118,27 +114,27 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
 
     @Override
     public @Nullable Doc visitVariable(final VariableTree node, final Void p) {
-        return FieldRenderer.render(node, recursor());
+        return FieldRenderer.render(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitMethod(final MethodTree node, final Void p) {
-        return MethodRenderer.render(node, recursor(), attacher);
+        return MethodRenderer.render(node, recursor, attacher);
     }
 
     @Override
     public @Nullable Doc visitReturn(final ReturnTree node, final Void p) {
-        return SimpleStatementRenderers.renderReturn(node, recursor());
+        return SimpleStatementRenderers.renderReturn(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitExpressionStatement(final ExpressionStatementTree node, final Void p) {
-        return SimpleStatementRenderers.renderExpressionStatement(node, recursor());
+        return SimpleStatementRenderers.renderExpressionStatement(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitMethodInvocation(final MethodInvocationTree node, final Void p) {
-        return MethodChainRenderer.render(node, recursor());
+        return MethodChainRenderer.render(node, recursor);
     }
 
     @Override
@@ -361,82 +357,82 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     }
 
     private Doc scanOrText(final Tree tree) {
-        return recursor().scan(tree);
+        return recursor.scan(tree);
     }
 
     @Override
     public @Nullable Doc visitLambdaExpression(final LambdaExpressionTree node, final Void p) {
-        return LambdaRenderer.render(node, recursor());
+        return LambdaRenderer.render(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitSwitch(final SwitchTree node, final Void p) {
-        return SwitchExpressionRenderer.renderSwitch(node, recursor());
+        return SwitchExpressionRenderer.renderSwitch(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
-        return SwitchExpressionRenderer.renderSwitch(node, recursor());
+        return SwitchExpressionRenderer.renderSwitch(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitCase(final CaseTree node, final Void p) {
-        return SwitchExpressionRenderer.renderCase(node, recursor(), attacher);
+        return SwitchExpressionRenderer.renderCase(node, recursor, attacher);
     }
 
     @Override
     public @Nullable Doc visitIf(final IfTree node, final Void p) {
-        return IfRenderer.render(node, recursor());
+        return IfRenderer.render(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitForLoop(final ForLoopTree node, final Void p) {
-        return LoopRenderer.renderFor(node, recursor());
+        return LoopRenderer.renderFor(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitEnhancedForLoop(final EnhancedForLoopTree node, final Void p) {
-        return LoopRenderer.renderEnhancedFor(node, recursor());
+        return LoopRenderer.renderEnhancedFor(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitWhileLoop(final WhileLoopTree node, final Void p) {
-        return LoopRenderer.renderWhile(node, recursor());
+        return LoopRenderer.renderWhile(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitDoWhileLoop(final DoWhileLoopTree node, final Void p) {
-        return LoopRenderer.renderDoWhile(node, recursor());
+        return LoopRenderer.renderDoWhile(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitThrow(final ThrowTree node, final Void p) {
-        return SimpleStatementRenderers.renderThrow(node, recursor());
+        return SimpleStatementRenderers.renderThrow(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitTry(final TryTree node, final Void p) {
-        return TryRenderer.render(node, recursor());
+        return TryRenderer.render(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitAssert(final AssertTree node, final Void p) {
-        return SimpleStatementRenderers.renderAssert(node, recursor());
+        return SimpleStatementRenderers.renderAssert(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitSynchronized(final SynchronizedTree node, final Void p) {
-        return SimpleStatementRenderers.renderSynchronized(node, recursor());
+        return SimpleStatementRenderers.renderSynchronized(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitLabeledStatement(final LabeledStatementTree node, final Void p) {
-        return SimpleStatementRenderers.renderLabeled(node, recursor());
+        return SimpleStatementRenderers.renderLabeled(node, recursor);
     }
 
     @Override
     public @Nullable Doc visitYield(final YieldTree node, final Void p) {
-        return SimpleStatementRenderers.renderYield(node, recursor());
+        return SimpleStatementRenderers.renderYield(node, recursor);
     }
 
     @Override
@@ -576,7 +572,7 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             new Doc.Text("catch ("),
             scanOrText(param.getType()),
             new Doc.Text(" " + param.getName() + ")")));
-        final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor());
+        final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
         return BlockRenderer.buildBlock(header, stmts, attacher.interior(node.getBlock()));
     }
 
