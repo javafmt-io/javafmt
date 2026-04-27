@@ -6,7 +6,7 @@ class Fixture {
     String[] words;
 
     void take(int[] xs, String[][] grid) {
-        var copy = new int[xs.length];
+        final var copy = new int[xs.length];
     }
 
     int[] make() {

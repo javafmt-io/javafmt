@@ -18,9 +18,9 @@ class Fixture {
     static final double SUFFIXED = 3.14d;
 
     void test() {
-        var b = true;
-        var c = '\n';
-        var s = "hello";
-        Object o = null;
+        final var b = true;
+        final var c = '\n';
+        final var s = "hello";
+        final Object o = null;
     }
 }

@@ -1,7 +1,7 @@
 class Fixture {
     void test() {
-        Foo[] a = new Foo[a + b];
-        Foo[][] m = new Foo[rows()][cols()];
-        int[] z = new int[5];
+        final Foo[] a = new Foo[a + b];
+        final Foo[][] m = new Foo[rows()][cols()];
+        final int[] z = new int[5];
     }
 }

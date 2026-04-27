@@ -1,6 +1,9 @@
 package io.github.jschneidereit.grind;
 
 import io.github.jschneidereit.grind.ir.DocBuilder;
+import io.github.jschneidereit.grind.lint.FinalLocalVariable;
+import io.github.jschneidereit.grind.lint.LintEngine;
+import io.github.jschneidereit.grind.lint.LintRule;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.parser.ParseException;
 import io.github.jschneidereit.grind.parser.ParseOutcome;
@@ -13,6 +16,10 @@ import java.util.List;
 public final class Grind {
 
     private static final int LINE_WIDTH = 150;
+
+    private static final List<LintRule> LINT_RULES = List.of(new FinalLocalVariable());
+
+    private static final LintEngine LINT_ENGINE = new LintEngine(LINT_RULES);
 
     public static String format(final String source, final GrindConfig config) {
         return formatWithResult(source, config).output();
@@ -66,7 +73,8 @@ public final class Grind {
 
     static FormatResult formatParsed(final String source, final ParsedUnit unit, final GrindConfig config, final PrintStrategy strategy) {
         try {
-            final var built = DocBuilder.buildWithFallbacks(unit, config);
+            final var lintedUnit = LINT_ENGINE.lint(unit);
+            final var built = DocBuilder.buildWithFallbacks(lintedUnit, config);
             return new FormatResult(new Printer(LINE_WIDTH, strategy).print(built.doc()), built.diagnostics());
         } catch (final RuntimeException | AssertionError t) {
             final var msg = t.getMessage();
