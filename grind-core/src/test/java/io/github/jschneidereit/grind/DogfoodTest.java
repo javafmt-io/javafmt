@@ -31,16 +31,7 @@ class DogfoodTest {
                 .forEach(p -> {
                     final var source = readString(p);
                     final var before = CommentScanner.scan(source);
-                    final String formatted;
-                    try {
-                        formatted = Grind.format(source);
-                    } catch (final RuntimeException e) {
-                        report.append(grindCoreMain.relativize(p))
-                            .append(": threw ").append(e.getClass().getSimpleName())
-                            .append(" (pre-existing, non-comment issue): ").append(e.getMessage())
-                            .append('\n');
-                        return;
-                    }
+                    final var formatted = Grind.format(source);
                     final var afterTexts = CommentScanner.scan(formatted).stream()
                         .map(CommentToken::text)
                         .toList();
@@ -78,12 +69,7 @@ class DogfoodTest {
                 .sorted()
                 .forEach(p -> {
                     final var source = readString(p);
-                    final String formatted;
-                    try {
-                        formatted = Grind.format(source);
-                    } catch (final RuntimeException e) {
-                        return;
-                    }
+                    final var formatted = Grind.format(source);
                     try {
                         JavaParser.parseUnit(formatted);
                     } catch (final RuntimeException e) {
@@ -114,19 +100,8 @@ class DogfoodTest {
                 .sorted()
                 .forEach(p -> {
                     final var source = readString(p);
-                    final String once;
-                    final String twice;
-                    try {
-                        once = Grind.format(source);
-                        twice = Grind.format(once);
-                    } catch (final RuntimeException e) {
-                        failures[0]++;
-                        report.append(grindCoreMain.relativize(p))
-                            .append(": threw ").append(e.getClass().getSimpleName())
-                            .append(": ").append(e.getMessage())
-                            .append('\n');
-                        return;
-                    }
+                    final var once = Grind.format(source);
+                    final var twice = Grind.format(once);
                     if (!once.equals(twice)) {
                         failures[0]++;
                         report.append(grindCoreMain.relativize(p))
