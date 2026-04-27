@@ -4,6 +4,34 @@ import net.ltgt.gradle.errorprone.errorprone
 plugins {
     id("grind.java-conventions")
     alias(libs.plugins.jmh)
+    `jvm-test-suite`
+}
+
+testing {
+    suites {
+        val test by getting(JvmTestSuite::class)
+
+        register<JvmTestSuite>("oracleTest") {
+            useJUnitJupiter(libs.versions.junit)
+            dependencies {
+                implementation(project())
+                implementation(libs.assertj.core)
+                implementation(libs.checkstyle)
+                compileOnly(libs.jspecify)
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        shouldRunAfter(test)
+                    }
+                }
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(testing.suites.named("oracleTest"))
 }
 
 tasks.withType<JavaCompile>().configureEach {

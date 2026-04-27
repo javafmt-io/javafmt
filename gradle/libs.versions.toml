@@ -11,6 +11,7 @@ errorprone-plugin = "5.1.0"
 errorprone = "2.49.0"
 nullaway = "0.13.4"
 jmh = "0.7.3"
+checkstyle = "13.4.0"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -25,6 +26,7 @@ errorprone-core = { module = "com.google.errorprone:error_prone_core", version.r
 nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 maven-plugin-api = { module = "org.apache.maven:maven-plugin-api", version.ref = "maven" }
 maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugin-annotations", version.ref = "maven-plugin-tools" }
+checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
 
 [plugins]
 maven-plugin-development = { id = "org.gradlex.maven-plugin-development", version.ref = "maven-plugin-development" }
