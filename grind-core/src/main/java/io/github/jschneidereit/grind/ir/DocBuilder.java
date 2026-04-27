@@ -45,6 +45,24 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             }
             return unit.sourceOf(param.getType()).endsWith("...");
         }
+
+        @Override
+        public boolean isCompactConstructor(final MethodTree ctor) {
+            // javac synthesizes parameter trees for a record's compact canonical constructor
+            // by reusing the header components, whose source positions sit before the ctor
+            // body. A regular constructor's parameters are within its own range. So a param
+            // positioned before the ctor's start is decisive evidence of compact form.
+            if (!ctor.getName().contentEquals("<init>")) {
+                return false;
+            }
+            final var ctorStart = unit.sourcePositions().getStartPosition(unit.tree(), ctor);
+            if (ctorStart < 0) {
+                return false;
+            }
+            return ctor.getParameters().stream()
+                .mapToLong(p -> unit.sourcePositions().getStartPosition(unit.tree(), p))
+                .anyMatch(pos -> pos >= 0 && pos < ctorStart);
+        }
     };
 
     public static Doc build(final ParsedUnit unit) {
@@ -99,6 +117,8 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
     @Override
     public @Nullable Doc visitCompilationUnit(final CompilationUnitTree node, final Void p) {
         final var hasPackage = node.getPackageName() != null;
+        final var packageAnnotations = node.getPackageAnnotations().stream()
+            .<Doc>flatMap(a -> Stream.of(new Doc.Text(a.toString()), new Doc.HardLine()));
         final var pkgStream = hasPackage
             ? Stream.<Doc>of(new Doc.Text("package " + node.getPackageName() + ";"), new Doc.HardLine())
             : Stream.<Doc>empty();
@@ -106,7 +126,9 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             CommentDocs.fileHeaderStream(unit.fileHeader()),
             Stream.concat(
                 Stream.concat(
-                    Stream.concat(pkgStream, ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit)),
+                    Stream.concat(
+                        Stream.concat(packageAnnotations, pkgStream),
+                        ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit)),
                     node.getTypeDecls().stream()
                         .<Doc>flatMap(decl -> Optional.<Doc>ofNullable(scan(decl, null)).stream())),
                 CommentDocs.fileFooterStream(unit.fileFooter()))));

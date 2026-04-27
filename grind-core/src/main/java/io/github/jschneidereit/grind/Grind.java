@@ -2,10 +2,12 @@ package io.github.jschneidereit.grind;
 
 import io.github.jschneidereit.grind.ir.DocBuilder;
 import io.github.jschneidereit.grind.lint.ArrayTrailingComma;
+import io.github.jschneidereit.grind.lint.ExplodeStarImports;
 import io.github.jschneidereit.grind.lint.FinalLocalVariable;
 import io.github.jschneidereit.grind.lint.FinalParameters;
 import io.github.jschneidereit.grind.lint.LintEngine;
 import io.github.jschneidereit.grind.lint.LintRule;
+import io.github.jschneidereit.grind.lint.RemoveUnusedImports;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.parser.ParseException;
 import io.github.jschneidereit.grind.parser.ParseOutcome;
@@ -22,7 +24,9 @@ public final class Grind {
     private static final List<LintRule> LINT_RULES = List.of(
         new FinalLocalVariable(),
         new FinalParameters(),
-        new ArrayTrailingComma());
+        new ArrayTrailingComma(),
+        new ExplodeStarImports(),
+        new RemoveUnusedImports());
 
     private static final LintEngine LINT_ENGINE = new LintEngine(LINT_RULES);
 

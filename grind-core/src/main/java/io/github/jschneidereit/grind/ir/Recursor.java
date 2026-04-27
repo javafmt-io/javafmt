@@ -1,5 +1,6 @@
 package io.github.jschneidereit.grind.ir;
 
+import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 
@@ -10,4 +11,6 @@ interface Recursor {
     void emitWarning(String message, Tree at);
 
     boolean isVarargs(VariableTree param);
+
+    boolean isCompactConstructor(MethodTree ctor);
 }

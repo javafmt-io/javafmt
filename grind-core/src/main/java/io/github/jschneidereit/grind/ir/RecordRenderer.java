@@ -30,11 +30,11 @@ final class RecordRenderer {
 
         final var bodyMemberStream = node.getMembers().stream()
             .filter(m -> !(m instanceof VariableTree v
-                && !v.getModifiers().getFlags().contains(Modifier.STATIC))
-                && !(m instanceof MethodTree mt && mt.getName().contentEquals("<init>")));
+                && !v.getModifiers().getFlags().contains(Modifier.STATIC)));
 
+        final var className = node.getSimpleName().toString();
         final var bodyMembers = MemberReorderer.reorder(bodyMemberStream, config, false, recursor)
-            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, recursor, attacher)).stream())
+            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, className, recursor, attacher)).stream())
             .toList();
 
         final Doc componentListDoc;
@@ -46,7 +46,7 @@ final class RecordRenderer {
                 new Doc.Indent(new Doc.Concat(Stream.concat(
                     Stream.<Doc>of(new Doc.SoftLine()),
                     Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), components.stream()
-                        .map(comp -> attacher.attach(comp, new Doc.Text(comp.getType() + " " + comp.getName()))))
+                        .map(comp -> attacher.attach(comp, new Doc.Text(componentText(comp)))))
                 ))),
                 new Doc.SoftLine(),
                 new Doc.Text(")")
@@ -78,8 +78,20 @@ final class RecordRenderer {
         )));
     }
 
+    private static String componentText(final VariableTree comp) {
+        final var sb = new StringBuilder();
+        ModifierRenderer.renderAnnotations(comp.getModifiers(), sb);
+        sb.append(comp.getType()).append(" ").append(comp.getName());
+        return sb.toString();
+    }
+
     private static @org.jspecify.annotations.Nullable Doc renderBodyMember(
-            final Tree member, final Recursor recursor, final LeadingCommentAttacher attacher) {
+            final Tree member, final String className, final Recursor recursor, final LeadingCommentAttacher attacher) {
+        if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
+            return attacher.attach(mt, recursor.isCompactConstructor(mt)
+                ? CompactConstructorRenderer.render(mt, className, recursor, attacher)
+                : ConstructorRenderer.render(mt, className, recursor, attacher));
+        }
         if (member instanceof BlockTree bt) {
             return attacher.attach(bt, InitBlockRenderer.render(bt, recursor, attacher));
         }
