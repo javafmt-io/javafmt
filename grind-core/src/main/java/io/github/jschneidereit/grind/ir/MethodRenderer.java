@@ -1,5 +1,6 @@
 package io.github.jschneidereit.grind.ir;
 
+import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.TypeParameterTree;
@@ -111,6 +112,13 @@ final class MethodRenderer {
         final var prefix = new StringBuilder();
         ModifierRenderer.renderAnnotations(p.getModifiers(), prefix);
         ModifierRenderer.renderModifiers(p.getModifiers(), prefix);
+        if (recursor.isVarargs(p) && p.getType() instanceof ArrayTypeTree arr) {
+            return new Doc.Concat(List.of(
+                new Doc.Text(prefix.toString()),
+                recursor.scan(arr.getType()),
+                new Doc.Text("... " + p.getName())
+            ));
+        }
         final var typeDoc = p.getType() == null ? new Doc.Text("var") : recursor.scan(p.getType());
         return new Doc.Concat(List.of(
             new Doc.Text(prefix.toString()),

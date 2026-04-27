@@ -33,6 +33,18 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
         public void emitWarning(final String message, final Tree at) {
             diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(at)));
         }
+
+        @Override
+        public boolean isVarargs(final VariableTree param) {
+            // javac models `T... x` as ArrayTypeTree(T) with the `...` flag on the parameter
+            // symbol, but javac's source-position range for the type tree spans the original
+            // user-written form — `T...` for varargs vs. `T[]` for a regular array — so the
+            // suffix is decisive without needing the symbol model.
+            if (!(param.getType() instanceof ArrayTypeTree)) {
+                return false;
+            }
+            return unit.sourceOf(param.getType()).endsWith("...");
+        }
     };
 
     public static Doc build(final ParsedUnit unit) {
