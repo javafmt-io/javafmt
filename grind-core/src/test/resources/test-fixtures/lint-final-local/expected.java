@@ -1,5 +1,5 @@
 class Fixture {
-    int sum(int n) {
+    int sum(final int n) {
         var total = 0;
         for (var i = 0; i < n; i++) {
             total += i;

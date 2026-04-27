@@ -1,5 +1,5 @@
 class Fixture {
-    void test(Object obj) {
+    void test(final Object obj) {
         if (obj instanceof Map.Entry<String, List<Foo>> e) {
             process(e);
         }

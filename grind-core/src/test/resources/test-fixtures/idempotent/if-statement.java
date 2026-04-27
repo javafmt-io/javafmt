@@ -1,5 +1,5 @@
 class Fixture {
-    void test(int x) {
+    void test(final int x) {
         if (x > 0) {
             doSomething();
         } else {

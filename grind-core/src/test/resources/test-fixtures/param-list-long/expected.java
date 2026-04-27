@@ -1,9 +1,9 @@
 class Fixture {
     void someMethod(
-        String argumentNumberOne,
-        String argumentNumberTwo,
-        String argumentNumberThree,
-        String argumentNumberFour,
-        String argumentNumberFive
+        final String argumentNumberOne,
+        final String argumentNumberTwo,
+        final String argumentNumberThree,
+        final String argumentNumberFour,
+        final String argumentNumberFive
     ) {}
 }

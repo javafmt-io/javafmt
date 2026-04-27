@@ -1,7 +1,7 @@
 class Fixture {
     void someMethod(
-        int a,
-        int b
+        final int a,
+        final int b
     )
         throws ExceptionAlpha, ExceptionBeta, ExceptionGamma, ExceptionDelta, ExceptionEpsilon, ExceptionZeta, ExceptionEta, ExceptionTheta {}
 }

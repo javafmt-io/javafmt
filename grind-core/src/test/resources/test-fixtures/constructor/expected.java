@@ -5,16 +5,16 @@ class Fixture {
         this(0);
     }
 
-    public Fixture(int x) {
+    public Fixture(final int x) {
         this.x = x;
     }
 
-    <T> Fixture(T t, int x) {
+    <T> Fixture(final T t, final int x) {
         this(x);
         System.out.println(t);
     }
 
-    @Inject public Fixture(int x, int y) {
+    @Inject public Fixture(final int x, final int y) {
         this.x = x + y;
     }
 }

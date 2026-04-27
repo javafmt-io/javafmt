@@ -1,5 +1,5 @@
 class Fixture {
-    int test(int x) {
+    int test(final int x) {
         switch (x) {
             case 1:
                 doStuff();

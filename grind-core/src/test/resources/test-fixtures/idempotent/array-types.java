@@ -1,11 +1,11 @@
 class Fixture {
-    int[] flat = {1, 2, 3};
+    int[] flat = {1, 2, 3,};
 
     int[][] grid;
 
     String[] words;
 
-    void take(int[] xs, String[][] grid) {
+    void take(final int[] xs, final String[][] grid) {
         final var copy = new int[xs.length];
     }
 

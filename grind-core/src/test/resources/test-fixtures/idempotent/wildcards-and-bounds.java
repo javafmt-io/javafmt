@@ -2,13 +2,13 @@ import java.util.List;
 import java.util.Map;
 
 class Fixture {
-    void unbounded(List<?> items) {}
+    void unbounded(final List<?> items) {}
 
-    void upper(List<? extends Number> items) {}
+    void upper(final List<? extends Number> items) {}
 
-    void lower(List<? super Integer> items) {}
+    void lower(final List<? super Integer> items) {}
 
-    <T extends Comparable<T> & Cloneable> T pick(T a, T b) {
+    <T extends Comparable<T> & Cloneable> T pick(final T a, final T b) {
         return a;
     }
 

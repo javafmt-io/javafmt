@@ -15,7 +15,7 @@ class Fixture {
         return String::length;
     }
 
-    void boundRef(List<String> items) {
+    void boundRef(final List<String> items) {
         items.forEach(System.out::println);
     }
 

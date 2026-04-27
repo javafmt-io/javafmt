@@ -1,5 +1,6 @@
 package io.github.jschneidereit.grind.lint;
 
+import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
 
@@ -14,6 +15,11 @@ import java.util.Objects;
  *
  * <p>Edits within a single iteration must not overlap; an overlap is treated as a rule bug
  * and surfaces as an {@link IllegalStateException}.
+ *
+ * <p>Diagnostics from the final iteration (the one whose edits are empty) are returned as
+ * the stable, persistent set. Diagnostics from intermediate iterations are discarded
+ * because the corresponding source state no longer exists after the next round of edits is
+ * applied.
  */
 public final class LintEngine {
 
@@ -25,21 +31,22 @@ public final class LintEngine {
         this.rules = List.copyOf(Objects.requireNonNull(rules, "rules"));
     }
 
-    public ParsedUnit lint(final ParsedUnit initial) {
+    public Outcome lint(final ParsedUnit initial) {
         Objects.requireNonNull(initial, "initial");
         var current = initial;
+        var lastDiagnostics = List.<Diagnostic>of();
         for (var i = 0; i < MAX_ITERATIONS; i++) {
             final var unit = current;
-            final var edits = rules.stream()
-                .flatMap(r -> r.apply(unit).stream())
-                .toList();
+            final var results = rules.stream().map(r -> r.apply(unit)).toList();
+            final var edits = results.stream().flatMap(r -> r.edits().stream()).toList();
+            lastDiagnostics = results.stream().flatMap(r -> r.diagnostics().stream()).toList();
             if (edits.isEmpty()) {
-                return current;
+                return new Outcome(current, lastDiagnostics);
             }
             final var rewritten = applyEdits(current.source(), edits);
             current = JavaParser.parseUnit(rewritten);
         }
-        return current;
+        return new Outcome(current, lastDiagnostics);
     }
 
     static String applyEdits(final String source, final List<LintEdit> edits) {
@@ -62,5 +69,13 @@ public final class LintEngine {
             lastStart = edit.start();
         }
         return buf.toString();
+    }
+
+    public record Outcome(ParsedUnit unit, List<Diagnostic> diagnostics) {
+
+        public Outcome {
+            Objects.requireNonNull(unit, "unit");
+            diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
+        }
     }
 }

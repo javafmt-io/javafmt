@@ -16,7 +16,6 @@ import com.sun.source.util.TreeScanner;
 import io.github.jschneidereit.grind.parser.ParsedUnit;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.lang.model.element.Modifier;
 
@@ -41,7 +40,7 @@ public final class FinalLocalVariable implements LintRule {
     }
 
     @Override
-    public List<LintEdit> apply(final ParsedUnit unit) {
+    public LintResult apply(final ParsedUnit unit) {
         final var edits = new ArrayList<LintEdit>();
         final var collector = new TreePathScanner<Void, Void>() {
 
@@ -60,7 +59,7 @@ public final class FinalLocalVariable implements LintRule {
             }
         };
         collector.scan(new TreePath(unit.tree()), null);
-        return List.copyOf(edits);
+        return LintResult.ofEdits(edits);
     }
 
     private static boolean isLocalDeclaration(final TreePath path) {

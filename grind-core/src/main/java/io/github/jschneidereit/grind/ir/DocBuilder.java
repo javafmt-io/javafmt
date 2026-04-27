@@ -147,22 +147,27 @@ public final class DocBuilder extends TreeScanner<@Nullable Doc, Void> {
             : Stream.<Doc>of(new Doc.Text("new "), scanOrText(type));
         final var dims = dimensions.stream()
             .<Doc>flatMap(d -> Stream.<Doc>of(new Doc.Text("["), scanOrText(d), new Doc.Text("]")));
+        // For `new T[]{...}` form, javac shifts one bracket level into getType() and leaves
+        // dimensions empty, so we re-emit the missing `[]` between type and the initializer.
+        final var implicitBrackets = (type != null && dimensions.isEmpty() && initializers != null)
+            ? Stream.<Doc>of(new Doc.Text("[]"))
+            : Stream.<Doc>empty();
         if (initializers == null) {
-            return new Doc.Concat(Stream.concat(prefix, dims));
+            return new Doc.Concat(Stream.concat(Stream.concat(prefix, dims), implicitBrackets));
         }
         final var brace = type == null ? "{" : " {";
         if (initializers.isEmpty()) {
             return new Doc.Concat(Stream.concat(
-                Stream.concat(prefix, dims),
+                Stream.concat(Stream.concat(prefix, dims), implicitBrackets),
                 Stream.<Doc>of(new Doc.Text(brace + "}"))));
         }
         final var elements = Doc.intersperse(new Doc.Text(", "), initializers.stream()
             .<Doc>map(this::scanOrText));
         return new Doc.Concat(Stream.concat(
             Stream.concat(
-                Stream.concat(prefix, dims),
+                Stream.concat(Stream.concat(prefix, dims), implicitBrackets),
                 Stream.concat(Stream.<Doc>of(new Doc.Text(brace)), elements)),
-            Stream.<Doc>of(new Doc.Text("}"))));
+            Stream.<Doc>of(new Doc.Text(",}"))));
     }
 
     @Override

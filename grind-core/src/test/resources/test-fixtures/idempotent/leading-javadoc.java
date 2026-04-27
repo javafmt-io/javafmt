@@ -10,5 +10,5 @@ class Fixture {
      *
      * @param x the number
      */
-    void run(int x) {}
+    void run(final int x) {}
 }

@@ -1,3 +1,3 @@
 class Fixture {
-    void process(Map.Entry<String, List<Foo>> entry, Map<? extends Bar, ? super Baz> map) {}
+    void process(final Map.Entry<String, List<Foo>> entry, final Map<? extends Bar, ? super Baz> map) {}
 }

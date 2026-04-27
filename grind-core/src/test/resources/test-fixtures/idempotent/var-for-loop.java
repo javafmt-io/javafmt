@@ -5,5 +5,5 @@ class Fixture {
         }
     }
 
-    void process(int i) {}
+    void process(final int i) {}
 }

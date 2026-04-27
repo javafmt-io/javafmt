@@ -1,7 +1,7 @@
 class Fixture {
     void run(
-        int a,
+        final int a,
         /* annotation */
-        int b
+        final int b
     ) {}
 }

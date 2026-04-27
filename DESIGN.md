@@ -139,16 +139,35 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 - **Always required** — even for single-statement `if`/`else`/`for`/`while`/`do-while`.
 - **Safe rewrites.** grind applies a fixed set of semantics-preserving mechanical rewrites alongside formatting. Every rewrite emits a `Warning` diagnostic. Rewrites are not configurable. See the [Safe rewrites](#safe-rewrites) section below for the catalog.
 
-### Safe rewrites
+### Safe rewrites (lint pass)
 
-Rewrites that (a) preserve semantics, (b) require zero judgment, (c) are universally uncontroversial. Applied unconditionally. Each emits a `Warning` per occurrence.
+Lint rules run *before* the formatter, in a fixed-point loop, and produce textual edits. Following [ruff](https://docs.astral.sh/ruff/)'s philosophy:
+
+- **The formatter never breaks code.** A rule may only emit an edit when the rewrite is guaranteed to preserve compilation and behavior. If applying the edit would produce non-compiling source (e.g. adding `final` to a parameter the body reassigns), the rule emits a `Diagnostic.Warning` instead and leaves the source untouched. The developer fixes the underlying issue (introduce a local copy, an `AtomicInteger` holder, etc.) and re-runs grind, after which the safe edit applies. Grind has no `--unsafe-fixes` mode in v1; cases that aren't safe are *only* surfaced as warnings.
+- **Edits are unconditional within their safety envelope.** Grind has no opt-in fixes — if the rule would fire, it fires.
+- **Convergence is required.** Re-running a rule on its own output must produce zero edits. The lint engine iterates rules until no edits remain (with a hard cap), so a rule that flip-flops would be a bug.
+
+Current rules:
 
 1. **Add braces** to braceless `if`/`else`/`for`/`while`/`do-while` bodies.
-2. **Add `final`** to parameters and locals that are effectively final (never reassigned).
-3. **Replace declared type with `var`** on locals whose initializer's expression type exactly matches the declared type.
-4. **Move `default`** to the last position in arrow-form switches.
+2. **`FinalLocalVariable`** — add `final` to local variable declarations whose value is never reassigned. Reassigned locals are out of scope (no warning).
+3. **`FinalParameters`** — add `final` to method/constructor parameters. When a parameter is reassigned in the body, emit a warning instead of breaking compilation.
+4. **`ArrayTrailingComma`** — add a trailing comma to every non-empty array initializer. Empty initializers (`{}`) are skipped. The formatter cooperates by emitting trailing commas in its array rendering, so the convention is preserved across re-format cycles.
+5. **Replace declared type with `var`** on locals whose initializer's expression type exactly matches the declared type.
+6. **Move `default`** to the last position in arrow-form switches.
 
 Non-safe transformations (colon-form switch rewrites, refactorings, opinionated style changes) are out of scope.
+
+#### Oracle TDD for lint rules
+
+Each lint rule is validated against an independent oracle — typically the corresponding [Checkstyle](https://checkstyle.org/) check — using a differential test. The pattern:
+
+1. **Write the oracle test first (red).** Add a corpus of small Java files exercising the rule under `grind-core/src/oracleTest/resources/corpus/<rule-name>/` and a `<Rule>OracleTest` that, for each corpus file, formats it through grind and asserts that Checkstyle's equivalent check reports zero violations on the output. A second assertion (`assertCorpusExercisesRule`) requires that at least one corpus file has Checkstyle violations *before* grind processes it — without this, soundness passes vacuously on a corpus of already-clean files.
+2. **Write a unit fixture (red).** Add an `input.java` / `expected.java` pair under `test-fixtures/lint-<rule>/` to pin the exact behavior of one canonical case.
+3. **Implement the rule (green).** Implement `LintRule.apply` to make both tests pass.
+4. **Refactor (clean).**
+
+Where Checkstyle and grind disagree by design — for instance, Checkstyle's `FinalParametersCheck` flags reassigned parameters too (and expects the developer to refactor), but grind refuses to break compilation and emits a warning instead — the divergence is documented in the rule's Javadoc and the corpus / oracle config reflects it. The oracle keeps grind honest about *what* it claims to fix; the divergence comments make explicit *where* grind chooses a different policy.
 
 ### Single-line constructs
 - `if (condition) { doSomething(); }` — allowed on one line if it fits within 150 chars

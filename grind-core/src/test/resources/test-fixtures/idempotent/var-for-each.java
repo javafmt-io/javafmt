@@ -1,9 +1,9 @@
 class Fixture {
-    void test(java.util.List<String> items) {
+    void test(final java.util.List<String> items) {
         for (var item : items) {
             process(item);
         }
     }
 
-    void process(String s) {}
+    void process(final String s) {}
 }
