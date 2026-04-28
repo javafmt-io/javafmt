@@ -40,8 +40,10 @@ class FormatResultTest {
         assertThat(result.diagnostics()).allMatch(Diagnostic::isError);
         final var d = result.diagnostics().get(0);
         assertThat(d).isInstanceOf(Diagnostic.ParseError.class);
-        assertThat(d.position().line()).isPositive();
-        assertThat(d.position().column()).isPositive();
+        assertThat(d.position()).isInstanceOf(Position.At.class);
+        final var at = (Position.At) d.position();
+        assertThat(at.line()).isEqualTo(1);
+        assertThat(at.column()).isEqualTo(6);
     }
 
     @Test
@@ -63,7 +65,7 @@ class FormatResultTest {
     void warningsDoNotFlipHasErrors() {
         final var result = new FormatResult(
             "ok",
-            java.util.List.of(new Diagnostic.Warning("just fyi", new Position(1, 1, 0))));
+            java.util.List.of(new Diagnostic.Warning("just fyi", new Position.At(1, 1, 0))));
         assertThat(result.hasErrors()).isFalse();
     }
 

@@ -1,6 +1,12 @@
 package io.github.jschneidereit.grind;
 
-public record Position(int line, int column, int offset) {
+public sealed interface Position permits Position.At, Position.Unknown {
 
-    public static final Position UNKNOWN = new Position(0, 0, 0);
+    record At(int line, int column, int offset) implements Position {}
+
+    record Unknown() implements Position {
+        static final Unknown INSTANCE = new Unknown();
+    }
+
+    Position UNKNOWN = Unknown.INSTANCE;
 }

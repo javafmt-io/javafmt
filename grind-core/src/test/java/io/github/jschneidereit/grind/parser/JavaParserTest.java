@@ -3,6 +3,8 @@ package io.github.jschneidereit.grind.parser;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.VariableTree;
 
+import io.github.jschneidereit.grind.Position;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -83,7 +85,8 @@ class JavaParserTest {
         final var cls = (ClassTree) unit.tree().getTypeDecls().getFirst();
         final var field = (VariableTree) cls.getMembers().getFirst();
 
-        assertThat(unit.positionOf(field).line()).isEqualTo(2);
+        assertThat(unit.positionOf(field)).isInstanceOf(Position.At.class);
+        assertThat(((Position.At) unit.positionOf(field)).line()).isEqualTo(2);
     }
 
     @Test

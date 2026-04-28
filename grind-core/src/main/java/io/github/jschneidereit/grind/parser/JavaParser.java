@@ -192,13 +192,12 @@ public final class JavaParser {
         final var offset = d.getStartPosition();
         final var line = d.getLineNumber();
         final var column = d.getColumnNumber();
-        if (offset == javax.tools.Diagnostic.NOPOS) {
+        if (offset == javax.tools.Diagnostic.NOPOS
+                || line == javax.tools.Diagnostic.NOPOS
+                || column == javax.tools.Diagnostic.NOPOS) {
             return Position.UNKNOWN;
         }
-        return new Position(
-            line == javax.tools.Diagnostic.NOPOS ? 0 : (int) line,
-            column == javax.tools.Diagnostic.NOPOS ? 0 : (int) column,
-            (int) offset);
+        return new Position.At((int) line, (int) column, (int) offset);
     }
 
     static Position positionOf(final SourcePositions positions, final CompilationUnitTree unit, final com.sun.source.tree.Tree node) {
@@ -209,7 +208,7 @@ public final class JavaParser {
         final var lineMap = unit.getLineMap();
         final var line = (int) lineMap.getLineNumber(offset);
         final var column = (int) lineMap.getColumnNumber(offset);
-        return new Position(line, column, (int) offset);
+        return new Position.At(line, column, (int) offset);
     }
 
     private static final class InMemoryJavaFileObject extends SimpleJavaFileObject {

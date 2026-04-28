@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.cli;
 
 import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.FormatResult;
+import io.github.jschneidereit.grind.Position;
 import io.github.jschneidereit.grind.Grind;
 import io.github.jschneidereit.grind.parser.JavaParser;
 import io.github.jschneidereit.grind.parser.ParseOutcome;
@@ -136,9 +137,13 @@ public final class Cli {
     }
 
     private static void reportDiagnostics(final String name, final FormatResult result, final PrintStream err) {
-        result.diagnostics().forEach(d -> err.println(
-            name + ":" + d.position().line() + ":" + d.position().column()
-                + ": " + (d.isError() ? "error" : "warning") + ": " + d.message()));
+        result.diagnostics().forEach(d -> {
+            final var prefix = switch (d.position()) {
+                case Position.At at -> name + ":" + at.line() + ":" + at.column();
+                case Position.Unknown u -> name;
+            };
+            err.println(prefix + ": " + (d.isError() ? "error" : "warning") + ": " + d.message());
+        });
     }
 
     private record FileOutcome(int exitCode, @Nullable String diagnostic) {}

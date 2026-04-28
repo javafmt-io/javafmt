@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.spotless;
 
 import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.Grind;
+import io.github.jschneidereit.grind.Position;
 
 public final class GrindFormatterStep {
 
@@ -14,9 +15,11 @@ public final class GrindFormatterStep {
                 .filter(Diagnostic::isError)
                 .findFirst()
                 .orElseThrow();
-            final var pos = error.position();
-            throw new IllegalArgumentException(
-                "grind: " + pos.line() + ":" + pos.column() + ": " + error.message());
+            final var posStr = switch (error.position()) {
+                case Position.At at -> at.line() + ":" + at.column();
+                case Position.Unknown u -> "?:?";
+            };
+            throw new IllegalArgumentException("grind: " + posStr + ": " + error.message());
         }
         return result.output();
     }

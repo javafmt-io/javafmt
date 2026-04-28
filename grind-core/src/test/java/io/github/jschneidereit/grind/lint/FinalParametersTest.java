@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.Grind;
+import io.github.jschneidereit.grind.Position;
 import io.github.jschneidereit.grind.parser.JavaParser;
 
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,8 @@ class FinalParametersTest {
         final var warning = result.diagnostics().get(0);
         assertThat(warning).isInstanceOf(Diagnostic.Warning.class);
         assertThat(warning.message()).contains("'x'").contains("AtomicInteger");
-        assertThat(warning.position().line()).isEqualTo(2);
+        assertThat(warning.position()).isInstanceOf(Position.At.class);
+        assertThat(((Position.At) warning.position()).line()).isEqualTo(2);
     }
 
     @Test

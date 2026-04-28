@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.Grind;
+import io.github.jschneidereit.grind.Position;
 import io.github.jschneidereit.grind.GrindConfig;
 import io.github.jschneidereit.grind.parser.JavaParser;
 
@@ -37,8 +38,10 @@ class DocBuilderDiagnosticsTest {
             .toList();
 
         assertThat(braceWarnings).hasSize(1);
-        assertThat(braceWarnings.get(0).position().line()).isEqualTo(3);
-        assertThat(braceWarnings.get(0).position().column()).isPositive();
+        assertThat(braceWarnings.get(0).position()).isInstanceOf(Position.At.class);
+        final var pos = (Position.At) braceWarnings.get(0).position();
+        assertThat(pos.line()).isEqualTo(3);
+        assertThat(pos.column()).isPositive();
     }
 
     @Test
@@ -88,7 +91,10 @@ class DocBuilderDiagnosticsTest {
             .toList();
 
         assertThat(braceWarnings).hasSize(4);
-        assertThat(braceWarnings).allSatisfy(w -> assertThat(w.position().line()).isPositive());
+        assertThat(braceWarnings).allSatisfy(w -> {
+            assertThat(w.position()).isInstanceOf(Position.At.class);
+            assertThat(((Position.At) w.position()).line()).isPositive();
+        });
     }
 
     @Test
