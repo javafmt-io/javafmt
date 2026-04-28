@@ -3,6 +3,8 @@ package io.github.jschneidereit.grind;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Nested;
@@ -43,6 +45,61 @@ class GrindTest {
             Arguments.of(" ", "single space"),
             Arguments.of("\t", "single tab"),
             Arguments.of("\n\n\n", "blank lines"));
+    }
+
+    @Nested
+    class EdgeCasesTest {
+
+        @Test
+        void identifierLongerThan150Chars_isNotBroken() {
+            final var longName = "a".repeat(151);
+            final var source = "class C { int " + longName + " = 0; }";
+            final var formatted = Grind.format(source);
+            assertThat(Arrays.stream(formatted.split("\n"))
+                .max(Comparator.comparingInt(String::length)))
+                .hasValueSatisfying(longest -> assertThat(longest.length()).isGreaterThan(150));
+            assertThat(formatted).contains(longName);
+        }
+
+        @Test
+        void exactly150CharLine_isPreservedWithoutWrapping() {
+            // "    int " (8) + name (137) + " = 0;" (5) = 150 chars exactly
+            final var name = "a".repeat(137);
+            final var source = "class C {\n    int " + name + " = 0;\n}";
+            final var formatted = Grind.format(source);
+            assertThat(Arrays.stream(formatted.split("\n"))
+                .filter(l -> l.contains(name))
+                .findFirst())
+                .hasValueSatisfying(line -> assertThat(line.length()).isEqualTo(150));
+        }
+
+        @Test
+        void crlfInput_producesLfOnlyOutput() {
+            final var source = "class C {\r\n    int x;\r\n}";
+            final var formatted = Grind.format(source);
+            assertThat(formatted).doesNotContain("\r");
+            assertThat(formatted).isEqualTo("class C {\n    int x;\n}");
+        }
+
+        @Test
+        void tabIndentedInput_normalizesToFourSpaces() {
+            final var formatted = Grind.format("class C {\n\tint x;\n}");
+            assertThat(formatted).isEqualTo("class C {\n    int x;\n}");
+        }
+
+        @Test
+        void fileWithOnlyPackage_isFormattedIdempotently() {
+            final var source = "package com.example;";
+            final var first = Grind.format(source);
+            assertThat(Grind.format(first)).isEqualTo(first);
+        }
+
+        @Test
+        void fileWithOnlyImports_isHandledGracefully() {
+            final var source = "import java.util.List;";
+            final var first = Grind.format(source);
+            assertThat(Grind.format(first)).isEqualTo(first);
+        }
     }
 
     @Nested

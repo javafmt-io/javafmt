@@ -2,13 +2,57 @@
 package io.github.jschneidereit.grind;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
+import io.github.jschneidereit.grind.parser.JavaParser;
+
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class MemberOrderingTest {
 
     private static final GrindConfig WITH_ORDERING = new GrindConfig(true);
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("reorderingCases")
+    void reorderingProducesExactExpected_andReparses(
+            final String label, final String input, final String expected) {
+        final var formatted = Grind.format(input, WITH_ORDERING);
+        assertThat(formatted).as("reordered output for '%s'", label).isEqualTo(expected);
+        assertThatCode(() -> JavaParser.parseUnit(formatted))
+            .as("reordered output for '%s' must re-parse without errors", label)
+            .doesNotThrowAnyException();
+    }
+
+    static Stream<Arguments> reorderingCases() {
+        return Stream.of(
+            Arguments.of(
+                "instance-field-before-static-field",
+                "class C { int x; static int MAX = 10; }",
+                "class C {\n    static int MAX = 10;\n\n    int x;\n}"),
+            Arguments.of(
+                "method-before-instance-field",
+                "class C { void go() {} int x; }",
+                "class C {\n    int x;\n\n    void go() {}\n}"),
+            Arguments.of(
+                "constructor-after-methods",
+                "class C { public void go() {} C() {} int x; }",
+                "class C {\n    int x;\n\n    C() {}\n\n    public void go() {}\n}"),
+            Arguments.of(
+                "methods-in-reverse-visibility-order",
+                "class C { private void priv() {} public void pub() {} protected void prot() {} void pkg() {} }",
+                "class C {\n    public void pub() {}\n\n    protected void prot() {}\n\n    void pkg() {}\n\n    private void priv() {}\n}"),
+            Arguments.of(
+                "static-method-before-instance-method",
+                "class C { private static void help() {} void go() {} }",
+                "class C {\n    void go() {}\n\n    private static void help() {}\n}")
+        );
+    }
 
     @Nested
     class ClassMemberOrdering {

@@ -268,6 +268,11 @@ class CommentAuditTest {
         return -1;
     }
 
+    @Test
+    void commentFixtureInputs_isNotEmpty() throws URISyntaxException, IOException {
+        assertThat(commentFixtureInputs().toList()).isNotEmpty();
+    }
+
     static Stream<Arguments> commentFixtureInputs() throws URISyntaxException, IOException {
         final var fixturesRoot = CommentAuditTest.class.getClassLoader().getResource("test-fixtures");
         if (fixturesRoot == null) {

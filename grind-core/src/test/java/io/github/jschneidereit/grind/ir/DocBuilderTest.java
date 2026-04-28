@@ -191,6 +191,82 @@ class DocBuilderTest {
     }
 
     @Nested
+    class StatementSmoke {
+
+        @Test
+        void tryCatch_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar() { try { doIt(); } catch (Exception e) { handle(e); } } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        try {\n            doIt();\n        } catch (Exception e) {\n            handle(e);\n        }\n    }\n}");
+        }
+
+        @Test
+        void ifElse_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar(boolean b) { if (b) { doIt(); } else { doOther(); } } }"))
+                .isEqualTo("class Foo {\n    void bar(boolean b) {\n        if (b) {\n            doIt();\n        } else {\n            doOther();\n        }\n    }\n}");
+        }
+
+        @Test
+        void forLoop_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar() { for (int i = 0; i < 10; i++) { doIt(); } } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        for (int i = 0; i < 10; i++) {\n            doIt();\n        }\n    }\n}");
+        }
+
+        @Test
+        void whileLoop_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar() { while (cond()) { doIt(); } } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        while (cond()) {\n            doIt();\n        }\n    }\n}");
+        }
+
+        @Test
+        void doWhileLoop_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar() { do { doIt(); } while (cond()); } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        do {\n            doIt();\n        } while (cond());\n    }\n}");
+        }
+
+        @Test
+        void lambda_renderedAsFieldInitializer() {
+            assertThat(format("class Foo { Runnable r = () -> doIt(); }"))
+                .isEqualTo("class Foo {\n    Runnable r = () -> doIt();\n}");
+        }
+
+        @Test
+        void throwStatement_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar() { throw new RuntimeException(); } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        throw new RuntimeException();\n    }\n}");
+        }
+
+        @Test
+        void synchronizedBlock_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar() { synchronized (this) { doIt(); } } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        synchronized (this) {\n            doIt();\n        }\n    }\n}");
+        }
+
+        @Test
+        void labeledStatement_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar() { outer: while (true) { break outer; } } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        outer:\n        while (true) {\n            break outer;\n        }\n    }\n}");
+        }
+
+        @Test
+        void assertStatement_renderedInsideMethod() {
+            assertThat(format("class Foo { void bar(int x) { assert x > 0; } }"))
+                .isEqualTo("class Foo {\n    void bar(int x) {\n        assert x > 0;\n    }\n}");
+        }
+
+        @Test
+        void continueStatement_renderedInsideLoop() {
+            assertThat(format("class Foo { void bar() { while (true) { continue; } } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        while (true) {\n            continue;\n        }\n    }\n}");
+        }
+
+        @Test
+        void breakStatement_renderedInsideLoop() {
+            assertThat(format("class Foo { void bar() { while (true) { break; } } }"))
+                .isEqualTo("class Foo {\n    void bar() {\n        while (true) {\n            break;\n        }\n    }\n}");
+        }
+    }
+
+    @Nested
     class MemberGrouping {
 
         @Test
