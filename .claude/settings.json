@@ -2,5 +2,11 @@
   "enabledPlugins": {
     "jdtls-lsp@claude-plugins-official": true,
     "kotlin-lsp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gradle test)",
+      "Bash(gradle :grind-core:test)"
+    ]
   }
 }
