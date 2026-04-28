@@ -294,6 +294,27 @@ class PrinterTest {
     }
 
     @Nested
+    class ConstructorValidationTests {
+
+        @Test
+        void lineWidth_zero_throws() {
+            assertThatThrownBy(() -> new Printer(0, PrintStrategy.greedy()))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        void lineWidth_negative_throws() {
+            assertThatThrownBy(() -> new Printer(-1, PrintStrategy.greedy()))
+                .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        void lineWidth_one_isValid() {
+            assertThat(new Printer(1, PrintStrategy.greedy()).print(new Doc.Text("x"))).isEqualTo("x");
+        }
+    }
+
+    @Nested
     class ScalingTests {
 
         private static Doc nestedGroups(final int n) {

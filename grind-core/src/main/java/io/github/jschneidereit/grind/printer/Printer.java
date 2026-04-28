@@ -8,6 +8,9 @@ public record Printer(int lineWidth, PrintStrategy strategy) {
 
     public Printer {
         Objects.requireNonNull(strategy, "strategy");
+        if (lineWidth <= 0) {
+            throw new IllegalArgumentException("lineWidth must be positive, got: " + lineWidth);
+        }
     }
 
     public Printer(final int lineWidth) {

@@ -22,10 +22,6 @@ final class BlockRenderer {
         return Optional.ofNullable(recursor.scan(stmt)).map(List::of).orElse(List.of());
     }
 
-    static Doc buildBlock(final String header, final List<Doc> stmts) {
-        return buildBlock(header, stmts, List.of());
-    }
-
     static Doc buildBlock(final String header, final List<Doc> stmts, final List<CommentToken> interior) {
         return buildBlock(new Doc.Text(header), stmts, interior);
     }
@@ -40,10 +36,6 @@ final class BlockRenderer {
             blockParts(header, all),
             Stream.<Doc>of(new Doc.HardLine(), new Doc.Text("}"))
         ));
-    }
-
-    static Doc buildBlock(final List<Doc> stmts) {
-        return buildBlock(stmts, List.of());
     }
 
     static Doc buildBlock(final List<Doc> stmts, final List<CommentToken> interior) {

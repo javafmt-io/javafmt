@@ -19,6 +19,7 @@ import io.github.jschneidereit.grind.printer.PrintStrategy;
 import io.github.jschneidereit.grind.printer.Printer;
 
 import java.util.List;
+import java.util.Objects;
 
 public final class Grind {
 
@@ -37,18 +38,24 @@ public final class Grind {
     private static final LintEngine LINT_ENGINE = new LintEngine(LINT_RULES);
 
     public static String format(final String source, final GrindConfig config) {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(config, "config");
         return formatWithResult(source, config).output();
     }
 
     public static String format(final String source) {
+        Objects.requireNonNull(source, "source");
         return format(source, GrindConfig.defaults());
     }
 
     public static FormatResult formatWithResult(final String source) {
+        Objects.requireNonNull(source, "source");
         return formatWithResult(source, GrindConfig.defaults());
     }
 
     public static FormatResult formatWithResult(final String source, final GrindConfig config) {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(config, "config");
         return formatWithResult(source, config, PrintStrategy.wadlerLindig());
     }
 
@@ -59,10 +66,15 @@ public final class Grind {
      * the parse diagnostics attached.
      */
     public static FormatResult formatWithResult(final String source, final ParseOutcome outcome) {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(outcome, "outcome");
         return formatWithResult(source, outcome, GrindConfig.defaults());
     }
 
     public static FormatResult formatWithResult(final String source, final ParseOutcome outcome, final GrindConfig config) {
+        Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(outcome, "outcome");
+        Objects.requireNonNull(config, "config");
         return switch (outcome) {
             case ParseOutcome.Ok ok -> formatParsed(source, ok.unit(), config);
             case ParseOutcome.Failed failed -> parseExceptionToResult(source, failed.error());

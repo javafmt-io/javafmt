@@ -37,7 +37,7 @@ final class MethodChainRenderer {
                     Stream.<Doc>of(callSuffix)
                 ).toList();
             }
-            return List.of(new Doc.Concat(List.of(renderNonChain(ms.getExpression(), recursor), callSuffix)));
+            return List.of(new Doc.Concat(List.of(recursor.scan(ms.getExpression()), callSuffix)));
         }
         if (expr instanceof MethodInvocationTree mit) {
             final var head = new Doc.Concat(Stream.concat(
@@ -45,7 +45,7 @@ final class MethodChainRenderer {
                 Stream.<Doc>of(recursor.scan(mit.getMethodSelect()))));
             return List.of(buildCallSuffix(head, mit.getArguments(), recursor));
         }
-        return List.of(renderNonChain(expr, recursor));
+        return List.of(recursor.scan(expr));
     }
 
     private static Stream<Doc> typeArgs(final MethodInvocationTree mit, final Recursor recursor) {
@@ -67,7 +67,7 @@ final class MethodChainRenderer {
         final var interior = new Doc.Concat(Stream.<Doc>concat(
             Stream.<Doc>of(new Doc.SoftLine()),
             Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), args.stream()
-                .<Doc>map(arg -> renderArg(arg, recursor)))
+                .<Doc>map(recursor::scan))
         ));
         return new Doc.Group(new Doc.Concat(List.of(
             head,
@@ -76,14 +76,6 @@ final class MethodChainRenderer {
             new Doc.SoftLine(),
             new Doc.Text(")")
         )));
-    }
-
-    private static Doc renderArg(final ExpressionTree arg, final Recursor recursor) {
-        return recursor.scan(arg);
-    }
-
-    private static Doc renderNonChain(final Tree tree, final Recursor recursor) {
-        return recursor.scan(tree);
     }
 
     private MethodChainRenderer() {}

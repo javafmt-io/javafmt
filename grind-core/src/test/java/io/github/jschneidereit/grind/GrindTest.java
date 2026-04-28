@@ -1,9 +1,11 @@
 package io.github.jschneidereit.grind;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Stream;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -41,5 +43,45 @@ class GrindTest {
             Arguments.of(" ", "single space"),
             Arguments.of("\t", "single tab"),
             Arguments.of("\n\n\n", "blank lines"));
+    }
+
+    @Nested
+    class NullChecksTest {
+
+        @Test
+        void format_nullSource_throws() {
+            assertThatThrownBy(() -> Grind.format(null))
+                .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        void format_nullConfig_throws() {
+            assertThatThrownBy(() -> Grind.format("class A {}", null))
+                .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        void formatWithResult_nullSource_throws() {
+            assertThatThrownBy(() -> Grind.formatWithResult(null))
+                .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        void formatWithResult_sourceAndConfig_nullSource_throws() {
+            assertThatThrownBy(() -> Grind.formatWithResult(null, GrindConfig.defaults()))
+                .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        void formatWithResult_sourceAndConfig_nullConfig_throws() {
+            assertThatThrownBy(() -> Grind.formatWithResult("class A {}", (GrindConfig) null))
+                .isInstanceOf(NullPointerException.class);
+        }
+
+        @Test
+        void formatWithResult_sourceAndOutcome_nullSource_throws() {
+            assertThatThrownBy(() -> Grind.formatWithResult(null, (io.github.jschneidereit.grind.parser.ParseOutcome) null))
+                .isInstanceOf(NullPointerException.class);
+        }
     }
 }

@@ -3,6 +3,7 @@ package io.github.jschneidereit.grind.ir;
 import com.sun.source.tree.ModifiersTree;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,6 +18,7 @@ final class ModifierRenderer {
         Modifier.NON_SEALED, Modifier.TRANSIENT, Modifier.VOLATILE,
         Modifier.SYNCHRONIZED, Modifier.NATIVE, Modifier.STRICTFP
     );
+    private static final EnumSet<Modifier> KNOWN_MODIFIERS = EnumSet.copyOf(JLS_ORDER);
 
     static void renderAnnotations(final ModifiersTree mods, final StringBuilder sb) {
         for (final var annotation : mods.getAnnotations()) {
@@ -29,7 +31,7 @@ final class ModifierRenderer {
         if (flags.isEmpty()) {
             return;
         }
-        final var unknown = flags.stream().filter(m -> !JLS_ORDER.contains(m)).toList();
+        final var unknown = flags.stream().filter(m -> !KNOWN_MODIFIERS.contains(m)).toList();
         if (!unknown.isEmpty()) {
             throw new IllegalStateException("Unknown modifier(s): " + unknown);
         }

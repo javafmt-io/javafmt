@@ -10,6 +10,7 @@ import io.github.jschneidereit.grind.GrindConfig;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -34,7 +35,7 @@ final class EnumRenderer {
             .filter(m -> !(m instanceof VariableTree v && v.getInitializer() instanceof NewClassTree));
 
         final var bodyMembers = MemberReorderer.reorder(bodyMemberStream, config, false, recursor)
-            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, className, recursor, attacher)).stream())
+            .flatMap(m -> Optional.ofNullable(renderBodyMember(m, className, recursor, attacher)).stream())
             .toList();
 
         if (constants.isEmpty() && bodyMembers.isEmpty()) {

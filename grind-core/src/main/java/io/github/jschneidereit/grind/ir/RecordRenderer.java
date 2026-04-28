@@ -9,6 +9,7 @@ import com.sun.source.tree.VariableTree;
 import io.github.jschneidereit.grind.GrindConfig;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.lang.model.element.Modifier;
@@ -34,7 +35,7 @@ final class RecordRenderer {
 
         final var className = node.getSimpleName().toString();
         final var bodyMembers = MemberReorderer.reorder(bodyMemberStream, config, false, recursor)
-            .flatMap(m -> java.util.Optional.ofNullable(renderBodyMember(m, className, recursor, attacher)).stream())
+            .flatMap(m -> Optional.ofNullable(renderBodyMember(m, className, recursor, attacher)).stream())
             .toList();
 
         final Doc componentListDoc;

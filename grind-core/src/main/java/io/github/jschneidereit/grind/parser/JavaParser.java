@@ -177,7 +177,7 @@ public final class JavaParser {
     }
 
     private static String stripBom(final String source) {
-        return !source.isEmpty() && source.charAt(0) == '﻿' ? source.substring(1) : source;
+        return !source.isEmpty() && source.charAt(0) == '\uFEFF' ? source.substring(1) : source;
     }
 
     private static JavaCompiler lookupCompiler() {

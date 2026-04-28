@@ -10,8 +10,6 @@ import com.sun.source.tree.YieldTree;
 
 import java.util.List;
 
-import org.jspecify.annotations.Nullable;
-
 final class SimpleStatementRenderers {
 
     static Doc renderAssert(final AssertTree node, final Recursor recursor) {
@@ -57,23 +55,14 @@ final class SimpleStatementRenderers {
         if (node.getExpression() == null) {
             return new Doc.Text("return;");
         }
-        final @Nullable Doc exprDoc = recursor.scan(node.getExpression());
-        if (exprDoc != null) {
-            return new Doc.Concat(List.of(
-                new Doc.Text("return "),
-                exprDoc,
-                new Doc.Text(";")
-            ));
-        }
-        return new Doc.Text("return " + node.getExpression() + ";");
+        return new Doc.Concat(List.of(
+            new Doc.Text("return "),
+            recursor.scan(node.getExpression()),
+            new Doc.Text(";")));
     }
 
     static Doc renderExpressionStatement(final ExpressionStatementTree node, final Recursor recursor) {
-        final var exprDoc = recursor.scan(node.getExpression());
-        if (exprDoc != null) {
-            return new Doc.Concat(List.of(exprDoc, new Doc.Text(";")));
-        }
-        return new Doc.Text(node.getExpression() + ";");
+        return new Doc.Concat(List.of(recursor.scan(node.getExpression()), new Doc.Text(";")));
     }
 
     static Doc renderThrow(final ThrowTree node, final Recursor recursor) {
