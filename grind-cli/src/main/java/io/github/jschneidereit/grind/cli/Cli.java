@@ -1,5 +1,6 @@
 package io.github.jschneidereit.grind.cli;
 
+import io.github.jschneidereit.grind.Diagnostic;
 import io.github.jschneidereit.grind.FormatResult;
 import io.github.jschneidereit.grind.Grind;
 import io.github.jschneidereit.grind.parser.JavaParser;
@@ -18,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
@@ -25,7 +27,13 @@ import java.util.stream.IntStream;
 public final class Cli {
 
     public static int run(final String[] args, final InputStream in, final PrintStream out, final PrintStream err) {
-        final var parsed = parse(args);
+        final Args parsed;
+        try {
+            parsed = parse(args);
+        } catch (final IllegalArgumentException e) {
+            err.println("grind: " + e.getMessage());
+            return 2;
+        }
         if (parsed.files.isEmpty()) {
             return runStdin(in, out, err);
         }
@@ -62,8 +70,7 @@ public final class Cli {
         }
         final var outcomes = JavaParser.parseUnits(sources);
 
-        final var threads = Math.max(1, parsed.threads);
-        final var pool = Executors.newFixedThreadPool(threads, r -> {
+        final var pool = Executors.newFixedThreadPool(parsed.threads, r -> {
             final var t = new Thread(r, "grind-fmt");
             t.setDaemon(true);
             return t;
@@ -82,17 +89,24 @@ public final class Cli {
                 })
                 .toList();
             var worstExit = 0;
-            for (final var f : futures) {
-                final var outcome = f.get();
-                if (outcome.diagnostic() != null) {
-                    err.println(outcome.diagnostic());
+            for (var i = 0; i < futures.size(); i++) {
+                try {
+                    final var outcome = futures.get(i).get();
+                    if (outcome.diagnostic() != null) {
+                        err.println(outcome.diagnostic());
+                    }
+                    worstExit = Math.max(worstExit, outcome.exitCode());
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return 130;
+                } catch (final ExecutionException e) {
+                    final var cause = e.getCause();
+                    final var msg = cause != null ? cause.getMessage() : e.getMessage();
+                    err.println("grind: " + parsed.files.get(i) + ": " + msg);
+                    worstExit = Math.max(worstExit, 2);
                 }
-                worstExit = Math.max(worstExit, outcome.exitCode());
             }
             return worstExit;
-        } catch (final Exception e) {
-            err.println("grind: " + e.getMessage());
-            return 2;
         } finally {
             pool.shutdownNow();
         }
@@ -101,7 +115,10 @@ public final class Cli {
     private static FileOutcome formatOne(final Path path, final String source, final ParseOutcome outcome, final boolean checkOnly) {
         final var result = Grind.formatWithResult(source, outcome);
         if (result.hasErrors()) {
-            final var first = result.diagnostics().get(0);
+            final var first = result.diagnostics().stream()
+                .filter(Diagnostic::isError)
+                .findFirst()
+                .orElseThrow();
             return new FileOutcome(1, path + ": " + first.message());
         }
         if (result.output().equals(source)) {
@@ -138,13 +155,21 @@ public final class Cli {
                 case "--check" -> check = true;
                 case "--threads" -> {
                     if (i + 1 >= args.length) {
-                        throw new IllegalArgumentException("--threads requires a value");
+                        throw new IllegalArgumentException("--threads requires a positive integer");
                     }
-                    threads = Integer.parseInt(args[++i]);
+                    final var raw = args[++i];
+                    try {
+                        threads = Integer.parseInt(raw);
+                    } catch (final NumberFormatException e) {
+                        throw new IllegalArgumentException("--threads requires a positive integer, got: " + raw, e);
+                    }
+                    if (threads <= 0) {
+                        throw new IllegalArgumentException("--threads requires a positive integer, got: " + threads);
+                    }
                 }
                 default -> {
                     if (a.startsWith("--")) {
-                        throw new IllegalArgumentException("Unknown flag: " + a);
+                        throw new IllegalArgumentException("unknown flag: " + a);
                     }
                     files.add(Paths.get(a));
                 }

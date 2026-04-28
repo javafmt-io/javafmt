@@ -75,6 +75,83 @@ class CliTest {
         assertThat(err.toString(StandardCharsets.UTF_8)).contains("error:");
     }
 
+    @Test
+    void threads_valid_doesNotFail(@TempDir final Path dir) throws Exception {
+        final var a = dir.resolve("A.java");
+        Files.writeString(a, "class A {\n    int x;\n}");
+        final var exit = Cli.run(
+            new String[] {"--threads", "4", a.toString()},
+            streamOf(""), print(new ByteArrayOutputStream()), print(new ByteArrayOutputStream()));
+        assertThat(exit).isZero();
+    }
+
+    @Test
+    void threads_noValue_failsWithUsefulMessage() {
+        final var err = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+            new String[] {"--threads"},
+            streamOf(""), print(new ByteArrayOutputStream()), print(err));
+        assertThat(exit).isEqualTo(2);
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--threads");
+    }
+
+    @Test
+    void threads_nonNumeric_failsWithUsefulMessage() {
+        final var err = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+            new String[] {"--threads", "xyz"},
+            streamOf(""), print(new ByteArrayOutputStream()), print(err));
+        assertThat(exit).isEqualTo(2);
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--threads");
+    }
+
+    @Test
+    void threads_negative_failsWithUsefulMessage() {
+        final var err = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+            new String[] {"--threads", "-1"},
+            streamOf(""), print(new ByteArrayOutputStream()), print(err));
+        assertThat(exit).isEqualTo(2);
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--threads");
+    }
+
+    @Test
+    void unknownFlag_exitsNonZeroWithMessageNoStackTrace() {
+        final var err = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+            new String[] {"--bogus"},
+            streamOf(""), print(new ByteArrayOutputStream()), print(err));
+        assertThat(exit).isEqualTo(2);
+        final var errStr = err.toString(StandardCharsets.UTF_8);
+        assertThat(errStr).contains("grind:").contains("--bogus");
+        assertThat(errStr).doesNotContain("Exception").doesNotContain("\tat ");
+    }
+
+    @Test
+    void batchWithOneMalformedJava_reportsPathAndExitsNonZero(@TempDir final Path dir) throws Exception {
+        final var good = dir.resolve("Good.java");
+        Files.writeString(good, "class Good {\n    int x;\n}");
+        final var bad = dir.resolve("Bad.java");
+        Files.writeString(bad, "class {");
+        final var err = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+            new String[] {good.toString(), bad.toString()},
+            streamOf(""), print(new ByteArrayOutputStream()), print(err));
+        assertThat(exit).isNotZero();
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains(bad.toString());
+    }
+
+    @Test
+    void nonexistentPath_exitsNonZeroWithPathInMessage(@TempDir final Path dir) {
+        final var missing = dir.resolve("NoSuchFile.java");
+        final var err = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+            new String[] {missing.toString()},
+            streamOf(""), print(new ByteArrayOutputStream()), print(err));
+        assertThat(exit).isNotZero();
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains(missing.toString());
+    }
+
     private static InputStream streamOf(final String s) {
         return new ByteArrayInputStream(s.getBytes(StandardCharsets.UTF_8));
     }
