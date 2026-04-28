@@ -2,6 +2,7 @@ package io.github.jschneidereit.grind.ir;
 
 import com.sun.source.tree.ModifiersTree;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,11 +47,18 @@ final class ModifierRenderer {
         }
         return new Doc.Concat(Stream.concat(
             // Annotations are left alone in v1 (see CLAUDE.md formatting rules); javac's
-            // pretty-printer text is the contract here, not a fallback to fix.
+            // pretty-printer text is the contract here, not a fallback to fix. Split on '\n'
+            // so each line lands in its own Doc.Text — the IR's no-newline invariant.
             annotations.stream()
-                .flatMap(a -> Stream.<Doc>of(new Doc.Text(a.toString()), new Doc.HardLine())),
+                .flatMap(a -> Stream.<Doc>concat(splitToTextLines(a.toString()), Stream.of(new Doc.HardLine()))),
             Stream.of(doc)
         ));
+    }
+
+    private static Stream<Doc> splitToTextLines(final String text) {
+        return Doc.intersperse(
+            new Doc.HardLine(),
+            Arrays.stream(text.split("\n", -1)).<Doc>map(Doc.Text::new));
     }
 
     private ModifierRenderer() {}

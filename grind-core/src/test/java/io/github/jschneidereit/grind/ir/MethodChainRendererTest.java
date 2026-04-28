@@ -130,6 +130,20 @@ class MethodChainRendererTest {
     }
 
     @Test
+    void invocationWithExplicitTypeArguments_rendersTypeArgsThroughDocIr() {
+        // Explicit type arguments must travel through recursor.scan, not Tree.toString — the
+        // latter bypasses the Doc IR and would crash Doc.Text on any \n a future pretty-printer
+        // emits. A nested generic in the type args exercises the recursive scan path.
+        final var input = "class Foo { void test() { Stream.<java.util.Map<String, Integer>>of(); } }";
+        assertThat(format(input)).isEqualTo("""
+            class Foo {
+                void test() {
+                    Stream.<java.util.Map<String, Integer>>of();
+                }
+            }""".stripIndent());
+    }
+
+    @Test
     void returnWithChain_breaksCorrectly() {
         final var input = "class Foo { List<String> test() { return "
             + "result.stream()"

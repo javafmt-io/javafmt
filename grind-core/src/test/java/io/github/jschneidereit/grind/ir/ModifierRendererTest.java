@@ -3,6 +3,7 @@ package io.github.jschneidereit.grind.ir;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
@@ -37,13 +38,29 @@ class ModifierRendererTest {
         // SEALED (ordinal 6) precedes FINAL (ordinal 8) in the Modifier enum, but JLS mandates FINAL first.
         // This combination is invalid Java, but tests the ordering logic directly without a parser round-trip.
         final Set<Modifier> flags = EnumSet.of(Modifier.PUBLIC, Modifier.FINAL, Modifier.SEALED);
-        final var mods = stubModifiers(flags);
+        final var mods = stubModifiers(flags, List.of());
         final var sb = new StringBuilder();
         ModifierRenderer.renderModifiers(mods, sb);
         assertThat(sb.toString()).isEqualTo("public final sealed ");
     }
 
-    private static ModifiersTree stubModifiers(final Set<Modifier> flags) {
+    @Test
+    void prependOwnLineAnnotations_multilineAnnotationToString_doesNotInjectNewlinesIntoText() {
+        // javac's pretty-printer is single-line for the AnnotationTrees javac builds today,
+        // but Doc.Text rejects newline characters and we route the annotation toString through
+        // it directly. A future toString change (or a non-javac AnnotationTree) with embedded
+        // newlines would crash the printer; defend the invariant by splitting on '\n' and
+        // emitting interleaved HardLines.
+        final var multiLine = stubAnnotation("@Foo({\n    \"a\",\n    \"b\"\n})");
+        final var mods = stubModifiers(Set.of(), List.of(multiLine));
+
+        final var doc = ModifierRenderer.prependOwnLineAnnotations(mods, new Doc.Text("class Bar"));
+
+        assertThat(new Printer(WIDTH).print(doc))
+            .isEqualTo("@Foo({\n    \"a\",\n    \"b\"\n})\nclass Bar");
+    }
+
+    private static ModifiersTree stubModifiers(final Set<Modifier> flags, final List<? extends AnnotationTree> annotations) {
         return new ModifiersTree() {
             @Override
             public Set<Modifier> getFlags() {
@@ -52,7 +69,7 @@ class ModifierRendererTest {
 
             @Override
             public List<? extends AnnotationTree> getAnnotations() {
-                return List.of();
+                return annotations;
             }
 
             @Override
@@ -63,6 +80,35 @@ class ModifierRendererTest {
             @Override
             public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
                 return null;
+            }
+        };
+    }
+
+    private static AnnotationTree stubAnnotation(final String prettyPrinted) {
+        return new AnnotationTree() {
+            @Override
+            public Tree getAnnotationType() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public List<? extends ExpressionTree> getArguments() {
+                return List.of();
+            }
+
+            @Override
+            public Tree.Kind getKind() {
+                return Tree.Kind.ANNOTATION;
+            }
+
+            @Override
+            public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
+                return null;
+            }
+
+            @Override
+            public String toString() {
+                return prettyPrinted;
             }
         };
     }

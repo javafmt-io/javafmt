@@ -46,7 +46,7 @@ final class RecordRenderer {
                 new Doc.Indent(new Doc.Concat(Stream.concat(
                     Stream.<Doc>of(new Doc.SoftLine()),
                     Doc.intersperse(List.of(new Doc.Text(","), new Doc.Line()), components.stream()
-                        .map(comp -> attacher.attach(comp, new Doc.Text(componentText(comp)))))
+                        .map(comp -> attacher.attach(comp, componentDoc(comp, recursor))))
                 ))),
                 new Doc.SoftLine(),
                 new Doc.Text(")")
@@ -78,11 +78,14 @@ final class RecordRenderer {
         )));
     }
 
-    private static String componentText(final VariableTree comp) {
-        final var sb = new StringBuilder();
-        ModifierRenderer.renderAnnotations(comp.getModifiers(), sb);
-        sb.append(comp.getType()).append(" ").append(comp.getName());
-        return sb.toString();
+    private static Doc componentDoc(final VariableTree comp, final Recursor recursor) {
+        final var prefix = new StringBuilder();
+        ModifierRenderer.renderAnnotations(comp.getModifiers(), prefix);
+        return new Doc.Concat(List.of(
+            new Doc.Text(prefix.toString()),
+            recursor.scan(comp.getType()),
+            new Doc.Text(" " + comp.getName())
+        ));
     }
 
     private static @org.jspecify.annotations.Nullable Doc renderBodyMember(

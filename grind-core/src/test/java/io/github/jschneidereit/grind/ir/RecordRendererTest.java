@@ -54,4 +54,13 @@ class RecordRendererTest {
                 ) {}""";
         assertThat(format(source)).isEqualTo(expected);
     }
+
+    @Test
+    void recordWithParameterizedComponentTypes_rendersTypesThroughDocIr() {
+        // Component types must travel through recursor.scan, not Tree.toString — the latter
+        // bypasses the Doc IR and would crash Doc.Text on any \n a future pretty-printer
+        // emits. Nested generics + wildcards exercise the recursive scan path.
+        assertThat(format("record R(java.util.Map<String, java.util.List<? extends Number>> data) {}"))
+            .isEqualTo("record R(java.util.Map<String, java.util.List<? extends Number>> data) {}");
+    }
 }
