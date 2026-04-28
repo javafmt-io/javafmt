@@ -19,15 +19,13 @@ java {
     }
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
+    constraints {
+        implementation(libs.findLibrary("slf4j-api").get())
+    }
     compileOnly(libs.findLibrary("jspecify").get())
     compileOnly(libs.findLibrary("lombok").get())
     annotationProcessor(libs.findLibrary("lombok").get())
-    implementation(libs.findLibrary("slf4j-api").get())
     testCompileOnly(libs.findLibrary("jspecify").get())
     testCompileOnly(libs.findLibrary("lombok").get())
     testAnnotationProcessor(libs.findLibrary("lombok").get())
