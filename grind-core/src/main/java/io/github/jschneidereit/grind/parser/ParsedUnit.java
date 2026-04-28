@@ -14,37 +14,60 @@ import java.util.Objects;
  * Parsed compilation unit with comments attached to AST nodes.
  *
  * <p>Comment-channel maps ({@code leading}, {@code trailing}, {@code interior}, {@code tail})
- * are typed as {@link IdentityHashMap} because lookup must be by reference identity, not
- * equality: javac may produce {@code .equals}-equal {@link Tree} instances for distinct
- * source positions.
+ * use identity-keyed lookup because javac may produce {@code .equals}-equal {@link Tree}
+ * instances for distinct source positions.
  */
-public record ParsedUnit(
-        CompilationUnitTree tree,
-        String source,
-        SourcePositions sourcePositions,
-        List<CommentToken> fileHeader,
-        List<CommentToken> fileFooter,
-        IdentityHashMap<Tree, List<CommentToken>> leading,
-        IdentityHashMap<Tree, List<CommentToken>> trailing,
-        IdentityHashMap<Tree, List<CommentToken>> interior,
-        IdentityHashMap<Tree, List<CommentToken>> tail) {
+public final class ParsedUnit {
 
-    public ParsedUnit {
-        Objects.requireNonNull(tree, "tree");
-        Objects.requireNonNull(source, "source");
-        Objects.requireNonNull(sourcePositions, "sourcePositions");
-        Objects.requireNonNull(fileHeader, "fileHeader");
-        Objects.requireNonNull(fileFooter, "fileFooter");
-        Objects.requireNonNull(leading, "leading");
-        Objects.requireNonNull(trailing, "trailing");
-        Objects.requireNonNull(interior, "interior");
-        Objects.requireNonNull(tail, "tail");
-        fileHeader = List.copyOf(fileHeader);
-        fileFooter = List.copyOf(fileFooter);
-        leading = new IdentityHashMap<>(leading);
-        trailing = new IdentityHashMap<>(trailing);
-        interior = new IdentityHashMap<>(interior);
-        tail = new IdentityHashMap<>(tail);
+    private final CompilationUnitTree tree;
+    private final String source;
+    private final SourcePositions sourcePositions;
+    private final List<CommentToken> fileHeader;
+    private final List<CommentToken> fileFooter;
+    private final IdentityHashMap<Tree, List<CommentToken>> leading;
+    private final IdentityHashMap<Tree, List<CommentToken>> trailing;
+    private final IdentityHashMap<Tree, List<CommentToken>> interior;
+    private final IdentityHashMap<Tree, List<CommentToken>> tail;
+
+    public ParsedUnit(
+            final CompilationUnitTree tree,
+            final String source,
+            final SourcePositions sourcePositions,
+            final List<CommentToken> fileHeader,
+            final List<CommentToken> fileFooter,
+            final IdentityHashMap<Tree, List<CommentToken>> leading,
+            final IdentityHashMap<Tree, List<CommentToken>> trailing,
+            final IdentityHashMap<Tree, List<CommentToken>> interior,
+            final IdentityHashMap<Tree, List<CommentToken>> tail) {
+        this.tree = Objects.requireNonNull(tree, "tree");
+        this.source = Objects.requireNonNull(source, "source");
+        this.sourcePositions = Objects.requireNonNull(sourcePositions, "sourcePositions");
+        this.fileHeader = List.copyOf(Objects.requireNonNull(fileHeader, "fileHeader"));
+        this.fileFooter = List.copyOf(Objects.requireNonNull(fileFooter, "fileFooter"));
+        this.leading = deepCopy(Objects.requireNonNull(leading, "leading"));
+        this.trailing = deepCopy(Objects.requireNonNull(trailing, "trailing"));
+        this.interior = deepCopy(Objects.requireNonNull(interior, "interior"));
+        this.tail = deepCopy(Objects.requireNonNull(tail, "tail"));
+    }
+
+    public CompilationUnitTree tree() {
+        return tree;
+    }
+
+    public String source() {
+        return source;
+    }
+
+    public SourcePositions sourcePositions() {
+        return sourcePositions;
+    }
+
+    public List<CommentToken> fileHeader() {
+        return fileHeader;
+    }
+
+    public List<CommentToken> fileFooter() {
+        return fileFooter;
     }
 
     public String sourceOf(final Tree node) {
@@ -74,5 +97,12 @@ public record ParsedUnit(
 
     public Position positionOf(final Tree node) {
         return JavaParser.positionOf(sourcePositions, tree, node);
+    }
+
+    private static IdentityHashMap<Tree, List<CommentToken>> deepCopy(
+            final IdentityHashMap<Tree, List<CommentToken>> src) {
+        final var copy = new IdentityHashMap<Tree, List<CommentToken>>(src.size());
+        src.forEach((k, v) -> copy.put(k, List.copyOf(v)));
+        return copy;
     }
 }
