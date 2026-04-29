@@ -1,6 +1,6 @@
 package io.github.jschneidereit.grind;
 
-import io.github.jschneidereit.grind.ir.DocBuilder;
+import io.github.jschneidereit.grind.builder.DocBuilder;
 import io.github.jschneidereit.grind.lint.ArrayTrailingComma;
 import io.github.jschneidereit.grind.lint.DefaultComesLast;
 import io.github.jschneidereit.grind.lint.ExplodeStarImports;

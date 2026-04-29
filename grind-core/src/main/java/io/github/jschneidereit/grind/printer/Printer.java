@@ -2,7 +2,7 @@ package io.github.jschneidereit.grind.printer;
 
 import java.util.Objects;
 
-import io.github.jschneidereit.grind.ir.Doc;
+import io.github.jschneidereit.grind.doc.Doc;
 
 public record Printer(int lineWidth, PrintStrategy strategy) {
 

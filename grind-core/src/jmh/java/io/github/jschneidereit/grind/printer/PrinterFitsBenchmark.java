@@ -15,7 +15,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
-import io.github.jschneidereit.grind.ir.Doc;
+import io.github.jschneidereit.grind.doc.Doc;
 
 /**
  * Group-fitting decisions are the hot path in {@link Printer}; a regression toward

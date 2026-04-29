@@ -63,9 +63,15 @@ grind/
 │       ├── main/java/io/github/jschneidereit/grind/
 │       │   ├── Grind.java               # Public API: String format(String source)
 │       │   ├── JavaParser.java          # Wraps com.sun.source.tree
-│       │   ├── ir/                      # Intermediate representation
+│       │   ├── doc/                     # Parser-agnostic IR
 │       │   │   ├── Doc.java             # Wadler-Lindig-style document algebra
-│       │   │   └── DocBuilder.java      # AST → Doc conversion
+│       │   │   ├── MemberGroup.java     # Member ordering buckets
+│       │   │   └── LeadingCommentAttacher.java  # Comment-attachment interface
+│       │   ├── builder/                 # AST → Doc translation (com.sun.source.tree)
+│       │   │   ├── DocBuilder.java      # Pure dispatcher (AST → Doc)
+│       │   │   ├── ExpressionRenderers.java  # Expression sub-renderers
+│       │   │   ├── TypeRenderers.java   # Type and leaf node renderers
+│       │   │   └── ...                  # Per-construct renderers (ClassLike, Record, Enum, …)
 │       │   ├── printer/
 │       │   │   └── Printer.java         # Doc → String (line-breaking algorithm)
 │       │   ├── rules/                   # Formatting rules by construct

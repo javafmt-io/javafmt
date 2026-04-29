@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Objects;
 
-import io.github.jschneidereit.grind.ir.Doc;
+import io.github.jschneidereit.grind.doc.Doc;
 
 public record GreedyPrintStrategy() implements PrintStrategy {
 

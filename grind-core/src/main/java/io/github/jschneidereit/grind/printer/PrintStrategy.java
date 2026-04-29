@@ -1,6 +1,6 @@
 package io.github.jschneidereit.grind.printer;
 
-import io.github.jschneidereit.grind.ir.Doc;
+import io.github.jschneidereit.grind.doc.Doc;
 
 public sealed interface PrintStrategy permits GreedyPrintStrategy, WadlerLindigPrintStrategy {
 
