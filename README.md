@@ -1,4 +1,4 @@
-# grind
+# javafmt
 
 Opinionated, high-performance Java code formatter for modern LTS (Java 21+).
 
@@ -30,10 +30,10 @@ gradle build
 
 | Module               | Build  | Purpose                                         |
 |----------------------|--------|-------------------------------------------------|
-| `grind-core`         | Gradle | Parser + formatter engine (zero runtime deps)   |
-| `grind-cli`          | Gradle | Standalone CLI (fat JAR + GraalVM native-image) |
-| `grind-spotless`     | Gradle | Spotless `FormatterStep` integration            |
-| `grind-intellij`     | Gradle | IntelliJ IDEA plugin (placeholder)              |
-| `grind-maven-plugin` | Gradle | Maven plugin (`grind:format`, `grind:check`)    |
+| `javafmt-core`         | Gradle | Parser + formatter engine (zero runtime deps)   |
+| `javafmt-cli`          | Gradle | Standalone CLI (fat JAR + GraalVM native-image) |
+| `javafmt-spotless`     | Gradle | Spotless `FormatterStep` integration            |
+| `javafmt-intellij`     | Gradle | IntelliJ IDEA plugin (placeholder)              |
+| `javafmt-maven-plugin` | Gradle | Maven plugin (`javafmt:format`, `javafmt:check`)    |
 
 The Maven plugin JAR and `plugin.xml` descriptor are produced by Gradle via the `org.gradlex.maven-plugin-development` plugin — no separate `mvn` build required.

@@ -1,6 +1,6 @@
-rootProject.name = "grind"
+rootProject.name = "javafmt"
 
-include("grind-core", "grind-cli", "grind-spotless", "grind-intellij", "grind-maven-plugin")
+include("javafmt-core", "javafmt-cli", "javafmt-spotless", "javafmt-intellij", "javafmt-maven-plugin")
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)

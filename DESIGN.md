@@ -1,4 +1,4 @@
-# grind — Design Plan
+# javafmt — Design Plan
 
 ## Motivation
 
@@ -17,14 +17,14 @@ There are no decent code formatters for Java ([ref](https://jqno.nl/post/2024/08
 
 ```mermaid
 graph TD
-    subgraph "grind-core (Java library)"
+    subgraph "javafmt-core (Java library)"
         A["Java Parser<br/>(com.sun.source.tree)"] --> B["DocBuilder<br/>(AST → Doc IR)"]
         B --> C["Printer<br/>(Doc → formatted text)"]
     end
 
     subgraph Integrations
-        D["grind-spotless<br/>Spotless FormatterStep"]
-        E["grind-cli<br/>Fat JAR + GraalVM native-image"]
+        D["javafmt-spotless<br/>Spotless FormatterStep"]
+        E["javafmt-cli<br/>Fat JAR + GraalVM native-image"]
     end
 
     C --> D
@@ -41,13 +41,13 @@ graph LR
 - **Java's own parser** (`com.sun.source.tree` / `javac` internals) means we never lag behind on syntax. When a new Java LTS ships, we just update the JDK dependency.
 - **Spotless integration** is a thin wrapper — Spotless already supports custom `FormatterStep` implementations, and since most Java projects use Gradle, this is the path of least resistance for adoption.
 - **GraalVM native-image** is attempted as a best-effort standalone CLI. `com.sun.source.tree` uses service loading and reflection internally, so native-image may require reflection hints or a tracing agent. If it proves too painful, the fat JAR CLI (requiring a JVM) is the fallback — still fast, just needs Java installed.
-- **Maven plugin** provides `grind:format` and `grind:check` goals. The plugin embeds `grind-core` as a dependency — users add it to their `pom.xml` and it just works. No pre-installation, no external tools. This is critical for the author's rubric: "anything not enforced by CI is merely a suggestion."
+- **Maven plugin** provides `javafmt:format` and `javafmt:check` goals. The plugin embeds `javafmt-core` as a dependency — users add it to their `pom.xml` and it just works. No pre-installation, no external tools. This is critical for the author's rubric: "anything not enforced by CI is merely a suggestion."
 - **Shared core** means Spotless, Maven plugin, and CLI always produce identical output.
 
 ### Module structure
 
 ```
-grind/
+javafmt/
 ├── build.gradle.kts             # Root: shared config, version catalog
 ├── settings.gradle.kts          # Includes all subprojects
 ├── gradle/
@@ -55,13 +55,13 @@ grind/
 ├── buildSrc/
 │   ├── build.gradle.kts
 │   └── src/main/kotlin/
-│       └── grind.java-conventions.gradle.kts  # Shared Java 21 + test config
+│       └── javafmt.java-conventions.gradle.kts  # Shared Java 21 + test config
 │
-├── grind-core/                  # Java library — parser + formatter engine
+├── javafmt-core/                  # Java library — parser + formatter engine
 │   ├── build.gradle.kts
 │   └── src/
-│       ├── main/java/io/github/jschneidereit/grind/
-│       │   ├── Grind.java               # Public API: String format(String source)
+│       ├── main/java/io/javafmt/
+│       │   ├── Javafmt.java               # Public API: String format(String source)
 │       │   ├── JavaParser.java          # Wraps com.sun.source.tree
 │       │   ├── doc/                     # Parser-agnostic IR
 │       │   │   ├── Doc.java             # Wadler-Lindig-style document algebra
@@ -84,28 +84,28 @@ grind/
 │       │   │   ├── SwitchRule.java
 │       │   │   └── ...
 │       │   └── config/
-│       │       └── GrindConfig.java     # Opinionated defaults
-│       └── test/java/io/github/jschneidereit/grind/         # Unit tests (TDD, AssertJ only)
+│       │       └── JavafmtConfig.java     # Opinionated defaults
+│       └── test/java/io/javafmt/         # Unit tests (TDD, AssertJ only)
 │
-├── grind-cli/                   # Standalone CLI
+├── javafmt-cli/                   # Standalone CLI
 │   ├── build.gradle.kts         # Fat JAR + GraalVM native-image (best-effort)
-│   └── src/main/java/io/github/jschneidereit/grind/cli/
+│   └── src/main/java/io/javafmt/cli/
 │       └── Main.java                    # stdin/stdout or file args
 │
-├── grind-spotless/              # Spotless integration
+├── javafmt-spotless/              # Spotless integration
 │   ├── build.gradle.kts
-│   └── src/main/java/io/github/jschneidereit/grind/spotless/
-│       └── GrindFormatterStep.java
+│   └── src/main/java/io/javafmt/spotless/
+│       └── JavafmtFormatterStep.java
 │
-├── grind-maven-plugin/          # Maven plugin (format + check goals)
+├── javafmt-maven-plugin/          # Maven plugin (format + check goals)
 │   ├── build.gradle.kts         # Built by Gradle via org.gradlex.maven-plugin-development
-│   └── src/main/java/io/github/jschneidereit/grind/maven/
-│       └── GrindMojo.java
+│   └── src/main/java/io/javafmt/maven/
+│       └── JavafmtMojo.java
 │
-├── grind-intellij/              # IntelliJ IDEA plugin (future)
+├── javafmt-intellij/              # IntelliJ IDEA plugin (future)
 │   ├── build.gradle.kts
-│   └── src/main/java/io/github/jschneidereit/grind/intellij/
-│       └── GrindFormatterService.java
+│   └── src/main/java/io/javafmt/intellij/
+│       └── JavafmtFormatterService.java
 │
 ├── test-fixtures/               # Shared test cases (input → expected output)
 │   ├── basic/
@@ -122,9 +122,9 @@ grind/
 
 ### Style baseline and deviations
 
-grind uses the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) as its baseline. Where we deviate, the motivation is code-review ergonomics: keep diffs small and meaningful, make structure obvious at a glance, and eliminate entire categories of reviewer comments. This is the same philosophy behind tools like `prettier` and `rustfmt` — a slightly stricter style that nobody loves perfectly but everyone can live with, because the consistency pays off in review.
+javafmt uses the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) as its baseline. Where we deviate, the motivation is code-review ergonomics: keep diffs small and meaningful, make structure obvious at a glance, and eliminate entire categories of reviewer comments. This is the same philosophy behind tools like `prettier` and `rustfmt` — a slightly stricter style that nobody loves perfectly but everyone can live with, because the consistency pays off in review.
 
-| Rule | Google | grind | Why we differ |
+| Rule | Google | javafmt | Why we differ |
 |------|--------|-------|---------------|
 | **Line width** | 100 | 150 | Fewer arbitrary wraps means line-level diff changes reflect real changes, not reformatting. Modern monitors and side-by-side diff views handle 150 comfortably. |
 | **Block indent** | 2 spaces | 4 spaces | Deeper visual hierarchy makes nesting obvious without counting spaces. 2-space collapses in wide diffs. |
@@ -133,7 +133,7 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 | **Enum constants** | No sort requirement, trailing comma optional | Alphabetically sorted, trailing comma required | Adding a constant produces a clean 1-line diff with no comma-shuffling on the previous line. |
 | **Brace enforcement** | Required, but missing braces isn't a build failure | Missing braces = build failure (lint, not auto-fix) | Eliminates the class of bugs where a stray `if` silently gains a second statement; reviewers don't have to verify brace scope. |
 | **Annotations** | Fields: same line allowed; methods: own line unless single+no-args | Same as Google | — |
-| **Javadoc / comments** | Required on all visible members; block-comment continuation lines reindented at layout time; IDE directives (`//noinspection`, `CHECKSTYLE:OFF`) preserved exactly | Parity with google-java-format: token-precise attachment, layout-time continuation reindent, directive safelist, verbatim content | grind matches google-java-format's industry-leading handling; this is a non-negotiable correctness bar, not a style choice. |
+| **Javadoc / comments** | Required on all visible members; block-comment continuation lines reindented at layout time; IDE directives (`//noinspection`, `CHECKSTYLE:OFF`) preserved exactly | Parity with google-java-format: token-precise attachment, layout-time continuation reindent, directive safelist, verbatim content | javafmt matches google-java-format's industry-leading handling; this is a non-negotiable correctness bar, not a style choice. |
 | **Method chains** | Not specified | Break before `.` if chain doesn't fit | — |
 | **Records** | Not specified | One line if fits, else one component per line | — |
 
@@ -143,14 +143,14 @@ grind uses the [Google Java Style Guide](https://google.github.io/styleguide/jav
 ### Braces
 - **K&R style** (opening brace on same line)
 - **Always required** — even for single-statement `if`/`else`/`for`/`while`/`do-while`.
-- **Safe rewrites.** grind applies a fixed set of semantics-preserving mechanical rewrites alongside formatting. Every rewrite emits a `Warning` diagnostic. Rewrites are not configurable. See the [Safe rewrites](#safe-rewrites) section below for the catalog.
+- **Safe rewrites.** javafmt applies a fixed set of semantics-preserving mechanical rewrites alongside formatting. Every rewrite emits a `Warning` diagnostic. Rewrites are not configurable. See the [Safe rewrites](#safe-rewrites) section below for the catalog.
 
 ### Safe rewrites (lint pass)
 
 Lint rules run *before* the formatter, in a fixed-point loop, and produce textual edits. Following [ruff](https://docs.astral.sh/ruff/)'s philosophy:
 
-- **The formatter never breaks code.** A rule may only emit an edit when the rewrite is guaranteed to preserve compilation and behavior. If applying the edit would produce non-compiling source (e.g. adding `final` to a parameter the body reassigns), the rule emits a `Diagnostic.Warning` instead and leaves the source untouched. The developer fixes the underlying issue (introduce a local copy, an `AtomicInteger` holder, etc.) and re-runs grind, after which the safe edit applies. Grind has no `--unsafe-fixes` mode in v1; cases that aren't safe are *only* surfaced as warnings.
-- **Edits are unconditional within their safety envelope.** Grind has no opt-in fixes — if the rule would fire, it fires.
+- **The formatter never breaks code.** A rule may only emit an edit when the rewrite is guaranteed to preserve compilation and behavior. If applying the edit would produce non-compiling source (e.g. adding `final` to a parameter the body reassigns), the rule emits a `Diagnostic.Warning` instead and leaves the source untouched. The developer fixes the underlying issue (introduce a local copy, an `AtomicInteger` holder, etc.) and re-runs javafmt, after which the safe edit applies. Javafmt has no `--unsafe-fixes` mode in v1; cases that aren't safe are *only* surfaced as warnings.
+- **Edits are unconditional within their safety envelope.** Javafmt has no opt-in fixes — if the rule would fire, it fires.
 - **Convergence is required.** Re-running a rule on its own output must produce zero edits. The lint engine iterates rules until no edits remain (with a hard cap), so a rule that flip-flops would be a bug.
 
 Current rules:
@@ -168,12 +168,12 @@ Non-safe transformations (colon-form switch rewrites, refactorings, opinionated 
 
 Each lint rule is validated against an independent oracle — typically the corresponding [Checkstyle](https://checkstyle.org/) check — using a differential test. The pattern:
 
-1. **Write the oracle test first (red).** Add a corpus of small Java files exercising the rule under `grind-core/src/oracleTest/resources/corpus/<rule-name>/` and a `<Rule>OracleTest` that, for each corpus file, formats it through grind and asserts that Checkstyle's equivalent check reports zero violations on the output. A second assertion (`assertCorpusExercisesRule`) requires that at least one corpus file has Checkstyle violations *before* grind processes it — without this, soundness passes vacuously on a corpus of already-clean files.
+1. **Write the oracle test first (red).** Add a corpus of small Java files exercising the rule under `javafmt-core/src/oracleTest/resources/corpus/<rule-name>/` and a `<Rule>OracleTest` that, for each corpus file, formats it through javafmt and asserts that Checkstyle's equivalent check reports zero violations on the output. A second assertion (`assertCorpusExercisesRule`) requires that at least one corpus file has Checkstyle violations *before* javafmt processes it — without this, soundness passes vacuously on a corpus of already-clean files.
 2. **Write a unit fixture (red).** Add an `input.java` / `expected.java` pair under `test-fixtures/lint-<rule>/` to pin the exact behavior of one canonical case.
 3. **Implement the rule (green).** Implement `LintRule.apply` to make both tests pass.
 4. **Refactor (clean).**
 
-Where Checkstyle and grind disagree by design — for instance, Checkstyle's `FinalParametersCheck` flags reassigned parameters too (and expects the developer to refactor), but grind refuses to break compilation and emits a warning instead — the divergence is documented in the rule's Javadoc and the corpus / oracle config reflects it. The oracle keeps grind honest about *what* it claims to fix; the divergence comments make explicit *where* grind chooses a different policy.
+Where Checkstyle and javafmt disagree by design — for instance, Checkstyle's `FinalParametersCheck` flags reassigned parameters too (and expects the developer to refactor), but javafmt refuses to break compilation and emits a warning instead — the divergence is documented in the rule's Javadoc and the corpus / oracle config reflects it. The oracle keeps javafmt honest about *what* it claims to fix; the divergence comments make explicit *where* javafmt chooses a different policy.
 
 ### Single-line constructs
 - `if (condition) { doSomething(); }` — allowed on one line if it fits within 150 chars
@@ -265,13 +265,13 @@ Follows Google Java Style annotation placement rules:
 
 ### Javadoc / comments
 
-The standard to beat is google-java-format. Its comment handling is industry-leading: token-precise attachment, layout-time reindentation, and principled handling of IDE/tool directives. grind targets parity.
+The standard to beat is google-java-format. Its comment handling is industry-leading: token-precise attachment, layout-time reindentation, and principled handling of IDE/tool directives. javafmt targets parity.
 
 - **Preserved verbatim** — every `//`, `/* */`, and `/** */` in the input appears in the output with its original text intact. No re-wrapping, no `*`-alignment changes, no stripping of the comment's own content. (Javadoc reflow is a v2 candidate, explicitly out of scope for v1.)
 - **Token-precise attachment.** Comments attach to source *tokens*, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` lands at the right place without requiring a bespoke attacher case per AST shape. This matches google-java-format's `JavaInput.Token#getToksBefore()` / `getToksAfter()` model and is the precondition for "every position" actually meaning every position.
 - **All positions are covered**: file-header comments above `package`, leading comments on declarations (class/interface/enum/record/method/constructor/field/init block/enum constant), comments on imports, comments between statements, trailing same-line comments (`int x = 1; // note`), comments inside argument and parameter lists, comments inside empty blocks (`{ /* note */ }`), and comments between the last statement of a block and its closing brace.
 - **Layout-time reindentation.** Continuation lines of multi-line block comments are re-indented to the comment's *final* output column, not its source column — so alignment is preserved when the enclosing declaration moves under formatting. This is resolved in the printer after layout decisions are made, not at `Doc` construction.
-- **Directive safelist.** IDE and tooling directives are preserved byte-for-byte with no reindent and no width-sensitive decisions: `// noinspection …`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE …`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-…$`, and their block-comment equivalents. (This is separate from grind's own on/off directives, which *control* formatting rather than protect a specific comment.)
+- **Directive safelist.** IDE and tooling directives are preserved byte-for-byte with no reindent and no width-sensitive decisions: `// noinspection …`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE …`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-…$`, and their block-comment equivalents. (This is separate from javafmt's own on/off directives, which *control* formatting rather than protect a specific comment.)
 - **String / text-block safety.** The scanner recognises `//` and `/*` only outside string literals, character literals, and text blocks. `//` inside a `String` or `"""…"""` is never treated as a comment.
 
 ### Blank lines
@@ -334,7 +334,7 @@ The Wadler-Lindig algorithm runs in **O(n)** time with the line width as a const
 6. Implement member ordering (reorder by visibility)
 7. Implement brace-enforcement lint check
 8. Build test fixture suite (input/expected pairs)
-9. CLI entry point: `java -jar grind.jar < Input.java > Output.java`
+9. CLI entry point: `java -jar javafmt.jar < Input.java > Output.java`
 
 ### Phase 2: Spotless Integration
 
@@ -347,28 +347,28 @@ The Wadler-Lindig algorithm runs in **O(n)** time with the line width as a const
    // build.gradle.kts
    spotless {
        java {
-           custom("grind") {
-               io.github.jschneidereit.grind.Grind.format(it)
+           custom("javafmt") {
+               io.javafmt.Javafmt.format(it)
            }
        }
    }
    ```
-4. **Dogfood:** wire `grind-spotless` into the grind monorepo's own build as a composite build, so every `gradle build` formats grind's own sources with its just-compiled output. Keep an escape hatch (`-x spotlessCheck`) for the case where grind breaks its own formatting. Until `Grind.format` does something real, this step is a no-op that validates the wiring.
+4. **Dogfood:** wire `javafmt-spotless` into the javafmt monorepo's own build as a composite build, so every `gradle build` formats javafmt's own sources with its just-compiled output. Keep an escape hatch (`-x spotlessCheck`) for the case where javafmt breaks its own formatting. Until `Javafmt.format` does something real, this step is a no-op that validates the wiring.
 
 ### Phase 3: Maven Plugin
 
 **Goal:** Use the formatter in any Maven project, enforced by CI.
 
-1. Build `grind-maven-plugin` with two goals:
-   - `grind:format` — reformat source files in-place
-   - `grind:check` — fail the build if any file isn't formatted (for CI)
-2. Plugin embeds `grind-core` — no external installation needed
+1. Build `javafmt-maven-plugin` with two goals:
+   - `javafmt:format` — reformat source files in-place
+   - `javafmt:check` — fail the build if any file isn't formatted (for CI)
+2. Plugin embeds `javafmt-core` — no external installation needed
 3. Publish to Maven Central alongside the core jar
 4. Usage:
    ```xml
    <plugin>
-       <groupId>io.github.jschneidereit.grind</groupId>
-       <artifactId>grind-maven-plugin</artifactId>
+       <groupId>io.javafmt</groupId>
+       <artifactId>javafmt-maven-plugin</artifactId>
        <version>0.1.0</version>
        <executions>
            <execution>
@@ -384,7 +384,7 @@ The Wadler-Lindig algorithm runs in **O(n)** time with the line width as a const
 
 **Goal:** Zero-dependency standalone binary for CI and non-Gradle workflows.
 
-1. Add GraalVM native-image Gradle plugin to `grind-cli`
+1. Add GraalVM native-image Gradle plugin to `javafmt-cli`
 2. Run tracing agent against the test suite to generate reflection/resource hints
 3. Build and test native binary on Linux, macOS, Windows (GitHub Actions matrix)
 4. If native-image can't handle `com.sun.source.tree`: document the limitation, ship fat JAR only
@@ -397,7 +397,7 @@ The Wadler-Lindig algorithm runs in **O(n)** time with the line width as a const
 - Import grouping order
 - Member ordering rules
 - Single-line threshold behaviors
-- Configuration via `.grind.toml` or Spotless config
+- Configuration via `.javafmt.toml` or Spotless config
 
 ### Phase 6: Performance & Polish
 
@@ -481,7 +481,7 @@ No production code is written without a failing test that motivates it. This is 
 
 ### Test structure
 
-- **Fixture-based tests** for formatting rules: each rule has a directory of `input.java` / `expected.java` pairs under `test-fixtures/`. A parameterized test runner loads all fixtures and asserts `assertThat(Grind.format(input)).isEqualTo(expected)`.
+- **Fixture-based tests** for formatting rules: each rule has a directory of `input.java` / `expected.java` pairs under `test-fixtures/`. A parameterized test runner loads all fixtures and asserts `assertThat(Javafmt.format(input)).isEqualTo(expected)`.
 - **Unit tests** for Doc algebra and Printer: test Doc construction and rendering in isolation.
 - **Property-based tests** (future): formatted output should always parse without errors, formatting should be idempotent (`format(format(x)) == format(x)`).
 
@@ -490,38 +490,38 @@ No production code is written without a failing test that motivates it. This is 
 The project is a Gradle multi-module monorepo with shared build configuration:
 
 ```
-grind/
+javafmt/
 ├── build.gradle.kts             # Root: shared dependency versions, common config
 ├── settings.gradle.kts          # Includes all subprojects
 ├── gradle/
 │   └── libs.versions.toml       # Version catalog (single source of truth for deps)
 ├── buildSrc/                    # Shared build conventions
 │   └── src/main/kotlin/
-│       └── grind.java-conventions.gradle.kts  # Java 21, AssertJ, JUnit 5, etc.
+│       └── javafmt.java-conventions.gradle.kts  # Java 21, AssertJ, JUnit 5, etc.
 │
-├── grind-core/                  # Formatter engine (zero external deps at runtime)
-├── grind-cli/                   # Standalone CLI (fat JAR + native-image)
-├── grind-spotless/              # Spotless FormatterStep
-├── grind-maven-plugin/          # Maven plugin (format + check goals, built by Gradle)
-├── grind-intellij/              # IntelliJ plugin (future)
+├── javafmt-core/                  # Formatter engine (zero external deps at runtime)
+├── javafmt-cli/                   # Standalone CLI (fat JAR + native-image)
+├── javafmt-spotless/              # Spotless FormatterStep
+├── javafmt-maven-plugin/          # Maven plugin (format + check goals, built by Gradle)
+├── javafmt-intellij/              # IntelliJ plugin (future)
 └── test-fixtures/               # Shared input/expected pairs
 ```
 
-The `grind.java-conventions` plugin in `buildSrc` applies to every submodule and configures:
+The `javafmt.java-conventions` plugin in `buildSrc` applies to every submodule and configures:
 
 - Java 21 toolchain
 - JUnit 5 test framework
 - AssertJ as the only assertion library
 - Common compiler flags (`-Werror`, `--enable-preview` if needed)
-- Consistent formatting (grind formats itself — dogfooding)
+- Consistent formatting (javafmt formats itself — dogfooding)
 
-Each integration module (`grind-spotless`, `grind-cli`, `grind-intellij`) depends on `grind-core` and adds only its thin wrapper + integration-specific tests.
+Each integration module (`javafmt-spotless`, `javafmt-cli`, `javafmt-intellij`) depends on `javafmt-core` and adds only its thin wrapper + integration-specific tests.
 
 ### Dependency management
 
 - **Version catalog** (`gradle/libs.versions.toml`) is the single source of truth for all dependency versions
-- `grind-core` should have **zero runtime dependencies** — only the JDK. Test dependencies (JUnit 5, AssertJ) are the exception.
-- Integration modules add only the dependencies they need (e.g., `grind-spotless` depends on Spotless API, `grind-intellij` depends on IntelliJ Platform SDK)
+- `javafmt-core` should have **zero runtime dependencies** — only the JDK. Test dependencies (JUnit 5, AssertJ) are the exception.
+- Integration modules add only the dependencies they need (e.g., `javafmt-spotless` depends on Spotless API, `javafmt-intellij` depends on IntelliJ Platform SDK)
 
 ## Technology Choices
 
@@ -546,20 +546,20 @@ Each integration module (`grind-spotless`, `grind-cli`, `grind-intellij`) depend
 
 Evaluated against the criteria from [Why are there no decent code formatters for Java?](https://jqno.nl/post/2024/08/24/why-are-there-no-decent-code-formatters-for-java/):
 
-| Criterion | Best existing | grind target | How we get there |
+| Criterion | Best existing | javafmt target | How we get there |
 |-----------|--------------|-------------|-----------------|
-| **Maven integration** | Good (all via Spotless/fmt-maven) | **Excellent** | Native `grind-maven-plugin` with `grind:check` and `grind:format` goals. Add to `pom.xml`, done. No pre-installation. |
+| **Maven integration** | Good (all via Spotless/fmt-maven) | **Excellent** | Native `javafmt-maven-plugin` with `javafmt:check` and `javafmt:format` goals. Add to `pom.xml`, done. No pre-installation. |
 | **Speed** | Excellent (google-java-format CLI) | **Excellent** | O(n) Wadler-Lindig printer. Fat JAR CLI + GraalVM native-image for ~10ms cold start. No Node.js, no Eclipse runtime. |
 | **Formatting quality** | Excellent (google-java-format, Prettier Java) | **Excellent** | Wadler-Lindig Doc algebra (same approach as Prettier) ensures consistent, predictable line-breaking. |
 | **Ergonomics** | Excellent (google-java-format) | **Excellent** | Zero-config opinionated defaults. No XML config exports, no IDE required for setup, no version instability. Stable formatting across versions (same input = same output). |
-| **IntelliJ plugin** | Excellent (IntelliJ built-in) | **Good** | `grind-intellij` module planned. Delegates to `grind-core` so formatting matches CI exactly. |
+| **IntelliJ plugin** | Excellent (IntelliJ built-in) | **Good** | `javafmt-intellij` module planned. Delegates to `javafmt-core` so formatting matches CI exactly. |
 | **Configuration** | Many (IntelliJ, Eclipse) | **Intentionally minimal** | Opinionated by design. Configurability added incrementally in Phase 5 for the options that matter most. |
 
 ### How we avoid the specific complaints from the article
 
-- **"Anything not enforced by CI is merely a suggestion"** — Both Gradle (Spotless) and Maven (`grind:check`) can fail the build.
+- **"Anything not enforced by CI is merely a suggestion"** — Both Gradle (Spotless) and Maven (`javafmt:check`) can fail the build.
 - **"Maven is too slow for a format-on-save workflow"** — The CLI (fat JAR or native binary) is the fast path for editors/LSP. Maven/Gradle are for CI enforcement.
 - **"Formatting isn't stable between versions"** — We treat formatting output as a contract. Formatting changes between versions are breaking changes and get major version bumps.
 - **"Requires a full NodeJS runtime"** — Pure Java, zero external runtime dependencies.
 - **"Requires the IDE to configure"** — Zero-config. No XML files to export.
-- **"No proper standalone tool"** — `grind-cli` works standalone from day one (Phase 1).
+- **"No proper standalone tool"** — `javafmt-cli` works standalone from day one (Phase 1).

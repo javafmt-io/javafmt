@@ -1,0 +1,17 @@
+package io.javafmt;
+
+import java.util.List;
+import java.util.Objects;
+
+public record FormatResult(String output, List<Diagnostic> diagnostics) {
+
+    public FormatResult {
+        Objects.requireNonNull(output, "output");
+        Objects.requireNonNull(diagnostics, "diagnostics");
+        diagnostics = List.copyOf(diagnostics);
+    }
+
+    public boolean hasErrors() {
+        return diagnostics.stream().anyMatch(Diagnostic::isError);
+    }
+}

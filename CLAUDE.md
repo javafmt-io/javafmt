@@ -1,4 +1,4 @@
-# Grind — Project Rules
+# Javafmt — Project Rules
 
 ## What is this project?
 
@@ -36,7 +36,7 @@ first use after a clean build.
 - **No nulls,** `Optional<T>` at API boundaries, `Objects.requireNonNull` at internal boundaries. Every package must have a `package-info.java` annotated `@NullMarked` (JSpecify compile-time enforcement) — `Objects.requireNonNull` is runtime defense-in-depth on top of that, not a replacement.
 - **No checked exceptions** in public API, wrap in unchecked exceptions
 - **Stream API over mutable accumulators.** Prefer `Stream` pipelines + `.toList()` over `ArrayList` + `for` + `.add()`. Mutable state is a code smell — if you are building a list imperatively, express it as a stream pipeline instead. For nullable results (e.g. `scan()`) in pipelines, use `flatMap(x -> Optional.ofNullable(f(x)).stream())` — this both filters nulls and narrows the element type in one step. The intersperse pattern (separator between elements, not after each) uses `.flatMap(e -> Stream.of(separator, e)).skip(1)`.
-- **Lombok,** use `@Slf4j` for logging in all modules; use `@Getter`/`@Setter` instead of hand-writing accessors; prefer records over `@Data` for data modeling. Lombok is `compileOnly` everywhere (annotation processor only, no runtime dep). `slf4j-api` is an `implementation` dep in all modules via `grind.java-conventions`; `grind-cli` bundles `slf4j-simple` as `runtimeOnly` since it has no host runtime to provide a binding.
+- **Lombok,** use `@Slf4j` for logging in all modules; use `@Getter`/`@Setter` instead of hand-writing accessors; prefer records over `@Data` for data modeling. Lombok is `compileOnly` everywhere (annotation processor only, no runtime dep). `slf4j-api` is an `implementation` dep in all modules via `javafmt.java-conventions`; `javafmt-cli` bundles `slf4j-simple` as `runtimeOnly` since it has no host runtime to provide a binding.
 
 ## Testing
 
@@ -49,13 +49,13 @@ first use after a clean build.
 
 ## Architecture
 
-- **`grind-core` has minimal runtime dependencies.** Every dep must be deliberate and well-justified, e.g. `slf4j-api` is acceptable. Test-only deps (JUnit 5, AssertJ) are always fine.
-- Integration modules (`grind-spotless`, `grind-maven-plugin`, `grind-cli`, `grind-intellij`) depend on `grind-core` and add only their integration-specific dependencies.
-- `grind-maven-plugin` is a Maven plugin JAR but is built by Gradle via the `org.gradlex.maven-plugin-development` plugin, which generates the `META-INF/maven/plugin.xml` descriptor from `@Mojo` annotations. One build system for the whole monorepo, no `mvn install` bootstrap needed.
-- Shared build conventions live in `buildSrc/src/main/kotlin/grind.java-conventions.gradle.kts`.
+- **`javafmt-core` has minimal runtime dependencies.** Every dep must be deliberate and well-justified, e.g. `slf4j-api` is acceptable. Test-only deps (JUnit 5, AssertJ) are always fine.
+- Integration modules (`javafmt-spotless`, `javafmt-maven-plugin`, `javafmt-cli`, `javafmt-intellij`) depend on `javafmt-core` and add only their integration-specific dependencies.
+- `javafmt-maven-plugin` is a Maven plugin JAR but is built by Gradle via the `org.gradlex.maven-plugin-development` plugin, which generates the `META-INF/maven/plugin.xml` descriptor from `@Mojo` annotations. One build system for the whole monorepo, no `mvn install` bootstrap needed.
+- Shared build conventions live in `buildSrc/src/main/kotlin/javafmt.java-conventions.gradle.kts`.
 - All dependency versions go in `gradle/libs.versions.toml`, nowhere else.
 
-## Formatting rules (what grind enforces)
+## Formatting rules (what javafmt enforces)
 
 - **150-character line width**
 - **K&R braces**, always required (even single-statement `if`/`for`/`while`); missing braces are auto-fixed by the `NeedBraces` lint rule
