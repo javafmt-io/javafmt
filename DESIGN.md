@@ -147,22 +147,53 @@ javafmt uses the [Google Java Style Guide](https://google.github.io/styleguide/j
 
 ### Safe rewrites (lint pass)
 
-Lint rules run *before* the formatter, in a fixed-point loop, and produce textual edits. Following [ruff](https://docs.astral.sh/ruff/)'s philosophy:
+javafmt implements [Checkstyle](https://checkstyle.org/)'s rule catalog the way [ruff](https://docs.astral.sh/ruff/) implements pylint/flake8: for each check, ask "can this be auto-fixed safely?" and if yes, implement it as a lint edit; if no, emit a `Diagnostic.Warning` only. This gives you Checkstyle's comprehensive rule coverage in a single tool invocation, without the sharp edge of fixes that could silently change behavior.
+
+Lint rules run *before* the formatter, in a fixed-point loop, and produce textual edits.
 
 - **The formatter never breaks code.** A rule may only emit an edit when the rewrite is guaranteed to preserve compilation and behavior. If applying the edit would produce non-compiling source (e.g. adding `final` to a parameter the body reassigns), the rule emits a `Diagnostic.Warning` instead and leaves the source untouched. The developer fixes the underlying issue (introduce a local copy, an `AtomicInteger` holder, etc.) and re-runs javafmt, after which the safe edit applies. Javafmt has no `--unsafe-fixes` mode in v1; cases that aren't safe are *only* surfaced as warnings.
 - **Edits are unconditional within their safety envelope.** Javafmt has no opt-in fixes — if the rule would fire, it fires.
 - **Convergence is required.** Re-running a rule on its own output must produce zero edits. The lint engine iterates rules until no edits remain (with a hard cap), so a rule that flip-flops would be a bug.
 
-Current rules:
+#### Auto-fix rules
 
-1. **Add braces** to braceless `if`/`else`/`for`/`while`/`do-while` bodies.
-2. **`FinalLocalVariable`** — add `final` to local variable declarations whose value is never reassigned. Reassigned locals are out of scope (no warning).
-3. **`FinalParameters`** — add `final` to method/constructor parameters. When a parameter is reassigned in the body, emit a warning instead of breaking compilation.
-4. **`ArrayTrailingComma`** — add a trailing comma to every non-empty array initializer. Empty initializers (`{}`) are skipped. The formatter cooperates by emitting trailing commas in its array rendering, so the convention is preserved across re-format cycles.
-5. **Replace declared type with `var`** on locals whose initializer's expression type exactly matches the declared type.
-6. **Move `default`** to the last position in arrow-form switches.
+| Rule | Checkstyle check | What javafmt does |
+|------|-----------------|-------------------|
+| **NeedBraces** | `NeedBraces` | Add `{}` to braceless `if`/`else`/`for`/`while`/`do-while` bodies. |
+| **FinalLocalVariable** | `FinalLocalVariable` | Add `final` to locals never reassigned. Reassigned locals: no warning (Checkstyle flags them; javafmt skips). |
+| **FinalParameters** | `FinalParameters` | Add `final` to method/constructor parameters. Reassigned parameters: warning only (Checkstyle flags them; javafmt won't break compilation). |
+| **ArrayTrailingComma** | `ArrayTrailingComma` | Add trailing comma to non-empty array initializers. Empty initializers (`{}`) are skipped. The formatter cooperates by emitting trailing commas in its array rendering, so the convention survives re-format cycles. |
+| **LocalVarUseVar** | — | Replace declared type with `var` where the initializer's expression type exactly matches the declared type. |
+| **DefaultComesLast** | `DefaultComesLast` | Move `default` to last position in arrow-form switches. For colon-form, only when `default` has its own terminating body and isn't part of a label group; otherwise warn. |
+| **ModifierOrder** | `ModifierOrder` | Reorder modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. |
+| **RedundantModifier** | `RedundantModifier` | Remove implied modifiers: `public abstract` on interface methods, `public static final` on interface fields, `static` on nested enum/record/interface declarations, `final` on private methods. |
+| **ArrayTypeStyle** | `ArrayTypeStyle` | Rewrite C-style array declarations: `String args[]` → `String[] args`. |
+| **UpperEll** | `UpperEll` | Rewrite lowercase-ell long literals: `1l` → `1L`. |
+| **MultipleVariableDeclarations** | `MultipleVariableDeclarations` | Split `int a, b = 0;` into one declaration per line. |
+| **UnusedImports** | `UnusedImports` | Remove imports not referenced anywhere in the compilation unit. |
+| **EmptyStatement** | `EmptyStatement` | Remove lone `;` empty statements. |
+| **OneStatementPerLine** | `OneStatementPerLine` | Split multiple statements on one line into separate lines. |
+| **NewlineAtEndOfFile** | `NewlineAtEndOfFile` | Ensure the file ends with exactly one `\n`. |
+| **ExplicitInitialization** | `ExplicitInitialization` | Remove explicit default initialization: `int x = 0;` → `int x;`, `Object o = null;` → `Object o;`, `boolean b = false;` → `boolean b;`. |
 
-Non-safe transformations (colon-form switch rewrites, refactorings, opinionated style changes) are out of scope.
+#### Warning-only rules
+
+These Checkstyle checks detect real problems but cannot be auto-fixed without risking behavior change or compilation failure. javafmt emits a `Diagnostic.Warning` and leaves the source untouched.
+
+| Rule | Checkstyle check | Why no auto-fix |
+|------|-----------------|-----------------|
+| **FallThrough** | `FallThrough` | Adding `break;` changes behavior in intentional fall-through. Accept intentional fall-through by adding a `// fallthrough` comment between cases. |
+| **EqualsHashCode** | `EqualsHashCode` | Override both `equals` and `hashCode` or neither. Generating a correct `hashCode` requires knowing the class's identity fields — a semantic decision. |
+| **MissingSwitchDefault** | `MissingSwitchDefault` | Switch statement without a `default` arm. What to put in the default block is a semantic decision. |
+| **EmptyBlock** | `EmptyBlock` | Empty `catch`/`finally`/`else` blocks. Adding content requires intent; removing the block may change semantics. |
+| **AvoidStarImport** | `AvoidStarImport` | Wildcard imports can resolve to multiple candidates; safely expanding them requires a full symbol resolver. |
+| **HideUtilityClassConstructor** | `HideUtilityClassConstructor` | Utility class lacks a private no-arg constructor. Adding one is structurally safe, but reliable "utility class" detection without false positives requires type-level analysis. |
+| **CovariantEquals** | `CovariantEquals` | `equals(MyType)` defined but doesn't override `equals(Object)`. Fixing this changes the method signature and may affect callers. |
+| **StringLiteralEquality** | `StringLiteralEquality` | `==` used to compare string references. Safe substitution (`str.equals(other)`) requires confirming the operand type is `String`, which needs a type resolver. |
+
+#### Out-of-scope checks
+
+Detection-only checks with no plausible safe auto-fix — complexity metrics (`CyclomaticComplexity`, `NPathComplexity`), naming conventions (`MethodName`, `TypeName`), magic-number detection, API restriction checks — are out of scope for the lint pass. Projects that need them can run Checkstyle separately alongside javafmt.
 
 #### Oracle TDD for lint rules
 

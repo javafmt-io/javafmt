@@ -70,5 +70,6 @@ first use after a clean build.
 - **Annotations**: left alone (v1)
 - **Javadoc/comments**: left alone (v1)
 - **Blank lines**: one between methods, one between visibility groups, no doubles, no blanks after `{` or before `}`
-- **Switch fall-through**: build failure via the `FallThrough` lint rule; no auto-fix (adding `break;` could change behavior in cases of intentional fall-through). To accept intentional fall-through, add a `// fallthrough` comment between cases.
-- **`default` case position**: auto-fixed by the `DefaultComesLast` lint rule when safe (always for arrow-form switches; for colon-form, only when default has its own terminating body and isn't part of a label group). Otherwise warned (no edit) — the unsafe shapes still need a human decision.
+- **Lint pass**: javafmt applies Checkstyle's rule catalog ruff-style — safe rewrites are auto-fixes, unsafe ones are warnings only. See `DESIGN.md § Safe rewrites` for the full catalog.
+  - *Auto-fixes* (unconditional): `NeedBraces`, `FinalLocalVariable`, `FinalParameters`, `ArrayTrailingComma`, `LocalVarUseVar`, `DefaultComesLast`, `ModifierOrder`, `RedundantModifier`, `ArrayTypeStyle`, `UpperEll`, `MultipleVariableDeclarations`, `UnusedImports`, `EmptyStatement`, `OneStatementPerLine`, `NewlineAtEndOfFile`, `ExplicitInitialization`.
+  - *Warnings only*: `FallThrough` (suppress with `// fallthrough`), `EqualsHashCode`, `MissingSwitchDefault`, `EmptyBlock`, `AvoidStarImport`, `HideUtilityClassConstructor`, `CovariantEquals`, `StringLiteralEquality`.
