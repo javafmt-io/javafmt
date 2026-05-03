@@ -3,9 +3,12 @@ import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
     id("javafmt.java-conventions")
+    id("javafmt.publish-conventions")
     alias(libs.plugins.jmh)
     `jvm-test-suite`
 }
+
+description = "Core formatting engine for javafmt."
 
 testing {
     suites {

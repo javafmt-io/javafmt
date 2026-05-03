@@ -12,6 +12,8 @@ errorprone = "2.49.0"
 nullaway = "0.13.4"
 jmh = "0.7.3"
 checkstyle = "13.4.0"
+jreleaser = "1.15.0"
+axionRelease = "1.18.0"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -32,3 +34,5 @@ checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checks
 maven-plugin-development = { id = "org.gradlex.maven-plugin-development", version.ref = "maven-plugin-development" }
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
 jmh = { id = "me.champeau.jmh", version.ref = "jmh" }
+jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }
+axionRelease = { id = "pl.allegro.tech.build.axion-release", version.ref = "axionRelease" }

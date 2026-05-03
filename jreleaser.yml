@@ -1,0 +1,47 @@
+project:
+  name: javafmt
+  description: Opinionated, high-performance Java code formatter for modern LTS (Java 21+).
+  longDescription: |
+    javafmt is an opinionated, high-performance Java code formatter for modern LTS (Java 21+).
+    It enforces consistent style with a 150-character line width, K&R braces, smart member
+    ordering, and a ruff-style lint pass with safe auto-fixes.
+  links:
+    homepage: https://javafmt.io
+    documentation: https://javafmt.io/docs
+    license: https://opensource.org/licenses/MIT
+    bugTracker: https://github.com/javafmt-io/javafmt/issues
+  license: MIT
+  inceptionYear: "2024"
+  authors:
+    - Jim Schneidereit
+
+release:
+  github:
+    owner: javafmt-io
+    name: javafmt
+    overwrite: true
+    changelog:
+      formatted: ALWAYS
+      preset: conventional-commits
+      format: "- {{commitShortHash}} {{commitTitle}}"
+      skipMergeCommits: true
+      contributors:
+        format: "- {{contributorName}} ({{contributorUsernameAsLink}})"
+      hide:
+        uncategorized: true
+
+signing:
+  active: ALWAYS
+  armored: true
+  mode: MEMORY
+
+deploy:
+  maven:
+    mavenCentral:
+      central:
+        active: ALWAYS
+        url: https://central.sonatype.com/api/v1/publisher
+        stagingRepositories:
+          - build/staging-deploy
+        retryDelay: 20
+        maxRetries: 60

@@ -11,7 +11,7 @@ plugins {
 val libs = the<VersionCatalogsExtension>().named("libs")
 
 group = "io.javafmt"
-version = "0.1.0-SNAPSHOT"
+version = project.rootProject.version
 
 java {
     toolchain {
