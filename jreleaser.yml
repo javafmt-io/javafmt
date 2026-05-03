@@ -31,7 +31,7 @@ release:
         uncategorized: true
 
 signing:
-  active: ALWAYS
+  active: NEVER
   armored: true
   mode: MEMORY
 
@@ -39,7 +39,7 @@ deploy:
   maven:
     mavenCentral:
       central:
-        active: ALWAYS
+        active: NEVER
         url: https://central.sonatype.com/api/v1/publisher
         stagingRepositories:
           - build/staging-deploy
