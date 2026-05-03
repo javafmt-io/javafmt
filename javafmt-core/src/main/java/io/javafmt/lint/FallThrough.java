@@ -14,18 +14,13 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Hard-fails when a colon-form switch case (e.g. {@code case 1:}) silently falls through
- * into the next case. Almost always a bug — the formatter refuses to wave it through.
+ * Warns when a colon-form switch case (e.g. {@code case 1:}) silently falls through into the
+ * next case. Almost always a bug. Authors must either insert {@code break;} or annotate the
+ * boundary with a {@code // fallthrough}-style comment to suppress the warning.
  *
- * <p>Auto-fixing is intentionally out of scope: inserting {@code break;} could change
- * behavior in the rare case where fall-through was intentional. Authors must either insert
- * {@code break;} themselves or annotate the boundary with a {@code // fallthrough}-style
- * comment to acknowledge intent.
- *
- * <p>Out of scope (v1): arrow-form ({@code case L -> body}) where fall-through is
- * impossible by grammar; multi-path control-flow analysis (e.g. {@code if/else} both
- * exiting); cases whose structure exceeds the shared {@link StatementFlow} helper's
- * one-level block recursion.
+ * <p>Out of scope (v1): arrow-form ({@code case L -> body}) where fall-through is impossible
+ * by grammar; multi-path control-flow analysis (e.g. {@code if/else} both exiting); cases
+ * whose structure exceeds the shared {@link StatementFlow} helper's one-level block recursion.
  */
 public final class FallThrough implements LintRule {
 
@@ -81,7 +76,7 @@ public final class FallThrough implements LintRule {
             if (hasFallThroughComment(current, cases.get(i + 1), unit)) {
                 continue;
             }
-            diagnostics.add(new Diagnostic.LintError(MESSAGE, unit.positionOf(current)));
+            diagnostics.add(new Diagnostic.Warning(MESSAGE, unit.positionOf(current)));
         }
     }
 

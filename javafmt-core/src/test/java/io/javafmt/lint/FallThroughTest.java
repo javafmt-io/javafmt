@@ -151,8 +151,8 @@ class FallThroughTest {
         assertThat(result.edits()).isEmpty();
         assertThat(result.diagnostics()).hasSize(1);
         final var d = result.diagnostics().get(0);
-        assertThat(d).isInstanceOf(Diagnostic.LintError.class);
-        assertThat(d.isError()).isTrue();
+        assertThat(d).isInstanceOf(Diagnostic.Warning.class);
+        assertThat(d.isError()).isFalse();
         assertThat(d.message()).contains("falls through");
     }
 
@@ -178,7 +178,7 @@ class FallThroughTest {
             """);
         final var result = new FallThrough().apply(unit);
         assertThat(result.diagnostics()).hasSize(2);
-        assertThat(result.diagnostics()).allMatch(d -> d instanceof Diagnostic.LintError);
+        assertThat(result.diagnostics()).allMatch(d -> d instanceof Diagnostic.Warning);
     }
 
     @Test
@@ -305,7 +305,7 @@ class FallThroughTest {
     }
 
     @Test
-    void endToEndFormatPropagatesLintError() {
+    void endToEndFormatPropagatesFallThroughWarning() {
         final var src = """
             class Fixture {
                 void test(final int x) {
@@ -322,7 +322,7 @@ class FallThroughTest {
             }
             """;
         final var result = Javafmt.formatWithResult(src);
-        assertThat(result.diagnostics()).anyMatch(d -> d instanceof Diagnostic.LintError);
-        assertThat(result.hasErrors()).isTrue();
+        assertThat(result.diagnostics()).anyMatch(d -> d instanceof Diagnostic.Warning);
+        assertThat(result.hasErrors()).isFalse();
     }
 }
