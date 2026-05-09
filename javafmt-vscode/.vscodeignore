@@ -1,0 +1,6 @@
+**
+!out/**
+!bin/**
+!package.json
+!LICENSE
+out/test/**

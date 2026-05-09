@@ -18,10 +18,26 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.4.1'
 
+      - name: Cache node_modules and VS Code test binary
+        uses: actions/cache@v4
+        with:
+          path: |
+            javafmt-vscode/node_modules
+            javafmt-vscode/.vscode-test
+          key: npm-vscode-${{ runner.os }}-${{ hashFiles('javafmt-vscode/package.json') }}
+
+      - name: Install Xvfb
+        run: sudo apt-get install -y xvfb
+
       - name: Build
-        run: gradle build
+        run: xvfb-run -a gradle build

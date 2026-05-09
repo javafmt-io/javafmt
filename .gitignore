@@ -9,6 +9,12 @@ gradle/wrapper/
 
 bin/
 
+
+# Node
+node_modules/
+.vscode-test/
+out/
+
 # Maven
 target/
 

@@ -16,6 +16,7 @@ jreleaser = "1.15.0"
 axionRelease = "1.18.0"
 jackson = "3.1.3"
 shadow = "9.0.0"
+nodeGradle = "7.0.1"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -40,3 +41,4 @@ jmh = { id = "me.champeau.jmh", version.ref = "jmh" }
 jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }
 axionRelease = { id = "pl.allegro.tech.build.axion-release", version.ref = "axionRelease" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+nodeGradle = { id = "com.github.node-gradle.node", version.ref = "nodeGradle" }

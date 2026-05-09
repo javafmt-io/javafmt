@@ -1,5 +1,6 @@
 plugins {
     id("javafmt.java-conventions")
+    id("javafmt.npm-conventions")
     application
     alias(libs.plugins.shadow)
 }
@@ -21,4 +22,13 @@ tasks.shadowJar {
     mergeServiceFiles()
 }
 
-tasks.named("build") { dependsOn(tasks.shadowJar) }
+val copyDaemonJar by tasks.registering(Copy::class) {
+    from(tasks.shadowJar)
+    into(layout.projectDirectory.dir("bin"))
+    rename { "javafmt-daemon.jar" }
+}
+
+tasks.named("packageVsix") {
+    dependsOn(copyDaemonJar)
+    inputs.dir(layout.projectDirectory.dir("bin"))
+}
