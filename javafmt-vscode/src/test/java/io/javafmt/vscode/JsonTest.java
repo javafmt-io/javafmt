@@ -9,6 +9,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 class JsonTest {
 
     @Test
+    void deserializesFormatRequestWithConfig() {
+        final var json = """
+            {"id":"x","source":"class A {}","config":{"reorderMembers":true}}""";
+        final var req = Json.parse(json, FormatRequest.class);
+        assertThat(req.config()).isNotNull();
+        assertThat(req.config().reorderMembers()).isTrue();
+    }
+
+    @Test
+    void deserializesFormatRequestWithoutConfig() {
+        final var json = """
+            {"id":"x","source":"class A {}"}""";
+        final var req = Json.parse(json, FormatRequest.class);
+        assertThat(req.config()).isNull();
+    }
+
+    @Test
     void deserializesFormatRequest() {
         final var json = """
             {"id":"abc123","source":"class A {}"}""";

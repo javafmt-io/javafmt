@@ -69,6 +69,7 @@ export const workspace = {
 export const languages = {
     createDiagnosticCollection: jest.fn(() => ({ set: jest.fn(), dispose: jest.fn() })),
     registerDocumentFormattingEditProvider: jest.fn(() => ({ dispose: jest.fn() })),
+    registerDocumentRangeFormattingEditProvider: jest.fn(() => ({ dispose: jest.fn() })),
 };
 
 export const commands = {

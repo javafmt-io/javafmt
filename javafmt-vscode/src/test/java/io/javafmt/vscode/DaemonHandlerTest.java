@@ -32,6 +32,36 @@ class DaemonHandlerTest {
     }
 
     @Test
+    void absentConfigPreservesDeclarationOrder() {
+        // method declared before field — without reorderMembers, declaration order is kept
+        final var source = """
+            class Foo {
+                public void m() {}
+                int field;
+            }
+            """;
+        final var req = new FormatRequest("id4", source);
+        final var resp = DaemonHandler.handle(req);
+        assertThat(resp.output().indexOf("void m()"))
+            .isLessThan(resp.output().indexOf("int field"));
+    }
+
+    @Test
+    void configReorderMembersPassedToFormatter() {
+        // method declared before field — with reorderMembers, field (INSTANCE_FIELD) moves above method (PUBLIC_METHOD)
+        final var source = """
+            class Foo {
+                public void m() {}
+                int field;
+            }
+            """;
+        final var req = new FormatRequest("id5", source, new ConfigDto(true));
+        final var resp = DaemonHandler.handle(req);
+        assertThat(resp.output().indexOf("int field"))
+            .isLessThan(resp.output().indexOf("void m()"));
+    }
+
+    @Test
     void mapsLintWarningToWarningSeverity() {
         // FallThrough triggers a warning diagnostic
         final var source = """

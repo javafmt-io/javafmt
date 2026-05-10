@@ -44,6 +44,11 @@
           "type": "boolean",
           "default": false,
           "description": "Format Java files on save. Shorthand for setting editor.formatOnSave and [java].editor.defaultFormatter yourself."
+        },
+        "javafmt.reorderMembers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reorder class/enum/record members into canonical group order (static fields, instance fields, constructors, methods by visibility, nested types)."
         }
       }
     }

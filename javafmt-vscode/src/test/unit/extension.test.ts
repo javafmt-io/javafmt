@@ -1,7 +1,29 @@
-import { activate, toDiagnostics, isJavaDocument, statusFor } from '../extension';
-import { DiagnosticSeverity, Position, mockStatusBar, setActiveTextEditor } from '../__mocks__/vscode';
+import { activate, toDiagnostics, isJavaDocument, statusFor, buildRequest } from '../../extension';
+import { DiagnosticSeverity, Position, mockStatusBar, setActiveTextEditor } from '../../__mocks__/vscode';
 import * as vscode from 'vscode';
 import type * as vscodeTypes from 'vscode';
+
+// ---------------------------------------------------------------------------
+// buildRequest
+// ---------------------------------------------------------------------------
+
+describe('buildRequest', () => {
+    it('includes config.reorderMembers=true when specified', () => {
+        const payload = buildRequest('id1', 'class A {}', true) as Record<string, unknown>;
+        expect((payload.config as Record<string, unknown>).reorderMembers).toBe(true);
+    });
+
+    it('includes config.reorderMembers=false when specified', () => {
+        const payload = buildRequest('id1', 'class A {}', false) as Record<string, unknown>;
+        expect((payload.config as Record<string, unknown>).reorderMembers).toBe(false);
+    });
+
+    it('echoes the id and source into the payload', () => {
+        const payload = buildRequest('abc', 'class B {}', false) as Record<string, unknown>;
+        expect(payload.id).toBe('abc');
+        expect(payload.source).toBe('class B {}');
+    });
+});
 
 // ---------------------------------------------------------------------------
 // toDiagnostics
@@ -129,6 +151,13 @@ describe('after activate()', () => {
             onChangeEditor();
             expect(mockStatusBar.hide).toHaveBeenCalledTimes(1);
             expect(mockStatusBar.show).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('registerDocumentRangeFormattingEditProvider', () => {
+        it('registers a range formatting provider for java', () => {
+            expect(vscode.languages.registerDocumentRangeFormattingEditProvider)
+                .toHaveBeenCalledWith('java', expect.any(Object));
         });
     });
 

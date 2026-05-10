@@ -1,4 +1,4 @@
-import { parseResponse } from '../protocol';
+import { parseResponse } from '../../protocol';
 
 describe('parseResponse', () => {
     it('parses a well-formed response', () => {

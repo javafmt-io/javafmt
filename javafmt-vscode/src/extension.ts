@@ -45,6 +45,15 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 
+    // javafmt is a whole-file formatter; range formatting formats the full document.
+    ctx.subscriptions.push(
+        vscode.languages.registerDocumentRangeFormattingEditProvider('java', {
+            provideDocumentRangeFormattingEdits(doc: vscode.TextDocument, _range: vscode.Range): Promise<vscode.TextEdit[]> {
+                return getFormattingEdits(doc);
+            },
+        })
+    );
+
     // javafmt.formatOnSave: convenience alias so users don't have to set
     // editor.formatOnSave + [java].editor.defaultFormatter manually.
     ctx.subscriptions.push(
@@ -196,10 +205,16 @@ function stopDaemon(): void {
     pending.clear();
 }
 
+// Exported for testing.
+export function buildRequest(id: string, source: string, reorderMembers: boolean): object {
+    return { id, source, config: { reorderMembers } };
+}
+
 function sendRequest(source: string): Promise<FormatResponse> {
     return new Promise((resolve, reject) => {
         const id = crypto.randomUUID();
         pending.set(id, { resolve, reject });
-        daemon!.stdin!.write(JSON.stringify({ id, source }) + '\n');
+        const reorderMembers = vscode.workspace.getConfiguration('javafmt').get<boolean>('reorderMembers', false);
+        daemon!.stdin!.write(JSON.stringify(buildRequest(id, source, reorderMembers)) + '\n');
     });
 }
