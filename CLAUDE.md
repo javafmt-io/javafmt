@@ -6,7 +6,8 @@ An opinionated, high-performance Java code formatter for modern LTS (21+). See `
 
 ## Build commands
 
-- **Always use `gradle`**, never `./gradlew`
+- **Always use `gradle`**, never `./gradlew`, never `npm`
+- All build operations — including TypeScript compilation and Jest tests — go through Gradle tasks (`gradle :javafmt-vscode:npmBuild`, `gradle :javafmt-vscode:npmTest`, etc.). Never run `npm` directly.
 
 ## Code intelligence (Claude Code)
 
