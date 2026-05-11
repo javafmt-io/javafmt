@@ -1,5 +1,8 @@
 import { activate, deactivate, toDiagnostics, isJavaDocument, statusFor, buildRequest, nativeBinaryName, resolveDaemonExecutable } from '../../extension';
+import * as child_process from 'child_process';
+import { EventEmitter } from 'events';
 import * as fs from 'fs';
+import { PassThrough } from 'stream';
 import { DiagnosticSeverity, Position, mockStatusBar, setActiveTextEditor } from '../../__mocks__/vscode';
 import * as vscode from 'vscode';
 import type * as vscodeTypes from 'vscode';
@@ -115,6 +118,15 @@ function makeContext(): vscodeTypes.ExtensionContext {
     } as unknown as vscodeTypes.ExtensionContext;
 }
 
+function mockProcess(): child_process.ChildProcess {
+    return Object.assign(new EventEmitter(), {
+        stdin: { write: jest.fn() },
+        stdout: new PassThrough(),
+        stderr: new PassThrough(),
+        kill: jest.fn(),
+    }) as unknown as child_process.ChildProcess;
+}
+
 describe('after activate()', () => {
     let onChangeEditor: () => void;
     let onWillSave: (e: { document: { languageId: string }; waitUntil: jest.Mock }) => void;
@@ -216,6 +228,54 @@ describe('after activate()', () => {
         it('registers a range formatting provider for java', () => {
             expect(vscode.languages.registerDocumentRangeFormattingEditProvider)
                 .toHaveBeenCalledWith('java', expect.any(Object));
+        });
+    });
+
+    // ---------------------------------------------------------------------------
+    // startDaemon spawn behavior — verified by observing child_process.spawn calls
+    // ---------------------------------------------------------------------------
+
+    // Spies are created inside each test (after the outer beforeEach's activate() runs) so
+    // the module-level spawn mock does not pre-count calls from the outer beforeEach setup.
+    describe('startDaemon spawn behavior', () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+            deactivate();
+        });
+
+        it('spawns the native binary directly (no java -jar) when the platform binary exists', () => {
+            const name = nativeBinaryName(process.platform, process.arch);
+            if (!name) return; // skip on unsupported CI platforms
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+            jest.spyOn(fs, 'existsSync').mockImplementation((p) => String(p).endsWith(name));
+            deactivate();
+            activate(makeContext());
+            expect(spawnSpy).toHaveBeenCalledWith(
+                expect.stringContaining(name),
+                [],
+                expect.any(Object),
+            );
+        });
+
+        it('spawns via java -jar when only the bundled jar exists', () => {
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+            jest.spyOn(fs, 'existsSync').mockImplementation((p) => String(p).endsWith('.jar'));
+            deactivate();
+            activate(makeContext());
+            expect(spawnSpy).toHaveBeenCalledWith(
+                'java',
+                ['-jar', expect.stringContaining('.jar')],
+                expect.any(Object),
+            );
+        });
+
+        it('shows error message when neither native binary nor jar exists', () => {
+            jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+            deactivate();
+            activate(makeContext());
+            expect(vscode.window.showErrorMessage).toHaveBeenLastCalledWith(
+                expect.stringContaining('daemon not found'),
+            );
         });
     });
 

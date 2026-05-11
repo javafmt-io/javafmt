@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('javafmt.restartDaemon', () => {
             stopDaemon();
             startDaemon();
-            vscode.window.showInformationMessage('javafmt daemon restarted.');
+            void vscode.window.showInformationMessage('javafmt daemon restarted.');
         })
     );
 
@@ -133,7 +133,7 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setStatus('error', msg);
-        vscode.window.showErrorMessage(`javafmt: ${msg}`);
+        void vscode.window.showErrorMessage(`javafmt: ${msg}`);
         return [];
     }
     setStatus('ready');
@@ -150,18 +150,29 @@ function startDaemon(): void {
     const config = vscode.workspace.getConfiguration('javafmt');
     const java = config.get<string>('javaExecutable', 'java');
     const jarOverride = config.get<string>('daemonJar', '');
-    const jarPath = jarOverride || ctx.asAbsolutePath(path.join('bin', 'javafmt-daemon.jar'));
 
-    if (!fs.existsSync(jarPath)) {
-        const msg = `daemon jar not found at ${jarPath}`;
-        setStatus('error', msg);
-        vscode.window.showErrorMessage(`javafmt: ${msg}. Run 'gradle :javafmt-vscode:build' to build it.`);
-        return;
+    let proc: child_process.ChildProcess;
+    if (jarOverride) {
+        if (!fs.existsSync(jarOverride)) {
+            const msg = `daemon jar not found at ${jarOverride}`;
+            setStatus('error', msg);
+            void vscode.window.showErrorMessage(`javafmt: ${msg}`);
+            return;
+        }
+        proc = child_process.spawn(java, ['-jar', jarOverride], { stdio: ['pipe', 'pipe', 'pipe'] });
+    } else {
+        const executable = resolveDaemonExecutable(ctx);
+        if (executable.kind === 'missing') {
+            const msg = 'daemon not found — run "gradle :javafmt-vscode:build" to build it';
+            setStatus('error', msg);
+            void vscode.window.showErrorMessage(`javafmt: ${msg}`);
+            return;
+        }
+        proc = executable.kind === 'native'
+            ? child_process.spawn(executable.path, [], { stdio: ['pipe', 'pipe', 'pipe'] })
+            : child_process.spawn(java, ['-jar', executable.path], { stdio: ['pipe', 'pipe', 'pipe'] });
     }
 
-    const proc = child_process.spawn(java, ['-jar', jarPath], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-    });
     daemon = proc;
     setStatus('ready');
 

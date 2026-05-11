@@ -1,0 +1,77 @@
+name: Native
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+# Builds platform-specific native binaries for javafmt-cli and the VS Code daemon.
+# GraalVM cannot cross-compile, so each OS/arch runs its own job.
+#
+# First-time setup: before this workflow can succeed, the GraalVM tracing agent
+# must be run locally to collect reflection metadata:
+#
+#   gradle -Pagent :javafmt-cli:test
+#   gradle :javafmt-cli:metadataCopy --task test \
+#     --dir javafmt-cli/src/main/resources/META-INF/native-image/io.javafmt/javafmt-cli
+#
+#   gradle -Pagent :javafmt-vscode:test
+#   gradle :javafmt-vscode:metadataCopy --task test \
+#     --dir javafmt-vscode/src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
+#
+# Commit the generated metadata, then re-trigger this workflow.
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            cli-artifact: javafmt-linux-amd64
+            daemon-artifact: javafmt-daemon-linux-amd64
+          - os: macos-latest
+            cli-artifact: javafmt-macos-arm64
+            daemon-artifact: javafmt-daemon-darwin-arm64
+          - os: windows-latest
+            cli-artifact: javafmt-windows-amd64
+            daemon-artifact: javafmt-daemon-windows-amd64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          native-image-job-reports: 'true'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.4.1'
+
+      - name: Compile CLI native binary
+        run: gradle :javafmt-cli:nativeCompile
+
+      - name: Upload CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.cli-artifact }}
+          path: |
+            javafmt-cli/build/native/nativeCompile/javafmt
+            javafmt-cli/build/native/nativeCompile/javafmt.exe
+          if-no-files-found: error
+
+      - name: Compile daemon native binary
+        run: gradle :javafmt-vscode:nativeCompile
+
+      - name: Upload daemon binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.daemon-artifact }}
+          path: |
+            javafmt-vscode/build/native/nativeCompile/javafmt-daemon
+            javafmt-vscode/build/native/nativeCompile/javafmt-daemon.exe
+          if-no-files-found: error
