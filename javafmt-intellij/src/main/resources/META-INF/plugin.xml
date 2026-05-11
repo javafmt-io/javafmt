@@ -1,0 +1,19 @@
+
+<idea-plugin>
+    <id>io.javafmt.intellij</id>
+    <name>javafmt</name>
+    <vendor url="https://github.com/javafmt-io/javafmt">javafmt</vendor>
+    <description><![CDATA[
+        Opinionated, high-performance Java formatter for Java 21+.<br/>
+        Hooks into <em>Reformat Code</em> (⌘⌥L / Ctrl+Alt+L) to format the whole file with javafmt.
+        Partial-range reformatting falls back to IntelliJ's built-in formatter.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <externalFormatProcessor
+            implementation="io.javafmt.intellij.JavafmtExternalFormatProcessor"/>
+    </extensions>
+</idea-plugin>

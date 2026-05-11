@@ -182,10 +182,20 @@ public final class JavaParser {
 
     private static JavaCompiler lookupCompiler() {
         final var compiler = ToolProvider.getSystemJavaCompiler();
-        if (compiler == null) {
-            throw new IllegalStateException("No system Java compiler available; run on a JDK, not a JRE");
+        if (compiler != null) {
+            return compiler;
         }
-        return compiler;
+        // Fallback for host environments (e.g. IntelliJ + JBR) where the custom system
+        // class loader blocks ToolProvider's module-layer service lookup. IntelliJ always
+        // opens jdk.compiler/com.sun.tools.javac.api to unnamed modules, so direct
+        // instantiation via the platform class loader works there.
+        try {
+            final var cls = Class.forName(
+                    "com.sun.tools.javac.api.JavacTool", true, ClassLoader.getPlatformClassLoader());
+            return (JavaCompiler) cls.getDeclaredConstructor().newInstance();
+        } catch (final ReflectiveOperationException e) {
+            throw new IllegalStateException("No Java compiler available; run on a JDK, not a JRE", e);
+        }
     }
 
     private static Position positionOf(final javax.tools.Diagnostic<? extends JavaFileObject> d) {

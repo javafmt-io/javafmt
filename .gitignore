@@ -34,6 +34,9 @@ Thumbs.db
 *.class
 hs_err_pid*
 
+# IntelliJ Platform Gradle Plugin
+.intellijPlatform/
+
 # GraalVM
 *.o
 *.build_artifacts.txt
