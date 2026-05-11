@@ -2,7 +2,6 @@ package io.javafmt.maven;
 
 import io.javafmt.Diagnostic;
 import io.javafmt.Javafmt;
-import io.javafmt.Position;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -18,18 +17,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Mojo(name = "format", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
-public final class JavafmtMojo extends AbstractMojo {
+@Mojo(name = "check", defaultPhase = LifecyclePhase.VERIFY, threadSafe = true)
+public final class JavafmtCheckMojo extends AbstractMojo {
 
     @Nullable
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject project;
 
-    public JavafmtMojo() {}
+    public JavafmtCheckMojo() {}
 
-    JavafmtMojo(final MavenProject project) {
+    JavafmtCheckMojo(final MavenProject project) {
         this.project = project;
     }
 
@@ -43,16 +44,23 @@ public final class JavafmtMojo extends AbstractMojo {
         ).toList();
 
         try {
-            final var results = files.stream().map(this::processFile).toList();
-            final var formattedCount = results.stream().filter(FileResult::changed).count();
-            final var warningCount = results.stream().mapToLong(FileResult::warnings).sum();
-            getLog().info("javafmt: formatted " + formattedCount + " files, " + warningCount + " warnings");
+            final var unformatted = files.stream()
+                .flatMap(file -> checkFile(file).stream())
+                .toList();
+            if (!unformatted.isEmpty()) {
+                final var fileList = unformatted.stream()
+                    .map(file -> "  " + file)
+                    .collect(Collectors.joining("\n"));
+                throw new MojoExecutionException(
+                    "javafmt check failed: " + unformatted.size() + " file(s) not formatted:\n" + fileList
+                );
+            }
         } catch (final UncheckedIOException e) {
             throw new MojoExecutionException("javafmt: I/O error: " + e.getMessage(), e.getCause());
         }
     }
 
-    private FileResult processFile(final Path file) {
+    private Optional<Path> checkFile(final Path file) {
         final String content;
         try {
             content = Files.readString(file, StandardCharsets.UTF_8);
@@ -62,38 +70,18 @@ public final class JavafmtMojo extends AbstractMojo {
 
         final var result = Javafmt.formatWithResult(content);
 
-        final var hasParseErrors = result.diagnostics().stream()
-            .anyMatch(d -> d instanceof Diagnostic.ParseError);
-        if (hasParseErrors) {
+        if (result.diagnostics().stream().anyMatch(d -> d instanceof Diagnostic.ParseError)) {
             result.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.ParseError)
                 .forEach(d -> getLog().warn("javafmt: parse error in " + file + ": " + d.message()));
-            return new FileResult(false, 0);
+            return Optional.empty();
         }
-
-        final var warnings = result.diagnostics().stream()
-            .flatMap(d -> d instanceof final Diagnostic.Warning w ? Stream.of(w) : Stream.empty())
-            .toList();
-        warnings.forEach(w -> getLog().info("javafmt: " + file + formatPosition(w) + " " + w.message()));
 
         if (!result.output().equals(content)) {
-            try {
-                Files.writeString(file, result.output(), StandardCharsets.UTF_8);
-            } catch (final IOException e) {
-                throw new UncheckedIOException("Failed to write " + file, e);
-            }
-            getLog().debug("javafmt: formatted " + file);
-            return new FileResult(true, warnings.size());
+            return Optional.of(file);
         }
 
-        return new FileResult(false, warnings.size());
-    }
-
-    private static String formatPosition(final Diagnostic d) {
-        return switch (d.position()) {
-            case Position.At at -> ":" + at.line() + ":" + at.column();
-            case Position.Unknown ignored -> "";
-        };
+        return Optional.empty();
     }
 
     private List<Path> walkDir(final @Nullable String dir) throws MojoExecutionException {
@@ -110,6 +98,4 @@ public final class JavafmtMojo extends AbstractMojo {
             throw new MojoExecutionException("Failed to walk " + dir, e);
         }
     }
-
-    private record FileResult(boolean changed, int warnings) {}
 }

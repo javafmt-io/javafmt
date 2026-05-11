@@ -16,8 +16,10 @@ dependencies {
     implementation(project(":javafmt-core"))
     compileOnly(libs.slf4j.api)
     compileOnly(libs.maven.plugin.api)
+    compileOnly(libs.maven.core)
     compileOnly(libs.maven.plugin.annotations)
     testImplementation(libs.maven.plugin.api)
+    testImplementation(libs.maven.core)
     testCompileOnly(libs.maven.plugin.annotations)
     testRuntimeOnly(libs.slf4j.simple)
 }
