@@ -2,15 +2,32 @@ package io.javafmt;
 
 import io.javafmt.builder.DocBuilder;
 import io.javafmt.lint.ArrayTrailingComma;
+import io.javafmt.lint.ArrayTypeStyle;
+import io.javafmt.lint.AvoidStarImport;
+import io.javafmt.lint.CovariantEquals;
 import io.javafmt.lint.DefaultComesLast;
+import io.javafmt.lint.EmptyBlock;
+import io.javafmt.lint.EmptyStatement;
+import io.javafmt.lint.EqualsHashCode;
+import io.javafmt.lint.ExplicitInitialization;
 import io.javafmt.lint.ExplodeStarImports;
 import io.javafmt.lint.FallThrough;
 import io.javafmt.lint.FinalLocalVariable;
 import io.javafmt.lint.FinalParameters;
+import io.javafmt.lint.HideUtilityClassConstructor;
 import io.javafmt.lint.LintEngine;
 import io.javafmt.lint.LintRule;
+import io.javafmt.lint.LocalVarUseVar;
+import io.javafmt.lint.MissingSwitchDefault;
+import io.javafmt.lint.ModifierOrder;
+import io.javafmt.lint.MultipleVariableDeclarations;
 import io.javafmt.lint.NeedBraces;
+import io.javafmt.lint.NewlineAtEndOfFile;
+import io.javafmt.lint.OneStatementPerLine;
+import io.javafmt.lint.RedundantModifier;
 import io.javafmt.lint.RemoveUnusedImports;
+import io.javafmt.lint.StringLiteralEquality;
+import io.javafmt.lint.UpperEll;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParseException;
 import io.javafmt.parser.ParseOutcome;
@@ -26,6 +43,10 @@ public final class Javafmt {
     private static final int LINE_WIDTH = 150;
 
     private static final List<LintRule> LINT_RULES = List.of(
+        // split multi-variable declarations before FinalLocalVariable/LocalVarUseVar
+        new MultipleVariableDeclarations(),
+        // var inference before final insertion
+        new LocalVarUseVar(),
         new FinalLocalVariable(),
         new FinalParameters(),
         new ArrayTrailingComma(),
@@ -33,7 +54,25 @@ public final class Javafmt {
         new RemoveUnusedImports(),
         new NeedBraces(),
         new FallThrough(),
-        new DefaultComesLast());
+        new DefaultComesLast(),
+        new ModifierOrder(),
+        new RedundantModifier(),
+        new ArrayTypeStyle(),
+        new UpperEll(),
+        new ExplicitInitialization(),
+        // split same-line statements before removing empty ones
+        new OneStatementPerLine(),
+        new EmptyStatement(),
+        // warning-only rules
+        new AvoidStarImport(),
+        new EqualsHashCode(),
+        new MissingSwitchDefault(),
+        new EmptyBlock(),
+        new HideUtilityClassConstructor(),
+        new CovariantEquals(),
+        new StringLiteralEquality(),
+        // file-level rule runs last
+        new NewlineAtEndOfFile());
 
     private static final LintEngine LINT_ENGINE = new LintEngine(LINT_RULES);
 

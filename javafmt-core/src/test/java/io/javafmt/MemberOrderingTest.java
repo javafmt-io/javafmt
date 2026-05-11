@@ -164,7 +164,7 @@ class MemberOrderingTest {
 
         @Test
         void noForwardReference_stillReorders() {
-            final var input = "class C { private void priv() {} static final int A = 1; }";
+            final var input = "class C { private void priv() { return; } static final int A = 1; }";
             final var result = Javafmt.formatWithResult(input, WITH_ORDERING);
             assertThat(result.output().indexOf("static final int A"))
                 .isLessThan(result.output().indexOf("priv"));

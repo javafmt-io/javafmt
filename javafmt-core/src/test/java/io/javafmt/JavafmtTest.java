@@ -63,9 +63,9 @@ class JavafmtTest {
 
         @Test
         void exactly150CharLine_isPreservedWithoutWrapping() {
-            // "    int " (8) + name (137) + " = 0;" (5) = 150 chars exactly
+            // "    int " (8) + name (137) + " = 1;" (5) = 150 chars exactly
             final var name = "a".repeat(137);
-            final var source = "class C {\n    int " + name + " = 0;\n}";
+            final var source = "class C {\n    int " + name + " = 1;\n}";
             final var formatted = Javafmt.format(source);
             assertThat(Arrays.stream(formatted.split("\n"))
                 .filter(l -> l.contains(name))

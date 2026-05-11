@@ -71,7 +71,8 @@ class FormatResultTest {
 
     @Test
     void uncheckedFailureDuringBuildIsConvertedToParseError() {
-        final var realUnit = JavaParser.parseUnit("class Foo {}");
+        final var src = "class Foo {}\n";
+        final var realUnit = JavaParser.parseUnit(src);
         final var synthetic = new Tree() {
             @Override
             public Kind getKind() {
@@ -90,12 +91,12 @@ class FormatResultTest {
         };
         final var wrapped = new SyntheticCompilationUnit(realUnit.tree(), synthetic);
         final var unit = new ParsedUnit(
-            wrapped, "original", realUnit.sourcePositions(), List.of(), List.of(),
+            wrapped, src, realUnit.sourcePositions(), List.of(), List.of(),
             new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>());
 
-        final var result = Javafmt.formatParsed("original", unit, JavafmtConfig.defaults());
+        final var result = Javafmt.formatParsed(src, unit, JavafmtConfig.defaults());
 
-        assertThat(result.output()).isEqualTo("original");
+        assertThat(result.output()).isEqualTo(src);
         assertThat(result.hasErrors()).isTrue();
         final var d = result.diagnostics().get(0);
         assertThat(d).isInstanceOf(Diagnostic.ParseError.class);
