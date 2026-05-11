@@ -9,7 +9,7 @@ package io.javafmt;
  *     when found, but more exotic forward-reference patterns (e.g. through nested-type or
  *     qualified-name access) are not detected and may produce non-compiling output.
  */
-public record JavafmtConfig(boolean reorderMembers) {
+public record JavafmtConfig(boolean reorderMembers) implements java.io.Serializable {
 
     public JavafmtConfig() {
         this(false);

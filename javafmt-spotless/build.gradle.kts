@@ -7,5 +7,6 @@ description = "Spotless integration for javafmt."
 
 dependencies {
     implementation(project(":javafmt-core"))
-    compileOnly(libs.slf4j.api)
+    compileOnly(libs.spotless.lib)
+    testImplementation(libs.spotless.lib)
 }
