@@ -1,4 +1,5 @@
-import { activate, toDiagnostics, isJavaDocument, statusFor, buildRequest } from '../../extension';
+import { activate, deactivate, toDiagnostics, isJavaDocument, statusFor, buildRequest, nativeBinaryName, resolveDaemonExecutable } from '../../extension';
+import * as fs from 'fs';
 import { DiagnosticSeverity, Position, mockStatusBar, setActiveTextEditor } from '../../__mocks__/vscode';
 import * as vscode from 'vscode';
 import type * as vscodeTypes from 'vscode';
@@ -119,6 +120,7 @@ describe('after activate()', () => {
     let onWillSave: (e: { document: { languageId: string }; waitUntil: jest.Mock }) => void;
 
     beforeEach(() => {
+        deactivate();
         activate(makeContext());
         // Clear counts from activate() itself so assertions start from zero.
         mockStatusBar.show.mockClear();
@@ -154,6 +156,62 @@ describe('after activate()', () => {
         });
     });
 
+    describe('nativeBinaryName', () => {
+        it('maps darwin/arm64 to darwin-arm64 binary', () => {
+            expect(nativeBinaryName('darwin', 'arm64')).toBe('javafmt-daemon-darwin-arm64');
+        });
+
+        it('maps linux/x64 to linux-amd64 binary', () => {
+            expect(nativeBinaryName('linux', 'x64')).toBe('javafmt-daemon-linux-amd64');
+        });
+
+        it('maps win32/x64 to windows-amd64.exe binary', () => {
+            expect(nativeBinaryName('win32', 'x64')).toBe('javafmt-daemon-windows-amd64.exe');
+        });
+
+        it('returns empty string for unsupported platform', () => {
+            expect(nativeBinaryName('freebsd', 'x64')).toBe('');
+        });
+    });
+
+    describe('resolveDaemonExecutable', () => {
+        function makeCtx(): vscodeTypes.ExtensionContext {
+            return {
+                subscriptions: { push: jest.fn() },
+                asAbsolutePath: (p: string) => `/ext/${p}`,
+            } as unknown as vscodeTypes.ExtensionContext;
+        }
+
+        afterEach(() => jest.restoreAllMocks());
+
+        it('returns native when the platform binary exists', () => {
+            const name = nativeBinaryName(process.platform, process.arch);
+            if (!name) return; // skip on unsupported platforms
+            jest.spyOn(fs, 'existsSync').mockImplementation((p) => p === `/ext/bin/${name}`);
+            const result = resolveDaemonExecutable(makeCtx());
+            expect(result).toEqual({ kind: 'native', path: `/ext/bin/${name}` });
+        });
+
+        it('falls back to jar when no native binary exists', () => {
+            jest.spyOn(fs, 'existsSync').mockImplementation((p) => String(p).endsWith('.jar'));
+            const result = resolveDaemonExecutable(makeCtx());
+            expect(result).toEqual({ kind: 'jar', path: '/ext/bin/javafmt-daemon.jar' });
+        });
+
+        it('returns missing when neither native binary nor jar exists', () => {
+            jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+            expect(resolveDaemonExecutable(makeCtx())).toEqual({ kind: 'missing' });
+        });
+
+        it('prefers native over jar when both exist', () => {
+            const name = nativeBinaryName(process.platform, process.arch);
+            if (!name) return; // skip on unsupported platforms
+            jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+            const result = resolveDaemonExecutable(makeCtx());
+            expect(result.kind).toBe('native');
+        });
+    });
+
     describe('registerDocumentRangeFormattingEditProvider', () => {
         it('registers a range formatting provider for java', () => {
             expect(vscode.languages.registerDocumentRangeFormattingEditProvider)
@@ -178,8 +236,9 @@ describe('after activate()', () => {
             (vscode.workspace.getConfiguration as jest.Mock).mockReturnValueOnce({
                 get: jest.fn(() => true),
             });
-            const waitUntil = jest.fn();
-            onWillSave({ document: { languageId: 'java' }, waitUntil });
+            const waitUntil = jest.fn().mockImplementation((p: Promise<unknown>) => p?.catch(() => {}));
+            const doc = { languageId: 'java', getText: jest.fn(() => '') };
+            onWillSave({ document: doc as { languageId: string }, waitUntil });
             expect(waitUntil).toHaveBeenCalledWith(expect.any(Promise));
         });
     });

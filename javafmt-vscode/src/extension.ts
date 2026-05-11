@@ -205,6 +205,36 @@ function stopDaemon(): void {
     pending.clear();
 }
 
+export type DaemonExecutable =
+    | { kind: 'native'; path: string }
+    | { kind: 'jar'; path: string }
+    | { kind: 'missing' };
+
+// Exported for testing.
+export function nativeBinaryName(platform: string, arch: string): string {
+    if (platform === 'darwin' && arch === 'arm64') return 'javafmt-daemon-darwin-arm64';
+    if (platform === 'darwin' && arch === 'x64') return 'javafmt-daemon-darwin-amd64';
+    if (platform === 'linux' && arch === 'x64') return 'javafmt-daemon-linux-amd64';
+    if (platform === 'win32' && arch === 'x64') return 'javafmt-daemon-windows-amd64.exe';
+    return '';
+}
+
+// Exported for testing.
+export function resolveDaemonExecutable(context: vscode.ExtensionContext): DaemonExecutable {
+    const name = nativeBinaryName(process.platform, process.arch);
+    if (name) {
+        const nativePath = context.asAbsolutePath(path.join('bin', name));
+        if (fs.existsSync(nativePath)) {
+            return { kind: 'native', path: nativePath };
+        }
+    }
+    const jarPath = context.asAbsolutePath(path.join('bin', 'javafmt-daemon.jar'));
+    if (fs.existsSync(jarPath)) {
+        return { kind: 'jar', path: jarPath };
+    }
+    return { kind: 'missing' };
+}
+
 // Exported for testing.
 export function buildRequest(id: string, source: string, reorderMembers: boolean): object {
     return { id, source, config: { reorderMembers } };
