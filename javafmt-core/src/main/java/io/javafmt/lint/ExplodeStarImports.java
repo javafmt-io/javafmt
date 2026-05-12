@@ -27,7 +27,7 @@ import java.util.stream.Stream;
  * anything reachable on the formatter's classpath — which covers the JDK and any deps
  * javafmt itself uses, but not arbitrary user-code wildcards into project-local packages.
  * That limitation is acceptable for v1; star imports of project-local packages are rare
- * and the rule simply leaves them untouched (zero resolved members → import deleted, which
+ * and the rule simply leaves them untouched (zero resolved members -> import deleted, which
  * may break compilation, so we keep the import as-is in that case).
  *
  * <p>{@code Class.forName(name, false, loader)} skips static initialization so resolving a

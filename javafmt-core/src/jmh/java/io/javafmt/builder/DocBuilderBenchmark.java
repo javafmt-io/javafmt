@@ -23,7 +23,7 @@ import io.javafmt.parser.ParsedUnit;
 /**
  * Isolation benchmark for {@link DocBuilder#buildWithFallbacks}. Sister benchmark to
  * {@code ParseOnlyBenchmark}: parsing happens once in {@code @Setup} so each measured
- * invocation only times the AST → Doc IR walk and comment-attachment work that
+ * invocation only times the AST -> Doc IR walk and comment-attachment work that
  * {@code DocBuilder} performs.
  *
  * <p>After Fix 2 collapsed parse cost from ~950 µs to ~30 µs per call, {@code DocBuilder}

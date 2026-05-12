@@ -88,8 +88,8 @@ public record WadlerLindigPrintStrategy() implements PrintStrategy {
     //
     // HardLine semantics: encountered while still walking the candidate's own descents,
     // it means "this Group's contents include a forced break, so flat rendering is impossible"
-    // → NOT FIT. Encountered after the candidate is fully consumed (in upcoming), it means
-    // "the line ends here regardless of what we choose" → FIT. The same distinction applies
+    // -> NOT FIT. Encountered after the candidate is fully consumed (in upcoming), it means
+    // "the line ends here regardless of what we choose" -> FIT. The same distinction applies
     // implicitly to Line/SoftLine in BREAK mode: those modes only appear in upcoming frames
     // (the candidate and all its descents are pushed in FLAT mode), so seeing a BREAK-mode
     // Line/SoftLine necessarily means we are past the candidate.

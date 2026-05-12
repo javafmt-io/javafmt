@@ -255,7 +255,7 @@ class PrinterTest {
 
         @Test
         void group_whenColAlreadyExceedsLineWidth_alwaysBreaks() {
-            // col=6 after Text("123456"), lineWidth=5 → remaining=-1, group always breaks
+            // col=6 after Text("123456"), lineWidth=5 -> remaining=-1, group always breaks
             final var doc = new Doc.Concat(List.of(
                 new Doc.Text("123456"),
                 new Doc.Group(new Doc.Concat(List.of(
@@ -333,8 +333,8 @@ class PrinterTest {
         void deeplyNestedGroupDecisions_runInLinearTime() {
             // Each nested Group must make its own fit decision (mode=BREAK propagates inward
             // because lineWidth=1 forces every Group to break). A naive flat-width walker
-            // re-traverses the entire remaining subtree per Group → O(n²); a short-circuiting
-            // fits(remaining) predicate stops at the first overflow → O(n) total. The bound
+            // re-traverses the entire remaining subtree per Group -> O(n²); a short-circuiting
+            // fits(remaining) predicate stops at the first overflow -> O(n) total. The bound
             // here is generous (well under a second under O(n), many seconds under O(n²)) so
             // it fails loudly if a future change reintroduces full-subtree walks for fit checks.
             final var n = 50_000;
