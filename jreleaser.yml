@@ -1,6 +1,6 @@
 project:
   name: javafmt
-  description: Opinionated, high-performance Java code formatter for modern LTS (Java 21+).
+  description: An opinionated, high-performance Java code formatter for modern LTS (Java 21+).
   longDescription: |
     javafmt is an opinionated, high-performance Java code formatter for modern LTS (Java 21+).
     It enforces consistent style with a 150-character line width, K&R braces, smart member
@@ -11,7 +11,7 @@ project:
     license: https://opensource.org/licenses/MIT
     bugTracker: https://github.com/javafmt-io/javafmt/issues
   license: MIT
-  inceptionYear: "2024"
+  inceptionYear: "2026"
   authors:
     - Jim Schneidereit
 

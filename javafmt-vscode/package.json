@@ -1,10 +1,10 @@
 {
   "name": "javafmt",
   "displayName": "javafmt",
-  "description": "Opinionated Java formatter — fast, deterministic, 150-char line width",
+  "description": "An opinionated Java formatter — fast, deterministic, 150-char line width.",
   "version": "0.1.0",
   "publisher": "javafmt",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/javafmt-io/javafmt"

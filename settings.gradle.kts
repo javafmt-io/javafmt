@@ -1,6 +1,6 @@
 rootProject.name = "javafmt"
 
-include("javafmt-core", "javafmt-cli", "javafmt-spotless", "javafmt-intellij", "javafmt-maven-plugin", "javafmt-vscode")
+include("javafmt-core", "javafmt-cli", "javafmt-spotless", "javafmt-intellij", "javafmt-maven-plugin", "javafmt-vscode", "website")
 
 dependencyResolutionManagement {
     // PREFER_PROJECT lets javafmt-intellij declare IntelliJ Platform repos at the project

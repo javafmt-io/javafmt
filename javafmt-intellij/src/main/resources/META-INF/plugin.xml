@@ -4,7 +4,7 @@
     <name>javafmt</name>
     <vendor url="https://github.com/javafmt-io/javafmt">javafmt</vendor>
     <description><![CDATA[
-        Opinionated, high-performance Java formatter for Java 21+.<br/>
+        An opinionated, high-performance Java formatter for Java 21+.<br/>
         Hooks into <em>Reformat Code</em> (⌘⌥L / Ctrl+Alt+L) to format the whole file with javafmt.
         Partial-range reformatting falls back to IntelliJ's built-in formatter.
     ]]></description>

@@ -15,6 +15,9 @@ node_modules/
 .vscode-test/
 out/
 
+# Docusaurus
+.docusaurus/
+
 # Maven
 target/
 
@@ -40,6 +43,9 @@ hs_err_pid*
 # GraalVM
 *.o
 *.build_artifacts.txt
+
+# Planning prompts (local only)
+prompts/
 
 # Claude Code local memory
 .claude/*

@@ -45,7 +45,7 @@ intellijPlatform {
         id = "io.javafmt.intellij"
         name = "javafmt"
         version = project.version.toString()
-        description = "Opinionated, high-performance Java formatter for Java 21+."
+        description = "An opinionated, high-performance Java formatter for Java 21+."
 
         ideaVersion {
             sinceBuild = "242"

@@ -11,4 +11,4 @@ scmVersion {
 }
 
 version = scmVersion.version
-description = "Opinionated, high-performance Java code formatter for modern LTS (Java 21+)."
+description = "An opinionated, high-performance Java code formatter for modern LTS (Java 21+)."

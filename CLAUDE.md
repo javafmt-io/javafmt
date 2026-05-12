@@ -2,7 +2,7 @@
 
 ## What is this project?
 
-An opinionated, high-performance Java code formatter for modern LTS (21+). See `DESIGN.md` for the full architecture and formatting rules.
+An opinionated, high-performance Java code formatter for modern LTS (21+). See `ARCHITECTURE.md` for how it's built and `docs/rules.md` for what it enforces.
 
 ## Build commands
 
@@ -71,6 +71,6 @@ first use after a clean build.
 - **Annotations**: left alone (v1)
 - **Javadoc/comments**: left alone (v1)
 - **Blank lines**: one between methods, one between visibility groups, no doubles, no blanks after `{` or before `}`
-- **Lint pass**: javafmt applies Checkstyle's rule catalog ruff-style — safe rewrites are auto-fixes, unsafe ones are warnings only. See `DESIGN.md § Safe rewrites` for the full catalog.
+- **Lint pass**: javafmt applies Checkstyle's rule catalog ruff-style — safe rewrites are auto-fixes, unsafe ones are warnings only. See `docs/rules.md § Lint pass` for the full catalog.
   - *Auto-fixes* (unconditional): `NeedBraces`, `FinalLocalVariable`, `FinalParameters`, `ArrayTrailingComma`, `LocalVarUseVar`, `DefaultComesLast`, `ModifierOrder`, `RedundantModifier`, `ArrayTypeStyle`, `UpperEll`, `MultipleVariableDeclarations`, `UnusedImports`, `EmptyStatement`, `OneStatementPerLine`, `NewlineAtEndOfFile`, `ExplicitInitialization`.
   - *Warnings only*: `FallThrough` (suppress with `// fallthrough`), `EqualsHashCode`, `MissingSwitchDefault`, `EmptyBlock`, `AvoidStarImport`, `HideUtilityClassConstructor`, `CovariantEquals`, `StringLiteralEquality`.
