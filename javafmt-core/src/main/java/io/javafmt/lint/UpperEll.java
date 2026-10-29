@@ -2,7 +2,7 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.util.TreePathScanner;
+import io.javafmt.parser.ChainPathScanner;
 
 /**
  * Replaces the lowercase {@code l} suffix on long literals with uppercase {@code L}.
@@ -15,7 +15,7 @@ public final class UpperEll implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new TreePathScanner<>() {
+                edits -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitLiteral(final LiteralTree node, final Void p) {

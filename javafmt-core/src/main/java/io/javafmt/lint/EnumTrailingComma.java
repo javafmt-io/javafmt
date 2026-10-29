@@ -3,7 +3,7 @@ package io.javafmt.lint;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
-import com.sun.source.util.TreeScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ public final class EnumTrailingComma implements LintRule {
     public LintResult apply(final LintContext ctx) {
         final var unit = ctx.unit();
         final var edits = new ArrayList<LintEdit>();
-        new TreeScanner<Void, Void>() {
+        new ChainScanner<Void, Void>() {
 
             @Override
             public Void visitClass(final ClassTree node, final Void p) {

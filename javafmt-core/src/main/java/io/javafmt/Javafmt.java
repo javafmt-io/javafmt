@@ -102,6 +102,8 @@ public final class Javafmt {
             unit = JavaParser.parseUnit(normalized);
         } catch (ParseException e) {
             return asWritten(encoding, parseExceptionToResult(normalized, e));
+        } catch (RuntimeException | AssertionError | StackOverflowError t) {
+            return asWritten(encoding, internalErrorResult(normalized, t));
         }
         return asWritten(encoding, formatParsed(normalized, unit, config, strategy));
     }

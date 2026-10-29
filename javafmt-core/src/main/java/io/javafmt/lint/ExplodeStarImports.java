@@ -4,8 +4,8 @@ import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.parser.Attribution;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +71,7 @@ public final class ExplodeStarImports implements LintRule {
      */
     private static Optional<List<Element>> resolveUses(final ParsedUnit unit, final Attribution attribution) {
         final var identifierPaths = new ArrayList<TreePath>();
-        new TreePathScanner<Void, Void>() {
+        new ChainPathScanner<Void, Void>() {
 
             @Override
             public Void visitImport(final ImportTree node, final Void p) {

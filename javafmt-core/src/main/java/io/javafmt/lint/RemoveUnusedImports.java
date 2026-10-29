@@ -4,7 +4,7 @@ import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.HashSet;
@@ -66,7 +66,7 @@ public final class RemoveUnusedImports implements LintRule {
 
     private static Set<String> collectUsedNames(final ParsedUnit unit) {
         final var names = new HashSet<String>();
-        new TreePathScanner<Void, Void>() {
+        new ChainPathScanner<Void, Void>() {
 
             @Override
             public Void visitImport(final ImportTree node, final Void p) {

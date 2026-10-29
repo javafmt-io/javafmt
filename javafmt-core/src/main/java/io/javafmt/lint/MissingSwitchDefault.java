@@ -3,8 +3,8 @@ package io.javafmt.lint;
 import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.PatternCaseLabelTree;
 import com.sun.source.tree.SwitchTree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 
 /**
  * Warns if a {@code switch} statement has no {@code default} case. Switch expressions never reach
@@ -26,7 +26,7 @@ public final class MissingSwitchDefault implements LintRule {
         final var unit = ctx.unit();
         return LintScan.diagnostics(
                 ctx,
-                diagnostics -> new TreePathScanner<>() {
+                diagnostics -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitSwitch(final SwitchTree node, final Void p) {

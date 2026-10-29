@@ -6,8 +6,8 @@ import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public final class DefaultComesLast implements LintRule {
         final var unit = ctx.unit();
         final var edits = new ArrayList<LintEdit>();
         final var diagnostics = new ArrayList<Diagnostic>();
-        final var scanner = new TreePathScanner<Void, Void>() {
+        final var scanner = new ChainPathScanner<Void, Void>() {
 
             @Override
             public Void visitSwitch(final SwitchTree node, final Void p) {

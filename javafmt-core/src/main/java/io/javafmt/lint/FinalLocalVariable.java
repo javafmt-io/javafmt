@@ -3,7 +3,7 @@ package io.javafmt.lint;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
+import io.javafmt.parser.ChainPathScanner;
 
 /**
  * Adds {@code final} to local variable declarations whose value is never reassigned.
@@ -27,7 +27,7 @@ public final class FinalLocalVariable implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new TreePathScanner<>() {
+                edits -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitVariable(final VariableTree node, final Void p) {

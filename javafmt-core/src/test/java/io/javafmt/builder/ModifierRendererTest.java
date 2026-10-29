@@ -98,6 +98,11 @@ class ModifierRendererTest {
             }
 
             @Override
+            public Doc withComments(final com.sun.source.tree.Tree node, final Doc rendered) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public Doc scanNullable(final com.sun.source.tree.Tree node) {
                 throw new UnsupportedOperationException();
             }

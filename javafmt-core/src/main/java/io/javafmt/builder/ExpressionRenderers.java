@@ -22,7 +22,9 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import io.javafmt.doc.Doc;
+import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -53,19 +55,38 @@ final class ExpressionRenderers {
      * re-format.
      */
     Doc renderBinary(final BinaryTree node, final Recursor recursor) {
-        if (node.getKind() == Tree.Kind.CONDITIONAL_AND || node.getKind() == Tree.Kind.CONDITIONAL_OR) {
+        if (isLogical(node)) {
             return renderLogicalChain(node, recursor);
         }
+        final var spine = Stream.<@Nullable BinaryTree>iterate(
+                node,
+                Objects::nonNull,
+                b -> b.getLeftOperand() instanceof BinaryTree left && !isLogical(left) ? left : null)
+                .map(Objects::requireNonNull)
+                .toList();
+        var doc = recursor.scan(spine.getLast().getLeftOperand());
+        for (final var operator : spine.reversed()) {
+            final var group = operatorGroup(doc, operator, recursor);
+            doc = operator == node ? group : recursor.withComments(operator, group);
+        }
+        return doc;
+    }
+
+    private Doc operatorGroup(final Doc left, final BinaryTree operator, final Recursor recursor) {
         return new Doc.Group(
                 new Doc.Concat(
                         List.of(
-                                recursor.scan(node.getLeftOperand()),
+                                left,
                                 Doc.continuationIndent(
                                         new Doc.Concat(
                                                 List.of(
                                                         Doc.LINE,
-                                                        new Doc.Text(binaryOperatorText(node) + " "),
-                                                        recursor.scan(node.getRightOperand())))))));
+                                                        new Doc.Text(binaryOperatorText(operator) + " "),
+                                                        recursor.scan(operator.getRightOperand())))))));
+    }
+
+    private boolean isLogical(final BinaryTree node) {
+        return node.getKind() == Tree.Kind.CONDITIONAL_AND || node.getKind() == Tree.Kind.CONDITIONAL_OR;
     }
 
     /**
@@ -93,11 +114,19 @@ final class ExpressionRenderers {
         return new Doc.Group(contents, preferBreak);
     }
 
-    private Stream<ExpressionTree> collectLogicalOperands(final ExpressionTree expr, final Tree.Kind kind) {
-        if (expr instanceof BinaryTree bin && bin.getKind() == kind) {
-            return Stream.concat(collectLogicalOperands(bin.getLeftOperand(), kind), collectLogicalOperands(bin.getRightOperand(), kind));
+    private Stream<ExpressionTree> collectLogicalOperands(final ExpressionTree root, final Tree.Kind kind) {
+        final var pending = new ArrayDeque<ExpressionTree>(List.of(root));
+        final var operands = Stream.<ExpressionTree>builder();
+        while (!pending.isEmpty()) {
+            final var expr = pending.pop();
+            if (expr instanceof BinaryTree bin && bin.getKind() == kind) {
+                pending.push(bin.getRightOperand());
+                pending.push(bin.getLeftOperand());
+            } else {
+                operands.add(expr);
+            }
         }
-        return Stream.of(expr);
+        return operands.build();
     }
 
     Doc renderUnary(final UnaryTree node, final Recursor recursor) {
