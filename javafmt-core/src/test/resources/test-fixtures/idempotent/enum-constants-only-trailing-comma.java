@@ -1,0 +1,1 @@
+enum Fixture { A, B, }

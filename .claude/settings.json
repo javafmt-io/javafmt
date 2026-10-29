@@ -1,0 +1,15 @@
+{
+  "enabledPlugins": {
+    "jdtls-lsp@claude-plugins-official": true,
+    "kotlin-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(gradle *)"
+    ],
+    "deny": [
+      "Bash(npm *)"
+    ]
+  }
+}

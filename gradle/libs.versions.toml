@@ -1,0 +1,63 @@
+[versions]
+junit = "6.0.3"
+assertj = "3.27.7"
+jspecify = "1.0.0"
+lombok = "1.18.44"
+slf4j = "2.0.17"
+maven = "3.9.15"
+maven-plugin-tools = "3.15.2"
+maven-plugin-development = "1.0.3"
+errorprone-plugin = "5.1.0"
+errorprone = "2.49.0"
+nullaway = "0.13.4"
+jmh = "0.7.3"
+checkstyle = "13.4.0"
+jreleaser = "1.15.0"
+axionRelease = "1.18.0"
+jackson = "3.1.3"
+shadow = "9.0.0"
+nodeGradle = "7.0.1"
+spotlessLib = "4.5.0"
+llmBuildCompactor = "0.4.0"
+jvmHotpath = "0.2.10"
+# JMH bundles ASM 9.0, which cannot read Java 25 class files; agents inside benchmark forks need this.
+asm = "9.9"
+# Benchmark-only: the head-to-head baseline in GjfComparisonBenchmark.
+googleJavaFormat = "1.27.0"
+spotlessGradle = "8.4.0"
+intellijPlatform = "2.16.0"
+
+[libraries]
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+google-java-format = { module = "com.google.googlejavaformat:google-java-format", version.ref = "googleJavaFormat" }
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
+nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
+maven-plugin-api = { module = "org.apache.maven:maven-plugin-api", version.ref = "maven" }
+maven-core = { module = "org.apache.maven:maven-core", version.ref = "maven" }
+maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugin-annotations", version.ref = "maven-plugin-tools" }
+checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotlessLib" }
+junit4 = { module = "junit:junit", version = "4.13.2" }
+opentest4j = { module = "org.opentest4j:opentest4j", version = "1.3.0" }
+
+[plugins]
+maven-plugin-development = { id = "org.gradlex.maven-plugin-development", version.ref = "maven-plugin-development" }
+errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
+jmh = { id = "me.champeau.jmh", version.ref = "jmh" }
+jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }
+axionRelease = { id = "pl.allegro.tech.build.axion-release", version.ref = "axionRelease" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+nodeGradle = { id = "com.github.node-gradle.node", version.ref = "nodeGradle" }
+intellijPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "intellijPlatform" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotlessGradle" }
+llmBuildCompactor = { id = "io.github.sfkamath.llm-build-compactor", version.ref = "llmBuildCompactor" }
+jvmHotpath = { id = "io.github.sfkamath.jvm-hotpath", version.ref = "jvmHotpath" }

@@ -1,0 +1,28 @@
+
+<idea-plugin>
+    <id>io.javafmt.intellij</id>
+    <name>javafmt</name>
+    <vendor url="https://github.com/javafmt-io/javafmt">javafmt</vendor>
+
+    <!--
+      No <description>, <version> or <idea-version> here: the IntelliJ Platform Gradle plugin's
+      patchPluginXml task replaces them wholesale from the intellijPlatform.pluginConfiguration
+      block in build.gradle.kts. Anything written here is overwritten before the plugin ships.
+    -->
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <formattingService
+            implementation="io.javafmt.intellij.JavafmtFormattingService"/>
+        <projectConfigurable
+            parentId="tools"
+            id="io.javafmt.intellij.settings"
+            displayName="javafmt"
+            instance="io.javafmt.intellij.JavafmtConfigurable"/>
+        <notificationGroup
+            id="javafmt"
+            displayType="BALLOON"/>
+    </extensions>
+</idea-plugin>

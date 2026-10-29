@@ -1,0 +1,52 @@
+name: Performance
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly. JMH takes minutes, and formatter throughput does not drift day to day.
+    - cron: '0 5 * * 1'
+
+# Reports rather than gates. JMH on shared GitHub runners varies enough run to run that a tight
+# threshold would mostly report noise, so this never runs on pull requests and only fails on a
+# regression far larger than that noise. Read the summary for the real trend; the JSON artifact
+# holds the full numbers.
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.1'
+
+      - name: Run benchmarks
+        run: gradle :javafmt-core:jmh
+
+      - name: Compare against baseline
+        id: compare
+        run: python3 .github/scripts/compare-jmh.py javafmt-core/build/reports/jmh/results.json .github/perf-baseline.json
+        continue-on-error: true
+
+      - name: Publish summary
+        if: always()
+        run: cat "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-results
+          path: javafmt-core/build/reports/jmh/results.json
+          if-no-files-found: error
+
+      - name: Fail on large regression
+        if: steps.compare.outcome == 'failure'
+        run: |
+          echo "A benchmark regressed beyond the threshold; see the summary above."
+          exit 1

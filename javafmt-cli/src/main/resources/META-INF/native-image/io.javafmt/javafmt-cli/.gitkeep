@@ -1,0 +1,28 @@
+# GraalVM native-image reachability metadata for javafmt-cli.
+#
+# Pre-collected reflection/resource hints land here so native-image does not need
+# runtime tracing to discover `com.sun.source.tree` service loaders or related JDK
+# internals.
+#
+# How to (re)generate:
+#
+#   1. Install a GraalVM 21+ JDK (e.g. `sdk install java 21.0.2-graal`) and ensure it
+#      is the active toolchain JDK (or export GRAALVM_HOME/JAVA_HOME).
+#   2. From the repo root, capture the agent traces against the fixture corpus:
+#
+#        gradle :javafmt-cli:tracingAgentCapture -Pagent
+#
+#   3. Merge the captured config into this directory:
+#
+#        gradle :javafmt-cli:metadataCopy \
+#            --task tracingAgentCapture \
+#            --dir javafmt-cli/src/main/resources/META-INF/native-image/io.javafmt/javafmt-cli
+#
+#   4. Review the diff. The agent over-collects — strip anything that looks like
+#      junit/assertj/gradle internals before committing.
+#   5. Verify the metadata is sufficient:
+#
+#        gradle :javafmt-cli:nativeCompile
+#
+# This .gitkeep exists only so the empty directory is tracked. Delete once
+# real *-config.json files land alongside it.

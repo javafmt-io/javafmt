@@ -1,0 +1,142 @@
+name: Native
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+# Builds platform-specific native binaries for javafmt-cli and the VS Code daemon.
+# GraalVM cannot cross-compile, so each OS/arch runs its own job.
+#
+# First-time setup: before this workflow can succeed, the GraalVM tracing agent
+# must be run locally to collect reflection metadata:
+#
+#   gradle -Pagent :javafmt-cli:test
+#   gradle :javafmt-cli:metadataCopy --task test \
+#     --dir javafmt-cli/src/main/resources/META-INF/native-image/io.javafmt/javafmt-cli
+#
+#   gradle :javafmt-vscode:daemonAgentCapture -Pagent --no-configuration-cache
+#   gradle :javafmt-vscode:metadataCopy --no-configuration-cache --task daemonAgentCapture \
+#     --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
+#
+# Commit the generated metadata, then re-trigger this workflow. This metadata is already
+# committed as of the daemon's first working native build; regenerate it only if FormatRequest,
+# FormatResponse, or DiagnosticDto change shape.
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: linux-x64
+          - os: macos-latest
+            target: darwin-arm64
+          - os: windows-latest
+            target: win32-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm'
+          native-image-job-reports: 'true'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.6.1'
+
+      # gradle.properties enables the configuration cache repo-wide, but the GraalVM buildtools
+      # plugin can't serialize the Configuration it needs in generateResourcesConfigFile. Opt out.
+      - name: Compile CLI native binary
+        run: gradle :javafmt-cli:nativeCompile --no-configuration-cache
+
+      # The native binary's whole point is starting instantly, and nothing measured it before.
+      # Ten runs of the smallest possible input, so the number is startup rather than formatting.
+      - name: Measure native cold start
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          binary=javafmt-cli/build/native/nativeCompile/javafmt
+          echo 'class A{}' > /tmp/cold-start.java
+          echo "class A{}" | "$binary" > /dev/null
+          start=$(date +%s%N)
+          for _ in $(seq 1 10); do
+            "$binary" < /tmp/cold-start.java > /dev/null
+          done
+          end=$(date +%s%N)
+          echo "native cold start: $(( (end - start) / 10000000 )).$(( ((end - start) / 1000000) % 10 )) ms per run (10 runs)"
+
+      # A binary that starts fast and formats wrongly still passes cold-start timing. Assert
+      # actual output: plain formatting, and the --diagnostics=json stream staying on stdout with
+      # nothing on stderr for clean input.
+      - name: Smoke test the CLI binary
+        shell: bash
+        run: |
+          binary=javafmt-cli/build/native/nativeCompile/javafmt
+          [ -f "$binary" ] || binary=javafmt-cli/build/native/nativeCompile/javafmt.exe
+          "$binary" --version
+          printf 'class A{int x=1;}\n' | "$binary" | grep -q 'int x = 1;'
+          printf 'class A{int x=1;}\n' | "$binary" --diagnostics=json 2>/tmp/err.txt | grep -q 'int x = 1;'
+          [ ! -s /tmp/err.txt ]
+
+      - name: Upload CLI binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: javafmt-${{ matrix.target }}
+          path: |
+            javafmt-cli/build/native/nativeCompile/javafmt
+            javafmt-cli/build/native/nativeCompile/javafmt.exe
+          if-no-files-found: error
+
+      # native.yml deliberately publishes workflow artifacts only, named on the matrix's vsce
+      # target vocabulary (javafmt-<target>, javafmt-daemon-<target>) rather than the mismatched
+      # per-OS names this replaced. Attaching them to a GitHub release belongs to the JReleaser
+      # `distributions` work tracked as P0.4 (needs: this job, download the artifacts, one
+      # `distributions` block), not here: native.yml attaching directly would race jreleaser.yml's
+      # own `release.github.overwrite: true` for the same tag, since both would be writing to the
+      # same release concurrently.
+      - name: Compile daemon native binary
+        run: gradle :javafmt-vscode:nativeCompile --no-configuration-cache
+
+      # Reachability metadata for the daemon's Jackson record types (FormatRequest, FormatResponse,
+      # DiagnosticDto) is committed under
+      # javafmt-vscode/src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode. Without
+      # it, native-image strips the record accessors Jackson needs and the daemon crashes on its
+      # first request with UnsupportedFeatureError. NativeDaemonRoundTripTest asserts the binary
+      # survives a real NDJSON round trip (both an empty and a populated diagnostics list) and is
+      # the regression guard if a DTO's shape ever changes; it's gated on the binary being present
+      # so it merely SKIPs on developer machines that haven't run nativeCompile. This job just
+      # built the binary above, so the explicit existence check below turns a missing binary into
+      # a hard failure here rather than letting the gate silently skip the one place this test
+      # actually needs to run.
+      #
+      # Regenerate the metadata after any DTO change with:
+      #   gradle :javafmt-vscode:daemonAgentCapture -Pagent --no-configuration-cache
+      #   gradle :javafmt-vscode:metadataCopy --no-configuration-cache --task daemonAgentCapture \
+      #     --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
+      # (requires a GraalVM toolchain on JAVA_HOME/GRAALVM_HOME -- Temurin ships no
+      # native-image-agent).
+      - name: Smoke test the daemon binary
+        shell: bash
+        run: |
+          binary=javafmt-vscode/build/native/nativeCompile/javafmt-daemon
+          [ -f "$binary" ] || binary=javafmt-vscode/build/native/nativeCompile/javafmt-daemon.exe
+          [ -x "$binary" ]
+          gradle :javafmt-vscode:test --tests "io.javafmt.vscode.NativeDaemonRoundTripTest"
+
+      - name: Upload daemon binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: javafmt-daemon-${{ matrix.target }}
+          path: |
+            javafmt-vscode/build/native/nativeCompile/javafmt-daemon
+            javafmt-vscode/build/native/nativeCompile/javafmt-daemon.exe
+          if-no-files-found: error
