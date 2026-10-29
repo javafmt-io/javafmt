@@ -3,7 +3,7 @@ package io.javafmt.lint;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.StatementTree;
 import io.javafmt.Position;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 
@@ -22,7 +22,7 @@ public final class OneStatementPerLine implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new ChainPathScanner<>() {
+                edits -> new ChainScanner<>() {
 
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {
@@ -42,8 +42,8 @@ public final class OneStatementPerLine implements LintRule {
             if (currAt.line() != nextAt.line()) {
                 continue;
             }
-            final var currEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), curr);
-            final var nextStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), next);
+            final var currEnd = unit.endOf(curr);
+            final var nextStart = unit.startOf(next);
             if (currEnd < 0 || nextStart < 0 || nextStart <= currEnd) {
                 continue;
             }

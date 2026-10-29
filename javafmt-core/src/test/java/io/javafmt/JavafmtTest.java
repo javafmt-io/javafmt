@@ -178,10 +178,5 @@ class JavafmtTest {
         void formatWithResult_sourceAndConfig_nullConfig_throws() {
             assertThatThrownBy(() -> Javafmt.formatWithResult("class A {}", (JavafmtConfig) null)).isInstanceOf(NullPointerException.class);
         }
-
-        @Test
-        void formatWithResult_sourceAndOutcome_nullSource_throws() {
-            assertThatThrownBy(() -> Javafmt.formatWithResult(null, (io.javafmt.parser.ParseOutcome) null)).isInstanceOf(NullPointerException.class);
-        }
     }
 }

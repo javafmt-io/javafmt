@@ -49,7 +49,7 @@ final class TypeRenderers {
      * source.
      */
     private int sourceColumnOf(final LiteralTree node, final ParsedUnit unit) {
-        final var start = (int) unit.sourcePositions().getStartPosition(unit.tree(), node);
+        final var start = unit.startOf(node);
         final var source = unit.source();
         final var prevNewline = source.lastIndexOf('\n', start - 1);
         return start - prevNewline - 1;
@@ -77,13 +77,13 @@ final class TypeRenderers {
     }
 
     Doc renderArrayType(final ArrayTypeTree node, final Recursor recursor) {
-        return new Doc.Concat(List.of(recursor.scan(node.getType()), new Doc.Text("[]")));
+        return Doc.concat(recursor.scan(node.getType()), new Doc.Text("[]"));
     }
 
     Doc renderParameterizedType(final ParameterizedTypeTree node, final Recursor recursor) {
         final var args = node.getTypeArguments();
         if (args.isEmpty()) {
-            return new Doc.Concat(List.of(recursor.scan(node.getType()), new Doc.Text("<>")));
+            return Doc.concat(recursor.scan(node.getType()), new Doc.Text("<>"));
         }
         // Deliberately not a WrappableList. A type-argument list sits to the left of whatever the
         // declaration goes on to say, so its group is decided before the method chain further right
@@ -112,8 +112,8 @@ final class TypeRenderers {
 
     Doc renderWildcard(final WildcardTree node, final Recursor recursor) {
         return switch (node.getKind()) {
-            case EXTENDS_WILDCARD -> new Doc.Concat(List.of(new Doc.Text("? extends "), recursor.scan(node.getBound())));
-            case SUPER_WILDCARD -> new Doc.Concat(List.of(new Doc.Text("? super "), recursor.scan(node.getBound())));
+            case EXTENDS_WILDCARD -> Doc.concat(new Doc.Text("? extends "), recursor.scan(node.getBound()));
+            case SUPER_WILDCARD -> Doc.concat(new Doc.Text("? super "), recursor.scan(node.getBound()));
             case UNBOUNDED_WILDCARD -> new Doc.Text("?");
             default -> throw new IllegalStateException("unexpected wildcard kind: " + node.getKind());
         };

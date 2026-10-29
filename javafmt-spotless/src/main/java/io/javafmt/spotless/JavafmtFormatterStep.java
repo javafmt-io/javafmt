@@ -33,8 +33,8 @@ public final class JavafmtFormatterStep {
      * A step that formats with semantic analysis, so the lint rules that need resolved types are
      * live — {@code RedundantTypeArguments}' type witnesses, {@code ExplodeStarImports} and the
      * rest. {@code analysisClasspath} is the compile classpath of the sources being formatted, as
-     * {@code javac -cp} would take it; an empty string means parse-only, which is what
-     * {@link #create(JavafmtConfig)} uses.
+     * {@code javac -cp} would take it; an empty string leaves {@code config.analysis()} as given,
+     * which is what {@link #create(JavafmtConfig)} uses.
      *
      * <p>Without this overload, the only way to reach analysis was javafmt's own build, so javafmt
      * formatted itself with strictly more rules than any user of the published step could enable.
@@ -50,8 +50,9 @@ public final class JavafmtFormatterStep {
      * overload, and two same-shaped methods meaning different things is a trap inside the package.
      */
     FormatterStep createForVersion(final JavafmtConfig config, final String analysisClasspath, final String formatterVersion) {
-        final var state = new State(formatterVersion, config, analysisClasspath);
-        return new LintingStep(FormatterStep.create(NAME, state, JavafmtFormatterStep::buildFunc), state);
+        final var analyzed = analysisClasspath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(analysisClasspath));
+        final var state = new State(formatterVersion, analyzed);
+        return new LintingStep(FormatterStep.create(NAME, state, JavafmtFormatterStep::buildFunc), state, PathFilter.ofGlobs(analyzed.excludes()));
     }
 
     public String apply(final String source) {
@@ -70,8 +71,7 @@ public final class JavafmtFormatterStep {
 
     /** {@link #applyWithAnalyze(String, String)} with an explicit configuration. */
     public String applyWithAnalyze(final String source, final String classpath, final JavafmtConfig config) {
-        final var result = Javafmt.formatWithAnalyze(source, classpath, config);
-        return result.hasErrors() ? apply(source, config) : result.output();
+        return throwOnError(resultFor(source, config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath))));
     }
 
     public String apply(final String source, final JavafmtConfig config) {
@@ -95,29 +95,25 @@ public final class JavafmtFormatterStep {
      */
     private FormatterFunc buildFunc(final State state) {
         if (state.config().excludes().isEmpty()) {
-            return input -> format(input, state);
+            return input -> throwOnError(resultFor(input, state.config()));
         }
-        return (FormatterFunc.NeedsFile) (input, file) -> isExcluded(state.config(), file) ? input : format(input, state);
+        final var filter = PathFilter.ofGlobs(state.config().excludes());
+        return (FormatterFunc.NeedsFile) (input, file) -> isExcluded(filter, file) ? input : throwOnError(resultFor(input, state.config()));
     }
 
-    /** Formats one source the way {@code state} asks for: with semantic analysis when it carries a classpath. */
-    private String format(final String source, final State state) {
-        return state.analysisClasspath().isEmpty()
-                ? apply(source, state.config())
-                : applyWithAnalyze(source, state.analysisClasspath(), state.config());
+    /**
+     * The full result for {@code config}. With semantic analysis, a result with errors is replaced
+     * by the parse-only one, for both the formatted output and the lint pass's warnings.
+     */
+    private FormatResult resultFor(final String source, final JavafmtConfig config) {
+        final var result = Javafmt.formatWithResult(source, config);
+        return result.hasErrors() && config.analysis() instanceof JavafmtConfig.Analysis.Attributed
+                ? Javafmt.formatWithResult(source, config.withAnalysis(new JavafmtConfig.Analysis.ParseOnly()))
+                : result;
     }
 
-    /** The full result for {@code state}, for the lint pass, which needs the warnings rather than the output. */
-    private FormatResult resultFor(final String source, final State state) {
-        return state.analysisClasspath().isEmpty()
-                ? Javafmt.formatWithResult(source, state.config())
-                : Javafmt.formatWithAnalyze(source, state.analysisClasspath(), state.config());
-    }
-
-    private boolean isExcluded(final JavafmtConfig cfg, final File file) {
-        return file != null
-            && !cfg.excludes().isEmpty()
-            && PathFilter.ofGlobs(cfg.excludes()).excludes(file.toPath());
+    private boolean isExcluded(final PathFilter filter, final File file) {
+        return file != null && filter.excludes(file.toPath());
     }
 
     /**
@@ -145,11 +141,12 @@ public final class JavafmtFormatterStep {
      * javafmt version and the config exactly as before; {@code config} rides along only so
      * {@code lint} can format with the same settings.
      */
-    record LintingStep(FormatterStep delegate, State state) implements FormatterStep {
+    record LintingStep(FormatterStep delegate, State state, PathFilter excludes) implements FormatterStep {
 
         LintingStep {
             Objects.requireNonNull(delegate, "delegate");
             Objects.requireNonNull(state, "state");
+            Objects.requireNonNull(excludes, "excludes");
         }
 
         @Override
@@ -164,10 +161,10 @@ public final class JavafmtFormatterStep {
 
         @Override
         public List<Lint> lint(final String content, final File file) {
-            if (isExcluded(state.config(), file)) {
+            if (isExcluded(excludes, file)) {
                 return List.of();
             }
-            return resultFor(content, state)
+            return resultFor(content, state.config())
                     .warnings()
                     .stream()
                     .map(JavafmtFormatterStep::toLint)
@@ -194,16 +191,14 @@ public final class JavafmtFormatterStep {
      * @param formatterVersion the javafmt release that will do the formatting. A javafmt upgrade can
      *     change what {@code format(x)} produces; without the version in the state, Spotless would
      *     keep reporting files formatted by an older release as up to date and never reformat them.
-     * @param config the formatter configuration, so a config change invalidates too.
-     * @param analysisClasspath the classpath semantic analysis runs against, empty for parse-only.
-     *     It decides which lint rules can fire, so a changed classpath has to invalidate as well.
+     * @param config the formatter configuration, so a config change invalidates too. It includes the
+     *     analysis classpath, which decides which lint rules can fire.
      */
-    record State(String formatterVersion, JavafmtConfig config, String analysisClasspath) implements Serializable {
+    record State(String formatterVersion, JavafmtConfig config) implements Serializable {
 
         State {
             Objects.requireNonNull(formatterVersion, "formatterVersion");
             Objects.requireNonNull(config, "config");
-            Objects.requireNonNull(analysisClasspath, "analysisClasspath");
         }
     }
 }

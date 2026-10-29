@@ -18,7 +18,7 @@ import org.openjdk.jmh.infra.Blackhole;
 /**
  * Isolation benchmark for {@link JavaParser#parseUnit}. Companion to
  * {@code JavafmtFormatBenchmark}: this measures only the parse phase on the same
- * corpus sources, no print strategy axis.
+ * corpus sources.
  *
  * <p>The CPU profile of {@code JavafmtFormatBenchmark} pinned ~91% of benchmark-thread
  * cycles inside javac task initialization (boot classpath scan, JarFile inflate,

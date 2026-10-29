@@ -25,6 +25,7 @@ public final class FinalLocalVariable implements LintRule {
     @Override
     public LintResult apply(final LintContext ctx) {
         final var unit = ctx.unit();
+        final var reassignments = new ReassignmentDetector();
         return LintScan.edits(
                 ctx,
                 edits -> new ChainPathScanner<>() {
@@ -36,8 +37,8 @@ public final class FinalLocalVariable implements LintRule {
                             && !Modifiers.hasFinal(node)
                             && !node.getName().isEmpty()
                             && !MultipleVariableDeclarations.isPartOfDeclarationGroup(path, unit)
-                            && !Modifiers.reassigned(path.getParentPath().getLeaf(), node.getName().toString())) {
-                            final var pos = (int) unit.sourcePositions().getStartPosition(unit.tree(), node);
+                            && !reassignments.reassigned(path.getParentPath().getLeaf(), node.getName().toString())) {
+                            final var pos = unit.startOf(node);
                             if (pos >= 0) {
                                 edits.add(LintEdit.insert(pos, "final "));
                             }

@@ -98,9 +98,11 @@ The body indents against the enclosing chain, not the lambda arrow.
 
 ## Method chains
 
-- Break before each `.` if the chain exceeds **80 characters** in flat form, even when the surrounding line width is wider. Same rule as [palantir-java-format](https://github.com/palantir/palantir-java-format) — chains compose, so breaking them aggressively yields better reviewability than packing them to the line width.
+- Break before each `.` only when the chain does not fit in the 150-character line. A chain that contains a multi-line text block always breaks.
 - Continuation indent is 8 spaces past the surrounding context (matching Palantir; not dot-aligned).
-- If the author wrote any `.` on its own line in the source, the chain stays multi-line even when it would fit on one. This preserves deliberate layout for cases the 80-char rule wouldn't otherwise catch.
+- If the author wrote any `.` on its own line in the source, the chain stays multi-line even when it would fit on one.
+
+The same holds for `&&`/`||` chains: they break before every operator only when they do not fit in 150 characters, or when the author already broke them.
 
 ## Enums
 

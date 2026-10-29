@@ -11,7 +11,6 @@ import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
@@ -93,24 +92,40 @@ class DeepExpressionTest {
 
     enum Chain {
 
-        ARITHMETIC("int", "1", " + "),
-        LOGICAL("boolean", "true", " && ");
+        ALTERNATING("Deep", "a", ".f().a", ""),
+        ARITHMETIC("int", "1", " + 1", ""),
+        FIELD_SELECT("Deep", "a", ".a", ""),
+        LOGICAL("boolean", "true", " && true", ""),
+        METHOD_CHAIN("String", "new StringBuilder()", ".append(1)", ".toString()");
 
         private final String type;
 
-        private final String operand;
+        private final String prefix;
 
-        private final String operator;
+        private final String link;
 
-        Chain(final String type, final String operand, final String operator) {
+        private final String suffix;
+
+        Chain(final String type, final String prefix, final String link, final String suffix) {
             this.type = type;
-            this.operand = operand;
-            this.operator = operator;
+            this.prefix = prefix;
+            this.link = link;
+            this.suffix = suffix;
         }
 
-        String of(final int terms) {
-            return "class Deep {\n\n    " + type + " value = " + Stream.generate(() -> operand).limit(terms).collect(Collectors.joining(operator))
-                    + ";\n}\n";
+        String of(final int links) {
+            return """
+                    class Deep {
+
+                        Deep a;
+
+                        Deep f() {
+                            return this;
+                        }
+
+                        %s value = %s;
+                    }
+                    """.formatted(type, prefix + link.repeat(links) + suffix);
         }
     }
 }

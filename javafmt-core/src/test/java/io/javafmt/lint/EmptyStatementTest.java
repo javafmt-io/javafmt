@@ -8,6 +8,40 @@ import org.junit.jupiter.api.Test;
 class EmptyStatementTest {
 
     @Test
+    void deletesOnlyTheStraySemicolonsBetweenClassMembers() {
+        final var unit = JavaParser.parseUnit("""
+            class Fixture {
+                ;
+                int a = 1, b = 2;
+                // a; comment
+                String s = ";";
+                ;
+                class Inner {
+                    ;
+                    void f() {}
+                }
+                /* ; */ ;
+            }
+            """);
+        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("""
+                           class Fixture {
+                              \s
+                               int a = 1, b = 2;
+                               // a; comment
+                               String s = ";";
+                              \s
+                               class Inner {
+                                  \s
+                                   void f() {}
+                               }
+                               /* ; */\s
+                           }
+                           """);
+    }
+
+    @Test
     void strayStandaloneEmptyStatementInBlockIsDeleted() {
         final var unit = JavaParser.parseUnit("""
             class Fixture {

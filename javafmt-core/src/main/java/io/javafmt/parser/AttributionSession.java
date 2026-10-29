@@ -48,13 +48,14 @@ public final class AttributionSession {
      * does for parse-only. All returned {@link AttributedUnit}s share the same {@link Attribution}
      * services, which also means cross-file type references resolve within the batch.
      *
-     * <p>Per-source parse errors surface as {@link AttributedOutcome.Failed}; the batch never
-     * short-circuits. An attribution failure (from {@code task.analyze()}) does not either: the
-     * batch is re-attributed one source at a time so that only the source javac choked on comes
-     * back {@link AttributedOutcome.Failed}. Sources recovered that way each carry their own
-     * {@link Attribution}, so cross-file references no longer resolve within a degraded batch.
+     * <p>Per-source parse errors surface as a {@link Staged.Failed} carrying the
+     * {@link ParseException}; the batch never short-circuits. An attribution failure (from
+     * {@code task.analyze()}) does not either: the batch is re-attributed one source at a time so
+     * that only the source javac choked on comes back {@link Staged.Failed}, carrying javac's
+     * exception. Sources recovered that way each carry their own {@link Attribution}, so cross-file
+     * references no longer resolve within a degraded batch.
      */
-    public List<AttributedOutcome> attribute(final List<String> sources) {
+    public List<Staged<AttributedUnit>> attribute(final List<String> sources) {
         Objects.requireNonNull(sources, "sources");
         if (ended) {
             throw new IllegalStateException("This attribution session has ended; attribute inside JavaParser.attributing");
@@ -69,9 +70,6 @@ public final class AttributionSession {
      */
     public AttributedUnit attribute(final String source) {
         Objects.requireNonNull(source, "source");
-        return switch (attribute(List.of(source)).getFirst()) {
-            case AttributedOutcome.Ok ok -> ok.unit();
-            case AttributedOutcome.Failed failed -> throw failed.error();
-        };
+        return attribute(List.of(source)).getFirst().orElseThrow();
     }
 }

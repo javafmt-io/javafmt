@@ -150,11 +150,7 @@ public final class JavaParser {
 
     public ParsedUnit parseUnit(final String source) {
         Objects.requireNonNull(source, "source");
-        final var outcome = parseUnits(List.of(source)).getFirst();
-        return switch (outcome) {
-            case ParseOutcome.Ok ok -> ok.unit();
-            case ParseOutcome.Failed failed -> throw failed.error();
-        };
+        return parseUnits(List.of(source)).getFirst().orElseThrow();
     }
 
     /**
@@ -167,7 +163,7 @@ public final class JavaParser {
         return like.session().attribute(source);
     }
 
-    List<AttributedOutcome> attributeBatch(final List<String> sources, final AttributionSession session) {
+    List<Staged<AttributedUnit>> attributeBatch(final List<String> sources, final AttributionSession session) {
         final var classpath = session.classpath();
         final var options = classpath.isEmpty() ? TASK_OPTIONS : Stream.concat(TASK_OPTIONS.stream(), Stream.of("-classpath", classpath)).toList();
         final var batch = parseBatch(sources, session.fileManager(), options);
@@ -182,15 +178,7 @@ public final class JavaParser {
         final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), session);
         final var positions = attribution.trees().getSourcePositions();
         return IntStream.range(0, batch.stripped().size())
-                .<AttributedOutcome>mapToObj(
-                        i -> attributedOutcomeFor(
-                                i,
-                                batch.stripped().get(i),
-                                batch.fileObjects().get(i).toUri(),
-                                batch.treeByUri(),
-                                batch.errorsByUri(),
-                                positions,
-                                attribution))
+                .mapToObj(i -> resolve(batch, i, positions).map(unit -> new AttributedUnit(unit, attribution)))
                 .toList();
     }
 
@@ -199,12 +187,12 @@ public final class JavaParser {
      * sources javac can handle keep their attribution. A single source that fails again lands
      * here with nothing left to split, and carries {@code batchFailure} out as its own failure.
      */
-    private List<AttributedOutcome> attributeIndividually(
+    private List<Staged<AttributedUnit>> attributeIndividually(
             final List<String> sources,
             final AttributionSession session,
             final RuntimeException batchFailure) {
         if (sources.size() == 1) {
-            return List.of(new AttributedOutcome.Failed(batchFailure));
+            return List.of(new Staged.Failed<>(batchFailure));
         }
         return sources.stream()
                 .map(source -> attributeBatch(List.of(source), session).getFirst())
@@ -229,52 +217,24 @@ public final class JavaParser {
                         }));
     }
 
-    private AttributedOutcome attributedOutcomeFor(
-            final int index,
-            final String source,
-            final URI uri,
-            final Map<URI, CompilationUnitTree> treeByUri,
-            final Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri,
-            final SourcePositions positions,
-            final Attribution attribution) {
-        return resolve(
-                index,
-                source,
-                uri,
-                treeByUri,
-                errorsByUri,
-                positions,
-                unit -> new AttributedOutcome.Ok(new AttributedUnit(unit, attribution)),
-                AttributedOutcome.Failed::new);
-    }
-
     /**
      * Resolves source #{@code index} against the maps a parse batch produced: a parse error
-     * (from {@code errorsByUri}) or a missing tree short-circuits to {@code onError}, otherwise
-     * the tree is comment-attached into a {@link ParsedUnit} and handed to {@code onOk}. Shared
-     * by {@link #outcomeFor} and {@link #attributedOutcomeFor}, which differ only in what they
-     * wrap the result in.
+     * (from {@code errorsByUri}) or a missing tree short-circuits to a failure, otherwise the
+     * tree is comment-attached into a {@link ParsedUnit}.
      */
-    private <T> T resolve(
-            final int index,
-            final String source,
-            final URI uri,
-            final Map<URI, CompilationUnitTree> treeByUri,
-            final Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri,
-            final SourcePositions positions,
-            final Function<ParsedUnit, T> onOk,
-            final Function<ParseException, T> onError) {
-        final var perSourceErrors = errorsByUri.getOrDefault(uri, List.of());
+    private Staged<ParsedUnit> resolve(final ParsedBatch batch, final int index, final SourcePositions positions) {
+        final var uri = batch.fileObjects().get(index).toUri();
+        final var perSourceErrors = batch.errorsByUri().getOrDefault(uri, List.of());
         if (!perSourceErrors.isEmpty()) {
-            return onError.apply(toParseException(perSourceErrors));
+            return new Staged.Failed<>(toParseException(perSourceErrors));
         }
-        final var tree = treeByUri.get(uri);
+        final var tree = batch.treeByUri().get(uri);
         if (tree == null) {
-            return onError.apply(new ParseException(NO_COMPILATION_UNIT + index, List.of()));
+            return new Staged.Failed<>(new ParseException(NO_COMPILATION_UNIT + index, List.of()));
         }
+        final var source = batch.stripped().get(index);
         final var comments = CommentScanner.scan(source);
-        final var unit = CommentAttacher.attach(tree, source, positions, comments);
-        return onOk.apply(unit);
+        return new Staged.Ok<>(CommentAttacher.attach(tree, source, positions, comments));
     }
 
     private ParseException toParseException(final List<javax.tools.Diagnostic<? extends JavaFileObject>> errors) {
@@ -291,10 +251,10 @@ public final class JavaParser {
      * Parses {@code sources} as a single {@link JavacTask}, amortizing
      * {@code BasicJavacTask.initPlugins} (a per-task {@link java.util.ServiceLoader} walk)
      * across the whole batch. Order-preserving: result {@code i} corresponds to
-     * {@code sources.get(i)}. Per-source parse errors surface as {@link ParseOutcome.Failed};
-     * the batch never short-circuits.
+     * {@code sources.get(i)}. A per-source parse error surfaces as a {@link Staged.Failed} carrying
+     * its {@link ParseException}; the batch never short-circuits.
      */
-    public List<ParseOutcome> parseUnits(final List<String> sources) {
+    public List<Staged<ParsedUnit>> parseUnits(final List<String> sources) {
         Objects.requireNonNull(sources, "sources");
         if (sources.isEmpty()) {
             return List.of();
@@ -304,14 +264,7 @@ public final class JavaParser {
             final var batch = parseBatch(sources, fileManager, TASK_OPTIONS);
             final var positions = Trees.instance(batch.task()).getSourcePositions();
             return IntStream.range(0, batch.stripped().size())
-                    .<ParseOutcome>mapToObj(
-                            i -> outcomeFor(
-                                    i,
-                                    batch.stripped().get(i),
-                                    batch.fileObjects().get(i).toUri(),
-                                    batch.treeByUri(),
-                                    batch.errorsByUri(),
-                                    positions))
+                    .mapToObj(i -> resolve(batch, i, positions))
                     .toList();
         } finally {
             IDLE_FILE_MANAGERS.offer(fileManager);
@@ -354,16 +307,6 @@ public final class JavaParser {
         return StreamSupport.stream(trees.spliterator(), false)
                 .map(CompilationUnitTree.class::cast)
                 .collect(Collectors.toMap(t -> t.getSourceFile().toUri(), Function.identity(), (a, b) -> b, LinkedHashMap::new));
-    }
-
-    private ParseOutcome outcomeFor(
-            final int index,
-            final String source,
-            final URI uri,
-            final Map<URI, CompilationUnitTree> treeByUri,
-            final Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri,
-            final SourcePositions positions) {
-        return resolve(index, source, uri, treeByUri, errorsByUri, positions, ParseOutcome.Ok::new, ParseOutcome.Failed::new);
     }
 
     private String stripBom(final String source) {

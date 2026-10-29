@@ -5,11 +5,12 @@ import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.PrimitiveTypeTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -26,14 +27,18 @@ public final class ExplicitInitialization implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new ChainPathScanner<>() {
+                edits -> new ChainScanner<>() {
 
                     @Override
-                    public Void visitVariable(final VariableTree node, final Void p) {
-                        if (getCurrentPath().getParentPath().getLeaf() instanceof ClassTree owner && isRewritableField(node, owner)) {
-                            removeDefaultInit(node, unit).ifPresent(edits::add);
-                        }
-                        return super.visitVariable(node, null);
+                    public Void visitClass(final ClassTree node, final Void p) {
+                        node.getMembers()
+                                .stream()
+                                .flatMap(
+                                        m -> m instanceof VariableTree field && isRewritableField(field, node)
+                                                ? removeDefaultInit(field, unit).stream()
+                                                : Stream.empty())
+                                .forEach(edits::add);
+                        return super.visitClass(node, null);
                     }
                 });
     }
@@ -102,9 +107,9 @@ public final class ExplicitInitialization implements LintRule {
      * it and deleting the initializer would take it with it.
      */
     private static Optional<LintEdit> buildDeleteEdit(final VariableTree field, final LiteralTree init, final ParsedUnit unit) {
-        final var declStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), field);
-        final var initStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), init);
-        final var initEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), init);
+        final var declStart = unit.startOf(field);
+        final var initStart = unit.startOf(init);
+        final var initEnd = unit.endOf(init);
         if (declStart < 0 || initStart < 0 || initEnd < 0) {
             return Optional.empty();
         }

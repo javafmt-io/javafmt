@@ -3,6 +3,7 @@ package io.javafmt;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -26,6 +27,8 @@ public final class RealWorldCorpus {
 
     private static final String CORPUS_PROPERTY = "javafmt.corpus";
 
+    private static final String SRC_ZIP_PROPERTY = "javafmt.corpus.srczip";
+
     public static List<String> clean(final int limit) {
         final var root = System.getProperty(CORPUS_PROPERTY);
         if (root == null) {
@@ -44,6 +47,18 @@ public final class RealWorldCorpus {
 
     public static List<String> dirty(final int limit) {
         return clean(limit).stream().map(source -> source.replace("final ", "")).toList();
+    }
+
+    public static String jdk(final String file) {
+        final var srcZip = System.getProperty(SRC_ZIP_PROPERTY);
+        if (srcZip == null) {
+            throw new IllegalStateException(SRC_ZIP_PROPERTY + " is not set; run the benchmarks through the Gradle jmh task");
+        }
+        try (final var zip = FileSystems.newFileSystem(Path.of(srcZip))) {
+            return read(zip.getPath("java.base", file));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private static String read(final Path path) {

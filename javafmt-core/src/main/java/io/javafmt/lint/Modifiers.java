@@ -1,6 +1,5 @@
 package io.javafmt.lint;
 
-import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.JavaModifiers;
 import io.javafmt.parser.CommentScanner;
@@ -10,8 +9,7 @@ import lombok.experimental.UtilityClass;
 
 /**
  * Modifier helpers shared across lint rules: the canonical JLS order, whether a declaration is
- * already {@code final}, whether a name is reassigned within a scope, and source-level matching
- * of a modifier keyword at a given position.
+ * already {@code final}, and source-level matching of a modifier keyword at a given position.
  */
 @UtilityClass
 final class Modifiers {
@@ -22,18 +20,6 @@ final class Modifiers {
 
     boolean hasFinal(final VariableTree node) {
         return node.getModifiers().getFlags().contains(Modifier.FINAL);
-    }
-
-    /**
-     * Whether {@code name} is written to (assignment, compound assignment, or increment/decrement)
-     * anywhere in {@code scope}. Shared by {@link FinalLocalVariable} and {@link FinalParameters},
-     * which both need the same answer before adding {@code final}. See {@link ReassignmentDetector}
-     * for which writes count and which nested scopes it skips.
-     */
-    boolean reassigned(final Tree scope, final String name) {
-        final var detector = new ReassignmentDetector(name);
-        detector.scan(scope, null);
-        return detector.found();
     }
 
     /**

@@ -1,16 +1,11 @@
 package io.javafmt.printer;
 
-import java.util.List;
 import lombok.experimental.UtilityClass;
 
 /**
  * Emits a {@link io.javafmt.doc.Doc.Verbatim} into a {@link StringBuilder}, applying
  * column-shift to every line after the first so the literal stays visually aligned when
  * the printer relocates it.
- *
- * <p>Why a separate class: both {@link GreedyPrintStrategy} and {@link WadlerLindigPrintStrategy}
- * handle Verbatim identically (the shift is independent of fit-strategy), so the logic lives
- * here once.
  *
  * <p>Shift semantics:
  * <ul>
@@ -125,45 +120,5 @@ final class VerbatimEmitter {
         } else {
             sb.append(value, start, end);
         }
-    }
-
-    /**
-     * Strips trailing spaces and tabs from each line of {@code text}, skipping any character
-     * positions that fall within a verbatim range. Call with the ranges collected during
-     * {@link #emit} calls to preserve trailing whitespace inside text blocks (where it is
-     * semantically significant) while still stripping incidental trailing whitespace elsewhere.
-     *
-     * <p>One scan, no regex. {@code replaceAll("(?m)[ \t]+$", "")} used to handle the common case
-     * of no verbatim ranges, and it is quadratic in the length of a line: the engine restarts the
-     * greedy run of spaces at every position in it, only to fail the end-of-line check. Deeply
-     * nested code indents to thousands of columns on hundreds of lines, and the two multiply — a
-     * 600-deep nest of calls spent 4 seconds of its 4.2 here. This loop does it in 0.05.
-     */
-    String stripTrailingWhitespace(final String text, final List<int[]> verbatimRanges) {
-        final var result = new StringBuilder(text.length());
-        int i = 0;
-        while (true) {
-            final int nlPos = text.indexOf('\n', i);
-            final int lineEnd = nlPos < 0 ? text.length() : nlPos;
-            int trailingStart = lineEnd;
-            while (trailingStart > i && isSpaceOrTab(text.charAt(trailingStart - 1))) {
-                trailingStart--;
-            }
-            final int ts = trailingStart;
-            final int le = lineEnd;
-            final boolean keepTrailing = trailingStart < lineEnd
-                && verbatimRanges.stream().anyMatch((int[] r) -> r[0] < le && r[1] > ts);
-            result.append(text, i, keepTrailing ? lineEnd : trailingStart);
-            if (nlPos < 0) {
-                break;
-            }
-            result.append('\n');
-            i = nlPos + 1;
-        }
-        return result.toString();
-    }
-
-    private boolean isSpaceOrTab(final char c) {
-        return c == ' ' || c == '\t';
     }
 }

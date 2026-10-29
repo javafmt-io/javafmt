@@ -2,7 +2,6 @@ package io.javafmt.builder;
 
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
-import java.util.List;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -20,15 +19,15 @@ final class FieldRenderer {
         final var mods = node.getModifiers();
         final var preamble = ModifierRenderer.preambleOf(mods, recursor, ModifierRenderer.rendersFieldAnnotationsInline(mods, recursor));
         final var typeDoc = node.getType() == null ? new Doc.Text("var") : recursor.scan(node.getType());
-        final var head = new Doc.Concat(List.of(new Doc.Text(preamble.prefix()), typeDoc, new Doc.Text(" " + Names.of(node))));
+        final var head = Doc.concat(new Doc.Text(preamble.prefix()), typeDoc, new Doc.Text(" " + Names.of(node)));
         final var declaration = node.getInitializer() == null
-                ? new Doc.Concat(List.of(head, new Doc.Text(";")))
+                ? Doc.concat(head, new Doc.Text(";"))
                 : withInitializer(head, recursor.scan(node.getInitializer()));
         return ModifierRenderer.finish(preamble, node.getModifiers(), declaration, recursor);
     }
 
     private Doc withInitializer(final Doc head, final Doc initializer) {
-        return new Doc.Concat(List.of(head, new Doc.Text(" = "), initializer, terminator(initializer)));
+        return Doc.concat(head, new Doc.Text(" = "), initializer, terminator(initializer));
     }
 
     /**
@@ -37,6 +36,6 @@ final class FieldRenderer {
      * the declaration no longer compiles.
      */
     private Doc terminator(final Doc initializer) {
-        return Doc.endsWithLineComment(initializer) ? new Doc.Concat(List.of(Doc.HARD_LINE, new Doc.Text(";"))) : new Doc.Text(";");
+        return Doc.endsWithLineComment(initializer) ? Doc.concat(Doc.HARD_LINE, new Doc.Text(";")) : new Doc.Text(";");
     }
 }

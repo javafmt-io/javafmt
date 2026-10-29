@@ -46,7 +46,7 @@ public final class ExplodeStarImports implements LintRule {
         final var stars = unit.tree()
                 .getImports()
                 .stream()
-                .filter(ExplodeStarImports::isStarImport)
+                .filter(Declarations::isStarImport)
                 .toList();
         if (stars.isEmpty()) {
             return LintResult.EMPTY;
@@ -54,10 +54,6 @@ public final class ExplodeStarImports implements LintRule {
         return resolveUses(unit, attribution.get())
                 .map(uses -> LintResult.ofEdits(stars.stream().flatMap(s -> editFor(s, uses, attribution.get(), unit).stream()).toList()))
                 .orElse(LintResult.EMPTY);
-    }
-
-    private static boolean isStarImport(final ImportTree imp) {
-        return imp.getQualifiedIdentifier() instanceof MemberSelectTree ms && ms.getIdentifier().contentEquals("*");
     }
 
     private static String prefixOf(final ImportTree imp) {

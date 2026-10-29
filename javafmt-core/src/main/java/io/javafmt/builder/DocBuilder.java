@@ -68,9 +68,11 @@ import io.javafmt.parser.CommentToken;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.parser.TreeFacts;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 
@@ -83,6 +85,8 @@ public final class DocBuilder {
     private final LeadingCommentAttacher attacher;
 
     private final List<Diagnostic> diagnostics = new ArrayList<>();
+
+    private final IdentityHashMap<Tree, Prerendered> prerendered = new IdentityHashMap<>();
 
     private int compactDepth;
 
@@ -118,8 +122,23 @@ public final class DocBuilder {
         }
 
         @Override
-        public Doc withComments(final Tree node, final Doc rendered) {
+        public Doc attach(final Tree node, final Doc rendered) {
             return attacher.attach(node, rendered);
+        }
+
+        @Override
+        public List<CommentToken> interior(final Tree node) {
+            return attacher.interior(node);
+        }
+
+        @Override
+        public List<CommentToken> trailing(final Tree node) {
+            return attacher.trailing(node);
+        }
+
+        @Override
+        public List<CommentToken> tail(final Tree node) {
+            return attacher.tail(node);
         }
 
         @Override
@@ -135,6 +154,11 @@ public final class DocBuilder {
         @Override
         public String sourceOf(final Tree node) {
             return unit.sourceOf(node);
+        }
+
+        @Override
+        public CharSequence sourceSpan(final Tree node) {
+            return unit.sourceSpanOf(node);
         }
 
         @Override
@@ -174,7 +198,53 @@ public final class DocBuilder {
         if (tree == null) {
             return null;
         }
+        final var ready = prerendered.remove(tree);
+        if (ready != null) {
+            diagnostics.addAll(ready.diagnostics());
+            return ready.doc();
+        }
+        final var reentry = reentryPoint(tree);
+        if (reentry != null) {
+            walk(reentry, DocBuilder::reentryPoint).toList().reversed().forEach(this::prerender);
+        }
+        return render(tree);
+    }
+
+    private Doc render(final Tree tree) {
         return attacher.attach(tree, dispatch(tree));
+    }
+
+    private void prerender(final Tree tree) {
+        final var from = diagnostics.size();
+        final var doc = render(tree);
+        final var raised = diagnostics.subList(from, diagnostics.size());
+        prerendered.put(tree, new Prerendered(doc, List.copyOf(raised)));
+        raised.clear();
+    }
+
+    @Nullable
+    private static Tree reentryPoint(final Tree tree) {
+        final var receiver = switch (tree) {
+            case MethodInvocationTree call ->
+                innermost(call, DocBuilder::receiverCall).getMethodSelect() instanceof MemberSelectTree ms ? ms.getExpression() : null;
+            case MemberSelectTree select ->
+                innermost(select, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null).getExpression();
+            default -> null;
+        };
+        return receiver instanceof MethodInvocationTree || receiver instanceof MemberSelectTree ? receiver : null;
+    }
+
+    @Nullable
+    private static MethodInvocationTree receiverCall(final MethodInvocationTree call) {
+        return call.getMethodSelect() instanceof MemberSelectTree ms && ms.getExpression() instanceof MethodInvocationTree receiver ? receiver : null;
+    }
+
+    private static <T> T innermost(final T start, final Function<T, @Nullable T> next) {
+        return walk(start, next).reduce((outer, inner) -> inner).orElse(start);
+    }
+
+    private static <T> Stream<T> walk(final T start, final Function<T, @Nullable T> next) {
+        return Stream.<@Nullable T>iterate(start, Objects::nonNull, t -> next.apply(Objects.requireNonNull(t))).map(Objects::requireNonNull);
     }
 
     private Doc visitCompilationUnit(final CompilationUnitTree node) {
@@ -191,7 +261,7 @@ public final class DocBuilder {
         final var module = node.getModule();
         final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.<Doc>ofNullable(scan(module)).stream();
         final var typeDeclsStream = Doc.intersperse(
-                new Doc.Concat(List.of(Doc.HARD_LINE, Doc.HARD_LINE)),
+                Doc.BLANK_LINE,
                 node.getTypeDecls()
                         .stream()
                         .<Doc>flatMap(decl -> Optional.<Doc>ofNullable(scan(decl)).stream()));
@@ -208,14 +278,14 @@ public final class DocBuilder {
 
     private Doc visitClass(final ClassTree node) {
         return switch (node.getKind()) {
-            case RECORD -> RecordRenderer.render(node, recursor, attacher);
-            case ENUM -> EnumRenderer.render(node, recursor, attacher);
-            case INTERFACE -> ClassLikeRenderer.render(node, "interface", recursor, attacher);
-            case ANNOTATION_TYPE -> ClassLikeRenderer.render(node, "@interface", recursor, attacher);
+            case RECORD -> RecordRenderer.render(node, recursor);
+            case ENUM -> EnumRenderer.render(node, recursor);
+            case INTERFACE -> ClassLikeRenderer.render(node, "interface", recursor);
+            case ANNOTATION_TYPE -> ClassLikeRenderer.render(node, "@interface", recursor);
             case CLASS ->
                 isImplicitClassDeclaration(node)
-                        ? ClassLikeRenderer.renderImplicit(node, recursor, attacher)
-                        : ClassLikeRenderer.render(node, "class", recursor, attacher);
+                        ? ClassLikeRenderer.renderImplicit(node, recursor)
+                        : ClassLikeRenderer.render(node, "class", recursor);
             default -> throw new IllegalStateException("unexpected class kind: " + node.getKind());
         };
     }
@@ -226,7 +296,7 @@ public final class DocBuilder {
      * position.
      */
     private boolean isImplicitClassDeclaration(final ClassTree node) {
-        return unit.sourcePositions().getEndPosition(unit.tree(), node) < 0;
+        return unit.endOf(node) < 0;
     }
 
     private Doc visitBlock(final BlockTree node) {
@@ -245,7 +315,7 @@ public final class DocBuilder {
      * cannot drift apart.
      */
     private Doc visitCatch(final CatchTree node) {
-        final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor, attacher);
+        final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
         return BlockRenderer.buildBlock(TryRenderer.catchClause(node, recursor), stmts, List.of());
     }
 
@@ -257,13 +327,13 @@ public final class DocBuilder {
     private Doc dispatch(final Tree tree) {
         final var result = switch (tree) {
             case CompilationUnitTree n -> visitCompilationUnit(n);
-            case ModuleTree n -> ModuleRenderer.render(n, attacher, recursor);
+            case ModuleTree n -> ModuleRenderer.render(n, recursor);
             case ClassTree n -> visitClass(n);
             case VariableTree n -> FieldRenderer.render(n, recursor);
-            case MethodTree n -> MethodRenderer.render(n, recursor, attacher);
+            case MethodTree n -> MethodRenderer.render(n, recursor);
             case ReturnTree n -> SimpleStatementRenderers.renderReturn(n, recursor);
             case ExpressionStatementTree n -> SimpleStatementRenderers.renderExpressionStatement(n, recursor);
-            case MethodInvocationTree n -> MethodChainRenderer.render(n, recursor, attacher);
+            case MethodInvocationTree n -> MethodChainRenderer.render(n, recursor);
             case NewArrayTree n -> ExpressionRenderers.renderNewArray(n, recursor);
             case TypeCastTree n -> ExpressionRenderers.renderTypeCast(n, recursor);
             case ParenthesizedTree n -> ExpressionRenderers.renderParenthesized(n, recursor);
@@ -282,19 +352,19 @@ public final class DocBuilder {
             case ConstantCaseLabelTree n -> ExpressionRenderers.renderConstantCaseLabel(n, recursor);
             case MemberReferenceTree n -> ExpressionRenderers.renderMemberReference(n, recursor);
             case AnnotationTree n -> ExpressionRenderers.renderAnnotation(n, recursor);
-            case LambdaExpressionTree n -> LambdaRenderer.render(n, recursor, attacher);
+            case LambdaExpressionTree n -> LambdaRenderer.render(n, recursor);
             case SwitchTree n -> SwitchExpressionRenderer.renderSwitch(n, recursor);
             case SwitchExpressionTree n -> SwitchExpressionRenderer.renderSwitch(n, recursor);
-            case CaseTree n -> SwitchExpressionRenderer.renderCase(n, recursor, attacher);
-            case IfTree n -> IfRenderer.render(n, recursor, attacher);
-            case ForLoopTree n -> LoopRenderer.renderFor(n, recursor, attacher);
-            case EnhancedForLoopTree n -> LoopRenderer.renderEnhancedFor(n, recursor, attacher);
-            case WhileLoopTree n -> LoopRenderer.renderWhile(n, recursor, attacher);
-            case DoWhileLoopTree n -> LoopRenderer.renderDoWhile(n, recursor, attacher);
+            case CaseTree n -> SwitchExpressionRenderer.renderCase(n, recursor);
+            case IfTree n -> IfRenderer.render(n, recursor);
+            case ForLoopTree n -> LoopRenderer.renderFor(n, recursor);
+            case EnhancedForLoopTree n -> LoopRenderer.renderEnhancedFor(n, recursor);
+            case WhileLoopTree n -> LoopRenderer.renderWhile(n, recursor);
+            case DoWhileLoopTree n -> LoopRenderer.renderDoWhile(n, recursor);
             case ThrowTree n -> SimpleStatementRenderers.renderThrow(n, recursor);
-            case TryTree n -> TryRenderer.render(n, recursor, attacher);
+            case TryTree n -> TryRenderer.render(n, recursor);
             case AssertTree n -> SimpleStatementRenderers.renderAssert(n, recursor);
-            case SynchronizedTree n -> SimpleStatementRenderers.renderSynchronized(n, recursor, attacher);
+            case SynchronizedTree n -> SimpleStatementRenderers.renderSynchronized(n, recursor);
             case LabeledStatementTree n -> SimpleStatementRenderers.renderLabeled(n, recursor);
             case YieldTree n -> SimpleStatementRenderers.renderYield(n, recursor);
             case IdentifierTree n -> TypeRenderers.renderIdentifier(n);
@@ -344,6 +414,8 @@ public final class DocBuilder {
 
     public record BuildResult(Doc doc, List<Diagnostic> diagnostics) {}
 
+    private record Prerendered(Doc doc, List<Diagnostic> diagnostics) {}
+
     private record CommentAttacher(ParsedUnit unit) implements LeadingCommentAttacher {
 
         @Override
@@ -360,7 +432,7 @@ public final class DocBuilder {
          * rendered inline; the ones before them still take a line each.
          */
         private int firstInlineComment(final Tree node, final List<CommentToken> leading) {
-            final var nodeStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), node);
+            final var nodeStart = unit.startOf(node);
             if (leading.isEmpty() || nodeStart < 0) {
                 return leading.size();
             }

@@ -235,12 +235,23 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void chainOverEightyChars_breaksEvenWhenLineFits() {
-        // Palantir-style: break method chains that would exceed 80 chars on a single line
-        // even when the surrounding line width (150) would accommodate them. The chain here
-        // is under 150 chars total but over 80 — it breaks.
+    void chainThatFitsTheLine_staysOnOneLine() {
         final var input = "class Foo { void test() { var foo = SomeServiceBuilder.builder()"
             + ".withThing1(thing1).withThing2(thing2).withThing3(thing3).build(); } }";
+        assertThat(format(input))
+                .isEqualTo("""
+                           class Foo {
+
+                               void test() {
+                                   var foo = SomeServiceBuilder.builder().withThing1(thing1).withThing2(thing2).withThing3(thing3).build();
+                               }
+                           }""".stripIndent());
+    }
+
+    @Test
+    void chainOverTheLine_breaksBeforeEveryDot() {
+        final var input = "class Foo { void test() { var foo = SomeServiceBuilder.builder()"
+            + ".withThing1(thing1).withThing2(thing2).withThing3(thing3).withThing4(thing4).withThing5(thing5).withThing6(thing6).build(); } }";
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
@@ -250,6 +261,9 @@ class MethodChainRendererTest {
                                            .withThing1(thing1)
                                            .withThing2(thing2)
                                            .withThing3(thing3)
+                                           .withThing4(thing4)
+                                           .withThing5(thing5)
+                                           .withThing6(thing6)
                                            .build();
                                }
                            }""".stripIndent());

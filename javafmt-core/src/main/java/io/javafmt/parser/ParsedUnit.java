@@ -4,6 +4,7 @@ import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.SourcePositions;
 import io.javafmt.Position;
+import java.nio.CharBuffer;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -41,12 +42,24 @@ public record ParsedUnit(
     }
 
     public String sourceOf(final Tree node) {
-        final var start = sourcePositions.getStartPosition(tree, node);
-        final var end = sourcePositions.getEndPosition(tree, node);
+        return sourceSpanOf(node).toString();
+    }
+
+    public CharSequence sourceSpanOf(final Tree node) {
+        final var start = startOf(node);
+        final var end = endOf(node);
         if (start < 0 || end < 0 || end > source.length() || start > end) {
             throw new IllegalStateException("no source positions for " + node.getKind() + ": " + node);
         }
-        return source.substring((int) start, (int) end);
+        return CharBuffer.wrap(source, start, end);
+    }
+
+    public int startOf(final Tree node) {
+        return (int) sourcePositions.getStartPosition(tree, node);
+    }
+
+    public int endOf(final Tree node) {
+        return (int) sourcePositions.getEndPosition(tree, node);
     }
 
     public List<CommentToken> leadingOf(final Tree node) {
@@ -66,14 +79,14 @@ public record ParsedUnit(
     }
 
     public Position positionOf(final Tree node) {
-        final var offset = sourcePositions.getStartPosition(tree, node);
+        final var offset = startOf(node);
         if (offset < 0) {
             return new Position.Unknown();
         }
         final var lineMap = tree.getLineMap();
         final var line = (int) lineMap.getLineNumber(offset);
         final var column = (int) lineMap.getColumnNumber(offset);
-        return new Position.At(line, column, (int) offset);
+        return new Position.At(line, column, offset);
     }
 
     private static Map<Tree, List<CommentToken>> deepCopy(final Map<Tree, List<CommentToken>> src) {

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.javafmt.doc.Doc;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -144,88 +143,6 @@ class PrinterTest {
     }
 
     @Nested
-    class FillTests {
-
-        private static Doc fill(final String... words) {
-            final var parts = new ArrayList<Doc>();
-            for (var i = 0; i < words.length; i++) {
-                if (i > 0) {
-                    parts.add(Doc.LINE);
-                }
-                parts.add(new Doc.Text(words[i]));
-            }
-            return new Doc.Fill(parts);
-        }
-
-        @Test
-        void fill_allFitOnOneLine_keepsOnOneLine() {
-            assertThat(new Printer(80).print(fill("a", "b", "c"))).isEqualTo("a b c");
-        }
-
-        @Test
-        void fill_packsAsManyAsFitPerLine() {
-            // "aaa bbb ccc ddd" = 15. At width 8: "aaa bbb" (7) fits, "ccc" doesn't fit with " ccc" (11>8), break;
-            //                                     "ccc ddd" (7) fits on second line.
-            assertThat(new Printer(8).print(fill("aaa", "bbb", "ccc", "ddd"))).isEqualTo("aaa bbb\nccc ddd");
-        }
-
-        @Test
-        void fill_breaksBeforeItemThatWontFit() {
-            // Width 5: "aaa" (3) fits, " bb" (6) doesn't, break; "bb cc" (5) fits.
-            assertThat(new Printer(5).print(fill("aaa", "bb", "cc"))).isEqualTo("aaa\nbb cc");
-        }
-
-        @Test
-        void fill_decidesEachBreakIndependently() {
-            // Contrast with Group: Group is all-or-nothing.
-            final var grp = new Doc.Group(new Doc.Concat(List.of(new Doc.Text("aaa"), Doc.LINE, new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc"))));
-            // Group at width 5: "aaa bb cc" = 9 > 5 so all break.
-            assertThat(new Printer(5).print(grp)).isEqualTo("aaa\nbb\ncc");
-            // Fill at width 5: packs partial lines.
-            assertThat(new Printer(5).print(fill("aaa", "bb", "cc"))).isEqualTo("aaa\nbb cc");
-        }
-
-        @Test
-        void fill_softLineSeparatorPacksWithoutSpace() {
-            final var doc = new Doc.Fill(List.of(new Doc.Text("aa"), Doc.SOFT_LINE, new Doc.Text("bb"), Doc.SOFT_LINE, new Doc.Text("cc")));
-            assertThat(new Printer(80).print(doc)).isEqualTo("aabbcc");
-            assertThat(new Printer(3).print(doc)).isEqualTo("aa\nbb\ncc");
-        }
-
-        @Test
-        void fill_requiresOddNumberOfParts() {
-            assertThatThrownBy(() -> new Doc.Fill(List.of(new Doc.Text("a"), Doc.LINE))).isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        void fill_requiresLineOrSoftLineSeparator() {
-            assertThatThrownBy(() -> new Doc.Fill(List.of(new Doc.Text("a"), new Doc.Text(","), new Doc.Text("b"))))
-                    .isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        void fill_hardLineInsideContent_forcesNextSeparatorToBreak() {
-            // A HardLine inside a Fill content sets a force-break flag in the pack loop:
-            // the immediately following separator BREAKs regardless of the rendered cursor's
-            // actual column after the HardLine. After that break the flag clears and packing
-            // resumes normally. Documenting this so a future change doesn't quietly alter
-            // the behavior.
-            final var contentWithHardLine = new Doc.Concat(List.of(new Doc.Text("a"), Doc.HARD_LINE, new Doc.Text("b")));
-            final var doc = new Doc.Fill(List.of(contentWithHardLine, Doc.LINE, new Doc.Text("c"), Doc.LINE, new Doc.Text("d")));
-            assertThat(new Printer(80).print(doc)).isEqualTo("a\nb\nc d");
-        }
-
-        @Test
-        void fill_multiLineVerbatimInsideContent_forcesNextSeparatorToBreak() {
-            // A Verbatim whose body spans lines ends the line just as a HardLine does, so it
-            // sets the same force-break flag. This is the second half of the pack loop's
-            // break signal and the only other way its width probe can report "no width".
-            final var doc = new Doc.Fill(List.of(new Doc.Verbatim("a\nb", 0), Doc.LINE, new Doc.Text("c"), Doc.LINE, new Doc.Text("d")));
-            assertThat(new Printer(80).print(doc)).isEqualTo("a\nb\nc d");
-        }
-    }
-
-    @Nested
     class VerbatimTests {
 
         // A text block as it would appear in source at column 8:
@@ -315,6 +232,80 @@ class PrinterTest {
     }
 
     @Nested
+    class TrailingWhitespaceTests {
+
+        @ParameterizedTest
+        @MethodSource("trailingWhitespaceCases")
+        void trailingWhitespace_strippedOutsideVerbatim(final Doc doc, final String expected) {
+            assertThat(new Printer(200).print(doc)).isEqualTo(expected);
+        }
+
+        static Stream<Arguments> trailingWhitespaceCases() {
+            final var textBlock = "\"\"\"\n        a  \n\n        b \t\n    \t\n        \"\"\"";
+            return Stream.of(
+                    Arguments.of(
+                            new Doc.Concat(List.of(new Doc.Text("x = "), new Doc.Verbatim(textBlock, 4), new Doc.Text(";"))),
+                            "x = " + textBlock + ";"),
+                    Arguments.of(
+                            new Doc.Indent(
+                                    new Doc.Concat(
+                                            List.of(
+                                                    new Doc.Text("{"),
+                                                    Doc.HARD_LINE,
+                                                    new Doc.Text("a"),
+                                                    Doc.BLANK_LINE,
+                                                    Doc.BLANK_LINE,
+                                                    new Doc.Text("b")))),
+                            "{\n    a\n\n\n\n    b"),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("a \t "), Doc.HARD_LINE, new Doc.Text("b  "))), "a\nb"),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Verbatim("// c  ", 0), Doc.HARD_LINE, new Doc.Text("x"))), "// c  \nx"),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Verbatim("x ", 0), new Doc.Text("  "), Doc.HARD_LINE, new Doc.Text("y"))), "x   \ny"),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Verbatim("ab", 0), new Doc.Text("  "), Doc.HARD_LINE, new Doc.Text("y"))), "ab\ny"),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("a  "), new Doc.Verbatim("\nb ", -1))), "a\nb "),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Verbatim("p ", 0), new Doc.Text(" "), new Doc.Verbatim("\nb", -1))), "p  \nb"),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("a "), new Doc.Verbatim("", 0), Doc.HARD_LINE)), "a\n"),
+                    Arguments.of(
+                            new Doc.Concat(List.of(new Doc.Verbatim("\"\"\"\n  q\n  \"\"\"", 0), new Doc.Text("  "), Doc.HARD_LINE)),
+                            "\"\"\"\n  q\n  \"\"\"\n"));
+        }
+    }
+
+    @Nested
+    class LookaheadAwareFitDecision {
+
+        // When deciding whether a Group can render FLAT, the printer counts what follows the
+        // group on the same line, so a suffix that would overflow breaks the group.
+        @Test
+        void groupBreaks_whenSuffixWouldOverflowFlatLine() {
+            // Group's flat form is "aa bb" (5). With lineWidth=7 and no suffix the group fits.
+            // But the suffix " cc" pushes total to 8 > 7. The group breaks.
+            final var doc = new Doc.Concat(
+                    List.of(new Doc.Group(new Doc.Concat(List.of(new Doc.Text("aa"), Doc.LINE, new Doc.Text("bb")))), new Doc.Text(" cc")));
+            assertThat(new Printer(7).print(doc)).isEqualTo("aa\nbb cc");
+        }
+
+        @Test
+        void groupFlat_whenSuffixFitsTogether() {
+            // Same shape, lineWidth=8: group flat "aa bb" + suffix " cc" = 8 ≤ 8, fits flat.
+            final var doc = new Doc.Concat(
+                    List.of(new Doc.Group(new Doc.Concat(List.of(new Doc.Text("aa"), Doc.LINE, new Doc.Text("bb")))), new Doc.Text(" cc")));
+            assertThat(new Printer(8).print(doc)).isEqualTo("aa bb cc");
+        }
+
+        @Test
+        void scanStops_atForcedBreakInUpcomingFrames() {
+            // After the candidate group there is a HardLine — the current line ends there,
+            // so the suffix Text("xxx") doesn't count against the candidate's fit decision.
+            final var doc = new Doc.Concat(
+                    List.of(
+                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("aa"), Doc.LINE, new Doc.Text("bb")))),
+                            Doc.HARD_LINE,
+                            new Doc.Text("xxxxxxxxxx")));
+            assertThat(new Printer(7).print(doc)).isEqualTo("aa bb\nxxxxxxxxxx");
+        }
+    }
+
+    @Nested
     class EdgeCaseTests {
 
         @Test
@@ -356,17 +347,17 @@ class PrinterTest {
 
         @Test
         void lineWidth_zero_throws() {
-            assertThatThrownBy(() -> new Printer(0, PrintStrategy.greedy())).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> new Printer(0)).isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         void lineWidth_negative_throws() {
-            assertThatThrownBy(() -> new Printer(-1, PrintStrategy.greedy())).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> new Printer(-1)).isInstanceOf(IllegalArgumentException.class);
         }
 
         @Test
         void lineWidth_one_isValid() {
-            assertThat(new Printer(1, PrintStrategy.greedy()).print(new Doc.Text("x"))).isEqualTo("x");
+            assertThat(new Printer(1).print(new Doc.Text("x"))).isEqualTo("x");
         }
     }
 

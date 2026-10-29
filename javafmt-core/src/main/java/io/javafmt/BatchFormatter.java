@@ -1,242 +1,314 @@
 package io.javafmt;
 
+import io.javafmt.cache.FormatCache;
 import io.javafmt.lint.LintContext;
 import io.javafmt.lint.LintEngine;
-import io.javafmt.parser.AttributedOutcome;
+import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.AttributionSession;
 import io.javafmt.parser.JavaParser;
-import io.javafmt.parser.ParseOutcome;
-import io.javafmt.printer.PrintStrategy;
+import io.javafmt.parser.ParseException;
+import io.javafmt.parser.ParsedUnit;
+import io.javafmt.parser.Staged;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 
 /**
- * The batch pipeline behind {@link Javafmt#formatAll} and {@link Javafmt#formatAllWithAnalyze}:
- * chunks the input, parses and lints each chunk batch-wide, then renders in parallel.
+ * The format pipeline behind {@link Javafmt#formatWithResult(String, JavafmtConfig)} and
+ * {@link Javafmt#formatAll}: chunks the input, parses and lints each chunk batch-wide, then
+ * renders. A single file is a chunk of one, rendered on the calling thread.
  */
 @UtilityClass
 final class BatchFormatter {
 
     /**
-     * Files per javac task. Measured per-file parse cost falls from 0.53 ms at a batch of one to
+     * Most files per javac task. Measured per-file parse cost falls from 0.53 ms at a batch of one to
      * 0.016 ms at 32 and 0.008 ms at 128, so returns are already flat here; the remaining reason
-     * to cap it is holding only one chunk's syntax trees at a time.
+     * to cap it is bounding the syntax trees each thread holds at a time.
      */
-    private final int CHUNK_SIZE = 64;
+    private final int MAX_CHUNK_SIZE = 64;
 
+    private final int MIN_CHUNK_SIZE = 16;
+
+    private final int CHUNKS_PER_THREAD = 4;
+
+    private final int MAX_CHUNKS_IN_FLIGHT = 4;
+
+    /**
+     * Splits the input into chunks and parses and lints at most {@link #MAX_CHUNKS_IN_FLIGHT} of
+     * them at a time, so peak memory is bounded by that many chunks' syntax trees; each chunk's files
+     * render on all {@code threads} threads. An attributed run stays one chunk on the calling thread,
+     * because javac's {@code Types} and {@code Trees} are not thread-safe; only its render runs on
+     * the pool.
+     */
     List<FormatResult> formatAll(final List<String> sources, final JavafmtConfig config, final int threads) {
-        return runBatches(sources, config, threads, CHUNK_SIZE, BatchFormatter::parseOnlyContexts);
-    }
-
-    List<FormatResult> formatAllWithAnalyze(final List<String> sources, final String classpath, final JavafmtConfig config, final int threads) {
-        return JavaParser.attributing(
-                classpath,
-                session -> runBatches(sources, config, threads, Integer.MAX_VALUE, chunk -> attributedContexts(chunk, session)));
-    }
-
-    /**
-     * Splits the input into chunks, and for each chunk parses, lints batch-wide, then renders in
-     * parallel. Rendering is the only stage worth parallelizing: parse and lint are dominated by
-     * javac task setup, which batching already amortizes, while Doc building and printing are
-     * CPU-bound and fully independent per file.
-     */
-    private List<FormatResult> runBatches(
-            final List<String> sources,
-            final JavafmtConfig config,
-            final int threads,
-            final int chunkSize,
-            final Function<List<String>, ParsedChunk> parser) {
-        if (sources.isEmpty()) {
-            return List.of();
+        final var workers = Math.max(1, threads);
+        try (final var pool = newPool(workers)) {
+            return formatOn(pool, workers, sources, config);
         }
-        try (final var pool = Executors.newFixedThreadPool(Math.max(1, threads), Thread.ofPlatform().name("javafmt-render").daemon(true).factory())) {
-            final var chunk = Math.min(chunkSize, sources.size());
-            return IntStream.iterate(0, start -> start < sources.size(), start -> start + chunk)
-                    .mapToObj(start -> sources.subList(start, Math.min(sources.size(), start + chunk)))
-                    .flatMap(slice -> formatChunk(slice, config, pool, parser).stream())
+    }
+
+    List<FileResult> formatFiles(final List<Path> paths, final JavafmtConfig config, final FormatCache cache, final int threads) {
+        final var workers = Math.max(1, threads);
+        try (final var pool = newPool(workers)) {
+            final var reads = paths.stream()
+                    .map(path -> CompletableFuture.supplyAsync(() -> read(path, cache), pool))
+                    .toList()
+                    .stream()
+                    .map(CompletableFuture::join)
+                    .toList();
+            final var results = formatOn(
+                    pool,
+                    workers,
+                    reads.stream()
+                            .map(read -> read instanceof FileRead.Pending(var ignored, var source) ? source : "")
+                            .toList(),
+                    config);
+            return IntStream.range(0, reads.size())
+                    .mapToObj(
+                            i -> switch (reads.get(i)) {
+                                case FileRead.Pending(var path, var source) -> new FileResult.Formatted(path, source, results.get(i));
+                                case FileRead.Done(var done) -> done;
+                            })
                     .toList();
         }
     }
 
-    /**
-     * Parses, lints, and renders one chunk. Blank sources never reach javac; they resolve to
-     * their own (empty) result directly, without occupying a parse slot.
-     *
-     * <p>The parse and lint stages run across the whole chunk, so a failure in either has no one
-     * file to blame and would otherwise end the run. When that happens the chunk is re-formatted a
-     * file at a time down the single-file path, which guards per file and repeats the same work:
-     * the files that are fine still come back formatted, and whatever failed reappears as the
-     * diagnostic of the one file that caused it.
-     */
-    private List<FormatResult> formatChunk(
-            final List<String> chunk,
-            final JavafmtConfig config,
-            final ExecutorService pool,
-            final Function<List<String>, ParsedChunk> parser) {
-        final var formattable = IntStream.range(0, chunk.size())
-                .filter(i -> !chunk.get(i).isEmpty())
-                .boxed()
-                .toList();
-        // Everything downstream works in LF with no BOM; how each file was written is put back on
-        // its own result, so a CRLF file does not come out as a whole-file diff.
-        final var encodings = formattable.stream().map(i -> SourceEncoding.of(chunk.get(i))).toList();
-        final var sources = IntStream.range(0, formattable.size())
-                .mapToObj(k -> encodings.get(k).normalize(chunk.get(formattable.get(k))))
-                .toList();
-        final List<FormatResult> rendered;
-        try {
-            final var parsed = parser.apply(sources);
-            final var linted = lintBatch(parsed.contexts(), config);
-            final var printed = renderInParallel(sources, linted, config, pool);
-            rendered = IntStream.range(0, printed.size())
-                    .mapToObj(k -> Javafmt.asWritten(encodings.get(k), Javafmt.withWarnings(printed.get(k), parsed.warnings())))
-                    .toList();
-        } catch (RuntimeException | AssertionError | StackOverflowError batchFailure) {
-            return scatter(
-                    chunk.size(),
-                    formattable,
-                    asWritten(encodings, formatOneAtATime(sources, config)),
-                    i -> new FormatResult(chunk.get(i), List.of()));
-        }
-        return scatter(chunk.size(), formattable, rendered, i -> new FormatResult(chunk.get(i), List.of()));
+    int chunkSize(final int files, final int threads) {
+        final var chunkWorkers = chunkWorkers(threads);
+        return chunkWorkers == 1 ? MAX_CHUNK_SIZE : Math.clamp(Math.ceilDiv(files, chunkWorkers * CHUNKS_PER_THREAD), MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
     }
 
-    private List<FormatResult> asWritten(final List<SourceEncoding> encodings, final List<FormatResult> results) {
-        return IntStream.range(0, results.size())
-                .mapToObj(k -> Javafmt.asWritten(encodings.get(k), results.get(k)))
+    private int chunkWorkers(final int threads) {
+        return Math.clamp(threads, 1, MAX_CHUNKS_IN_FLIGHT);
+    }
+
+    List<List<String>> chunks(final List<String> sources, final int threads) {
+        final var size = chunkSize(sources.size(), threads);
+        return IntStream.iterate(0, start -> start < sources.size(), start -> start + size)
+                .mapToObj(start -> sources.subList(start, Math.min(sources.size(), start + size)))
                 .toList();
     }
 
-    private List<FormatResult> formatOneAtATime(final List<String> sources, final JavafmtConfig config) {
-        return sources.stream()
-                .map(source -> Javafmt.formatWithResult(source, config, PrintStrategy.wadlerLindig()))
-                .toList();
+    private ExecutorService newPool(final int workers) {
+        return Executors.newFixedThreadPool(workers, Thread.ofPlatform().name("javafmt-format-", 0).daemon(true).factory());
     }
 
-    /** Lints every successfully parsed source in one batch, leaving parse failures untouched. */
-    private List<Linted> lintBatch(final List<Prepared> parsed, final JavafmtConfig config) {
-        final var lintable = IntStream.range(0, parsed.size())
-                .filter(i -> parsed.get(i) instanceof Prepared.Ready)
-                .boxed()
-                .toList();
-        final var contexts = lintable.stream()
-                .flatMap(i -> parsed.get(i) instanceof Prepared.Ready r ? Stream.of(r.context()) : Stream.<LintContext>empty())
-                .toList();
-        final var outcomes = config.lint()
-                ? Javafmt.LINT_ENGINE.lintAll(contexts)
-                : contexts.stream()
-                        .<LintEngine.BatchOutcome>map(c -> new LintEngine.BatchOutcome.Ok(Javafmt.lintIfEnabled(c, config)))
-                        .toList();
-        final var linted = IntStream.range(0, lintable.size())
-                .mapToObj(
-                        k -> switch (outcomes.get(k)) {
-                            case LintEngine.BatchOutcome.Ok ok -> (Linted) new Linted.Ready(ok.outcome());
-                            case LintEngine.BatchOutcome.Failed failed -> new Linted.Failed(failed.error());
-                        })
-                .toList();
-        return scatter(
-                parsed.size(),
-                lintable,
-                linted,
-                i -> switch (parsed.get(i)) {
-                    case Prepared.Failed f -> new Linted.Failed(f.failure());
-                    case Prepared.Ready ignored -> throw new IllegalStateException("unlinted ready context #" + i);
+    private List<FormatResult> formatOn(final ExecutorService pool, final int workers, final List<String> sources, final JavafmtConfig config) {
+        return skippingBlanks(
+                sources,
+                formattable -> switch (config.analysis()) {
+                    case JavafmtConfig.Analysis.ParseOnly() -> {
+                        final var chunks = chunks(formattable, workers);
+                        try (final var chunkPool = newPool(chunkWorkers(workers))) {
+                            yield fanOut(
+                                    chunkPool,
+                                    chunks.stream()
+                                            .<Supplier<List<FormatResult>>>map(chunk -> () -> formatParseOnly(chunk, config, Renderer.on(pool)))
+                                            .toList(),
+                                    (i, failure) -> chunks.get(i)
+                                            .stream()
+                                            .map(source -> FormatStages.internalErrorResult(source, failure))
+                                            .toList())
+                                    .stream()
+                                    .flatMap(List::stream)
+                                    .toList();
+                        }
+                    }
+                    case JavafmtConfig.Analysis.Attributed(var classpath) -> formatAttributed(formattable, config, classpath, Renderer.on(pool));
                 });
     }
 
-    private List<FormatResult> renderInParallel(
-            final List<String> sources,
-            final List<Linted> linted,
-            final JavafmtConfig config,
-            final ExecutorService pool) {
-        final var futures = IntStream.range(0, sources.size())
-                .mapToObj(i -> pool.submit(() -> resultFor(sources.get(i), linted.get(i), config)))
-                .toList();
-        return IntStream.range(0, sources.size())
-                .mapToObj(i -> await(sources.get(i), futures.get(i)))
-                .toList();
+    private FileRead read(final Path path, final FormatCache cache) {
+        try {
+            final var source = Files.readString(path, StandardCharsets.UTF_8);
+            return cache.isUpToDate(path, source) ? new FileRead.Done(new FileResult.UpToDate(path)) : new FileRead.Pending(path, source);
+        } catch (IOException e) {
+            return new FileRead.Done(new FileResult.Unreadable(path, e));
+        }
     }
 
-    private FormatResult resultFor(final String source, final Linted linted, final JavafmtConfig config) {
-        return switch (linted) {
-            case Linted.Failed failed -> Javafmt.failureToResult(source, failed.failure());
-            case Linted.Ready ready -> {
-                try {
-                    yield Javafmt.render(source, ready.outcome(), config, PrintStrategy.wadlerLindig());
-                } catch (RuntimeException | AssertionError | StackOverflowError t) {
-                    yield Javafmt.internalErrorResult(source, t);
-                }
-            }
-        };
+    FormatResult formatOne(final String source, final JavafmtConfig config) {
+        return skippingBlanks(
+                List.of(source),
+                sources -> switch (config.analysis()) {
+                    case JavafmtConfig.Analysis.ParseOnly() -> formatParseOnly(sources, config, Renderer.INLINE);
+                    case JavafmtConfig.Analysis.Attributed(var classpath) -> formatAttributed(sources, config, classpath, Renderer.INLINE);
+                })
+                .getFirst();
+    }
+
+    FormatResult formatParsed(final String source, final ParsedUnit unit, final JavafmtConfig config) {
+        return formatChunk(
+                List.of(source),
+                config,
+                Renderer.INLINE,
+                chunk -> List.of(new Prepared(new Staged.Ok<>(LintContext.parseOnly(unit)), List.of())))
+                .getFirst();
+    }
+
+    private List<FormatResult> skippingBlanks(final List<String> sources, final Function<List<String>, List<FormatResult>> format) {
+        final var formattable = IntStream.range(0, sources.size())
+                .filter(i -> !sources.get(i).isEmpty())
+                .boxed()
+                .toList();
+        final var results = formattable.isEmpty() ? List.<FormatResult>of() : format.apply(formattable.stream().map(sources::get).toList());
+        return scatter(sources.size(), formattable, results, i -> new FormatResult(sources.get(i), List.of()));
+    }
+
+    private List<FormatResult> formatParseOnly(final List<String> chunk, final JavafmtConfig config, final Renderer renderer) {
+        return formatChunk(chunk, config, renderer, sources -> parseOnly(sources, List.of()));
+    }
+
+    private List<FormatResult> formatAttributed(
+            final List<String> sources,
+            final JavafmtConfig config,
+            final String classpath,
+            final Renderer renderer) {
+        return JavaParser.attributing(classpath, session -> formatChunk(sources, config, renderer, chunk -> attributedContexts(chunk, session)));
+    }
+
+    /** Parses, lints, and renders one chunk of non-blank sources. */
+    List<FormatResult> formatChunk(
+            final List<String> chunk,
+            final JavafmtConfig config,
+            final Renderer renderer,
+            final Function<List<String>, List<Prepared>> parser) {
+        // Everything downstream works in LF with no BOM; how each file was written is put back on
+        // its own result, so a CRLF file does not come out as a whole-file diff.
+        final var encodings = chunk.stream().map(SourceEncoding::of).toList();
+        final var sources = IntStream.range(0, chunk.size())
+                .mapToObj(k -> encodings.get(k).normalize(chunk.get(k)))
+                .toList();
+        final var formatted = formatNormalized(sources, config, renderer, parser);
+        return IntStream.range(0, formatted.size())
+                .mapToObj(k -> FormatStages.asWritten(encodings.get(k), formatted.get(k)))
+                .toList();
     }
 
     /**
-     * Collects one render result. A render task that failed in a way {@link #resultFor} did not
-     * catch is this file's problem and nobody else's, so it becomes this file's diagnostic rather
-     * than an exception that loses every other result in the run.
+     * The parse and lint stages run across the whole chunk, so a failure in either has no one
+     * file to blame and would otherwise end the run. When that happens each file is formatted
+     * again as a chunk of its own with the same {@code parser}, so an {@code --analyze} retry keeps
+     * its attribution: the files that are fine still come back formatted, and whatever failed
+     * reappears as the diagnostic of the one file that caused it.
      */
-    private FormatResult await(final String source, final Future<FormatResult> future) {
+    private List<FormatResult> formatNormalized(
+            final List<String> sources,
+            final JavafmtConfig config,
+            final Renderer renderer,
+            final Function<List<String>, List<Prepared>> parser) {
+        try {
+            final var parsed = parser.apply(sources);
+            final var linted = lintBatch(parsed.stream().map(Prepared::context).toList(), config);
+            final var rendered = render(sources, linted, config, renderer);
+            return IntStream.range(0, rendered.size())
+                    .mapToObj(k -> FormatStages.withDiagnostics(rendered.get(k), parsed.get(k).warnings()))
+                    .toList();
+        } catch (RuntimeException | AssertionError | StackOverflowError batchFailure) {
+            if (sources.size() == 1) {
+                return List.of(FormatStages.internalErrorResult(sources.getFirst(), batchFailure));
+            }
+            return sources.stream()
+                    .flatMap(source -> formatNormalized(List.of(source), config, renderer, parser).stream())
+                    .toList();
+        }
+    }
+
+    /** Lints every successfully parsed source in one batch, leaving parse failures untouched. */
+    private List<Staged<LintEngine.Outcome>> lintBatch(final List<Staged<LintContext>> parsed, final JavafmtConfig config) {
+        return Staged.mapAll(parsed, FormatStages.lintEngine(config)::lintAll);
+    }
+
+    private List<FormatResult> render(
+            final List<String> sources,
+            final List<Staged<LintEngine.Outcome>> linted,
+            final JavafmtConfig config,
+            final Renderer renderer) {
+        return renderer.renderAll(
+                sources,
+                IntStream.range(0, sources.size())
+                        .<Supplier<FormatResult>>mapToObj(i -> () -> resultFor(sources.get(i), linted.get(i), config))
+                        .toList());
+    }
+
+    private FormatResult resultFor(final String source, final Staged<LintEngine.Outcome> linted, final JavafmtConfig config) {
+        return switch (linted) {
+            case Staged.Failed<LintEngine.Outcome>(var failure) -> FormatStages.failureToResult(source, failure);
+            case Staged.Ok<LintEngine.Outcome>(var outcome) -> FormatStages.render(source, outcome, config);
+        };
+    }
+
+    private <T> List<T> fanOut(final Executor pool, final List<Supplier<T>> tasks, final BiFunction<Integer, Throwable, T> onFailure) {
+        final var futures = tasks.stream().map(task -> CompletableFuture.supplyAsync(task, pool)).toList();
+        return IntStream.range(0, futures.size())
+                .mapToObj(i -> await(futures.get(i), failure -> onFailure.apply(i, failure)))
+                .toList();
+    }
+
+    private <T> T await(final Future<T> future, final Function<Throwable, T> onFailure) {
         try {
             return future.get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return Javafmt.internalErrorResult(source, e);
+            return onFailure.apply(e);
         } catch (ExecutionException e) {
-            return Javafmt.internalErrorResult(source, Optional.ofNullable(e.getCause()).orElse(e));
+            return onFailure.apply(Optional.ofNullable(e.getCause()).orElse(e));
         }
     }
 
-    private ParsedChunk parseOnlyContexts(final List<String> chunk) {
-        return new ParsedChunk(
-                JavaParser.parseUnits(chunk)
-                        .stream()
-                        .map(
-                                outcome -> switch (outcome) {
-                                    case ParseOutcome.Ok ok -> (Prepared) new Prepared.Ready(LintContext.parseOnly(ok.unit()));
-                                    case ParseOutcome.Failed failed -> new Prepared.Failed(failed.error());
-                                })
-                        .toList(),
-                List.of());
+    private List<Prepared> parseOnly(final List<String> chunk, final List<Diagnostic> warnings) {
+        return JavaParser.parseUnits(chunk)
+                .stream()
+                .map(parsed -> new Prepared(parsed.<LintContext>map(LintContext::parseOnly), warnings))
+                .toList();
     }
 
     /**
-     * Attributes the whole chunk in one task. If attribution fails outright (a bad classpath,
-     * say), falls back to parse-only so the run still formats, matching
-     * {@link Javafmt#formatWithAnalyze}'s single-file behaviour — but carries the reason out as
-     * a warning, so the degradation reaches the user instead of the run merely looking like a
-     * successful {@code --analyze} pass.
+     * Attributes the whole chunk in one task. A file attribution fails for, or the whole chunk when
+     * attribution fails outright (a bad classpath, say), is formatted parse-only instead, carrying a
+     * warning so the degradation reaches the user rather than looking like a successful
+     * {@code --analyze} pass.
      */
-    private ParsedChunk attributedContexts(final List<String> chunk, final AttributionSession session) {
+    List<Prepared> attributedContexts(final List<String> chunk, final AttributionSession session) {
         try {
-            return new ParsedChunk(
-                    session.attribute(chunk)
-                            .stream()
-                            .map(
-                                    outcome -> switch (outcome) {
-                                        case AttributedOutcome.Ok ok -> (Prepared) new Prepared.Ready(LintContext.attributed(ok.unit()));
-                                        case AttributedOutcome.Failed failed -> new Prepared.Failed(failed.error());
-                                    })
-                            .toList(),
-                    List.of());
+            return fromAttributed(chunk, session.attribute(chunk));
         } catch (RuntimeException e) {
-            return new ParsedChunk(parseOnlyContexts(chunk).contexts(), List.of(Javafmt.attributionWarning(e)));
+            return parseOnly(chunk, List.of(FormatStages.attributionWarning(e)));
         }
+    }
+
+    List<Prepared> fromAttributed(final List<String> chunk, final List<Staged<AttributedUnit>> outcomes) {
+        return IntStream.range(0, chunk.size())
+                .mapToObj(
+                        i -> switch (outcomes.get(i)) {
+                            case Staged.Ok<AttributedUnit>(var unit) -> new Prepared(new Staged.Ok<>(LintContext.attributed(unit)), List.of());
+                            case Staged.Failed<AttributedUnit>(ParseException parseError) -> new Prepared(new Staged.Failed<>(parseError), List.of());
+                            case Staged.Failed<AttributedUnit>(var crash) ->
+                                parseOnly(List.of(chunk.get(i)), List.of(FormatStages.attributionWarning(crash))).getFirst();
+                        })
+                .toList();
     }
 
     /**
      * Scatters {@code results} (aligned with {@code indices}) back over a list of size {@code
-     * total}, filling gaps from {@code gap}. {@code gap} runs only for indices absent from {@code
-     * indices} — some callers' gap functions (see {@link #lintBatch}) are unsafe to run otherwise.
+     * total}, filling gaps from {@code gap}.
      */
     private <T> List<T> scatter(final int total, final List<Integer> indices, final List<T> results, final IntFunction<T> gap) {
         final var byIndex = IntStream.range(0, indices.size())
@@ -247,22 +319,24 @@ final class BatchFormatter {
                 .toList();
     }
 
-    /** Parsed sources for one chunk, plus any warning that applies to every file in it. */
-    private record ParsedChunk(List<Prepared> contexts, List<Diagnostic> warnings) {}
+    record Prepared(Staged<LintContext> context, List<Diagnostic> warnings) {}
 
-    /** A source ready for linting, or the parse/attribution failure that stands in for it. */
-    sealed interface Prepared {
+    private sealed interface FileRead {
 
-        record Ready(LintContext context) implements Prepared {}
+        record Pending(Path path, String source) implements FileRead {}
 
-        record Failed(RuntimeException failure) implements Prepared {}
+        record Done(FileResult result) implements FileRead {}
     }
 
-    /** A linted source, or the failure that stands in for it. */
-    sealed interface Linted {
+    @FunctionalInterface
+    interface Renderer {
 
-        record Ready(LintEngine.Outcome outcome) implements Linted {}
+        Renderer INLINE = (sources, tasks) -> tasks.stream().map(Supplier::get).toList();
 
-        record Failed(RuntimeException failure) implements Linted {}
+        List<FormatResult> renderAll(List<String> sources, List<Supplier<FormatResult>> tasks);
+
+        static Renderer on(final Executor pool) {
+            return (sources, tasks) -> fanOut(pool, tasks, (i, failure) -> FormatStages.internalErrorResult(sources.get(i), failure));
+        }
     }
 }

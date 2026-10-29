@@ -93,12 +93,22 @@ class ModifierRendererTest {
             }
 
             @Override
+            public CharSequence sourceSpan(final com.sun.source.tree.Tree node) {
+                return source;
+            }
+
+            @Override
             public Doc scan(final com.sun.source.tree.Tree node) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public Doc withComments(final com.sun.source.tree.Tree node, final Doc rendered) {
+            public Doc attach(final com.sun.source.tree.Tree node, final Doc rendered) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public List<io.javafmt.parser.CommentToken> interior(final com.sun.source.tree.Tree node) {
                 throw new UnsupportedOperationException();
             }
 

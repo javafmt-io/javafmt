@@ -94,7 +94,7 @@ public final class RedundantModifier implements LintRule {
         if (!modifiers.getFlags().contains(mod)) {
             return Optional.empty();
         }
-        final var modStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), modifiers);
+        final var modStart = unit.startOf(modifiers);
         if (modStart < 0) {
             return Optional.empty();
         }

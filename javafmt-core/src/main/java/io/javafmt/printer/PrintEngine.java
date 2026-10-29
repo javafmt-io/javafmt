@@ -2,28 +2,27 @@ package io.javafmt.printer;
 
 import io.javafmt.doc.Doc;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
+import java.util.stream.IntStream;
 import lombok.experimental.UtilityClass;
 
 /**
- * The stack-machine printer shared by both strategies. The only decisions a strategy owns are
- * the two fit predicates: whether a Group may render flat, and whether Fill may pack the next
- * content element onto the line in progress.
+ * The stack-machine printer. Each Group renders flat when {@link #fitsForward} says the rest of
+ * its line fits, otherwise it breaks.
  */
 @UtilityClass
 final class PrintEngine {
 
     final int INDENT_SIZE = 4;
 
-    String print(final int lineWidth, final Doc doc, final FitPolicy policy) {
+    String print(final int lineWidth, final Doc doc) {
         Objects.requireNonNull(doc, "doc");
         final var sb = new StringBuilder();
-        final var verbatimRanges = new ArrayList<int[]>();
         final var stack = new ArrayDeque<Frame>();
+        final var work = new ArrayDeque<Frame>();
         stack.push(new Frame(0, Mode.BREAK, doc));
         var col = 0;
+        var verbatimEnd = 0;
         while (!stack.isEmpty()) {
             final var frame = stack.pop();
             switch (frame.doc()) {
@@ -32,26 +31,19 @@ final class PrintEngine {
                     col += s.length();
                 }
                 case Doc.Verbatim(var s, var sourceCol) -> {
-                    final var vStart = sb.length();
+                    if (s.startsWith("\n")) {
+                        stripTrailingWhitespace(sb, verbatimEnd);
+                    }
                     col = VerbatimEmitter.emit(sb, col, s, sourceCol);
-                    verbatimRanges.add(new int[] {vStart, sb.length(),});
+                    verbatimEnd = s.isEmpty() ? verbatimEnd : sb.length();
                 }
-                case Doc.Line() -> {
-                    if (frame.mode() == Mode.FLAT) {
-                        sb.append(' ');
-                        col += 1;
-                    } else {
-                        sb.append('\n').repeat(' ', frame.indent());
-                        col = frame.indent();
-                    }
+                case Doc.Line _ when frame.mode() == Mode.FLAT -> {
+                    sb.append(' ');
+                    col++;
                 }
-                case Doc.SoftLine() -> {
-                    if (frame.mode() == Mode.BREAK) {
-                        sb.append('\n').repeat(' ', frame.indent());
-                        col = frame.indent();
-                    }
-                }
-                case Doc.HardLine() -> {
+                case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
+                case Doc.Line _, Doc.SoftLine _, Doc.HardLine _ -> {
+                    stripTrailingWhitespace(sb, verbatimEnd);
                     sb.append('\n').repeat(' ', frame.indent());
                     col = frame.indent();
                 }
@@ -62,89 +54,95 @@ final class PrintEngine {
                     }
                 }
                 case Doc.Group(var d, var preferBreak) -> {
-                    final Mode mode;
-                    if (frame.mode() == Mode.FLAT) {
-                        mode = Mode.FLAT;
-                    } else if (preferBreak) {
-                        mode = Mode.BREAK;
-                    } else {
-                        final var candidate = new Frame(frame.indent(), Mode.FLAT, d);
-                        mode = policy.groupFits(candidate, lineWidth - col, stack) ? Mode.FLAT : Mode.BREAK;
-                    }
-                    stack.push(new Frame(frame.indent(), mode, d));
+                    final var flat = new Frame(frame.indent(), Mode.FLAT, d);
+                    final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, lineWidth - col, stack, work));
+                    stack.push(fits ? flat : new Frame(frame.indent(), Mode.BREAK, d));
                 }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
                     stack.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? breakContents : flatContents));
-                case Doc.Fill(var parts) -> {
-                    final var newFrames = expandFill(parts, frame.indent(), col, lineWidth, policy);
-                    for (var i = newFrames.size() - 1; i >= 0; i--) {
-                        stack.push(newFrames.get(i));
+            }
+        }
+        stripTrailingWhitespace(sb, verbatimEnd);
+        return sb.toString();
+    }
+
+    private void stripTrailingWhitespace(final StringBuilder sb, final int verbatimEnd) {
+        final var start = sb.length() - (int) IntStream.iterate(sb.length() - 1, i -> i >= 0 && isSpaceOrTab(sb.charAt(i)), i -> i - 1).count();
+        if (start >= verbatimEnd) {
+            sb.setLength(start);
+        }
+    }
+
+    private boolean isSpaceOrTab(final char c) {
+        return c == ' ' || c == '\t';
+    }
+
+    /**
+     * Wadler-Lindig forward fit-check. Walks the candidate frame followed by the upcoming
+     * frames in stack-iteration order (no copy — this only iterates {@code upcoming}, never
+     * mutates it), accumulating column width until either the budget goes negative (NOT FIT), a
+     * forced line break is reached <em>past</em> the candidate (FIT — the current line ends), or
+     * the stream ends (FIT). This bounds each call by {@code min(subtree size, upcoming size)}
+     * rather than re-walking the whole remaining document, which is what keeps total fit-check
+     * work O(n) across a print instead of O(n²). Inner Group choices are assumed FLAT (best case
+     * for fit).
+     *
+     * <p><b>HardLine semantics.</b> Encountered while still walking the candidate's own
+     * descendants, it means "this Group's contents include a forced break, so flat rendering is
+     * impossible" — NOT FIT. Encountered after the candidate is fully consumed (in
+     * {@code upcoming}), it means "the line ends here regardless of what we choose" — FIT. The
+     * same distinction applies implicitly to Line/SoftLine in BREAK mode: those modes only
+     * appear in upcoming frames (the candidate and all its descendants are pushed in FLAT mode),
+     * so seeing a BREAK-mode Line/SoftLine necessarily means we are past the candidate.
+     *
+     * <p><b>Verbatim.</b> A literal's internal newlines are part of its content, not a layout
+     * decision, so only the first line's width is budgeted — the surrounding Group is free to
+     * render flat with the literal's body trailing inside.
+     */
+    private boolean fitsForward(final Frame candidate, final int budget, final ArrayDeque<Frame> upcoming, final ArrayDeque<Frame> work) {
+        var b = budget;
+        work.clear();
+        work.push(candidate);
+        final var iter = upcoming.iterator();
+        var consumedCandidate = false;
+        while (b >= 0) {
+            final Frame f;
+            if (!work.isEmpty()) {
+                f = work.pop();
+            } else if (iter.hasNext()) {
+                f = iter.next();
+                consumedCandidate = true;
+            } else {
+                return true;
+            }
+            switch (f.doc()) {
+                case Doc.Text(var s) -> b -= s.length();
+                case Doc.Verbatim(var s, var ignored) -> {
+                    final var firstNewline = s.indexOf('\n');
+                    b -= firstNewline >= 0 ? firstNewline : s.length();
+                }
+                case Doc.Line _, Doc.SoftLine _ when f.mode() == Mode.BREAK -> {
+                    return true;
+                }
+                case Doc.Line _ -> b--;
+                case Doc.SoftLine _ -> {}
+                case Doc.HardLine _ -> {
+                    return consumedCandidate;
+                }
+                case Doc.Indent(var d) -> work.push(new Frame(f.indent() + INDENT_SIZE, f.mode(), d));
+                case Doc.Group(var d, var ignored) -> work.push(new Frame(f.indent(), Mode.FLAT, d));
+                case Doc.IfBreak(var bc, var fc) -> work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? bc : fc));
+                case Doc.Concat(var parts) -> {
+                    for (var i = parts.size() - 1; i >= 0; i--) {
+                        work.push(new Frame(f.indent(), f.mode(), parts.get(i)));
                     }
                 }
             }
         }
-        return VerbatimEmitter.stripTrailingWhitespace(sb.toString(), verbatimRanges);
+        return false;
     }
 
-    /**
-     * Wadler-Lindig has no native Fill combinator, so the greedy per-separator pack from
-     * {@link GreedyPrintStrategy} is preserved here verbatim. Reformulating Fill as nested
-     * Groups is the principled WL alternative but would change every Fill call site's output
-     * and is out of scope for this strategy.
-     *
-     * <p>The odd-length assertion is what makes the {@code parts.get(i + 1)} lookahead below
-     * safe: every separator has a content element after it. {@link Doc.Fill}'s constructor is
-     * the only producer and it rejects even lengths.
-     */
-    private List<Frame> expandFill(final List<Doc> parts, final int indent, final int col, final int lineWidth, final FitPolicy policy) {
-        assert (parts.size() & 1) == 1 : "Fill parts must have odd length, got " + parts.size();
-        final var out = new ArrayList<Frame>();
-        var currentCol = col;
-        var forceBreakNextSep = false;
-        for (var i = 0; i < parts.size(); i++) {
-            final var part = parts.get(i);
-            final var isSep = (i & 1) == 1;
-            if (!isSep) {
-                out.add(new Frame(indent, Mode.FLAT, part));
-                if (endsMidLine(part)) {
-                    forceBreakNextSep = true;
-                } else {
-                    currentCol += Doc.flatWidthOrBreak(part);
-                }
-            } else {
-                final var nextContent = parts.get(i + 1);
-                final var sepFlatWidth = part instanceof Doc.Line ? 1 : 0;
-                if (!forceBreakNextSep && policy.fillContentFits(nextContent, lineWidth - currentCol - sepFlatWidth)) {
-                    out.add(new Frame(indent, Mode.FLAT, part));
-                    currentCol += sepFlatWidth;
-                } else {
-                    out.add(new Frame(indent, Mode.BREAK, part));
-                    currentCol = indent;
-                    forceBreakNextSep = false;
-                }
-            }
-        }
-        return out;
-    }
+    private enum Mode { FLAT, BREAK }
 
-    /**
-     * Whether {@code part}'s own rendering ends mid-line — a {@link Doc.HardLine} or a
-     * multi-line {@link Doc.Verbatim} inside it — which forces the next separator to BREAK
-     * regardless of where the rendered cursor lands. See
-     * {@code PrinterTest#fill_hardLineInsideContent_forcesNextSeparatorToBreak}.
-     */
-    private boolean endsMidLine(final Doc part) {
-        return Doc.flatWidthOrBreak(part) < 0;
-    }
-
-    enum Mode { FLAT, BREAK }
-
-    record Frame(int indent, Mode mode, Doc doc) {}
-
-    interface FitPolicy {
-
-        boolean groupFits(Frame candidate, int budget, ArrayDeque<Frame> upcoming);
-
-        boolean fillContentFits(Doc content, int remaining);
-    }
+    private record Frame(int indent, Mode mode, Doc doc) {}
 }

@@ -91,7 +91,7 @@ makes later performance work smaller.
 
 ### 1. `refactor:` delete the unused print strategies and merge the width walkers
 
-- [ ] **A.** Delete `Doc.Fill`, `GreedyPrintStrategy` and the `PrintStrategy` layer. Production
+- [x] **A.** Delete `Doc.Fill`, `GreedyPrintStrategy` and the `PrintStrategy` layer. Production
       always passes `PrintStrategy.wadlerLindig()` (`Javafmt.java:69,121,156,198`,
       `BatchFormatter.java:128,181`); nothing constructs a `Doc.Fill` outside tests. Goes:
       `Doc.Fill` (`Doc.java:242-265`, its `permits` entry and switch cases), `PrintEngine.expandFill`
@@ -100,45 +100,101 @@ makes later performance work smaller.
       Update the builder unit tests that used `Printer(int)` (any expectation change is real
       divergence from production; investigate it) and the JMH benchmarks (`PrinterFitsBenchmark`,
       `JavafmtFormatBenchmark`). About −200 lines.
-- [ ] **Width walkers.** After A, `WadlerLindigPrintStrategy.fitsFlat` (`:124-174`) is the same walk
+      Done: −313 lines net in `src/main` (−642 with tests and benchmarks). No builder test changed
+      expectation with Wadler-Lindig as `Printer(int)`'s default. Output byte-identical to the
+      baseline CLI on 3,521 files (`java.base` plus the repo's own `src/main/java`).
+- [x] ~~**Width walkers.** After A, `WadlerLindigPrintStrategy.fitsFlat` (`:124-174`) is the same walk
       as `Doc.flatWidthOrBreak` (`Doc.java:28-62`) with an early exit. Merge them into one walker
-      that takes a budget and stops once over it. About −50 lines.
+      that takes a budget and stops once over it. About −50 lines.~~
+      Moot: `fitsFlat` only served `Fill` and was deleted with it in A. The budgeted
+      `flatWidthOrBreak` is P3 (commit 8).
+
+Baseline for every "before" number: `3799fb0`. The upfront full-suite snapshot was dropped: the
+machine was on battery at the start, and on power the proof-settings suite needed well over an
+hour. Each `perf:` item is instead measured with its own benchmarks at its parent and at its
+commit, and the closing head-to-head runs the whole suite at `3799fb0` against the branch tip.
 
 ### 2. `fix:` run the single-file path as a batch of one so the --analyze fallback keeps its rules
 
-- [ ] **B.** The stages are written twice: `Javafmt.java:94-109, 120-126, 145-162, 246-252` and
+- [x] **B.** The stages are written twice: `Javafmt.java:94-109, 120-126, 145-162, 246-252` and
       `BatchFormatter.java:87-118`. Route single-file calls through `formatChunk(List.of(source), …)`.
       A one-file chunk that fails must end in `internalErrorResult`, not recurse.
-- [ ] **Bug (test first).** `BatchFormatter.formatOneAtATime` (`:110-116, 126-130`) sends
+      Done for `formatWithResult(String, JavafmtConfig)`, which renders inline (`Renderer.INLINE`) so
+      errors render does not catch still reach the caller as before. `formatWithAnalyze` and the
+      pre-parsed overloads keep their own path until commit 3 removes them: routing
+      `formatWithAnalyze` now would change its output when javac crashes attributing one file
+      (today parse-only plus a warning; the batch path returns an `InternalError`). Commit 3 has to
+      decide that on purpose.
+- [x] **Bug (test first).** `BatchFormatter.formatOneAtATime` (`:110-116, 126-130`) sends
       already-normalized sources back through `Javafmt.formatWithResult`: it normalizes twice, calls
       `asWritten` twice, and always parses without attribution. So when an `--analyze` chunk fails,
       the retry silently drops the rules that need resolved types, with no warning. Write a failing
       test that shows the dropped rule, then retry each file with the same `parser` function.
-- [ ] **One guard per stage.** `render` already catches
+      Done: `aFailedAnalyzeChunkIsRetriedFileByFileWithAttribution`. A file retried alone no longer
+      resolves names declared elsewhere in the run; that is documented on `formatNormalized`.
+- [x] **One guard per stage.** `render` already catches
       `RuntimeException | AssertionError | StackOverflowError`, so the identical catch in
       `resultFor` (`BatchFormatter.java:179-185`) is dead code. Keep one guard around lint + render
       (`Javafmt.java:247-251, 273, 286-288`).
-- [ ] **H.** Replace `Prepared`, `Linted`, `ParseOutcome`, `AttributedOutcome` and `BatchOutcome`
+      Done for `resultFor`. `formatWithContext`'s guard stays with the paths commit 3 removes.
+- [x] **H.** Replace `Prepared`, `Linted`, `ParseOutcome`, `AttributedOutcome` and `BatchOutcome`
       (`BatchFormatter.java:133-161, 205-240, 259-273`) with one sealed `Staged<T>` with `map`, so a
       failed file skips later stages. Removes the Ok/Failed re-mapping switches and the
       impossible-state `IllegalStateException` at `:159`. Also replace the `config.lint()` branch
       with `(config.lint() ? LINT_ENGINE : NO_RULES_ENGINE).lintAll(contexts)`: that turns N
       single-file reparses into one batched reparse in analyze runs with lint off.
+      Partly done: `Staged<T>` (public, in `io.javafmt.parser`) with `mapAll` replaces `Prepared`
+      and `Linted`, and the impossible-state exception is gone. The no-rules engine is in.
+      **Moved to commit 3:** replacing the public `ParseOutcome`, `AttributedOutcome` and
+      `BatchOutcome`. Both pre-parsed `formatWithResult` overloads would erase to the same
+      signature, so it has to land with their removal.
+
+Commit 1 is `08f59c3`, commit 2 is `a3bd852`.
+
+Extra commit, not from the review: `95762ad` releases with the JReleaser CLI instead of its Gradle
+plugin, which calls `Project.getProperties()` and so broke IntelliJ's Gradle sync and
+`gradle jreleaserFullRelease` under isolated projects.
 
 ### 3. `refactor:` carry the analysis classpath in JavafmtConfig and cut the format overloads
 
-- [ ] **C.** Add an `analysis` component to `JavafmtConfig`: a sealed `ParseOnly | Attributed(classpath)`.
+- [x] **C.** Add an `analysis` component to `JavafmtConfig`: a sealed `ParseOnly | Attributed(classpath)`.
       It can't be `Optional`, because Spotless serializes the config. Then `formatWithAnalyze` (both
       overloads) and `formatAllWithAnalyze` go away, `CacheKey` (`:26-36`) needs one `of(config)`, and
       the callers stop branching on whether a classpath is present (`FormatRun.java:59-61, 132-134,
       152-155`, `JavafmtFormatterStep.java:67-75, 104-115`).
-- [ ] **Pre-parsed overloads.** `formatWithResult(String, ParseOutcome[, config])` and the
+      Done. Cache fingerprints are unchanged (pinned in `CacheKeyTest`). The Spotless step keeps its
+      public `create(config, classpath)`/`applyWithAnalyze`; its `State` drops `analysisClasspath`
+      because the config now carries it. **Owner decision:** a file javac cannot attribute is now
+      formatted parse-only with the attribution warning on both paths (the batch path used to leave
+      it unchanged with an `InternalError`); a chunk javac cannot attribute at all already fell back
+      that way. Also changed: a `StackOverflowError`/`AssertionError` out of javac's analysis used
+      to escape single-file `formatWithAnalyze`; it is now that file's `InternalError`. A file deep
+      enough to crash javac's attribution is also too deep for javafmt's own lint pass, so in
+      practice it ends as an `InternalError`; the parse-only fallback is unit-tested via
+      `fromAttributed`. Parse-only and `--analyze` output are
+      byte-identical to the baseline CLI (3,521 and 142 files).
+- [x] **Pre-parsed overloads.** `formatWithResult(String, ParseOutcome[, config])` and the
       `AttributedOutcome` variant (`Javafmt.java:72-92, 182-201`) have no production callers outside
       `Javafmt`, only 4 tests. They also skip `SourceEncoding.normalize`/`restore`, so a CRLF or BOM
       file takes a different path through them. Make them package-private or delete them and port
       the tests to `formatAll`. The public API goes from 12 methods to about 4.
+      Done: deleted. Public API is now 5 methods (`format` ×2, `formatWithResult` ×2, `formatAll`).
+      `DogfoodTest` uses `formatAll`; `JavafmtVerifyOutputTest` uses the package-private
+      `formatParsed`, which now goes through the same pipeline. The old `formatWithContext` path is
+      gone, so there is one guard around lint and render.
+- [x] **H, carried from commit 2.** `ParseOutcome`, `AttributedOutcome` and `LintEngine.BatchOutcome`
+      are replaced by `Staged<T>` (`map`, `orElseThrow`, `stream`, `mapAll`). The Ok/Failed
+      re-mapping switches in `BatchFormatter` are gone.
 
 ### 4. `refactor:` share file batching and diagnostics fields across the integrations
+
+Done in `82db16d`. F: public `Javafmt.formatFiles` returning sealed `FileResult`
+(`UpToDate | Unreadable | Formatted`, each with its path). J: done, JSON unchanged. L: one mojo
+constructor, error check in the base class; Maven now fails on an unreadable file after formatting
+rather than before (nothing written either way). P11 partly: filter compiled once in `buildFunc`,
+`format` reuses `resultFor`; `LintingStep` still compiles per call (it is a serialized record and
+`PathFilter` is not serializable). Decision: Spotless `lint` now falls back to parse-only when
+analysis returns errors, matching `format`.
 
 - [ ] **F.** The CLI (`FormatRun.java:126-191, 258-263`) and Maven (`AbstractJavafmtMojo.java:117-141,
       147-152`) both read files, check the cache, put `""` in for cache hits, call `formatAll`, and
@@ -163,6 +219,10 @@ makes later performance work smaller.
 
 ### 5. `refactor:` declare warning rules and run them only on the converging round
 
+Done in `bcd8161` (+ fixup). D: `WarningRule` (`warnings(LintContext)`, cannot produce edits) with
+`onNode` helpers, shared predicates in `Declarations`; net −13 lines rather than −60 to −80. P2, P10,
+P6 done. Warnings and their order are unchanged, including the truncation path.
+
 - [ ] **D.** `AvoidStarImport`, `CovariantEquals`, `MissingSwitchDefault`, `EqualsHashCode` and
       `StringLiteralEquality` are the same 15-line wrapper. Replace it with a `WarningRule` base,
       e.g. `WarningRule.onNode(MethodTree.class, CovariantEquals::isCovariantEquals, MESSAGE)`. Share
@@ -185,6 +245,9 @@ makes later performance work smaller.
 
 ### 6. `perf:` find reassignments once per scope and look up witness calls once
 
+Done in `2effbbc`. P4: written names collected once per scope per `apply`. P13: one walk into an
+offset map; new `AnalyzeWitnessBenchmark`.
+
 - [ ] **P4.** `Modifiers.reassigned(scope, name)` (`Modifiers.java:33-37`, `ReassignmentDetector`)
       walks the whole block again for every local (`FinalLocalVariable:39`) and parameter
       (`FinalParameters:64`), which is quadratic in block size. Collect all written names in one walk
@@ -194,6 +257,10 @@ makes later performance work smaller.
       method-name start offset to `TreePath` (keeping the first match, as today). `--analyze` only.
 
 ### 7. `fix:` walk method chains with a loop so long builder chains neither overflow nor go quadratic
+
+Done in `77c6871`. `FIELD_SELECT` overflowed in `ExpressionRenderers.renderMemberSelect`, now a
+loop; `METHOD_CHAIN` passed at javac's limit but `collectLinks` is now linear. No scanner overflowed
+at depths javac compiles, so `ChainScanner` is unchanged.
 
 - [ ] **P5 (test first).** Add `METHOD_CHAIN` (`new StringBuilder().append(1)….toString()`) and
       `FIELD_SELECT` (`a.a.a…`) cases to `DeepExpressionTest.Chain`. `of()` needs to change from "join
@@ -209,6 +276,10 @@ makes later performance work smaller.
         order, with tests like the existing `ChainScannerTest` ones.
 
 ### 8. `perf:` stop re-measuring nested chains and share the threshold-group logic
+
+Done in `2bcc562`. K: `MethodChainRenderer.thresholdGroup`. P3: budgeted
+`Doc.flatWidthOrBreak(doc, budget)`; JMH `JavafmtFormatBenchmark` `deepNesting` and
+`JdkSourceBenchmark` (BufferedInputStream, ConcurrentHashMap from src.zip) added.
 
 - [ ] **K.** `MethodChainRenderer.java:49-55` and `ExpressionRenderers.java:107-113` repeat the same
       threshold-group calculation (`flatWidthOrBreak`, `hitsThreshold`,
@@ -229,6 +300,12 @@ makes later performance work smaller.
 
 ### 9. `perf:` cut repeated scans and copies per file
 
+Done in `fef42f3`. P7 partly: the second comment check is skipped when lint made no edits; keeping
+comments on `ParsedUnit` and `regionMatches` in `TokenScanner` dropped (public record change or a
+verifier redesign for an unproven gain). P8, P9 done. P15 done with a char loop in
+`Javafmt.withOneTrailingNewline` instead of inside `stripTrailingWhitespace`, whose output the
+printer tests pin.
+
 - [ ] **P7.** The output check scans comments up to four times per file: `RoundTripVerifier.verify`
       compares linted source to output, then `Javafmt` (`:315-317`) compares original to output,
       which repeats exactly when lint made no edits. Keep the comment list the parse already built
@@ -247,6 +324,10 @@ makes later performance work smaller.
 
 ### 10. `perf:` run whole chunks on the pool and parallelize CLI file I/O
 
+Done in `01f7a74`. P1: parse-only chunks run whole on the pool; attributed runs stay one chunk with
+render on the pool. An `Error` outside the guarded set now fails the whole chunk's files rather
+than one. New `ParallelBatchBenchmark`. P12: reads, hashes and writes on `--threads`-sized pools.
+
 - [ ] **P1.** `BatchFormatter.java:68-70` runs chunks one after another, and `formatChunk`
       (`:104-106`) parses and lints on the calling thread; only render uses the pool. Submit each
       chunk's whole `formatChunk` as one pool task and collect futures in order; `renderInParallel`
@@ -261,12 +342,17 @@ makes later performance work smaller.
 
 ### 11. `perf:` let the VS Code daemon format requests concurrently
 
+Done in `ef8d80c`: pool of `clamp(cpus, 1, 4)` platform threads, synchronized output.
+
 - [ ] **P14.** `Daemon.java:22-29` formats each request before reading the next line, so one big
       file blocks every request queued behind it. Hand requests to a small fixed pool of platform
       threads (not virtual threads: each would rebuild the per-thread javac file manager) and
       synchronize the `println`. Out-of-order replies are fine; `extension.ts:173` matches by `id`.
 
 ### 12. `refactor:` shorten Doc construction and position lookups
+
+Done in `181a829`: E, I and G all done, +260/−334. `CommentAttacher` keeps its own lookups (it runs
+before a `ParsedUnit` exists).
 
 - [ ] **E.** Add `ParsedUnit.startOf(tree)`/`endOf(tree)` next to `positionOf`. Replaces the three
       private `start`/`end` pairs (`EnumTrailingComma:121-127`, `MemberOrder:155-161`,
@@ -280,6 +366,66 @@ makes later performance work smaller.
       make `RecordRenderer.java:31-41` use a `WrappableList` variant, and merge
       `ClassLikeRenderer.buildTypeList` (`:75-77`) with `MethodRenderer.buildThrowsTail` (`:146-149`),
       which differ only in the keyword. About −30 lines.
+
+### From the re-review (owner chose all of these)
+
+Nine read-only reviewers, one per lens below, against the tip after commit 12. Duplicates merged.
+
+#### 13. `refactor:` keep the public facade to the public API and tidy the pipeline
+
+- [ ] Move `asWritten`, `withWarnings`, `attributionWarning`, `lintEngine`, `render`, `verifyOutput`
+      and its helpers, `internalErrorResult`, `failureToResult`, `parseExceptionToResult` out of
+      `Javafmt` into the pipeline (`BatchFormatter` or a package-private `FormatStages`).
+- [ ] `ParsedChunk`'s two parallel lists become one `List<Prepared>`; its size check goes.
+- [ ] Filter blank sources once, at the top of the pipeline, for both parse-only and attributed runs.
+- [ ] `render` builds diagnostics with `Stream.concat` (or `withWarnings`), not `ArrayList.addAll`.
+- [ ] Delegating overloads stop repeating null checks.
+- [ ] `Printer` held as a constant.
+- [ ] `Diagnostic.isError` as `!(this instanceof Warning)`.
+- [ ] One SHA-256 helper in `cache/` (`CacheKey.fingerprint` reuses `FileFormatCache`'s); fingerprints
+      pinned by `CacheKeyTest`.
+- [ ] `FileResult.Formatted.changed()`; both mojos use it and `JavafmtMojo` records the cache once.
+
+#### 14. `perf:` print in one pass and shorten the print engine
+
+- [ ] `fitsForward`: one budget check after the switch; BREAK-mode Line/SoftLine share a case.
+- [ ] Group mode chosen in one expression; Line/SoftLine/HardLine newline code shared.
+- [ ] Strip trailing whitespace while printing instead of a second full copy (`verbatimRanges` goes).
+- [ ] One fit-check work deque per print; push the already-built candidate frame.
+      Perf items need `JavafmtFormatBenchmark|JdkSourceBenchmark` wins.
+
+#### 15. `refactor:` shorten the lint rules and apply edits in one pass
+
+- [ ] `LintEngine.applyEdits` builds the result left to right in one pass (today each `replace` copies
+      the tail: edits × file length per round). Needs a lint-heavy JMH win (`BatchFormatBenchmark`
+      dirty).
+- [ ] `StatementFlow.terminates` as a pattern switch.
+- [ ] `ExplicitInitialization`, `EmptyStatement`, `EmptyBlock` off `ChainPathScanner`.
+- [ ] `MultipleVariableDeclarations.isPartOfDeclarationGroup` stops copying sibling lists.
+- [ ] `EnumTrailingComma`, `MemberOrder`, `ArrayTrailingComma` go through `LintScan.edits`;
+      `LintScan` has one generic `collect`.
+- [ ] `FinalParameters`: one parameter stream partitioned by `reassigned`; `MethodCollector` goes.
+- [ ] `CommentAttacher.collectCompilationUnit`'s `declares` becomes `curr != cu.getPackage()`.
+
+#### 16. `refactor:` shorten the builder
+
+- [ ] `Recursor` extends `LeadingCommentAttacher`; the `attacher` parameter goes from ~40 signatures.
+- [ ] Remove the `ConstructorRendering` strategy; `BodyMemberRenderer` picks compact vs plain.
+- [ ] `ClassLikeRenderer`: shared member predicate, `renderImplicit` via `BodyMemberRenderer`,
+      `buildTypeDeclHeader` as a stream without the pass-through overload.
+- [ ] `ImportSectionRenderer` computes each qualified name once and sorts once.
+- [ ] `JavaParser.resolve` returns `Staged<ParsedUnit>`; the two `outcomeFor` wrappers go.
+
+#### 17. `fix:` format alternating call/field chains at javac's depth limit
+
+- [ ] Test first: `ALTERNATING` in `DeepExpressionTest.Chain` overflows in `DocBuilder` today
+      (`MethodChainRenderer` and `renderMemberSelect` recurse into each other). Pre-render the
+      re-entry points innermost first; pin diagnostic order.
+
+#### 18. `perf:` balance chunks across the pool
+
+- [ ] About four chunks per thread so one slow file does not set the finish time; one fan-out helper
+      for chunks and rendering. Needs a mixed-size `ParallelBatchBenchmark` case.
 
 ### Already considered and dropped
 

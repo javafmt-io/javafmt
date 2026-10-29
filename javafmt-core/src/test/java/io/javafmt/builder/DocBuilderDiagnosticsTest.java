@@ -98,6 +98,34 @@ class DocBuilderDiagnosticsTest {
     }
 
     @Test
+    void alternatingCallAndFieldChainWarnsFromTheOutermostLinkInward() {
+        final var source = """
+                class Fixture {
+
+                    Fixture a;
+
+                    Fixture f(Runnable r) {
+                        return this;
+                    }
+
+                    void test(boolean c) {
+                        a.f(() -> {
+                            if (c) a = null;
+                        }).a.f(() -> {
+                            if (c) a = null;
+                        }).a.f(() -> {
+                            if (c) a = null;
+                        });
+                    }
+                }
+                """;
+        final var built = DocBuilder.buildWithFallbacks(JavaParser.parseUnit(source), JavafmtConfig.defaults());
+        assertThat(built.diagnostics())
+                .extracting(d -> ((Position.At) d.position()).line())
+                .containsExactly(15, 13, 11);
+    }
+
+    @Test
     void alreadyBracedConstructsEmitNoBraceWarnings() {
         final var source = """
                 class Fixture {

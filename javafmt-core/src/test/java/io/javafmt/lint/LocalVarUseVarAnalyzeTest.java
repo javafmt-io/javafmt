@@ -3,10 +3,13 @@ package io.javafmt.lint;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.javafmt.Javafmt;
+import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 
 class LocalVarUseVarAnalyzeTest {
+
+    private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     @Test
     void chainInitializerWithMatchingInferredTypeBecomesVar() {
@@ -21,7 +24,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("var xs = Stream.of(\"a\", \"b\").toList();")
                 .doesNotContain("List<String> xs");
@@ -41,7 +44,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("var xs = Collections.unmodifiableList(input);")
                 .contains("List<String> input")
@@ -64,7 +67,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("final List<String> xs = new ArrayList<>();")
                 .doesNotContain("var xs");
@@ -84,7 +87,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("List<String> xs =").doesNotContain("var xs");
     }
 
@@ -101,7 +104,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("ArrayList<String> xs = new ArrayList<>();")
                 .doesNotContain("var xs");
@@ -120,7 +123,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("Supplier<String> s = () -> \"x\";")
                 .doesNotContain("var s");
@@ -142,7 +145,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("Supplier<String> s = Fixture::make;")
                 .doesNotContain("var s");
@@ -160,7 +163,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("int[] xs = {1, 2,};").doesNotContain("var xs");
     }
 
@@ -176,7 +179,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("Integer i = 5;").doesNotContain("var i");
     }
 
@@ -211,7 +214,7 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("var xs = new ArrayList<String>();");
     }
 
@@ -275,6 +278,6 @@ class LocalVarUseVarAnalyzeTest {
                     }
                 }
                 """;
-        assertThat(Javafmt.formatWithAnalyze(source, "").output()).doesNotContain("Comparator.<String>comparing");
+        assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).doesNotContain("Comparator.<String>comparing");
     }
 }

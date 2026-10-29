@@ -183,7 +183,7 @@ class JavaParserTest {
         final var outcomes = JavaParser.parseUnits(sources);
         assertThat(outcomes).hasSize(3);
         final var names = outcomes.stream()
-                .map(o -> ((ParseOutcome.Ok) o).unit().tree())
+                .map(o -> o.orElseThrow().tree())
                 .map(t -> ((ClassTree) t.getTypeDecls().getFirst()).getSimpleName().toString())
                 .toList();
         assertThat(names).containsExactly("A", "B", "C");
@@ -194,9 +194,9 @@ class JavaParserTest {
         final var sources = java.util.List.of("class A {}", "class {", "class C {}");
         final var outcomes = JavaParser.parseUnits(sources);
         assertThat(outcomes).hasSize(3);
-        assertThat(outcomes.getFirst()).isInstanceOf(ParseOutcome.Ok.class);
-        assertThat(outcomes.get(1)).isInstanceOf(ParseOutcome.Failed.class);
-        assertThat(outcomes.get(2)).isInstanceOf(ParseOutcome.Ok.class);
+        assertThat(outcomes.getFirst()).isInstanceOf(Staged.Ok.class);
+        assertThat(outcomes.get(1)).isInstanceOf(Staged.Failed.class);
+        assertThat(outcomes.get(2)).isInstanceOf(Staged.Ok.class);
     }
 
     @Test
@@ -260,10 +260,10 @@ class JavaParserTest {
         final var sources = java.util.List.of("class A {}", "class B {}", "class C {}");
         final var outcomes = JavaParser.attributing("", session -> session.attribute(sources));
         assertThat(outcomes).hasSize(3);
-        assertThat(outcomes).allMatch(o -> o instanceof AttributedOutcome.Ok);
+        assertThat(outcomes).allMatch(o -> o instanceof Staged.Ok);
         // All units share the same Attribution since they come from one JavacTask.
         final var attributions = outcomes.stream()
-                .map(o -> ((AttributedOutcome.Ok) o).unit().attribution())
+                .map(o -> o.orElseThrow().attribution())
                 .distinct()
                 .toList();
         assertThat(attributions).hasSize(1);
@@ -274,9 +274,9 @@ class JavaParserTest {
         final var sources = java.util.List.of("class A {}", "class {", "class C {}");
         final var outcomes = JavaParser.attributing("", session -> session.attribute(sources));
         assertThat(outcomes).hasSize(3);
-        assertThat(outcomes.getFirst()).isInstanceOf(AttributedOutcome.Ok.class);
-        assertThat(outcomes.get(1)).isInstanceOf(AttributedOutcome.Failed.class);
-        assertThat(outcomes.get(2)).isInstanceOf(AttributedOutcome.Ok.class);
+        assertThat(outcomes.getFirst()).isInstanceOf(Staged.Ok.class);
+        assertThat(outcomes.get(1)).isInstanceOf(Staged.Failed.class);
+        assertThat(outcomes.get(2)).isInstanceOf(Staged.Ok.class);
     }
 
     @Test
@@ -287,9 +287,9 @@ class JavaParserTest {
         final var pathological = "class Deep { int value = " + "1 + ".repeat(100_000) + "1; }";
         final var outcomes = JavaParser.attributing("", session -> session.attribute(java.util.List.of("class A {}", pathological, "class C {}")));
         assertThat(outcomes).hasSize(3);
-        assertThat(outcomes.getFirst()).isInstanceOf(AttributedOutcome.Ok.class);
-        assertThat(outcomes.get(1)).isInstanceOf(AttributedOutcome.Failed.class);
-        assertThat(outcomes.get(2)).isInstanceOf(AttributedOutcome.Ok.class);
+        assertThat(outcomes.getFirst()).isInstanceOf(Staged.Ok.class);
+        assertThat(outcomes.get(1)).isInstanceOf(Staged.Failed.class);
+        assertThat(outcomes.get(2)).isInstanceOf(Staged.Ok.class);
     }
 
     @Test
@@ -302,12 +302,7 @@ class JavaParserTest {
     void attribute_batchCrossFileTypesResolve() {
         // Class B references type A — only resolvable when both are attributed together.
         final var sources = java.util.List.of("class A { int value() { return 42; } }", "class B { A field; }");
-        final var fieldType = JavaParser.attributing(
-                "",
-                session -> switch (session.attribute(sources).get(1)) {
-                    case AttributedOutcome.Ok ok -> firstFieldType(ok.unit());
-                    case AttributedOutcome.Failed failed -> throw failed.error();
-                });
+        final var fieldType = JavaParser.attributing("", session -> firstFieldType(session.attribute(sources).get(1).orElseThrow()));
         assertThat(fieldType).isEqualTo("A");
     }
 

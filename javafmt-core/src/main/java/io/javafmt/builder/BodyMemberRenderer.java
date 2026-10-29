@@ -4,7 +4,6 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
@@ -18,31 +17,17 @@ import org.jspecify.annotations.Nullable;
 @UtilityClass
 final class BodyMemberRenderer {
 
-    final ConstructorRendering PLAIN_CONSTRUCTOR = ConstructorRenderer::render;
-
-    @Nullable static Doc render(
-            final Tree member,
-            final String className,
-            final Recursor recursor,
-            final LeadingCommentAttacher attacher,
-            final ConstructorRendering constructorRendering) {
+    @Nullable static Doc render(final Tree member, final String className, final Recursor recursor) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
-            return attacher.attach(mt, constructorRendering.render(mt, className, recursor, attacher));
+            return recursor.attach(
+                    mt,
+                    recursor.isCompactConstructor(mt)
+                            ? CompactConstructorRenderer.render(mt, className, recursor)
+                            : ConstructorRenderer.render(mt, className, recursor));
         }
         if (member instanceof BlockTree bt) {
-            return attacher.attach(bt, InitBlockRenderer.render(bt, recursor, attacher));
+            return recursor.attach(bt, InitBlockRenderer.render(bt, recursor));
         }
         return recursor.scan(member);
-    }
-
-    /**
-     * How a type renders its constructors. Classes and enums always use
-     * {@link ConstructorRenderer}; only a record has a second, compact form to choose between,
-     * so only a record pays the cost of asking.
-     */
-    @FunctionalInterface
-    interface ConstructorRendering {
-
-        Doc render(MethodTree ctor, String className, Recursor recursor, LeadingCommentAttacher attacher);
     }
 }

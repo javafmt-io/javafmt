@@ -3,7 +3,6 @@ package io.javafmt.builder;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.StatementTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentToken;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +14,10 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 final class BlockRenderer {
 
-    List<Doc> blockStmts(final StatementTree stmt, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    List<Doc> blockStmts(final StatementTree stmt, final Recursor recursor) {
         if (stmt instanceof BlockTree block) {
             final var stmtDocs = statementDocs(block.getStatements(), recursor);
-            final var tailDocs = attacher.trailingInside(block).stream().<Doc>map(CommentDocs::renderComment);
+            final var tailDocs = recursor.trailingInside(block).stream().<Doc>map(CommentDocs::renderComment);
             return Stream.concat(stmtDocs, tailDocs).toList();
         }
         recursor.emitWarning("added braces around single-statement body", stmt);
@@ -39,7 +38,7 @@ final class BlockRenderer {
                         i -> Optional.ofNullable(recursor.scan(statements.get(i)))
                                 .map(
                                         doc -> i > 0 && recursor.blankLineBetween(statements.get(i - 1), statements.get(i))
-                                                ? new Doc.Concat(List.of(Doc.HARD_LINE, doc))
+                                                ? Doc.concat(Doc.HARD_LINE, doc)
                                                 : doc))
                 .flatMap(Optional::stream);
     }
@@ -56,7 +55,7 @@ final class BlockRenderer {
      */
     Doc buildBlock(final Doc header, final List<Doc> stmts, final List<CommentToken> trailing) {
         if (stmts.isEmpty() && trailing.isEmpty()) {
-            return new Doc.Concat(List.of(header, new Doc.Text(" {}")));
+            return Doc.concat(header, new Doc.Text(" {}"));
         }
         final var all = Stream.concat(stmts.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment));
         return Doc.concatOf(Stream.of(blockParts(header, all), Doc.closeBrace()));

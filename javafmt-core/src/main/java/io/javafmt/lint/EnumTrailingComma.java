@@ -6,7 +6,6 @@ import com.sun.source.tree.VariableTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,18 +33,18 @@ public final class EnumTrailingComma implements LintRule {
     @Override
     public LintResult apply(final LintContext ctx) {
         final var unit = ctx.unit();
-        final var edits = new ArrayList<LintEdit>();
-        new ChainScanner<Void, Void>() {
+        return LintScan.edits(
+                ctx,
+                edits -> new ChainScanner<>() {
 
-            @Override
-            public Void visitClass(final ClassTree node, final Void p) {
-                if (node.getKind() == Tree.Kind.ENUM) {
-                    editFor(node, unit).ifPresent(edits::add);
-                }
-                return super.visitClass(node, null);
-            }
-        }.scan(unit.tree(), null);
-        return LintResult.ofEdits(List.copyOf(edits));
+                    @Override
+                    public Void visitClass(final ClassTree node, final Void p) {
+                        if (node.getKind() == Tree.Kind.ENUM) {
+                            editFor(node, unit).ifPresent(edits::add);
+                        }
+                        return super.visitClass(node, null);
+                    }
+                });
     }
 
     private static Optional<LintEdit> editFor(final ClassTree node, final ParsedUnit unit) {
@@ -57,8 +56,8 @@ public final class EnumTrailingComma implements LintRule {
         if (constants.isEmpty()) {
             return Optional.empty();
         }
-        final var lastEnd = end(unit, constants.getLast());
-        final var enumEnd = end(unit, node);
+        final var lastEnd = unit.endOf(constants.getLast());
+        final var enumEnd = unit.endOf(node);
         if (lastEnd < 0 || enumEnd < lastEnd) {
             return Optional.empty();
         }
@@ -95,14 +94,14 @@ public final class EnumTrailingComma implements LintRule {
      * here; the flattening collapses the author's whitespace to the single spaces the renderer uses.
      */
     private static boolean fitsOnOneLine(final ClassTree node, final List<VariableTree> constants, final ParsedUnit unit) {
-        final var enumStart = start(unit, node);
-        final var firstConstantStart = start(unit, constants.getFirst());
+        final var enumStart = unit.startOf(node);
+        final var firstConstantStart = unit.startOf(constants.getFirst());
         if (enumStart < 0 || firstConstantStart <= enumStart) {
             return false;
         }
         final var header = SourceLayout.flatten(unit.source().substring(enumStart, firstConstantStart));
         final var body = constants.stream()
-                .map(c -> SourceLayout.flatten(unit.source().substring(start(unit, c), end(unit, c))))
+                .map(c -> SourceLayout.flatten(unit.source().substring(unit.startOf(c), unit.endOf(c))))
                 .toList();
         final var oneLine = header + " " + String.join(", ", body) + " }";
         return SourceLayout.fits(SourceLayout.columnOf(unit.source(), enumStart), oneLine.length());
@@ -115,14 +114,6 @@ public final class EnumTrailingComma implements LintRule {
     private static boolean isConstant(final ParsedUnit unit, final Tree member) {
         return member instanceof VariableTree v
             && v.getType() != null
-            && end(unit, v.getType()) < 0;
-    }
-
-    private static int start(final ParsedUnit unit, final Tree tree) {
-        return (int) unit.sourcePositions().getStartPosition(unit.tree(), tree);
-    }
-
-    private static int end(final ParsedUnit unit, final Tree tree) {
-        return (int) unit.sourcePositions().getEndPosition(unit.tree(), tree);
+            && unit.endOf(v.getType()) < 0;
     }
 }

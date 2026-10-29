@@ -1,9 +1,12 @@
 package io.javafmt.builder;
 
+import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentToken;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -111,6 +114,21 @@ final class CommentDocs {
                 Stream.<Doc>of(new Doc.Text(separator)),
                 Stream.concat(afterSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), renderComment(c))), Stream.of(Doc.HARD_LINE)))
                 .toList();
+    }
+
+    <T extends Tree> Stream<Doc> commaList(
+            final List<? extends T> items,
+            final LeadingCommentAttacher attacher,
+            final Function<? super T, Doc> render) {
+        if (items.size() == 1) {
+            return Stream.of(render.apply(items.getFirst()));
+        }
+        return IntStream.range(0, items.size())
+                .boxed()
+                .flatMap(
+                        i -> Stream.concat(
+                                i == 0 ? Stream.empty() : listSeparator(",", attacher.interior(items.get(i))).stream(),
+                                Stream.of(render.apply(items.get(i)))));
     }
 
     Stream<Doc> fileHeaderStream(final List<CommentToken> comments) {

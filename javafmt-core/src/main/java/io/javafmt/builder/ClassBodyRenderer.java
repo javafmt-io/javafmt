@@ -2,7 +2,6 @@ package io.javafmt.builder;
 
 import com.sun.source.tree.ClassTree;
 import io.javafmt.doc.Doc;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -19,7 +18,7 @@ final class ClassBodyRenderer {
         final var members = body.getMembers()
                 .stream()
                 .flatMap(m -> Optional.ofNullable(recursor.scanNullable(m)).stream())
-                .<Doc>map(d -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, Doc.HARD_LINE, d))));
+                .<Doc>map(d -> new Doc.Indent(Doc.concat(Doc.BLANK_LINE, d)));
         return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text(" {")), members, Doc.closeBrace()));
     }
 }

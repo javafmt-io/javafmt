@@ -3,8 +3,9 @@ package io.javafmt.lint;
 import io.javafmt.Diagnostic;
 import io.javafmt.Position;
 import io.javafmt.parser.JavaParser;
-import io.javafmt.parser.ParseOutcome;
+import io.javafmt.parser.ParseException;
 import io.javafmt.parser.ParsedUnit;
+import io.javafmt.parser.Staged;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -56,10 +57,7 @@ public final class LintEngine {
 
     public Outcome lint(final LintContext initial) {
         Objects.requireNonNull(initial, "initial");
-        return switch (lintAll(List.of(initial)).getFirst()) {
-            case BatchOutcome.Ok ok -> ok.outcome();
-            case BatchOutcome.Failed failed -> throw failed.error();
-        };
+        return lintAll(List.of(initial)).getFirst().orElseThrow();
     }
 
     /**
@@ -72,12 +70,12 @@ public final class LintEngine {
      * whole batch. Since {@code FinalLocalVariable} and {@code NeedBraces} fire on almost any
      * unformatted file, nearly every real file goes through at least one round.
      *
-     * <p>A rewrite that no longer parses is a rule bug, and surfaces as {@link BatchOutcome.Failed}
+     * <p>A rewrite that no longer parses is a rule bug, and surfaces as a {@link Staged.Failed}
      * carrying a {@link LintRewriteException} for that file only; its neighbours in the batch are
      * unaffected. It is deliberately not the {@code ParseException} javac raised: that type means
      * "the input is at fault", and the input parsed on the way in.
      */
-    public List<BatchOutcome> lintAll(final List<LintContext> contexts) {
+    public List<Staged<Outcome>> lintAll(final List<LintContext> contexts) {
         Objects.requireNonNull(contexts, "contexts");
         final var states = contexts.stream().map(FileState::new).toList();
         for (var round = 0; round < MAX_ITERATIONS; round++) {
@@ -85,7 +83,8 @@ public final class LintEngine {
             if (active.isEmpty()) {
                 break;
             }
-            active.forEach(this::applyRound);
+            final var lastRound = round == MAX_ITERATIONS - 1;
+            active.forEach(state -> applyRound(state, lastRound));
             reparse(states.stream().filter(FileState::isActive).toList());
         }
         states.stream().filter(FileState::isActive).forEach(FileState::truncate);
@@ -102,17 +101,30 @@ public final class LintEngine {
         reparse(states.stream().filter(FileState::needsParseOnlyUnit).toList());
     }
 
-    /** Runs every rule against one file's current source and records the edits it produced. */
-    private void applyRound(final FileState state) {
-        final var results = rules.stream().map(r -> r.apply(state.context)).toList();
+    /**
+     * Runs every editing rule against one file's current source and records the edits it produced.
+     * {@link WarningRule}s run only when their diagnostics are kept: on the round with no edits, or
+     * on the last round before the engine gives up.
+     */
+    private void applyRound(final FileState state, final boolean lastRound) {
+        final var editing = rules.stream()
+                .map(r -> r instanceof WarningRule ? LintResult.EMPTY : r.apply(state.context))
+                .toList();
+        final var edits = mergeAcrossRules(editing);
+        final var results = edits.isEmpty() || lastRound ? withWarnings(editing, state.context) : editing;
         state.diagnostics = results.stream().flatMap(r -> r.diagnostics().stream()).toList();
-        final var edits = mergeAcrossRules(results);
         if (edits.isEmpty()) {
             state.converge();
             return;
         }
         state.unconvergedRules = namesOfRulesWithEdits(results);
         state.pendingSource = applyEdits(state.context.unit().source(), edits);
+    }
+
+    private List<LintResult> withWarnings(final List<LintResult> editing, final LintContext context) {
+        return IntStream.range(0, rules.size())
+                .mapToObj(i -> rules.get(i) instanceof WarningRule warning ? new LintResult(List.of(), warning.warnings(context)) : editing.get(i))
+                .toList();
     }
 
     /** One {@link JavaParser#parseUnits} call for every file waiting on a re-parse this round. */
@@ -171,19 +183,15 @@ public final class LintEngine {
     }
 
     /**
-     * Orders edit indices for right-to-left application: later offsets first, so earlier offsets
-     * stay valid as each edit is applied. At a shared offset, a replacement is ordered before any
-     * insertion — an insertion applied first would leave the replacement's end past the low-water
-     * mark and trip the overlap guard. Insertions that share an offset apply in reverse
-     * registration order, which is what leaves the first-registered rule's text on the left and
-     * makes {@code final var} compose out of {@code FinalLocalVariable} plus {@code
-     * LocalVarUseVar}.
+     * Orders edit indices left to right. At a shared offset, insertions come before a replacement,
+     * so the replacement's text follows them. Insertions that share an offset keep registration
+     * order, which is what leaves the first-registered rule's text on the left and makes {@code
+     * final var} compose out of {@code FinalLocalVariable} plus {@code LocalVarUseVar}.
      */
     private static Comparator<Integer> applicationOrder(final List<LintEdit> edits) {
         return Comparator.<Integer>comparingInt(i -> edits.get(i).start())
-                .reversed()
-                .thenComparingInt(i -> isInsertion(edits.get(i)) ? 1 : 0)
-                .thenComparing(Comparator.<Integer>naturalOrder().reversed());
+                .thenComparingInt(i -> isInsertion(edits.get(i)) ? 0 : 1)
+                .thenComparing(Comparator.naturalOrder());
     }
 
     static String applyEdits(final String source, final List<LintEdit> edits) {
@@ -192,20 +200,22 @@ public final class LintEngine {
                 .sorted(applicationOrder(edits))
                 .map(edits::get)
                 .toList();
-        var lastStart = Integer.MAX_VALUE;
-        final var buf = new StringBuilder(source);
-        for (var edit : sorted) {
-            if (edit.end() > lastStart) {
-                throw new IllegalStateException(
-                        "overlapping lint edits: edit ending at " + edit.end() + " overlaps with edit starting at " + lastStart);
-            }
-            if (edit.end() > source.length()) {
-                throw new IllegalStateException("edit end " + edit.end() + " exceeds source length " + source.length());
-            }
-            buf.replace(edit.start(), edit.end(), edit.replacement());
-            lastStart = edit.start();
+        IntStream.iterate(sorted.size() - 1, i -> i >= 0, i -> i - 1).forEach(i -> checkApplicable(source, sorted, i));
+        final var out = new StringBuilder(source.length());
+        IntStream.range(0, sorted.size())
+                .forEach(i -> out.append(source, i == 0 ? 0 : sorted.get(i - 1).end(), sorted.get(i).start()).append(sorted.get(i).replacement()));
+        return out.append(source, sorted.isEmpty() ? 0 : sorted.getLast().end(), source.length()).toString();
+    }
+
+    private static void checkApplicable(final String source, final List<LintEdit> sorted, final int i) {
+        final var edit = sorted.get(i);
+        if (i + 1 < sorted.size() && edit.end() > sorted.get(i + 1).start()) {
+            throw new IllegalStateException(
+                    "overlapping lint edits: edit ending at " + edit.end() + " overlaps with edit starting at " + sorted.get(i + 1).start());
         }
-        return buf.toString();
+        if (edit.end() > source.length()) {
+            throw new IllegalStateException("edit end " + edit.end() + " exceeds source length " + source.length());
+        }
     }
 
     /** One file's progress through the rounds. Mutable by nature: it is a loop variable per file. */
@@ -217,7 +227,7 @@ public final class LintEngine {
 
         @Nullable private String pendingSource;
 
-        @Nullable private BatchOutcome result;
+        @Nullable private Staged<Outcome> result;
 
         private boolean awaitingParseOnlyUnit;
 
@@ -246,48 +256,40 @@ public final class LintEngine {
             if (attributed) {
                 awaitingParseOnlyUnit = true;
             } else {
-                result = new BatchOutcome.Ok(new Outcome(context.unit(), diagnostics));
+                result = new Staged.Ok<>(new Outcome(context.unit(), diagnostics));
             }
         }
 
         void truncate() {
-            result = new BatchOutcome.Ok(
+            result = new Staged.Ok<>(
                     new Outcome(context.unit(), Stream.concat(diagnostics.stream(), Stream.of(nonConvergenceWarning(unconvergedRules))).toList()));
         }
 
-        void accept(final ParseOutcome outcome) {
-            switch (outcome) {
-                case ParseOutcome.Ok ok -> {
+        void accept(final Staged<ParsedUnit> reparsed) {
+            switch (reparsed) {
+                case Staged.Ok<ParsedUnit>(var unit) -> {
                     if (awaitingParseOnlyUnit) {
                         awaitingParseOnlyUnit = false;
-                        result = new BatchOutcome.Ok(new Outcome(ok.unit(), diagnostics));
+                        result = new Staged.Ok<>(new Outcome(unit, diagnostics));
                     } else {
-                        context = LintContext.parseOnly(ok.unit());
+                        context = LintContext.parseOnly(unit);
                         pendingSource = null;
                     }
                 }
-                case ParseOutcome.Failed failed -> {
+                case Staged.Failed<ParsedUnit>(ParseException parseError) -> {
                     awaitingParseOnlyUnit = false;
-                    result = new BatchOutcome.Failed(new LintRewriteException(unconvergedRules, failed.error()));
+                    result = new Staged.Failed<>(new LintRewriteException(unconvergedRules, parseError));
+                }
+                case Staged.Failed<ParsedUnit>(var failure) -> {
+                    awaitingParseOnlyUnit = false;
+                    result = new Staged.Failed<>(failure);
                 }
             }
         }
 
-        BatchOutcome result() {
+        Staged<Outcome> result() {
             return Objects.requireNonNull(result, "result");
         }
-    }
-
-    /**
-     * One file's outcome from {@link #lintAll}. {@code Failed} carries the exception the
-     * single-file {@link #lint} would have thrown, so callers can keep returning that source
-     * unchanged without the failure spreading to the rest of the batch.
-     */
-    public sealed interface BatchOutcome {
-
-        record Ok(Outcome outcome) implements BatchOutcome {}
-
-        record Failed(RuntimeException error) implements BatchOutcome {}
     }
 
     public record Outcome(ParsedUnit unit, List<Diagnostic> diagnostics) {

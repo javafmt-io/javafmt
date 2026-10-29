@@ -1,7 +1,7 @@
 package io.javafmt.lint;
 
 import com.sun.source.tree.MethodTree;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.Optional;
@@ -27,7 +27,7 @@ public final class RedundantSuperCall implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new ChainPathScanner<>() {
+                edits -> new ChainScanner<>() {
 
                     @Override
                     public Void visitMethod(final MethodTree node, final Void p) {
@@ -44,11 +44,9 @@ public final class RedundantSuperCall implements LintRule {
             return Optional.empty();
         }
         final var first = node.getBody().getStatements().getFirst();
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
         final var src = unit.source();
-        final var start = (int) positions.getStartPosition(root, first);
-        final var end = (int) positions.getEndPosition(root, first);
+        final var start = unit.startOf(first);
+        final var end = unit.endOf(first);
         if (start < 0 || end < 0 || end > src.length()) {
             return Optional.empty();
         }

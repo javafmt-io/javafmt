@@ -1,5 +1,7 @@
 package io.javafmt;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -7,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -15,7 +18,11 @@ import lombok.RequiredArgsConstructor;
  * does not ({@link java.nio.file.FileSystem#getPathMatcher "glob:..."} semantics).
  */
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public final class PathFilter {
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public final class PathFilter implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /**
      * Directory names a directory argument is never searched into: build output, dependency
@@ -25,11 +32,19 @@ public final class PathFilter {
      */
     public static final Set<String> DEFAULT_EXCLUDED_DIRECTORIES = Set.of(".git", "build", "generated", "node_modules", "out", "target");
 
-    private final List<PathMatcher> matchers;
+    @EqualsAndHashCode.Include
+    private final String[] globs;
+
+    private final transient List<PathMatcher> matchers;
 
     public static PathFilter ofGlobs(final List<String> globs) {
         Objects.requireNonNull(globs, "globs");
-        return new PathFilter(globs.stream().map(g -> FileSystems.getDefault().getPathMatcher("glob:" + g)).toList());
+        return new PathFilter(globs.toArray(String[]::new), globs.stream().map(g -> FileSystems.getDefault().getPathMatcher("glob:" + g)).toList());
+    }
+
+    @Serial
+    private Object readResolve() {
+        return ofGlobs(List.of(globs));
     }
 
     public boolean excludes(final Path path) {

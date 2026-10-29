@@ -6,6 +6,10 @@ package io.javafmt;
  */
 public sealed interface Position permits Position.At, Position.Unknown {
 
+    int line();
+
+    int column();
+
     /** {@code "line:column"}, or the empty string for {@link Unknown}. */
     default String display() {
         return switch (this) {
@@ -18,5 +22,16 @@ public sealed interface Position permits Position.At, Position.Unknown {
     record At(int line, int column, int offset) implements Position {}
 
     /** No known location. */
-    record Unknown() implements Position {}
+    record Unknown() implements Position {
+
+        @Override
+        public int line() {
+            return 0;
+        }
+
+        @Override
+        public int column() {
+            return 0;
+        }
+    }
 }

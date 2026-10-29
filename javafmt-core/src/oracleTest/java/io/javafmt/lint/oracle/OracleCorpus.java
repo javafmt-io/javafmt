@@ -76,7 +76,9 @@ public final class OracleCorpus {
             final String checkClassName,
             final Map<String, String> checkProperties) {
         Objects.requireNonNull(name, "name");
-        final var result = Javafmt.formatWithAnalyze(source, System.getProperty("java.class.path"), VERIFYING);
+        final var result = Javafmt.formatWithResult(
+                source,
+                VERIFYING.withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))));
         assertNoInternalError(name, result);
         final var formatted = result.output();
         assertStillCompiles(name, source, formatted);
