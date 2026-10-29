@@ -19,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class CliTest {
 
@@ -101,7 +102,7 @@ class CliTest {
     void unknownFlag_exitsNonZeroWithMessageNoStackTrace() {
         final var run = run("--bogus");
         assertThat(run.exit()).isEqualTo(2);
-        assertThat(run.err()).contains("javafmt:").contains("--bogus");
+        assertThat(run.err()).contains("Unknown option: '--bogus'");
         assertThat(run.err()).doesNotContain("Exception").doesNotContain("\tat ");
     }
 
@@ -257,12 +258,12 @@ class CliTest {
     }
 
     @Test
-    void analyzeFlag_withClasspathFile_acceptsClasspathFromFile(@TempDir final Path dir) throws Exception {
-        final var classpathFile = dir.resolve("classpath.txt");
-        Files.writeString(classpathFile, "");
+    void analyzeFlag_readsTheClasspathFromAnArgumentFile(@TempDir final Path dir) throws Exception {
+        final var argumentFile = dir.resolve("classpath.txt");
+        Files.writeString(argumentFile, "--classpath " + dir);
         final var a = dir.resolve("A.java");
         Files.writeString(a, Fixtures.UNFORMATTED_A);
-        final var run = run("--analyze", "--classpath-file", classpathFile.toString(), a.toString());
+        final var run = run("--analyze", "@" + argumentFile, a.toString());
         assertThat(run.exit()).as("err=%s", run.err()).isZero();
     }
 
@@ -313,22 +314,25 @@ class CliTest {
                 .isEqualTo("# not java\n");
     }
 
-    @Test
-    void helpFlag_printsUsageAndExitsZero() {
-        final var run = run("--help");
+    @ParameterizedTest
+    @ValueSource(strings = {"--help", "-h"})
+    void helpFlag_printsUsageAndExitCodesAndExitsZero(final String flag) {
+        final var run = run(flag);
         assertThat(run.exit()).isZero();
         assertThat(run.out())
-                .contains("Usage")
+                .contains("Usage: javafmt")
                 .contains("--check")
                 .contains("--analyze")
-                .contains("--exclude");
+                .contains("--exclude")
+                .contains("Exit Codes:");
     }
 
-    @Test
-    void versionFlag_printsVersionAndExitsZero() {
-        final var run = run("--version");
+    @ParameterizedTest
+    @ValueSource(strings = {"--version", "-V"})
+    void versionFlag_printsVersionAndExitsZero(final String flag) {
+        final var run = run(flag);
         assertThat(run.exit()).isZero();
-        assertThat(run.out()).contains(io.javafmt.JavafmtVersion.VERSION);
+        assertThat(run.out()).isEqualTo("javafmt " + io.javafmt.JavafmtVersion.VERSION + System.lineSeparator());
     }
 
     @Test
@@ -530,6 +534,32 @@ class CliTest {
     }
 
     @Test
+    void aBareDashAfterADoubleDashIsAFileNamedDash() {
+        final var run = runStdin(Fixtures.UNFORMATTED_FOO, "--", "-");
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.out()).isEmpty();
+        assertThat(run.err()).contains("-: read failed: no such file");
+    }
+
+    @Test
+    void aBareDashAfterADoubleDashCanBeMixedWithFileArguments(@TempDir final Path dir) throws Exception {
+        final var file = dir.resolve("A.java");
+        Files.writeString(file, Fixtures.UNFORMATTED_A);
+        final var run = run("--", "-", file.toString());
+        assertThat(run.err())
+                .doesNotContain("cannot be combined")
+                .contains("-: read failed: no such file");
+        assertThat(Files.readString(file)).isEqualTo(Fixtures.FORMATTED_A);
+    }
+
+    @Test
+    void aBareDashBeforeADoubleDashStillReadsStdin() {
+        final var run = runStdin(Fixtures.UNFORMATTED_FOO, "-", "--");
+        assertThat(run.exit()).isZero();
+        assertThat(run.out()).isEqualTo(Fixtures.FORMATTED_FOO);
+    }
+
+    @Test
     void aBareDashReadsStdin() {
         final var run = runStdin(Fixtures.UNFORMATTED_FOO, "-");
         assertThat(run.exit()).isZero();
@@ -547,7 +577,7 @@ class CliTest {
     void anUnknownSingleDashFlagIsAUsageErrorNotAPath() {
         final var run = run("-x");
         assertThat(run.exit()).isEqualTo(2);
-        assertThat(run.err()).contains("unknown flag: -x");
+        assertThat(run.err()).contains("Unknown option: '-x'");
     }
 
     @Test
