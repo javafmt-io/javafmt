@@ -167,7 +167,7 @@ public final class LocalVarUseVar implements LintRule {
      * attribution, so the AST alone can't distinguish an explicit type from an inferred one.
      */
     private static boolean isVarType(final VariableTree node, final ParsedUnit unit) {
-        final var typeStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), node.getType());
+        final var typeStart = unit.startOf(node.getType());
         if (typeStart < 0 || typeStart + 3 > unit.source().length()) {
             return false;
         }
@@ -176,8 +176,8 @@ public final class LocalVarUseVar implements LintRule {
     }
 
     private static void addReplaceTypeEdit(final VariableTree node, final ParsedUnit unit, final List<LintEdit> edits) {
-        final var typeStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), node.getType());
-        final var typeEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), node.getType());
+        final var typeStart = unit.startOf(node.getType());
+        final var typeEnd = unit.endOf(node.getType());
         if (typeStart >= 0 && typeEnd > typeStart) {
             edits.add(new LintEdit(typeStart, typeEnd, "var"));
         }
@@ -193,9 +193,9 @@ public final class LocalVarUseVar implements LintRule {
         if (!(node.getType() instanceof ParameterizedTypeTree pt) || !(pt.getType() instanceof IdentifierTree rawTypeId)) {
             return;
         }
-        final var typeStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), node.getType());
-        final var typeEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), node.getType());
-        final var rawEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), pt.getType());
+        final var typeStart = unit.startOf(node.getType());
+        final var typeEnd = unit.endOf(node.getType());
+        final var rawEnd = unit.endOf(pt.getType());
         if (typeStart < 0 || typeEnd <= typeStart || rawEnd <= 0 || rawEnd >= typeEnd) {
             return;
         }
@@ -214,7 +214,7 @@ public final class LocalVarUseVar implements LintRule {
         if (!witnessFitsTheMethod(call, path, ctx, pt.getTypeArguments().size())) {
             return;
         }
-        final var selectEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), mst);
+        final var selectEnd = unit.endOf(mst);
         final var namePos = insertionPointBeforeMethodName(mst, selectEnd);
         final var src = unit.source();
         if (selectEnd < 0
@@ -264,8 +264,8 @@ public final class LocalVarUseVar implements LintRule {
         if (identifier == null || isAnonymousClassInstantiation(newClass)) {
             return false;
         }
-        final var typeStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), node.getType());
-        final var identStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), identifier);
+        final var typeStart = unit.startOf(node.getType());
+        final var identStart = unit.startOf(identifier);
         if (typeStart < 0 || identStart < 0) {
             return false;
         }

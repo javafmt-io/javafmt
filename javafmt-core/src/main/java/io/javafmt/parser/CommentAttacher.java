@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 import javax.lang.model.element.Modifier;
 import lombok.experimental.UtilityClass;
@@ -40,10 +41,13 @@ final class CommentAttacher {
             .thenComparingLong(Slot::lo);
 
     ParsedUnit attach(final CompilationUnitTree tree, final String source, final SourcePositions positions, final List<CommentToken> comments) {
+        if (comments.isEmpty()) {
+            return new ParsedUnit(tree, source, positions, List.of(), List.of(), Map.of(), Map.of(), Map.of(), Map.of());
+        }
         final var slots = new ArrayList<Slot>();
-        collectCompilationUnit(tree, source, positions, slots);
+        final var opaque = new ArrayList<long[]>();
+        collectCompilationUnit(tree, source, positions, slots, opaque);
         slots.sort(SLOT_ORDER);
-        final var opaque = literalsRenderedFromSource(tree, positions, source);
         final var fileHeader = new ArrayList<CommentToken>();
         final var fileFooter = new ArrayList<CommentToken>();
         final var leading = new IdentityHashMap<Tree, List<CommentToken>>();
@@ -183,33 +187,12 @@ final class CommentAttacher {
             && pos.getEndPosition(cu, v.getType()) < 0;
     }
 
-    /**
-     * The source spans of literals the renderer prints verbatim from source, which is any literal
-     * whose own span covers more than one line. A comment inside one of those is already in the
-     * text that gets printed, so attaching it anywhere would emit it a second time.
-     *
-     * <p>That is not hypothetical: javac constant-folds {@code "aa" + "AAA" // Alpha} and the lines
-     * below it into a <em>single</em> {@link LiteralTree} carrying the whole expression's span, so
-     * {@code java/util/LocaleISOData.java} came out with each of its 437 trailing comments twice.
-     */
-    private List<long[]> literalsRenderedFromSource(final CompilationUnitTree cu, final SourcePositions pos, final String source) {
-        final var spans = new ArrayList<long[]>();
-        new ChainScanner<Void, Void>() {
-
-            @Override
-            public Void visitLiteral(final LiteralTree node, final Void p) {
-                final var start = pos.getStartPosition(cu, node);
-                final var end = pos.getEndPosition(cu, node);
-                if (start >= 0 && end > start && source.lastIndexOf('\n', (int) end - 1) > start) {
-                    spans.add(new long[] {start, end,});
-                }
-                return null;
-            }
-        }.scan(cu, null);
-        return List.copyOf(spans);
-    }
-
-    private void collectCompilationUnit(final CompilationUnitTree cu, final String source, final SourcePositions pos, final List<Slot> slots) {
+    private void collectCompilationUnit(
+            final CompilationUnitTree cu,
+            final String source,
+            final SourcePositions pos,
+            final List<Slot> slots,
+            final List<long[]> opaque) {
         final var cuChildren = new ArrayList<Tree>();
         if (cu.getPackage() != null) {
             cuChildren.add(cu.getPackage());
@@ -233,17 +216,14 @@ final class CommentAttacher {
         for (var curr : ordered) {
             final var currStart = pos.getStartPosition(cu, curr);
             if (prev != null) {
-                final var declares = cu.getImports().contains(curr)
-                    || cu.getTypeDecls().contains(curr)
-                    || curr == cu.getModule();
-                final var kind = declares ? Kind.LEADING : Kind.TAIL;
+                final var kind = curr != cu.getPackage() ? Kind.LEADING : Kind.TAIL;
                 slots.add(new Slot(prev, curr, prevEnd, currStart, kind));
             }
             prev = curr;
             prevEnd = pos.getEndPosition(cu, curr);
         }
         slots.add(new Slot(prev, null, prevEnd, source.length(), Kind.FILE_FOOTER));
-        new Collector(cu, pos, source, slots).scan(cu, null);
+        new Collector(cu, pos, source, slots, opaque).scan(cu, null);
     }
 
     /**
@@ -305,11 +285,34 @@ final class CommentAttacher {
 
         private final List<Slot> slots;
 
-        Collector(final CompilationUnitTree cu, final SourcePositions pos, final String source, final List<Slot> slots) {
+        private final List<long[]> opaque;
+
+        Collector(final CompilationUnitTree cu, final SourcePositions pos, final String source, final List<Slot> slots, final List<long[]> opaque) {
             this.cu = cu;
             this.pos = pos;
             this.source = source;
             this.slots = slots;
+            this.opaque = opaque;
+        }
+
+        /**
+         * Records the source span of a literal the renderer prints verbatim from source, which is any
+         * literal whose own span covers more than one line. A comment inside one of those is already
+         * in the text that gets printed, so attaching it anywhere would emit it a second time.
+         *
+         * <p>That is not hypothetical: javac constant-folds {@code "aa" + "AAA" // Alpha} and the
+         * lines below it into a <em>single</em> {@link LiteralTree} carrying the whole expression's
+         * span, so {@code java/util/LocaleISOData.java} came out with each of its 437 trailing
+         * comments twice.
+         */
+        @Override
+        public Void visitLiteral(final LiteralTree node, final Void p) {
+            final var start = pos.getStartPosition(cu, node);
+            final var end = pos.getEndPosition(cu, node);
+            if (start >= 0 && end > start && source.lastIndexOf('\n', (int) end - 1) > start) {
+                opaque.add(new long[] {start, end,});
+            }
+            return null;
         }
 
         @Override
@@ -350,10 +353,9 @@ final class CommentAttacher {
         }
 
         @Override
-        public Void visitMethodInvocation(final MethodInvocationTree node, final Void p) {
+        protected void visitInvocation(final MethodInvocationTree node, final Void p) {
             collectSeparatedList(node, pos.getEndPosition(cu, node.getMethodSelect()), node.getArguments());
             collectChainJoint(node);
-            return super.visitMethodInvocation(node, null);
         }
 
         /**

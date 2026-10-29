@@ -1,6 +1,7 @@
 package io.javafmt.cli;
 
 import io.javafmt.Diagnostic;
+import io.javafmt.FileResult;
 import io.javafmt.FormatResult;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
@@ -22,10 +23,10 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.IntStream;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
-import org.jspecify.annotations.Nullable;
 
 @UtilityClass
 final class FormatRun {
@@ -55,10 +56,7 @@ final class FormatRun {
     int runStdin(final Args parsed, final InputStream in, final PrintStream out, final PrintStream err) {
         try {
             final var source = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            final var config = JavafmtConfig.defaults();
-            final var result = parsed.analyze()
-                    ? Javafmt.formatWithAnalyze(source, parsed.classpath.orElseThrow(), config)
-                    : Javafmt.formatWithResult(source, config);
+            final var result = Javafmt.formatWithResult(source, parsed.config());
             reportDiagnostics(parsed.jsonDiagnostics() ? "" : "<stdin>", result, parsed, err);
             if (result.hasErrors()) {
                 out.print(result.output());
@@ -116,25 +114,9 @@ final class FormatRun {
         err.println(json ? JsonDiagnostics.cliLine(path, message) : "javafmt: " + path + ": " + message);
     }
 
-    /**
-     * Reads files and checks the cache here; everything from parsing onward is {@link
-     * Javafmt#formatAll}'s job, which batches javac task setup across the run. A file already
-     * resolved — a cache hit, or a read that failed — contributes {@code ""} as its format input
-     * (see {@link FileWork#formatInput()}) so the result list stays index-aligned with {@code
-     * parsed.files} without occupying a parse slot.
-     */
     private int runFiles(final Args parsed, final PrintStream err) {
         final var cache = parsed.cacheFile.<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed))).orElseGet(FormatCache::noop);
-        final var works = parsed.files.stream()
-                .map(path -> readWork(path, cache, parsed.jsonDiagnostics()))
-                .toList();
-        final var toFormat = works.stream().map(FileWork::formatInput).toList();
-        final var results = parsed.analyze()
-                ? Javafmt.formatAllWithAnalyze(toFormat, parsed.classpath.orElseThrow(), JavafmtConfig.defaults(), parsed.threads)
-                : Javafmt.formatAll(toFormat, JavafmtConfig.defaults(), parsed.threads);
-        final var outcomes = IntStream.range(0, works.size())
-                .mapToObj(i -> outcomeFor(works.get(i), results.get(i), parsed.check, cache, parsed.jsonDiagnostics()))
-                .toList();
+        final var outcomes = outcomesOf(Javafmt.formatFiles(parsed.files, parsed.config(), cache, parsed.threads), parsed, cache);
         outcomes.stream()
                 .flatMap(outcome -> outcome.report().stream())
                 .forEach(err::println);
@@ -145,13 +127,26 @@ final class FormatRun {
         return worstExit;
     }
 
+    private List<FileOutcome> outcomesOf(final List<FileResult> files, final Args parsed, final FormatCache cache) {
+        try (
+                final var pool = Executors.newFixedThreadPool(
+                        Math.max(1, parsed.threads),
+                        Thread.ofPlatform().name("javafmt-write-", 0).daemon(true).factory())) {
+            return files.stream()
+                    .map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics()), pool))
+                    .toList()
+                    .stream()
+                    .map(CompletableFuture::join)
+                    .toList();
+        }
+    }
+
     /**
      * The configuration a cache entry was written under. {@code --analyze} and its classpath
      * change what a file formats to, so entries from a plain run must not be reused by one.
      */
     private CacheKey cacheKey(final Args parsed) {
-        final var config = JavafmtConfig.defaults();
-        return parsed.analyze() ? CacheKey.ofAnalysis(config, parsed.classpath.orElseThrow()) : CacheKey.of(config);
+        return CacheKey.of(parsed.config());
     }
 
     /**
@@ -170,24 +165,12 @@ final class FormatRun {
         }
     }
 
-    private FileWork readWork(final Path path, final FormatCache cache, final boolean json) {
-        try {
-            final var content = Files.readString(path, StandardCharsets.UTF_8);
-            return new FileWork(path, content, null, cache.isUpToDate(path, content));
-        } catch (IOException e) {
-            final var message = "read failed: " + describe(e);
-            return new FileWork(path, "", new FileOutcome(2, List.of(cliMessage(path, message, json))), false);
-        }
-    }
-
-    private FileOutcome outcomeFor(final FileWork work, final FormatResult result, final boolean check, final FormatCache cache, final boolean json) {
-        if (work.readError() != null) {
-            return work.readError();
-        }
-        if (work.cacheHit()) {
-            return new FileOutcome(0, List.of());
-        }
-        return finalizeFormatOutcome(work.path(), work.source(), result, check, cache, json);
+    private FileOutcome outcomeFor(final FileResult file, final boolean check, final FormatCache cache, final boolean json) {
+        return switch (file) {
+            case FileResult.UpToDate ignored -> new FileOutcome(0, List.of());
+            case FileResult.Unreadable(var path, var error) -> new FileOutcome(2, List.of(cliMessage(path, "read failed: " + describe(error), json)));
+            case FileResult.Formatted(var path, var source, var result) -> finalizeFormatOutcome(path, source, result, check, cache, json);
+        };
     }
 
     private FileOutcome finalizeFormatOutcome(
@@ -255,13 +238,6 @@ final class FormatRun {
     /** One file's exit code and every line the run should print about it, in order. */
     private record FileOutcome(int exitCode, List<String> report) {}
 
-    private record FileWork(Path path, String source, @Nullable FileOutcome readError, boolean cacheHit) {
-
-        String formatInput() {
-            return readError == null && !cacheHit ? source : "";
-        }
-    }
-
     record Args(
             List<Path> files,
             boolean check,
@@ -277,8 +253,11 @@ final class FormatRun {
             excludes = List.copyOf(excludes);
         }
 
-        boolean analyze() {
-            return classpath.isPresent();
+        JavafmtConfig config() {
+            return JavafmtConfig.defaults()
+                    .withAnalysis(
+                            classpath.<JavafmtConfig.Analysis>map(JavafmtConfig.Analysis.Attributed::new)
+                                    .orElseGet(JavafmtConfig.Analysis.ParseOnly::new));
         }
 
         Args withFiles(final List<Path> files) {

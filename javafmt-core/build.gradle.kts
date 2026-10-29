@@ -131,6 +131,7 @@ jmh {
     // RealWorldCorpus benchmarks against javafmt's own sources — real production Java, no download
     // step, no third-party license to carry. Reading happens in @Setup, never in a measured method.
     jvmArgsAppend.add("-Djavafmt.corpus=${layout.projectDirectory.dir("src/main/java").asFile.absolutePath}")
+    jvmArgsAppend.add(corpusSourceZip.map { "-Djavafmt.corpus.srczip=$it" })
     // google-java-format drives javac through internal APIs, so GjfComparisonBenchmark cannot even
     // load without these. javafmt itself needs none of them — that is the distribution tradeoff
     // JavaParser's javadoc records — but the benchmark JVM hosts both formatters.

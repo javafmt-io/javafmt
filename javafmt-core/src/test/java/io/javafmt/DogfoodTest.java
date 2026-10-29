@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
@@ -53,11 +52,11 @@ class DogfoodTest {
         final var report = new StringBuilder();
         var failures = 0;
         for (var i = 0; i < batch.paths.size(); i++) {
-            if (reparseOutcomes.get(i) instanceof io.javafmt.parser.ParseOutcome.Failed f) {
+            if (reparseOutcomes.get(i) instanceof io.javafmt.parser.Staged.Failed<?>(var failure)) {
                 failures++;
                 report.append(batch.root.relativize(batch.paths.get(i)))
                         .append(": formatted output failed to re-parse: ")
-                        .append(f.error().getMessage())
+                        .append(failure.getMessage())
                         .append('\n');
             }
         }
@@ -72,12 +71,14 @@ class DogfoodTest {
         // Stronger than the comment check above and the re-parse check below: this asserts
         // that Doc build and print changed nothing but layout, for every file in the module.
         final var batch = loadJavafmtCoreSources();
-        final var outcomes = JavaParser.parseUnits(batch.sources);
-        final var config = JavafmtConfig.defaults().withVerifyOutput(true);
+        final var results = Javafmt.formatAll(
+                batch.sources,
+                JavafmtConfig.defaults().withVerifyOutput(true),
+                Runtime.getRuntime().availableProcessors());
         final var report = new StringBuilder();
         var failures = 0;
         for (var i = 0; i < batch.paths.size(); i++) {
-            final var result = Javafmt.formatWithResult(batch.sources.get(i), outcomes.get(i), config);
+            final var result = results.get(i);
             final var internal = result.diagnostics()
                     .stream()
                     .filter(d -> d instanceof Diagnostic.InternalError)
@@ -156,9 +157,9 @@ class DogfoodTest {
     }
 
     private static List<String> batchFormat(final List<String> sources) {
-        final var outcomes = JavaParser.parseUnits(sources);
-        return IntStream.range(0, sources.size())
-                .mapToObj(i -> Javafmt.formatWithResult(sources.get(i), outcomes.get(i)).output())
+        return Javafmt.formatAll(sources, JavafmtConfig.defaults(), Runtime.getRuntime().availableProcessors())
+                .stream()
+                .map(FormatResult::output)
                 .toList();
     }
 

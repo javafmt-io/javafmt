@@ -1,14 +1,21 @@
 package io.javafmt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.javafmt.parser.JavaParser;
+import io.javafmt.parser.Staged;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
@@ -17,6 +24,8 @@ import org.junit.jupiter.params.provider.ValueSource;
  * rather than asserting formatted text directly.
  */
 class JavafmtFormatAllTest {
+
+    private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     private static List<String> dirtyCorpus(final int n) {
         return IntStream.range(0, n)
@@ -62,6 +71,20 @@ class JavafmtFormatAllTest {
         assertThat(outputsOf(Javafmt.formatAll(sources, JavafmtConfig.defaults(), 4))).isEqualTo(individually);
     }
 
+    @ParameterizedTest
+    @CsvSource({"1, 4, 16", "10, 4, 16", "100, 4, 16", "100, 1, 64", "512, 4, 32", "1000, 4, 63", "4096, 4, 64", "640, 8, 40", "640, 18, 40", "128, 0, 64"})
+    void chunksAreSizedSoEveryChunkWorkerGetsAboutFour(final int files, final int threads, final int expected) {
+        assertThat(BatchFormatter.chunkSize(files, threads)).isEqualTo(expected);
+    }
+
+    @Test
+    void chunksSplitTheSourcesInOrder() {
+        final var sources = IntStream.range(0, 32).mapToObj(i -> "class A" + i + " {}\n").toList();
+        final var chunks = BatchFormatter.chunks(sources, 2);
+        assertThat(chunks).hasSize(2).allSatisfy(chunk -> assertThat(chunk).hasSize(16));
+        assertThat(chunks.stream().flatMap(List::stream).toList()).isEqualTo(sources);
+    }
+
     @Test
     void unparseableFileDoesNotAffectItsNeighbours() {
         final var sources = List.of("class Good {}\n", "class Broken { this is not java", "class AlsoGood {}\n");
@@ -90,7 +113,129 @@ class JavafmtFormatAllTest {
 
     @Test
     void analyzeBatchMatchesTheSingleFileAnalyzePath() {
-        final var sources = List.of("""
+        final var sources = analyzeSensitiveSources();
+        final var individually = sources.stream()
+                .map(s -> Javafmt.formatWithResult(s, ANALYZE).output())
+                .toList();
+        assertThat(outputsOf(Javafmt.formatAll(sources, ANALYZE, 2))).isEqualTo(individually);
+    }
+
+    @Test
+    void aFileJavacCannotAttributeIsFormattedParseOnlyWithAWarning() {
+        final var source = "class A {\n\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
+        final var results = BatchFormatter.formatChunk(
+                List.of(source),
+                ANALYZE,
+                BatchFormatter.Renderer.INLINE,
+                chunk -> BatchFormatter.fromAttributed(chunk, List.of(new Staged.Failed<>(new IllegalStateException("javac crashed")))));
+        assertThat(results.getFirst().output()).isEqualTo(Javafmt.format(source));
+        assertThat(results.getFirst().diagnostics())
+                .singleElement()
+                .isInstanceOf(Diagnostic.Warning.class)
+                .extracting(Diagnostic::message, InstanceOfAssertFactories.STRING)
+                .contains("attribution failed", "javac crashed");
+    }
+
+    @Test
+    void aFileThatCrashesJavacAttributionDoesNotCostItsNeighbourItsAttribution() {
+        final var neighbour = analyzeSensitiveSources().getLast();
+        final var pathological = "class Deep {\n\n    int value = " + "1 + ".repeat(100_000) + "1;\n}\n";
+        final var results = Javafmt.formatAll(List.of(neighbour, pathological), ANALYZE, 1);
+        assertThat(results.getFirst()).isEqualTo(Javafmt.formatWithResult(neighbour, ANALYZE));
+        assertThat(results.get(1).diagnostics()).isNotEmpty();
+    }
+
+    @Test
+    void aParseErrorUnderAnalyzeStaysAParseError() {
+        final var source = "class Broken { this is not java";
+        final var analyzed = Javafmt.formatWithResult(source, ANALYZE);
+        assertThat(analyzed.diagnostics())
+                .isNotEmpty()
+                .allSatisfy(d -> assertThat(d).isInstanceOf(Diagnostic.ParseError.class));
+        assertThat(analyzed).isEqualTo(Javafmt.formatWithResult(source));
+    }
+
+    @Test
+    void aFailedAnalyzeChunkIsRetriedFileByFileWithAttribution() {
+        final var sources = analyzeSensitiveSources();
+        final var analyzed = sources.stream()
+                .map(s -> Javafmt.formatWithResult(s, ANALYZE).output())
+                .toList();
+        assertThat(analyzed).isNotEqualTo(sources.stream().map(Javafmt::format).toList());
+        final var retried = JavaParser.attributing(
+                "",
+                session -> formatChunkFailingWhenBatched(sources, chunk -> BatchFormatter.attributedContexts(chunk, session)));
+        assertThat(outputsOf(retried)).isEqualTo(analyzed);
+    }
+
+    @Test
+    void aOneFileChunkThatFailsComesBackUnchangedWithAnInternalError() {
+        final var sources = List.of("class A {}\n", "class B {}\n");
+        final var results = formatChunkFailingWhenBatched(
+                sources,
+                chunk -> {
+                    throw new IllegalStateException("every chunk fails");
+                });
+        assertThat(outputsOf(results)).isEqualTo(sources);
+        assertThat(results).allSatisfy(r -> assertThat(r.diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class));
+    }
+
+    @Test
+    void analyzeWithLintOffMatchesTheSingleFileAnalyzePath() {
+        final var config = ANALYZE.withLint(false);
+        final var sources = analyzeSensitiveSources();
+        final var individually = sources.stream()
+                .map(s -> Javafmt.formatWithResult(s, config).output())
+                .toList();
+        assertThat(outputsOf(Javafmt.formatAll(sources, config, 2))).isEqualTo(individually);
+    }
+
+    @Test
+    void aPooledRenderTurnsAnUncaughtErrorIntoThatFilesDiagnostic() {
+        try (final var pool = Executors.newSingleThreadExecutor()) {
+            final var results = BatchFormatter.Renderer.on(pool)
+                    .renderAll(
+                            List.of("class A {}\n", "class B {}\n"),
+                            List.of(
+                                    () -> {
+                                        throw new LinkageError("broken class");
+                                    },
+                                    () -> new FormatResult("class B {}\n", List.of())));
+            assertThat(results.getFirst().diagnostics())
+                    .singleElement()
+                    .isInstanceOf(Diagnostic.InternalError.class);
+            assertThat(results.get(1).output()).isEqualTo("class B {}\n");
+        }
+    }
+
+    @Test
+    void anInlineRenderLetsAnUncaughtErrorReachTheCaller() {
+        assertThatThrownBy(
+                () -> BatchFormatter.Renderer.INLINE.renderAll(
+                        List.of("class A {}\n"),
+                        List.of(() -> {
+                            throw new LinkageError("broken class");
+                        })))
+                .isInstanceOf(LinkageError.class);
+    }
+
+    private static List<FormatResult> formatChunkFailingWhenBatched(
+            final List<String> sources,
+            final Function<List<String>, List<BatchFormatter.Prepared>> parser) {
+        return BatchFormatter.formatChunk(
+                sources,
+                JavafmtConfig.defaults(),
+                BatchFormatter.Renderer.INLINE,
+                chunk -> {
+                    if (chunk.size() > 1) {
+                        throw new IllegalStateException("the whole chunk failed");
+                    }
+                    return parser.apply(chunk);
+                });
+    }
+
+    private static List<String> analyzeSensitiveSources() {
+        return List.of("""
                                     import java.util.List;
                                     import java.util.stream.Stream;
                     
@@ -109,8 +254,6 @@ class JavafmtFormatAllTest {
                                              List<String> items = List.of();
                                          }
                                          """);
-        final var individually = sources.stream().map(s -> Javafmt.formatWithAnalyze(s, "").output()).toList();
-        assertThat(outputsOf(Javafmt.formatAllWithAnalyze(sources, "", JavafmtConfig.defaults(), 2))).isEqualTo(individually);
     }
 
     @ParameterizedTest
@@ -165,19 +308,9 @@ class JavafmtFormatAllTest {
     }
 
     @Test
-    void configReachesTheAttributedOutcomePath() {
-        // formatWithResult(source, AttributedOutcome) used to hard-code the defaults, so a caller
-        // that batch-attributed could not turn anything off.
+    void configReachesTheAttributedPath() {
         final var source = "class A {\n\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
-        final var outputs = io.javafmt.parser.JavaParser.attributing(
-                "",
-                session -> {
-                    final var outcome = session.attribute(List.of(source)).getFirst();
-                    return List.of(
-                            Javafmt.formatWithResult(source, outcome, JavafmtConfig.defaults()).output(),
-                            Javafmt.formatWithResult(source, outcome, JavafmtConfig.defaults().withLint(false)).output());
-                });
-        assertThat(outputs.getFirst()).contains("final int x");
-        assertThat(outputs.getLast()).doesNotContain("final int x");
+        assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).contains("final int x");
+        assertThat(Javafmt.formatWithResult(source, ANALYZE.withLint(false)).output()).doesNotContain("final int x");
     }
 }

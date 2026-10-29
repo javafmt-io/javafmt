@@ -16,9 +16,15 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 final class EnumRenderer {
 
-    Doc render(final ClassTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = ModifierRenderer.modifiersText(node.getModifiers()) + "enum " + node.getSimpleName();
-        final var headerDoc = ClassLikeRenderer.buildTypeDeclHeader(new Doc.Text(prefix), null, node.getImplementsClause(), false, recursor);
+        final var headerDoc = ClassLikeRenderer.buildTypeDeclHeader(
+                new Doc.Text(prefix),
+                null,
+                node.getImplementsClause(),
+                false,
+                List.of(),
+                recursor);
         final var constants = node.getMembers()
                 .stream()
                 .filter(m -> isConstant(m, recursor))
@@ -26,47 +32,38 @@ final class EnumRenderer {
                 .toList();
         final var className = node.getSimpleName().toString();
         final var bodyMemberStream = node.getMembers().stream().filter(m -> !isConstant(m, recursor));
-        final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor, attacher, BodyMemberRenderer.PLAIN_CONSTRUCTOR);
+        final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);
         if (constants.isEmpty() && bodyMembers.isEmpty()) {
-            return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, List.of(), attacher.trailingInside(node), recursor);
+            return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, List.of(), recursor.trailingInside(node), recursor);
         }
         if (bodyMembers.isEmpty()) {
-            final var pastTheLastSeparator = attacher.interior(node);
+            final var pastTheLastSeparator = recursor.interior(node);
             final var constantsInner = new Doc.Indent(
                     Doc.concatOf(
                             Stream.of(
                                     Stream.of(Doc.LINE),
-                                    IntStream.range(0, constants.size())
-                                            .boxed()
-                                            .flatMap(
-                                                    i -> Stream.concat(
-                                                            i == 0
-                                                                    ? Stream.<Doc>empty()
-                                                                    : CommentDocs.listSeparator(",", attacher.interior(constants.get(i))).stream(),
-                                                            Stream.of(
-                                                                    attacher.attach(constants.get(i), renderConstant(constants.get(i), recursor))))),
+                                    CommentDocs.commaList(constants, recursor, c -> recursor.attach(c, renderConstant(c, recursor))),
                                     Stream.of(trailingSeparator(node, recursor)),
                                     pastTheLastSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
-                                    commentsAfterTheLastConstant(node, attacher))));
+                                    commentsAfterTheLastConstant(node, recursor))));
             return ModifierRenderer.prependOwnLineAnnotations(
                     node.getModifiers(),
                     new Doc.Group(
-                            new Doc.Concat(
-                                    List.of(
-                                            headerDoc,
-                                            new Doc.Text(" {"),
-                                            new Doc.IfBreak(Doc.HARD_LINE, new Doc.Text("")),
-                                            constantsInner,
-                                            beforeTheClosingBrace(pastTheLastSeparator),
-                                            new Doc.Text("}")))),
+                            Doc.concat(
+                                    headerDoc,
+                                    new Doc.Text(" {"),
+                                    new Doc.IfBreak(Doc.HARD_LINE, new Doc.Text("")),
+                                    constantsInner,
+                                    beforeTheClosingBrace(pastTheLastSeparator),
+                                    new Doc.Text("}"))),
                     recursor);
         }
         // The constants go in as one member with no tree of its own, which the separation rule
         // reads as "always blank-line separated" — the right answer for a block of constants
         // followed by declarations.
-        final var constantsBlock = new TypeBodyRenderer.Member(null, constantsBlockBeforeBodyMembers(constants, recursor, attacher));
+        final var constantsBlock = new TypeBodyRenderer.Member(null, constantsBlockBeforeBodyMembers(constants, recursor));
         final var members = constants.isEmpty() ? bodyMembers : Stream.concat(Stream.of(constantsBlock), bodyMembers.stream()).toList();
-        return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, members, attacher.tail(node), recursor);
+        return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, members, recursor.tail(node), recursor);
     }
 
     /**
@@ -76,7 +73,7 @@ final class EnumRenderer {
      * themselves. Always multi-line; the last constant uses {@code ;} as the required separator
      * before body declarations, every other constant uses {@code ,}.
      */
-    private Doc constantsBlockBeforeBodyMembers(final List<VariableTree> constants, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    private Doc constantsBlockBeforeBodyMembers(final List<VariableTree> constants, final Recursor recursor) {
         final var n = constants.size();
         return new Doc.Concat(
                 Doc.intersperse(
@@ -84,8 +81,8 @@ final class EnumRenderer {
                         IntStream.range(0, n)
                                 .<Doc>mapToObj(
                                         i -> i < n - 1
-                                                ? constantAndComma(constants.get(i), attacher.interior(constants.get(i + 1)), recursor, attacher)
-                                                : lastConstant(constants.get(i), recursor, attacher))));
+                                                ? constantAndComma(constants.get(i), recursor.interior(constants.get(i + 1)), recursor)
+                                                : lastConstant(constants.get(i), recursor))));
     }
 
     /**
@@ -94,12 +91,8 @@ final class EnumRenderer {
      * a comma-separated list uses to say "emit this after the separator" — because writing a
      * {@code //} comment before the comma would comment the comma out.
      */
-    private Doc constantAndComma(
-            final VariableTree constant,
-            final List<CommentToken> pastTheComma,
-            final Recursor recursor,
-            final LeadingCommentAttacher attacher) {
-        final var withComma = attacher.attach(constant, new Doc.Concat(List.of(renderConstant(constant, recursor), new Doc.Text(","))));
+    private Doc constantAndComma(final VariableTree constant, final List<CommentToken> pastTheComma, final Recursor recursor) {
+        final var withComma = recursor.attach(constant, Doc.concat(renderConstant(constant, recursor), new Doc.Text(",")));
         return new Doc.Concat(
                 Stream.concat(Stream.of(withComma), pastTheComma.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)))));
     }
@@ -114,11 +107,11 @@ final class EnumRenderer {
      * is where the following pass put it. {@code java/lang/reflect/AccessFlag.java} moved its
      * {@code // did not exist} down a line on every run.
      */
-    private Doc lastConstant(final VariableTree constant, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    private Doc lastConstant(final VariableTree constant, final Recursor recursor) {
         final var rendered = renderConstant(constant, recursor);
-        return attacher.trailing(constant).isEmpty()
-                ? attacher.attach(constant, new Doc.Concat(List.of(rendered, new Doc.Text(";"))))
-                : new Doc.Concat(List.of(attacher.attach(constant, rendered), Doc.HARD_LINE, new Doc.Text(";")));
+        return recursor.trailing(constant).isEmpty()
+                ? recursor.attach(constant, Doc.concat(rendered, new Doc.Text(";")))
+                : Doc.concat(recursor.attach(constant, rendered), Doc.HARD_LINE, new Doc.Text(";"));
     }
 
     /**
@@ -140,8 +133,8 @@ final class EnumRenderer {
      * <p>Only {@link LeadingCommentAttacher#tail}: a comment on the last separator's own line
      * arrives on {@code interior} instead, and the trailing separator has already written it there.
      */
-    private Stream<Doc> commentsAfterTheLastConstant(final ClassTree node, final LeadingCommentAttacher attacher) {
-        return attacher.tail(node)
+    private Stream<Doc> commentsAfterTheLastConstant(final ClassTree node, final Recursor recursor) {
+        return recursor.tail(node)
                 .stream()
                 .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
     }

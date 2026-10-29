@@ -19,13 +19,13 @@ import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.type.TypeKind;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Drops explicit type arguments that the Java compiler would infer anyway.
@@ -69,9 +69,8 @@ public final class RedundantTypeArguments implements LintRule {
             }
 
             @Override
-            public Void visitMethodInvocation(final MethodInvocationTree node, final Void p) {
+            protected void visitInvocation(final MethodInvocationTree node, final Void p) {
                 witnessOf(node, getCurrentPath(), unit).ifPresent(witnessCalls::add);
-                return super.visitMethodInvocation(node, null);
             }
         }.scan(new TreePath(unit.tree()), null);
         attribution.ifPresent(a -> dropRedundantWitnesses(unit, a, witnessCalls, edits));
@@ -170,11 +169,9 @@ public final class RedundantTypeArguments implements LintRule {
     }
 
     private static Optional<LintEdit> diamondEdit(final ParameterizedTypeTree pt, final ParsedUnit unit) {
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
         final var src = unit.source();
-        final var rawEnd = (int) positions.getEndPosition(root, pt.getType());
-        final var typeEnd = (int) positions.getEndPosition(root, pt);
+        final var rawEnd = unit.endOf(pt.getType());
+        final var typeEnd = unit.endOf(pt);
         if (rawEnd < 0 || typeEnd <= rawEnd || typeEnd > src.length()) {
             return Optional.empty();
         }
@@ -193,11 +190,9 @@ public final class RedundantTypeArguments implements LintRule {
         if (typeArgs.isEmpty()) {
             return Optional.empty();
         }
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
         final var src = unit.source();
-        final var firstArgStart = (int) positions.getStartPosition(root, typeArgs.getFirst());
-        final var lastArgEnd = (int) positions.getEndPosition(root, typeArgs.getLast());
+        final var firstArgStart = unit.startOf(typeArgs.getFirst());
+        final var lastArgEnd = unit.endOf(typeArgs.getLast());
         if (firstArgStart < 0 || lastArgEnd < 0 || lastArgEnd > src.length()) {
             return Optional.empty();
         }
@@ -231,7 +226,7 @@ public final class RedundantTypeArguments implements LintRule {
         if (!(node.getMethodSelect() instanceof MemberSelectTree select)) {
             return -1;
         }
-        final var selectEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), select);
+        final var selectEnd = unit.endOf(select);
         return selectEnd < 0 ? -1 : selectEnd - select.getIdentifier().length();
     }
 
@@ -276,9 +271,10 @@ public final class RedundantTypeArguments implements LintRule {
             }
             return;
         }
+        final var callsByNameStart = callsByMethodNameStart(reattributed.unit());
         IntStream.range(0, sorted.size())
                 .filter(i -> originalTypeStrings.get(i) != null)
-                .forEach(i -> tryEmitDrop(sorted, i, originalTypeStrings.get(i), reattributed, edits));
+                .forEach(i -> tryEmitDrop(sorted, i, originalTypeStrings.get(i), reattributed, callsByNameStart, edits));
     }
 
     private static String stripAllWitnesses(final String src, final List<WitnessCall> sorted) {
@@ -294,10 +290,11 @@ public final class RedundantTypeArguments implements LintRule {
             final int index,
             final String originalTypeString,
             final AttributedUnit reattributed,
+            final Map<Integer, TreePath> callsByNameStart,
             final List<LintEdit> edits) {
         final var candidate = sorted.get(index);
         final var translatedNameStart = candidate.methodNameStart() - strippedLengthBefore(sorted, candidate.methodNameStart());
-        final var newPath = findCallByMethodNameAt(reattributed.unit(), translatedNameStart);
+        final var newPath = callsByNameStart.get(translatedNameStart);
         if (newPath == null) {
             return;
         }
@@ -322,20 +319,21 @@ public final class RedundantTypeArguments implements LintRule {
                 .sum();
     }
 
-    @Nullable
-    private static TreePath findCallByMethodNameAt(final ParsedUnit unit, final int nameStart) {
-        final var matches = new ArrayList<TreePath>();
+    private static Map<Integer, TreePath> callsByMethodNameStart(final ParsedUnit unit) {
+        final var calls = new ArrayList<TreePath>();
         new ChainPathScanner<Void, Void>() {
 
             @Override
-            public Void visitMethodInvocation(final MethodInvocationTree node, final Void p) {
-                if (methodNameStart(node, unit) == nameStart) {
-                    matches.add(getCurrentPath());
-                }
-                return super.visitMethodInvocation(node, null);
+            protected void visitInvocation(final MethodInvocationTree node, final Void p) {
+                calls.add(getCurrentPath());
             }
         }.scan(new TreePath(unit.tree()), null);
-        return matches.isEmpty() ? null : matches.getFirst();
+        return calls.stream()
+                .collect(
+                        Collectors.toMap(
+                                path -> methodNameStart((MethodInvocationTree) path.getLeaf(), unit),
+                                path -> path,
+                                (first, later) -> first));
     }
 
     /**

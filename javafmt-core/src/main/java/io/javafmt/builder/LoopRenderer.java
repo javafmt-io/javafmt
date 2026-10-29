@@ -8,7 +8,6 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.tree.WhileLoopTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
@@ -16,9 +15,9 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 final class LoopRenderer {
 
-    Doc renderFor(final ForLoopTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    Doc renderFor(final ForLoopTree node, final Recursor recursor) {
         final var header = buildForHeader(node, recursor);
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor, attacher), List.of());
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
     }
 
     private Doc buildForHeader(final ForLoopTree node, final Recursor recursor) {
@@ -66,7 +65,7 @@ final class LoopRenderer {
     private Doc continuationOf(final VariableTree variable, final Recursor recursor) {
         final var name = new Doc.Text(Names.of(variable));
         final var initializer = variable.getInitializer();
-        return initializer == null ? name : new Doc.Concat(List.of(name, new Doc.Text(" = "), recursor.scan(initializer)));
+        return initializer == null ? name : Doc.concat(name, new Doc.Text(" = "), recursor.scan(initializer));
     }
 
     private Stream<Doc> joinInto(final List<? extends Tree> trees, final Recursor recursor, final boolean stripSemicolon) {
@@ -78,26 +77,25 @@ final class LoopRenderer {
         return stripSemicolon ? BlockRenderer.stripTrailingSemicolonDoc(doc) : doc;
     }
 
-    Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor) {
         final var variable = node.getVariable();
         final var typeDoc = variable.getType() == null ? new Doc.Text("var") : recursor.scan(variable.getType());
-        final var header = new Doc.Concat(
-                List.of(
-                        new Doc.Text("for (" + ModifierRenderer.prefixOf(variable.getModifiers(), recursor)),
-                        typeDoc,
-                        new Doc.Text(" " + Names.of(variable) + " : "),
-                        recursor.scan(node.getExpression()),
-                        new Doc.Text(")")));
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor, attacher), List.of());
+        final var header = Doc.concat(
+                new Doc.Text("for (" + ModifierRenderer.prefixOf(variable.getModifiers(), recursor)),
+                typeDoc,
+                new Doc.Text(" " + Names.of(variable) + " : "),
+                recursor.scan(node.getExpression()),
+                new Doc.Text(")"));
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
     }
 
-    Doc renderWhile(final WhileLoopTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        final var header = new Doc.Concat(List.of(new Doc.Text("while "), recursor.scan(node.getCondition())));
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor, attacher), List.of());
+    Doc renderWhile(final WhileLoopTree node, final Recursor recursor) {
+        final var header = Doc.concat(new Doc.Text("while "), recursor.scan(node.getCondition()));
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
     }
 
-    Doc renderDoWhile(final DoWhileLoopTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        final var stmts = BlockRenderer.blockStmts(node.getStatement(), recursor, attacher);
+    Doc renderDoWhile(final DoWhileLoopTree node, final Recursor recursor) {
+        final var stmts = BlockRenderer.blockStmts(node.getStatement(), recursor);
         return new Doc.Concat(
                 Stream.concat(
                         BlockRenderer.blockParts("do", stmts),

@@ -17,11 +17,16 @@ import java.util.Objects;
  *     coverage gap costs the user a reformat rather than their code. On by default; costs an
  *     extra lex of both strings per file. See {@link io.javafmt.parser.RoundTripVerifier}.
  */
-public record JavafmtConfig(List<String> excludes, boolean verifyOutput, boolean lint) implements java.io.Serializable {
+public record JavafmtConfig(List<String> excludes, boolean verifyOutput, boolean lint, Analysis analysis) implements java.io.Serializable {
 
     public JavafmtConfig {
         Objects.requireNonNull(excludes, "excludes");
+        Objects.requireNonNull(analysis, "analysis");
         excludes = List.copyOf(excludes);
+    }
+
+    public JavafmtConfig(final List<String> excludes, final boolean verifyOutput, final boolean lint) {
+        this(excludes, verifyOutput, lint, new Analysis.ParseOnly());
     }
 
     public JavafmtConfig() {
@@ -30,12 +35,16 @@ public record JavafmtConfig(List<String> excludes, boolean verifyOutput, boolean
 
     /** Returns a copy with {@link #excludes()} replaced by {@code newExcludes}. */
     public JavafmtConfig withExcludes(final List<String> newExcludes) {
-        return new JavafmtConfig(newExcludes, verifyOutput, lint);
+        return new JavafmtConfig(newExcludes, verifyOutput, lint, analysis);
     }
 
     /** Returns a copy with {@link #verifyOutput()} set to {@code verify}. */
     public JavafmtConfig withVerifyOutput(final boolean verify) {
-        return new JavafmtConfig(excludes, verify, lint);
+        return new JavafmtConfig(excludes, verify, lint, analysis);
+    }
+
+    public JavafmtConfig withAnalysis(final Analysis newAnalysis) {
+        return new JavafmtConfig(excludes, verifyOutput, lint, newAnalysis);
     }
 
     /**
@@ -47,11 +56,23 @@ public record JavafmtConfig(List<String> excludes, boolean verifyOutput, boolean
      * integration exposes it — and the lint rules are a large part of what javafmt is for.
      */
     public JavafmtConfig withLint(final boolean runLint) {
-        return new JavafmtConfig(excludes, verifyOutput, runLint);
+        return new JavafmtConfig(excludes, verifyOutput, runLint, analysis);
     }
 
-    /** The default configuration: no excludes, output verification on, lint pass on. */
+    /** The default configuration: no excludes, output verification on, lint pass on, parse-only. */
     public static JavafmtConfig defaults() {
         return new JavafmtConfig();
+    }
+
+    public sealed interface Analysis extends java.io.Serializable {
+
+        record ParseOnly() implements Analysis {}
+
+        record Attributed(String classpath) implements Analysis {
+
+            public Attributed {
+                Objects.requireNonNull(classpath, "classpath");
+            }
+        }
     }
 }

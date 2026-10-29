@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.javafmt.CompileCheck;
 import io.javafmt.Diagnostic;
 import io.javafmt.Javafmt;
+import io.javafmt.JavafmtConfig;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -21,7 +22,9 @@ class LintCompileSafetyTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("cases")
     void formatsToCompilingOutput(final String name, final String source, final boolean analyze) {
-        final var result = analyze ? Javafmt.formatWithAnalyze(source, "") : Javafmt.formatWithResult(source);
+        final var result = Javafmt.formatWithResult(
+                source,
+                JavafmtConfig.defaults().withAnalysis(analyze ? new JavafmtConfig.Analysis.Attributed("") : new JavafmtConfig.Analysis.ParseOnly()));
         assertThat(result.diagnostics().stream().filter(d -> d instanceof Diagnostic.InternalError).toList())
                 .as("%s must not produce an internal error", name)
                 .isEmpty();

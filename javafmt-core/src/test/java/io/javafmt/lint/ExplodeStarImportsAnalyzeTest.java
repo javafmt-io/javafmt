@@ -3,9 +3,12 @@ package io.javafmt.lint;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.javafmt.Javafmt;
+import io.javafmt.JavafmtConfig;
 import org.junit.jupiter.api.Test;
 
 class ExplodeStarImportsAnalyzeTest {
+
+    private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     @Test
     void starImportIsLeftAloneWithoutAttribution() {
@@ -34,7 +37,7 @@ class ExplodeStarImportsAnalyzeTest {
                     Map<String, Integer> map = Map.of();
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("import java.util.List;")
                 .contains("import java.util.Map;")
@@ -53,7 +56,7 @@ class ExplodeStarImportsAnalyzeTest {
                     Object b = emptySet();
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("import static java.util.Collections.emptyList;")
                 .contains("import static java.util.Collections.emptySet;")
@@ -77,7 +80,10 @@ class ExplodeStarImportsAnalyzeTest {
                     LintEdit edit = LintEdit.insert(0, "x");
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, System.getProperty("java.class.path")).output();
+        final var formatted = Javafmt.formatWithResult(
+                source,
+                JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))))
+                .output();
         assertThat(formatted)
                 .contains("import java.util.List;")
                 .doesNotContain("LintEdit;");
@@ -97,7 +103,7 @@ class ExplodeStarImportsAnalyzeTest {
                     OffClasspath thing = null;
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("import java.util.*;");
     }
 
@@ -114,7 +120,7 @@ class ExplodeStarImportsAnalyzeTest {
                     File f = new File(".");
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .doesNotContain("java.io.*")
                 .contains("import java.io.File;")
@@ -133,7 +139,7 @@ class ExplodeStarImportsAnalyzeTest {
                     Map<String, Integer> map = Map.of();
                 }
                 """;
-        final var first = Javafmt.formatWithAnalyze(source, "").output();
-        assertThat(Javafmt.formatWithAnalyze(first, "").output()).isEqualTo(first);
+        final var first = Javafmt.formatWithResult(source, ANALYZE).output();
+        assertThat(Javafmt.formatWithResult(first, ANALYZE).output()).isEqualTo(first);
     }
 }

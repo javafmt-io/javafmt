@@ -8,10 +8,8 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
@@ -19,15 +17,15 @@ import org.jspecify.annotations.Nullable;
 @UtilityClass
 final class MethodRenderer {
 
-    @Nullable static Doc render(final MethodTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    @Nullable static Doc render(final MethodTree node, final Recursor recursor) {
         if (node.getName().contentEquals("<init>")) {
             return null;
         }
         final var preamble = ModifierRenderer.preambleOf(node.getModifiers(), recursor);
         final var afterTypeParams = new Doc.Concat(Stream.concat(returnTypeDoc(node, recursor), Stream.of(new Doc.Text(node.getName().toString()))));
         final var leading = buildLeading(preamble.prefix(), node.getTypeParameters(), afterTypeParams, recursor);
-        final var signature = renderSignature(leading, node.getParameters(), node.getThrows(), attacher, recursor);
-        final var signatureDoc = appendBody(signature, node, recursor, attacher);
+        final var signature = renderSignature(leading, node.getParameters(), node.getThrows(), recursor);
+        final var signatureDoc = appendBody(signature, node, recursor);
         return ModifierRenderer.finish(preamble, node.getModifiers(), signatureDoc, recursor);
     }
 
@@ -50,9 +48,9 @@ final class MethodRenderer {
 
     Doc buildLeading(final String modifiers, final List<? extends TypeParameterTree> typeParams, final Doc afterTypeParams, final Recursor recursor) {
         if (typeParams.isEmpty()) {
-            return new Doc.Concat(List.of(new Doc.Text(modifiers), afterTypeParams));
+            return Doc.concat(new Doc.Text(modifiers), afterTypeParams);
         }
-        return new Doc.Concat(List.of(new Doc.Text(modifiers), renderTypeParams(typeParams, recursor), new Doc.Text(" "), afterTypeParams));
+        return Doc.concat(new Doc.Text(modifiers), renderTypeParams(typeParams, recursor), new Doc.Text(" "), afterTypeParams);
     }
 
     /**
@@ -70,54 +68,38 @@ final class MethodRenderer {
                 Stream.concat(
                         Stream.of(Doc.SOFT_LINE),
                         Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), typeParams.stream().map(recursor::scan))));
-        return new Doc.Group(new Doc.Concat(List.of(new Doc.Text("<"), new Doc.Indent(interior), Doc.SOFT_LINE, new Doc.Text(">"))));
+        return new Doc.Group(Doc.concat(new Doc.Text("<"), new Doc.Indent(interior), Doc.SOFT_LINE, new Doc.Text(">")));
     }
 
     Doc renderSignature(
             final Doc leading,
             final List<? extends VariableTree> params,
             final List<? extends ExpressionTree> throwsList,
-            final LeadingCommentAttacher attacher,
             final Recursor recursor) {
         if (params.isEmpty() && throwsList.isEmpty()) {
-            return new Doc.Concat(List.of(leading, new Doc.Text("()")));
+            return Doc.concat(leading, new Doc.Text("()"));
         }
-        final var paramsPart = params.isEmpty()
-                ? new Doc.Concat(List.of(leading, new Doc.Text("()")))
-                : buildParamsPart(leading, params, attacher, recursor);
+        final var paramsPart = params.isEmpty() ? Doc.concat(leading, new Doc.Text("()")) : buildParamsPart(leading, params, recursor);
         if (throwsList.isEmpty()) {
             return new Doc.Group(paramsPart);
         }
-        return new Doc.Group(new Doc.Concat(List.of(paramsPart, buildThrowsTail(throwsList, recursor))));
+        return new Doc.Group(Doc.concat(paramsPart, ClassLikeRenderer.buildTypeList("throws ", throwsList, recursor)));
     }
 
-    private Doc buildParamsPart(
-            final Doc leading,
-            final List<? extends VariableTree> params,
-            final LeadingCommentAttacher attacher,
-            final Recursor recursor) {
+    private Doc buildParamsPart(final Doc leading, final List<? extends VariableTree> params, final Recursor recursor) {
         final var interior = new Doc.Concat(
-                Stream.concat(
-                        Stream.of(Doc.SOFT_LINE),
-                        IntStream.range(0, params.size())
-                                .boxed()
-                                .flatMap(
-                                        i -> Stream.concat(
-                                                i == 0
-                                                        ? Stream.<Doc>empty()
-                                                        : CommentDocs.listSeparator(",", attacher.interior(params.get(i))).stream(),
-                                                Stream.of(attacher.attach(params.get(i), renderParam(params.get(i), recursor)))))));
-        return new Doc.Concat(List.of(leading, new Doc.Text("("), Doc.continuationIndent(interior), new Doc.Text(")")));
+                Stream.concat(Stream.of(Doc.SOFT_LINE), CommentDocs.commaList(params, recursor, p -> recursor.attach(p, renderParam(p, recursor)))));
+        return Doc.concat(leading, new Doc.Text("("), Doc.continuationIndent(interior), new Doc.Text(")"));
     }
 
     private Doc renderParam(final VariableTree p, final Recursor recursor) {
         final var prefix = ModifierRenderer.prefixOf(p.getModifiers(), recursor);
         final var varargs = recursor.isVarargs(p) ? varargsElementType(p.getType(), recursor) : Optional.<Doc>empty();
         if (varargs.isPresent()) {
-            return new Doc.Concat(List.of(new Doc.Text(prefix), varargs.get(), new Doc.Text("... " + Names.of(p))));
+            return Doc.concat(new Doc.Text(prefix), varargs.get(), new Doc.Text("... " + Names.of(p)));
         }
         final var typeDoc = p.getType() == null ? new Doc.Text("var") : recursor.scan(p.getType());
-        return new Doc.Concat(List.of(new Doc.Text(prefix), typeDoc, new Doc.Text(" " + Names.of(p))));
+        return Doc.concat(new Doc.Text(prefix), typeDoc, new Doc.Text(" " + Names.of(p)));
     }
 
     /**
@@ -143,24 +125,19 @@ final class MethodRenderer {
         return Optional.empty();
     }
 
-    private Doc buildThrowsTail(final List<? extends ExpressionTree> throwsList, final Recursor recursor) {
-        final var typesInterior = new Doc.Concat(Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), throwsList.stream().map(recursor::scan)));
-        return Doc.continuationIndent(new Doc.Concat(List.of(Doc.LINE, new Doc.Text("throws "), new Doc.Group(new Doc.Indent(typesInterior)))));
-    }
-
-    Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor) {
         if (node.getBody() == null) {
             // An annotation element's default is part of its declaration, not a body; nothing else
             // reads it, so a `String value() default "x";` came out as a required element.
             return Optional.ofNullable(node.getDefaultValue())
-                    .map(value -> (Doc) new Doc.Concat(List.of(header, new Doc.Text(" default "), recursor.scan(value), new Doc.Text(";"))))
-                    .orElseGet(() -> new Doc.Concat(List.of(header, new Doc.Text(";"))));
+                    .map(value -> Doc.concat(header, new Doc.Text(" default "), recursor.scan(value), new Doc.Text(";")))
+                    .orElseGet(() -> Doc.concat(header, new Doc.Text(";")));
         }
         final var body = node.getBody();
         final var stmts = body.getStatements();
-        final var tail = attacher.trailingInside(body);
+        final var tail = recursor.trailingInside(body);
         if (stmts.isEmpty() && tail.isEmpty()) {
-            return new Doc.Concat(List.of(header, new Doc.Text(" {}")));
+            return Doc.concat(header, new Doc.Text(" {}"));
         }
         final var stmtDocs = BlockRenderer.statementDocs(stmts, recursor);
         final var tailDocs = tail.stream().<Doc>map(CommentDocs::renderComment);

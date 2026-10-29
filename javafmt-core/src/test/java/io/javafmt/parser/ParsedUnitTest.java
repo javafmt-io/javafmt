@@ -1,6 +1,7 @@
 package io.javafmt.parser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
@@ -10,6 +11,32 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ParsedUnitTest {
+
+    @Test
+    void sourceSpanOfIsTheNodesSourceText() {
+        final var parsed = JavaParser.parseUnit("class C {}\n");
+        final var cls = parsed.tree().getTypeDecls().getFirst();
+        assertThat(parsed.sourceSpanOf(cls).toString()).isEqualTo("class C {}");
+    }
+
+    @Test
+    void sourceSpanOfRefusesANodeOutsideTheSource() {
+        final var parsed = JavaParser.parseUnit("class C {}");
+        final var cls = parsed.tree().getTypeDecls().getFirst();
+        final var truncated = new ParsedUnit(
+                parsed.tree(),
+                "class",
+                parsed.sourcePositions(),
+                List.of(),
+                List.of(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>());
+        assertThatThrownBy(() -> truncated.sourceSpanOf(cls))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("CLASS");
+    }
 
     @Test
     void leadingListsAreDeeplyImmutableAfterConstruction() {

@@ -4,7 +4,6 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.IfTree;
 import com.sun.source.tree.StatementTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import java.util.List;
@@ -20,8 +19,8 @@ final class IfRenderer {
      * javac wraps an {@code if} condition in {@code JCParens}, so the scanned condition already
      * includes its own outer parentheses — this method does not add them again.
      */
-    Doc render(final IfTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        final var expanded = renderExpanded(node, recursor, attacher);
+    Doc render(final IfTree node, final Recursor recursor) {
+        final var expanded = renderExpanded(node, recursor);
         if (!writtenInTheCompactForm(node, recursor)) {
             return expanded;
         }
@@ -43,8 +42,11 @@ final class IfRenderer {
      * and a {@code //} comment would swallow the rest of the line.
      */
     private boolean writtenInTheCompactForm(final IfTree node, final Recursor recursor) {
+        if (recursor.sourceSpan(node).chars().anyMatch(c -> c == '\n')) {
+            return false;
+        }
         final var source = recursor.sourceOf(node);
-        if (source.indexOf('\n') >= 0 || !CommentScanner.scan(source).isEmpty()) {
+        if (!CommentScanner.scan(source).isEmpty()) {
             return false;
         }
         return spacedTheWayJavafmtWouldSpaceIt(source) && everyBranchIsACompactBlock(node, recursor);
@@ -88,11 +90,11 @@ final class IfRenderer {
             && !Character.isWhitespace(source.charAt(source.length() - 2));
     }
 
-    private Doc renderExpanded(final IfTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    private Doc renderExpanded(final IfTree node, final Recursor recursor) {
         final var condDoc = recursor.scan(node.getCondition());
-        final var header = new Doc.Concat(List.of(new Doc.Text("if "), condDoc));
-        final var thenStmts = BlockRenderer.blockStmts(node.getThenStatement(), recursor, attacher);
-        final var braceLine = attacher.interior(node);
+        final var header = Doc.concat(new Doc.Text("if "), condDoc);
+        final var thenStmts = BlockRenderer.blockStmts(node.getThenStatement(), recursor);
+        final var braceLine = recursor.interior(node);
         if (node.getElseStatement() == null && braceLine.isEmpty()) {
             return BlockRenderer.buildBlock(header, thenStmts, List.of());
         }
@@ -100,12 +102,12 @@ final class IfRenderer {
         if (node.getElseStatement() == null) {
             return Doc.concatOf(Stream.of(thenParts, Doc.closeBrace()));
         }
-        final var elseJoint = elseJointParts(node, attacher);
+        final var elseJoint = elseJointParts(node, recursor);
         if (node.getElseStatement() instanceof IfTree elseIf) {
             final var elseIfDoc = Objects.requireNonNull(recursor.scan(elseIf));
             return Doc.concatOf(Stream.of(thenParts, Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")), elseJoint, Stream.of(elseIfDoc)));
         }
-        final var elseStmts = BlockRenderer.blockStmts(node.getElseStatement(), recursor, attacher);
+        final var elseStmts = BlockRenderer.blockStmts(node.getElseStatement(), recursor);
         return Doc.concatOf(
                 Stream.of(
                         thenParts,
@@ -136,8 +138,8 @@ final class IfRenderer {
      * whole statement — which is what happened before the attacher gave the else joint a slot of
      * its own — inverts its meaning.
      */
-    private Stream<Doc> elseJointParts(final IfTree node, final LeadingCommentAttacher attacher) {
-        return attacher.tail(node)
+    private Stream<Doc> elseJointParts(final IfTree node, final Recursor recursor) {
+        return recursor.tail(node)
                 .stream()
                 .flatMap(c -> Stream.of(CommentDocs.renderComment(c), c.text().startsWith("//") ? Doc.HARD_LINE : new Doc.Text(" ")));
     }

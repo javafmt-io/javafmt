@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.javafmt.Diagnostic;
+import io.javafmt.Position;
 import io.javafmt.parser.JavaParser;
+import io.javafmt.parser.Staged;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 class LintEngineTest {
@@ -91,7 +93,7 @@ class LintEngineTest {
         final var individually = sources.stream().map(s -> engine.lint(contextOf(s)).unit().source()).toList();
         final var batched = engine.lintAll(sources.stream().map(LintEngineTest::contextOf).toList())
                 .stream()
-                .map(o -> ((LintEngine.BatchOutcome.Ok) o).outcome().unit().source())
+                .map(o -> o.orElseThrow().unit().source())
                 .toList();
         assertThat(batched).isEqualTo(individually);
     }
@@ -102,10 +104,7 @@ class LintEngineTest {
         final var results = engine.lintAll(List.of(contextOf(SOURCE), contextOf(SOURCE)));
         assertThat(results)
                 .hasSize(2)
-                .allSatisfy(
-                        result -> assertThat(((LintEngine.BatchOutcome.Ok) result).outcome().diagnostics())
-                                .singleElement()
-                                .isInstanceOf(Diagnostic.Warning.class));
+                .allSatisfy(result -> assertThat(result.orElseThrow().diagnostics()).singleElement().isInstanceOf(Diagnostic.Warning.class));
     }
 
     @Test
@@ -115,8 +114,8 @@ class LintEngineTest {
         // taking its neighbours down.
         final var breaks = new ReplaceOnce("Breaks", NAME_START, NAME_START + 8, "not valid java");
         final var results = new LintEngine(List.of(breaks)).lintAll(List.of(contextOf(SOURCE), contextOf("class Fine {\n\n    int y = 2;\n}\n")));
-        assertThat(results.getFirst()).isInstanceOf(LintEngine.BatchOutcome.Failed.class);
-        assertThat(results.get(1)).isInstanceOf(LintEngine.BatchOutcome.Ok.class);
+        assertThat(results.getFirst()).isInstanceOf(Staged.Failed.class);
+        assertThat(results.get(1)).isInstanceOf(Staged.Ok.class);
     }
 
     @Test
@@ -125,7 +124,7 @@ class LintEngineTest {
                 .mapToObj(i -> "class F" + i + " {\n\n    int v = " + i + ";\n}\n")
                 .toList();
         final var results = new LintEngine(List.of(new AlwaysConverged("NoOp"))).lintAll(sources.stream().map(LintEngineTest::contextOf).toList());
-        assertThat(results.stream().map(o -> ((LintEngine.BatchOutcome.Ok) o).outcome().unit().source()).toList()).isEqualTo(sources);
+        assertThat(results.stream().map(o -> o.orElseThrow().unit().source()).toList()).isEqualTo(sources);
     }
 
     @Test
@@ -135,12 +134,43 @@ class LintEngineTest {
         // own ParseError — blaming the file for javafmt's mistake.
         final var breaks = new ReplaceOnce("Breaks", NAME_START, NAME_START + 8, "not valid java");
         final var results = new LintEngine(List.of(breaks)).lintAll(List.of(contextOf(SOURCE)));
-        assertThat(results.getFirst())
-                .asInstanceOf(InstanceOfAssertFactories.type(LintEngine.BatchOutcome.Failed.class))
-                .extracting(LintEngine.BatchOutcome.Failed::error)
+        assertThat(results.getFirst()).isInstanceOf(Staged.Failed.class);
+        assertThatThrownBy(() -> results.getFirst().orElseThrow())
                 .isInstanceOf(LintRewriteException.class)
-                .asInstanceOf(InstanceOfAssertFactories.THROWABLE)
                 .hasMessageContaining("Breaks");
+    }
+
+    @Test
+    void warningRulesRunOnlyOnTheRoundWithNoEdits() {
+        final var seen = new ArrayList<String>();
+        final var editsOnce = new ReplaceOnce("Earlier", NAME_START, NAME_START + 8, "xxxxxxxx");
+        final var outcome = new LintEngine(List.of(new RecordsSource(seen), editsOnce)).lint(contextOf(SOURCE));
+        assertThat(seen).containsExactly(outcome.unit().source());
+        assertThat(outcome.diagnostics())
+                .extracting(Diagnostic::message)
+                .containsExactly("seen");
+    }
+
+    @Test
+    void warningRulesRunOnceOnTheLastRoundWhenLintDoesNotConverge() {
+        final var seen = new ArrayList<String>();
+        final var outcome = new LintEngine(List.of(new RecordsSource(seen), new AlwaysEdits("Runaway"))).lint(contextOf(SOURCE));
+        final var lastRoundSource = SOURCE.replaceFirst("\n", "\n" + " ".repeat(9));
+        assertThat(seen).containsExactly(lastRoundSource);
+        assertThat(outcome.diagnostics())
+                .hasSize(2)
+                .first()
+                .extracting(Diagnostic::message)
+                .isEqualTo("seen");
+    }
+
+    private record RecordsSource(List<String> seen) implements WarningRule {
+
+        @Override
+        public List<Diagnostic> warnings(final LintContext ctx) {
+            seen.add(ctx.unit().source());
+            return List.of(new Diagnostic.Warning("seen", new Position.Unknown()));
+        }
     }
 
     /** Emits an edit on every pass, so the engine can never reach a fixed point. */

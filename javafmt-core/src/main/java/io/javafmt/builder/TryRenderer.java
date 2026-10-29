@@ -3,24 +3,22 @@ package io.javafmt.builder;
 import com.sun.source.tree.CatchTree;
 import com.sun.source.tree.TryTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
-import java.util.List;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class TryRenderer {
 
-    Doc render(final TryTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {
+    Doc render(final TryTree node, final Recursor recursor) {
         final var header = buildHeader(node, recursor);
-        final var tryStmts = BlockRenderer.blockStmts(node.getBlock(), recursor, attacher);
-        final var catchStream = node.getCatches().stream().flatMap(c -> catchParts(c, recursor, attacher));
+        final var tryStmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
+        final var catchStream = node.getCatches().stream().flatMap(c -> catchParts(c, recursor));
         final var finallyBlock = node.getFinallyBlock();
         final var finallyStream = finallyBlock == null
                 ? Stream.<Doc>empty()
                 : Stream.concat(
                         Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} finally {")),
-                        BlockRenderer.blockStmts(finallyBlock, recursor, attacher)
+                        BlockRenderer.blockStmts(finallyBlock, recursor)
                                 .stream()
                                 .map(Doc::indentedLine));
         return Doc.concatOf(Stream.of(BlockRenderer.blockParts(header, tryStmts), catchStream, finallyStream, Doc.closeBrace()));
@@ -32,7 +30,7 @@ final class TryRenderer {
             return new Doc.Text("try");
         }
         final var rendered = resources.stream().map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scan(r)));
-        return new Doc.Concat(List.of(new Doc.Text("try "), WrappableList.of("(", ";", ")", rendered)));
+        return Doc.concat(new Doc.Text("try "), WrappableList.of("(", ";", ")", rendered));
     }
 
     /**
@@ -45,15 +43,14 @@ final class TryRenderer {
      */
     Doc catchClause(final CatchTree c, final Recursor recursor) {
         final var param = c.getParameter();
-        return new Doc.Concat(
-                List.of(
-                        new Doc.Text("catch (" + ModifierRenderer.prefixOf(param.getModifiers(), recursor)),
-                        recursor.scan(param.getType()),
-                        new Doc.Text(" " + Names.of(param) + ")")));
+        return Doc.concat(
+                new Doc.Text("catch (" + ModifierRenderer.prefixOf(param.getModifiers(), recursor)),
+                recursor.scan(param.getType()),
+                new Doc.Text(" " + Names.of(param) + ")"));
     }
 
-    private Stream<Doc> catchParts(final CatchTree c, final Recursor recursor, final LeadingCommentAttacher attacher) {
-        final var header = new Doc.Concat(List.of(new Doc.Text("} "), catchClause(c, recursor)));
-        return Stream.concat(Stream.of(Doc.HARD_LINE), BlockRenderer.blockParts(header, BlockRenderer.blockStmts(c.getBlock(), recursor, attacher)));
+    private Stream<Doc> catchParts(final CatchTree c, final Recursor recursor) {
+        final var header = Doc.concat(new Doc.Text("} "), catchClause(c, recursor));
+        return Stream.concat(Stream.of(Doc.HARD_LINE), BlockRenderer.blockParts(header, BlockRenderer.blockStmts(c.getBlock(), recursor)));
     }
 }

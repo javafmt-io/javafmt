@@ -4,16 +4,14 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.LeadingCommentAttacher;
 import org.jspecify.annotations.Nullable;
 
-interface Recursor {
+interface Recursor extends LeadingCommentAttacher {
 
     Doc scan(Tree node);
 
     @Nullable Doc scanNullable(Tree node);
-
-    /** {@code rendered} with the comments attached to {@code node}, as {@link #scan} would return it. */
-    Doc withComments(Tree node, Doc rendered);
 
     /**
      * Scans {@code node} with compact context active for the subtree. While compact, nested
@@ -68,4 +66,6 @@ interface Recursor {
      * pass deliberately added.
      */
     String sourceOf(Tree node);
+
+    CharSequence sourceSpan(Tree node);
 }

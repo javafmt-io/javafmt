@@ -6,7 +6,7 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import io.javafmt.parser.ParsedUnit;
@@ -38,7 +38,7 @@ public final class MultipleVariableDeclarations implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new ChainPathScanner<>() {
+                edits -> new ChainScanner<>() {
 
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {
@@ -55,19 +55,17 @@ public final class MultipleVariableDeclarations implements LintRule {
     }
 
     private static void splitGroups(final List<? extends Tree> stmts, final ParsedUnit unit, final List<LintEdit> edits) {
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
         var i = 0;
         while (i < stmts.size()) {
             if (!(stmts.get(i) instanceof VariableTree firstVar)) {
                 i++;
                 continue;
             }
-            final var typeStart = (int) positions.getStartPosition(root, firstVar.getType());
+            final var typeStart = unit.startOf(firstVar.getType());
             var j = i + 1;
             while (j < stmts.size()
                 && stmts.get(j) instanceof VariableTree nextVar
-                && (int) positions.getStartPosition(root, nextVar.getType()) == typeStart) {
+                && unit.startOf(nextVar.getType()) == typeStart) {
                 j++;
             }
             if (j - i >= 2) {
@@ -78,12 +76,10 @@ public final class MultipleVariableDeclarations implements LintRule {
     }
 
     private static List<LintEdit> buildEdits(final List<VariableTree> group, final ParsedUnit unit) {
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
         final var first = group.getFirst();
         final var last = group.getLast();
-        final var groupStart = (int) positions.getStartPosition(root, first);
-        final var lastEnd = (int) positions.getEndPosition(root, last);
+        final var groupStart = unit.startOf(first);
+        final var lastEnd = unit.endOf(last);
         if (groupStart < 0 || lastEnd < 0) {
             return List.of();
         }
@@ -93,7 +89,7 @@ public final class MultipleVariableDeclarations implements LintRule {
             return List.of();
         }
         final var indent = extractIndent(src, groupStart);
-        final var elementTypeEnd = (int) positions.getEndPosition(root, elementTypeOf(first.getType()));
+        final var elementTypeEnd = unit.endOf(elementTypeOf(first.getType()));
         if (elementTypeEnd <= groupStart || elementTypeEnd > spanEnd) {
             return List.of();
         }
@@ -163,7 +159,7 @@ public final class MultipleVariableDeclarations implements LintRule {
         final var commas = new ArrayList<Integer>();
         var lowerBound = groupStart;
         for (var k = 0; k < group.size() - 1; k++) {
-            final var declaratorEnd = (int) unit.sourcePositions().getEndPosition(unit.tree(), group.get(k));
+            final var declaratorEnd = unit.endOf(group.get(k));
             final var comma = commaBefore(src, comments, groupStart, Math.min(declaratorEnd, spanEnd), lowerBound);
             if (comma < 0) {
                 return List.of();
@@ -247,10 +243,10 @@ public final class MultipleVariableDeclarations implements LintRule {
         if (parent == null) {
             return false;
         }
-        final var siblings = switch (parent.getLeaf()) {
-            case BlockTree block -> List.<Tree>copyOf(block.getStatements());
-            case ClassTree cls -> List.<Tree>copyOf(cls.getMembers());
-            default -> List.<Tree>of();
+        final List<? extends Tree> siblings = switch (parent.getLeaf()) {
+            case BlockTree block -> block.getStatements();
+            case ClassTree cls -> cls.getMembers();
+            default -> List.of();
         };
         return isPartOfDeclarationGroup(siblings, path.getLeaf(), unit);
     }
@@ -260,7 +256,7 @@ public final class MultipleVariableDeclarations implements LintRule {
         if (!(member instanceof VariableTree variable)) {
             return false;
         }
-        final var typeStart = typeStartOf(variable, unit);
+        final var typeStart = unit.startOf(variable.getType());
         if (typeStart < 0) {
             return false;
         }
@@ -268,11 +264,7 @@ public final class MultipleVariableDeclarations implements LintRule {
         return index >= 0
             && IntStream.of(index - 1, index + 1)
                     .filter(i -> i >= 0 && i < siblings.size())
-                    .anyMatch(i -> siblings.get(i) instanceof VariableTree sibling && typeStartOf(sibling, unit) == typeStart);
-    }
-
-    private static int typeStartOf(final VariableTree variable, final ParsedUnit unit) {
-        return (int) unit.sourcePositions().getStartPosition(unit.tree(), variable.getType());
+                    .anyMatch(i -> siblings.get(i) instanceof VariableTree sibling && unit.startOf(sibling.getType()) == typeStart);
     }
 
     static String extractIndent(final String src, final int pos) {

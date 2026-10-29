@@ -22,25 +22,16 @@ import lombok.experimental.UtilityClass;
 final class StatementFlow {
 
     boolean terminates(final StatementTree stmt) {
-        if (stmt instanceof BreakTree
-            || stmt instanceof ReturnTree
-            || stmt instanceof ThrowTree
-            || stmt instanceof ContinueTree
-            || stmt instanceof YieldTree) {
-            return true;
-        }
-        if (stmt instanceof BlockTree block) {
-            final var inner = block.getStatements();
-            if (inner.isEmpty()) {
-                return false;
-            }
-            final var last = inner.getLast();
-            return last instanceof BreakTree
-                || last instanceof ReturnTree
-                || last instanceof ThrowTree
-                || last instanceof ContinueTree
-                || last instanceof YieldTree;
-        }
-        return false;
+        return switch (stmt) {
+            case BlockTree block -> !block.getStatements().isEmpty() && transfersControl(block.getStatements().getLast());
+            default -> transfersControl(stmt);
+        };
+    }
+
+    private boolean transfersControl(final StatementTree stmt) {
+        return switch (stmt) {
+            case BreakTree _, ReturnTree _, ThrowTree _, ContinueTree _, YieldTree _ -> true;
+            default -> false;
+        };
     }
 }

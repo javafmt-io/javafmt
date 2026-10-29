@@ -1,6 +1,6 @@
 package io.javafmt.maven;
 
-import io.javafmt.FormatResult;
+import io.javafmt.FileResult;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.PathFilter;
@@ -8,14 +8,11 @@ import io.javafmt.SourceFiles;
 import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
 import io.javafmt.cache.FormatCache;
-import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.IntStream;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -63,19 +60,11 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
 
     AbstractJavafmtMojo() {}
 
-    AbstractJavafmtMojo(final MavenProject project) {
-        this(project, List.of());
-    }
-
-    AbstractJavafmtMojo(final MavenProject project, final List<String> excludes) {
+    AbstractJavafmtMojo(final MavenProject project, final List<String> excludes, final Optional<Path> cacheFile) {
         this.project = project;
         this.excludes = List.copyOf(excludes);
-    }
-
-    AbstractJavafmtMojo(final MavenProject project, final boolean cache, final Path cacheFile) {
-        this.project = project;
-        this.cache = cache;
-        this.cacheFile = cacheFile.toString();
+        this.cache = cacheFile.isPresent();
+        this.cacheFile = cacheFile.map(Path::toString).orElse(null);
     }
 
     @Override
@@ -88,15 +77,35 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
             final var files = filter.keep(
                     Stream.concat(walkNullable(build.getSourceDirectory()).stream(), walkNullable(build.getTestSourceDirectory()).stream())
                             .toList());
-            handle(formatBatch(files, formatCache), formatCache);
+            final var poolSize = threads > 0 ? threads : Runtime.getRuntime().availableProcessors();
+            final var results = Javafmt.formatFiles(files, JavafmtConfig.defaults(), formatCache, poolSize);
+            failOnUnreadable(results);
+            handle(logErrorsAndKeepCleanFiles(results), formatCache);
             formatCache.save();
         } catch (UncheckedIOException e) {
             throw new MojoExecutionException("javafmt: I/O error: " + e.getMessage(), e.getCause());
         }
     }
 
-    /** What the goal does with the batch results; throws MojoExecutionException to fail the build. */
-    abstract void handle(List<FileWork> work, FormatCache formatCache) throws MojoExecutionException;
+    /** What the goal does with the files that formatted without errors; throws MojoExecutionException to fail the build. */
+    abstract void handle(List<FileResult.Formatted> formatted, FormatCache formatCache) throws MojoExecutionException;
+
+    private static void failOnUnreadable(final List<FileResult> results) throws MojoExecutionException {
+        final var unreadable = results.stream()
+                .flatMap(result -> result instanceof FileResult.Unreadable u ? Stream.of(u) : Stream.empty())
+                .findFirst();
+        if (unreadable.isPresent()) {
+            throw new MojoExecutionException("javafmt: I/O error: Failed to read " + unreadable.get().path(), unreadable.get().error());
+        }
+    }
+
+    private List<FileResult.Formatted> logErrorsAndKeepCleanFiles(final List<FileResult> results) {
+        final var formatted = results.stream()
+                .flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty())
+                .toList();
+        formatted.forEach(f -> f.result().errors().forEach(d -> getLog().warn("javafmt: " + d.describe(f.path().toString()))));
+        return formatted.stream().filter(f -> !f.result().hasErrors()).toList();
+    }
 
     private FormatCache resolveCache(final MavenProject p) {
         if (!cache) {
@@ -106,48 +115,7 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
         return FileFormatCache.load(path, CacheKey.of(JavafmtConfig.defaults()));
     }
 
-    /**
-     * Reads every file, then formats the ones that need it in one batch. The mojo has the whole
-     * file list up front, so it can use {@link Javafmt#formatAll} and share javac task setup
-     * across the module instead of paying it per file.
-     *
-     * <p>Cache hits are formatted as {@code ""} so they never reach javac, while {@code cacheHits}
-     * tracks them separately so an actually-empty source file is still processed correctly.
-     */
-    private List<FileWork> formatBatch(final List<Path> files, final FormatCache formatCache) {
-        final var poolSize = threads > 0 ? threads : Runtime.getRuntime().availableProcessors();
-        final var contents = files.stream().map(AbstractJavafmtMojo::read).toList();
-        final var cacheHits = IntStream.range(0, files.size())
-                .mapToObj(i -> formatCache.isUpToDate(files.get(i), contents.get(i)))
-                .toList();
-        final var toFormat = IntStream.range(0, files.size())
-                .mapToObj(i -> cacheHits.get(i) ? "" : contents.get(i))
-                .toList();
-        final var results = Javafmt.formatAll(toFormat, JavafmtConfig.defaults(), poolSize);
-        return IntStream.range(0, files.size())
-                .<FileWork>mapToObj(
-                        i -> cacheHits.get(i)
-                                ? new FileWork.Skipped(files.get(i))
-                                : new FileWork.Formatted(files.get(i), contents.get(i), results.get(i)))
-                .toList();
-    }
-
-    private static String read(final Path file) {
-        try {
-            return Files.readString(file, StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read " + file, e);
-        }
-    }
-
     private static List<Path> walkNullable(@Nullable final String dir) {
         return dir == null ? List.of() : SourceFiles.walk(Path.of(dir));
-    }
-
-    sealed interface FileWork {
-
-        record Skipped(Path path) implements FileWork {}
-
-        record Formatted(Path path, String content, FormatResult result) implements FileWork {}
     }
 }

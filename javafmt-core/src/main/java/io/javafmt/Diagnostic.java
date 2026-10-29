@@ -18,18 +18,25 @@ public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.Lin
 
     /** Whether this diagnostic represents a failure rather than an advisory {@link Warning}. */
     default boolean isError() {
+        return !(this instanceof Warning);
+    }
+
+    default String kind() {
         return switch (this) {
-            case ParseError ignored -> true;
-            case LintError ignored -> true;
-            case InternalError ignored -> true;
-            case Warning ignored -> false;
+            case ParseError ignored -> "parse";
+            case LintError ignored -> "lint";
+            case InternalError ignored -> "internal";
+            case Warning ignored -> "warning";
         };
+    }
+
+    default String severity() {
+        return isError() ? "error" : "warning";
     }
 
     /** {@code file:line:column: error|warning: message}, or without the position when unknown. */
     default String describe(final String file) {
-        return file + (position().display().isEmpty() ? "" : ":" + position().display()) + ": " + (isError() ? "error" : "warning") + ": "
-                + message();
+        return file + located(":", "") + ": " + severity() + ": " + message();
     }
 
     /**
@@ -38,7 +45,12 @@ public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.Lin
      * already show the file name and want to supply their own severity prefix.
      */
     default String describeBare() {
-        return (position().display().isEmpty() ? "" : position().display() + ": ") + message();
+        return located("", ": ") + message();
+    }
+
+    private String located(final String before, final String after) {
+        final var display = position().display();
+        return display.isEmpty() ? "" : before + display + after;
     }
 
     private static void requireParts(final String message, final Position position) {

@@ -19,8 +19,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.jspecify.annotations.Nullable;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ChainScannerTest {
@@ -32,24 +33,36 @@ class ChainScannerTest {
             }
             """;
 
+    private static final String CALLS = """
+            class Calls {
+
+                Object value = a.<T>f(x, y).b.g(z).h().i.j(k.l(m), n(o), () -> q.r(s)).p;
+            }
+            """;
+
     @ParameterizedTest
-    @ValueSource(strings = {MIXED, "class Single {\n\n    int value = a + b;\n}\n", "class None {\n\n    int value = a;\n}\n"})
+    @ValueSource(strings = {MIXED, CALLS, "class Single {\n\n    int value = a + b;\n}\n", "class None {\n\n    int value = a;\n}\n"})
     void visitsOperatorsAndOperandsInTheSameOrderAsTreeScanner(final String source) {
         final var unit = JavaParser.parseUnit(source).tree();
         assertThat(chainVisits(unit)).isEqualTo(javacVisits(unit));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {MIXED, "class Single {\n\n    int value = a + b;\n}\n"})
+    @ValueSource(strings = {MIXED, CALLS, "class Single {\n\n    int value = a + b;\n}\n"})
     void reportsTheSamePathAsTreePathScanner(final String source) {
         final var unit = JavaParser.parseUnit(source).tree();
         assertThat(chainPaths(unit)).isEqualTo(javacPaths(unit));
     }
 
+    static Stream<Arguments> reductions() {
+        return Stream.of("int value = 1 + 2 * 3 - 4 + 5;", "Object value = f(1).<T>g(2, 3).h.i(4).j(k(5).l(6));")
+                .flatMap(field -> Stream.of(Arguments.of(field, false), Arguments.of(field, true)));
+    }
+
     @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void reducesInTheSameOrderAsTreeScanner(final boolean concatenating) {
-        final var unit = JavaParser.parseUnit("class Sum {\n\n    int value = 1 + 2 * 3 - 4 + 5;\n}\n").tree();
+    @MethodSource("reductions")
+    void reducesInTheSameOrderAsTreeScanner(final String field, final boolean concatenating) {
+        final var unit = JavaParser.parseUnit("class Sum {\n\n    " + field + "\n}\n").tree();
         final var javac = new TreeScanner<String, Void>() {
 
             @Override
@@ -77,10 +90,18 @@ class ChainScannerTest {
         assertThat(chain.scan(unit, null)).isEqualTo(javac.scan(unit, null));
     }
 
-    @Test
-    void walksAChainOnAStackTooSmallForTreeScannerToRecurseThrough() throws InterruptedException {
+    static Stream<Arguments> deepChains() {
+        return Stream.of(
+                Arguments.of("int value = " + Stream.generate(() -> "1").limit(5_000).collect(Collectors.joining(" + ")) + ";", BinaryTree.class),
+                Arguments.of("Object value = new StringBuilder()" + ".append(1)".repeat(5_000) + ";", MethodInvocationTree.class),
+                Arguments.of("Object value = a" + ".f(1).b".repeat(5_000) + ";", MethodInvocationTree.class));
+    }
+
+    @ParameterizedTest
+    @MethodSource("deepChains")
+    void walksAChainOnAStackTooSmallForTreeScannerToRecurseThrough(final String field, final Class<?> literalParent) throws InterruptedException {
         final var terms = 5_000;
-        final var source = "class Deep {\n\n    int value = " + Stream.generate(() -> "1").limit(terms).collect(Collectors.joining(" + ")) + ";\n}\n";
+        final var source = "class Deep {\n\n    " + field + "\n}\n";
         final var unit = JavaParser.parseUnit(source).tree();
         final var literals = new AtomicInteger();
         assertThat(
@@ -94,7 +115,7 @@ class ChainScannerTest {
 
                             @Override
                             public Void visitLiteral(final LiteralTree node, final Void unused) {
-                                assertThat(getCurrentPath().getParentPath().getLeaf()).isInstanceOf(BinaryTree.class);
+                                assertThat(getCurrentPath().getParentPath().getLeaf()).isInstanceOf(literalParent);
                                 literals.incrementAndGet();
                                 return null;
                             }
@@ -162,9 +183,8 @@ class ChainScannerTest {
             }
 
             @Override
-            public Void visitMethodInvocation(final MethodInvocationTree node, final Void unused) {
+            protected void visitInvocation(final MethodInvocationTree node, final Void unused) {
                 visits.add("call");
-                return super.visitMethodInvocation(node, null);
             }
         }.scan(unit, null);
         return List.copyOf(visits);
@@ -185,6 +205,12 @@ class ChainScannerTest {
                 paths.add(describe(getCurrentPath()));
                 return null;
             }
+
+            @Override
+            public Void visitMethodInvocation(final MethodInvocationTree node, final Void unused) {
+                paths.add(describe(getCurrentPath()));
+                return super.visitMethodInvocation(node, null);
+            }
         }.scan(new TreePath((com.sun.source.tree.CompilationUnitTree) unit), null);
         return List.copyOf(paths);
     }
@@ -203,6 +229,11 @@ class ChainScannerTest {
             public Void visitIdentifier(final IdentifierTree node, final Void unused) {
                 record.accept(getCurrentPath());
                 return null;
+            }
+
+            @Override
+            protected void visitInvocation(final MethodInvocationTree node, final Void unused) {
+                record.accept(getCurrentPath());
             }
         }.scan(new TreePath((com.sun.source.tree.CompilationUnitTree) unit), null);
         return List.copyOf(paths);

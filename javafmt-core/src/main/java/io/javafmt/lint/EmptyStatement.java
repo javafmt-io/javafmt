@@ -4,9 +4,10 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.EmptyStatementTree;
 import com.sun.source.tree.Tree;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -30,18 +31,16 @@ public final class EmptyStatement implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new ChainPathScanner<>() {
+                edits -> new ChainScanner<>() {
 
                     @Override
-                    public Void visitEmptyStatement(final EmptyStatementTree node, final Void p) {
-                        if (getCurrentPath().getParentPath().getLeaf() instanceof BlockTree) {
-                            final var start = (int) unit.sourcePositions().getStartPosition(unit.tree(), node);
-                            final var end = (int) unit.sourcePositions().getEndPosition(unit.tree(), node);
-                            if (start >= 0 && end > start) {
-                                edits.add(new LintEdit(start, end, ""));
-                            }
-                        }
-                        return null;
+                    public Void visitBlock(final BlockTree node, final Void p) {
+                        node.getStatements()
+                                .stream()
+                                .filter(EmptyStatementTree.class::isInstance)
+                                .filter(s -> unit.startOf(s) >= 0 && unit.endOf(s) > unit.startOf(s))
+                                .forEach(s -> edits.add(new LintEdit(unit.startOf(s), unit.endOf(s), "")));
+                        return super.visitBlock(node, null);
                     }
 
                     @Override
@@ -62,21 +61,33 @@ public final class EmptyStatement implements LintRule {
             return Stream.empty();
         }
         final var bodyOpen = bodyBrace(node, unit);
-        final var classEnd = end(unit, node);
+        final var classEnd = unit.endOf(node);
         if (bodyOpen < 0 || classEnd <= bodyOpen) {
             return Stream.empty();
         }
         final var memberSpans = node.getMembers()
                 .stream()
-                .filter(m -> start(unit, m) >= 0)
-                .map(m -> new int[] {start(unit, m), end(unit, m),})
+                .filter(m -> unit.startOf(m) >= 0 && unit.endOf(m) > unit.startOf(m))
+                .map(m -> new int[] {unit.startOf(m), unit.endOf(m),})
+                .sorted(Comparator.comparingInt(span -> span[0]))
                 .toList();
-        final var source = unit.source();
-        final var comments = CommentScanner.scan(source.substring(bodyOpen, classEnd));
-        return IntStream.range(bodyOpen + 1, classEnd - 1)
+        return IntStream.rangeClosed(0, memberSpans.size())
+                .boxed()
+                .flatMap(
+                        i -> semicolonsOutsideComments(
+                                unit.source(),
+                                i == 0 ? bodyOpen + 1 : Math.max(bodyOpen + 1, memberSpans.get(i - 1)[1]),
+                                i == memberSpans.size() ? classEnd - 1 : memberSpans.get(i)[0]));
+    }
+
+    private static Stream<Integer> semicolonsOutsideComments(final String source, final int from, final int to) {
+        if (from >= to) {
+            return Stream.empty();
+        }
+        final var comments = CommentScanner.scan(source.substring(from, to));
+        return IntStream.range(from, to)
                 .filter(i -> source.charAt(i) == ';')
-                .filter(i -> memberSpans.stream().noneMatch(span -> span[0] <= i && i < span[1]))
-                .filter(i -> comments.stream().noneMatch(c -> bodyOpen + c.start() <= i && i < bodyOpen + c.end()))
+                .filter(i -> comments.stream().noneMatch(c -> from + c.start() <= i && i < from + c.end()))
                 .boxed();
     }
 
@@ -93,18 +104,10 @@ public final class EmptyStatement implements LintRule {
                 node.getPermitsClause(),
                 node.getExtendsClause() == null ? List.<Tree>of() : List.of(node.getExtendsClause()))
                 .flatMap(List::stream);
-        final var searchFrom = headerParts.mapToInt(t -> end(unit, t))
+        final var searchFrom = headerParts.mapToInt(unit::endOf)
                 .filter(e -> e >= 0)
                 .max()
-                .orElseGet(() -> start(unit, node));
+                .orElseGet(() -> unit.startOf(node));
         return searchFrom < 0 ? -1 : unit.source().indexOf('{', searchFrom);
-    }
-
-    private static int start(final ParsedUnit unit, final Tree tree) {
-        return (int) unit.sourcePositions().getStartPosition(unit.tree(), tree);
-    }
-
-    private static int end(final ParsedUnit unit, final Tree tree) {
-        return (int) unit.sourcePositions().getEndPosition(unit.tree(), tree);
     }
 }

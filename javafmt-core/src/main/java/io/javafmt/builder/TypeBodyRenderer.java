@@ -4,7 +4,6 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentToken;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +26,7 @@ final class TypeBodyRenderer {
      */
     Doc withBody(final ModifiersTree mods, final Doc header, final List<Member> members, final List<CommentToken> tail, final Recursor recursor) {
         if (members.isEmpty() && tail.isEmpty()) {
-            return ModifierRenderer.prependOwnLineAnnotations(mods, new Doc.Concat(List.of(header, new Doc.Text(" {}"))), recursor);
+            return ModifierRenderer.prependOwnLineAnnotations(mods, Doc.concat(header, new Doc.Text(" {}")), recursor);
         }
         return ModifierRenderer.prependOwnLineAnnotations(
                 mods,
@@ -85,14 +84,9 @@ final class TypeBodyRenderer {
     }
 
     /** The member-collect pipeline all three type renderers repeat. */
-    List<Member> renderMembers(
-            final Stream<? extends Tree> memberStream,
-            final String className,
-            final Recursor recursor,
-            final LeadingCommentAttacher attacher,
-            final BodyMemberRenderer.ConstructorRendering constructorRendering) {
+    List<Member> renderMembers(final Stream<? extends Tree> memberStream, final String className, final Recursor recursor) {
         return memberStream.flatMap(
-                m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor, attacher, constructorRendering))
+                m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor))
                         .map(doc -> new Member(m, doc))
                         .stream())
                 .toList();

@@ -166,7 +166,7 @@ public final class FileFormatCache implements FormatCache {
         return file.toAbsolutePath().toString();
     }
 
-    private static String sha256(final String content) {
+    static String sha256(final String content) {
         final var digest = DIGEST.get();
         digest.reset();
         return HEX.formatHex(digest.digest(content.getBytes(StandardCharsets.UTF_8)));

@@ -3,7 +3,6 @@ package io.javafmt;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.javafmt.parser.JavaParser;
-import io.javafmt.parser.ParseOutcome;
 import io.javafmt.parser.ParsedUnit;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -28,19 +27,18 @@ class JavafmtVerifyOutputTest {
      * landing in a position {@code CommentAttacher} doesn't cover, without depending on any
      * particular open renderer gap.
      */
-    private static ParseOutcome unitThatLosesATrailingComment() {
+    private static ParsedUnit unitThatLosesATrailingComment() {
         final var parsed = JavaParser.parseUnit(SOURCE);
-        return new ParseOutcome.Ok(
-                new ParsedUnit(
-                        parsed.tree(),
-                        SOURCE_WITH_NOTE,
-                        parsed.sourcePositions(),
-                        List.of(),
-                        List.of(),
-                        new IdentityHashMap<>(),
-                        new IdentityHashMap<>(),
-                        new IdentityHashMap<>(),
-                        new IdentityHashMap<>()));
+        return new ParsedUnit(
+                parsed.tree(),
+                SOURCE_WITH_NOTE,
+                parsed.sourcePositions(),
+                List.of(),
+                List.of(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>());
     }
 
     @Test
@@ -53,7 +51,7 @@ class JavafmtVerifyOutputTest {
     @Test
     void withVerificationOffTheLostCommentGoesUnreported() {
         final var config = JavafmtConfig.defaults().withVerifyOutput(false);
-        final var result = Javafmt.formatWithResult(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
+        final var result = BatchFormatter.formatParsed(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.output()).doesNotContain("a note the renderer never sees");
     }
@@ -61,7 +59,7 @@ class JavafmtVerifyOutputTest {
     @Test
     void withVerificationOnTheLostCommentBecomesAnInternalError() {
         final var config = JavafmtConfig.defaults().withVerifyOutput(true);
-        final var result = Javafmt.formatWithResult(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
+        final var result = BatchFormatter.formatParsed(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
         assertThat(result.diagnostics())
                 .singleElement()
                 .isInstanceOf(Diagnostic.InternalError.class);
@@ -71,7 +69,7 @@ class JavafmtVerifyOutputTest {
     @Test
     void withVerificationOnAFailedCheckReturnsTheInputUnchanged() {
         final var config = JavafmtConfig.defaults().withVerifyOutput(true);
-        final var result = Javafmt.formatWithResult(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
+        final var result = BatchFormatter.formatParsed(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
         assertThat(result.output()).isEqualTo(SOURCE_WITH_NOTE);
     }
 
@@ -109,7 +107,7 @@ class JavafmtVerifyOutputTest {
         // The ordinary check holds the output against the post-lint source, where a comment a rule
         // deleted is already missing from both sides — which is how two rules deleted comments for
         // as long as they did. Comments are held against what the user actually wrote instead.
-        assertThat(Javafmt.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, SUPER_CALL_LINTED_AWAY, SUPER_CALL_PRINTED))
+        assertThat(FormatStages.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, SUPER_CALL_LINTED_AWAY, SUPER_CALL_PRINTED))
                 .hasValueSatisfying(message -> assertThat(message).contains("lint rule dropped one of your comments").contains("keep this"));
     }
 
@@ -119,13 +117,13 @@ class JavafmtVerifyOutputTest {
         // the output. Neither check has anything to say.
         final var linted = "class Fixture {\n\n    Fixture() {\n        // keep this\n    }\n}\n";
         final var printed = "class Fixture {\n\n    Fixture() {\n        // keep this\n    }\n}\n";
-        assertThat(Javafmt.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, linted, printed)).isEmpty();
+        assertThat(FormatStages.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, linted, printed)).isEmpty();
     }
 
     @Test
     void verificationOffSkipsTheLintCommentCheckToo() {
         final var config = JavafmtConfig.defaults().withVerifyOutput(false);
-        assertThat(Javafmt.verifyOutput(config, SUPER_CALL_WITH_NOTE, SUPER_CALL_LINTED_AWAY, SUPER_CALL_PRINTED)).isEmpty();
+        assertThat(FormatStages.verifyOutput(config, SUPER_CALL_WITH_NOTE, SUPER_CALL_LINTED_AWAY, SUPER_CALL_PRINTED)).isEmpty();
     }
 
     @Test
@@ -133,7 +131,7 @@ class JavafmtVerifyOutputTest {
         // Reaching a refusal means javafmt got it wrong. A bare `error:` naming the tokens that
         // differ reads, in a build log, as a complaint about the user's code — which is backwards,
         // and leaves them with no idea whether the file on disk was damaged.
-        final var result = Javafmt.formatWithResult(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), JavafmtConfig.defaults());
+        final var result = BatchFormatter.formatParsed(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), JavafmtConfig.defaults());
         assertThat(result.diagnostics())
                 .singleElement()
                 .extracting(Diagnostic::message, InstanceOfAssertFactories.STRING)
@@ -145,7 +143,7 @@ class JavafmtVerifyOutputTest {
 
     @Test
     void aRefusalStillCarriesTheDetailForWhoeverFixesIt() {
-        final var result = Javafmt.formatWithResult(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), JavafmtConfig.defaults());
+        final var result = BatchFormatter.formatParsed(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), JavafmtConfig.defaults());
         assertThat(result.diagnostics().getFirst().message()).contains("a note the renderer never sees");
     }
 }

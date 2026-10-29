@@ -2,6 +2,10 @@ package io.javafmt;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -9,6 +13,22 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class PathFilterTest {
+
+    @Test
+    void aFilterSurvivesSerializationAndComparesByItsGlobs() throws Exception {
+        final var filter = PathFilter.ofGlobs(List.of("**/generated/**", "Legacy*.java"));
+        final var bytes = new ByteArrayOutputStream();
+        try (final var out = new ObjectOutputStream(bytes)) {
+            out.writeObject(filter);
+        }
+        try (final var in = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
+            final var copy = (PathFilter) in.readObject();
+            assertThat(copy).isEqualTo(filter).hasSameHashCodeAs(filter);
+            assertThat(copy.excludes(Path.of("deep/dir/LegacyThing.java"))).isTrue();
+            assertThat(copy.excludes(Path.of("src/main/Foo.java"))).isFalse();
+        }
+        assertThat(filter).isNotEqualTo(PathFilter.ofGlobs(List.of("Legacy*.java")));
+    }
 
     @Test
     void matchesFullPathOrBareFilename() {

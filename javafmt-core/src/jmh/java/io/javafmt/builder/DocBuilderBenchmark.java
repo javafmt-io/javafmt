@@ -38,8 +38,7 @@ import org.openjdk.jmh.infra.Blackhole;
  *       benchmark surfaces them directly.
  * </ul>
  *
- * <p>No print-strategy axis: {@code DocBuilder} is strategy-agnostic. Run with
- * {@code gradle :javafmt-core:jmh}.
+ * <p>Run with {@code gradle :javafmt-core:jmh}.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)

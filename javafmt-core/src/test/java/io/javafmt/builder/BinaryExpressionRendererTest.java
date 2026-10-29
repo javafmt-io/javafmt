@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class BinaryExpressionRendererTest {
 
@@ -93,10 +95,9 @@ class BinaryExpressionRendererTest {
     }
 
     @Test
-    void threeWayAndOverEighty_allOperatorsBreak() {
-        // Mirror of the method-chain heuristic: when an &&/|| chain has >= 3 operands and
-        // its flat width exceeds 80 chars, break before every operator so each operand sits
-        // on its own line, rather than only breaking the last operator to hit 150.
+    void threeWayAndOverTheLine_allOperatorsBreak() {
+        // When an &&/|| chain does not fit the 150-char line, break before every operator so
+        // each operand sits on its own line, rather than only breaking the last operator.
         final var input = """
             class X {
 
@@ -116,49 +117,18 @@ class BinaryExpressionRendererTest {
         assertThat(format(input)).isEqualTo(expected);
     }
 
-    @Test
-    void twoWayAndOverEighty_staysFlat() {
-        // Two-operand chains skip the 80-char threshold for the same reason 2-link method
-        // chains do: breaking just moves one operand down a line without untangling structure.
-        // They still break if they would overflow the 150-char line width.
-        final var input = """
-            class X {
-
-                boolean ok(Object a, Object b) {
-                    final var ok = a.longMethodName(arg1) && b.anotherLongMethod(arg2, arg3, arg4);
-                }
-            }""".stripIndent();
-        final var expected = """
-            class X {
-
-                boolean ok(Object a, Object b) {
-                    final var ok = a.longMethodName(arg1) && b.anotherLongMethod(arg2, arg3, arg4);
-                }
-            }""".stripIndent();
-        assertThat(format(input)).isEqualTo(expected);
-    }
-
-    @Test
-    void threeWayAndUnderEighty_staysFlat() {
-        // Three operands but the chain fits in 80 chars — stays flat. The threshold matters,
-        // not just the operand count.
-        final var input = "class X { boolean ok(boolean a, boolean b, boolean c) { return a && b && c; } }";
-        final var expected = """
-            class X {
-
-                boolean ok(boolean a, boolean b, boolean c) {
-                    return a && b && c;
-                }
-            }""".stripIndent();
-        assertThat(format(input)).isEqualTo(expected);
+    @ParameterizedTest
+    @ValueSource(strings = {"final var ok = a.longMethodName(arg1) && b.anotherLongMethod(arg2, arg3, arg4);", "return a && b && c;", "final var ok = tree != null && !(tree instanceof BinaryTree) && !(tree instanceof MethodInvocationTree) && !(tree instanceof LambdaTree);"})
+    void logicalChainThatFitsTheLine_staysFlat(final String statement) {
+        final var source = "class X {\n\n    boolean ok(Object a, Object b, Object tree) {\n        " + statement + "\n    }\n}";
+        assertThat(format(source)).isEqualTo(source);
     }
 
     @Test
     void brokenLogicalChain_innerChain_staysFlat_evenWhenSourceBrokeIt() {
-        // When the outer && chain breaks (>= 3 operands, flat width > 80), each operand
-        // renders as if line width = 150 — author-preserve and the 80-char chain heuristic
-        // are suppressed for nested chains. This keeps the broken logical-chain visually
-        // 3-line clean instead of cascading into the source's prior layout artifacts.
+        // When the outer && chain breaks, each operand renders with author-preserve suppressed
+        // for nested chains. This keeps the broken logical-chain visually 3-line clean instead
+        // of cascading into the source's prior layout artifacts.
         final var input = """
             class X {
 

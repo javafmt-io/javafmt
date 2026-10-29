@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -24,7 +25,7 @@ class JavafmtCheckMojoTest {
         final var src = Files.createDirectories(dir.resolve("src/main/java"));
         Files.writeString(src.resolve("Empty.java"), "");
         Files.writeString(src.resolve("Unformatted.java"), UNFORMATTED);
-        final var mojo = new JavafmtCheckMojo(buildProject(dir));
+        final var mojo = new JavafmtCheckMojo(buildProject(dir), List.of(), Optional.empty());
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining("1 file(s) not formatted")
@@ -37,7 +38,7 @@ class JavafmtCheckMojoTest {
         final var empty = src.resolve("Empty.java");
         Files.writeString(empty, "");
         final var cacheFile = cacheDir.resolve("javafmt.cache");
-        final var mojo = new JavafmtCheckMojo(buildProject(dir), true, cacheFile);
+        final var mojo = new JavafmtCheckMojo(buildProject(dir), List.of(), Optional.of(cacheFile));
         assertThatNoException().isThrownBy(mojo::execute);
         // File format is "# javafmt cache v<n> <version>" header, then one "<sha256-hex> <path>"
         // line per entry (io.javafmt.cache.FileFormatCache). A genuinely-empty file that was
@@ -53,14 +54,14 @@ class JavafmtCheckMojoTest {
         final var src = Files.createDirectories(dir.resolve("src/main/java"));
         Files.createDirectories(src.resolve("Trap.java"));
         Files.writeString(src.resolve("A.java"), FORMATTED);
-        new JavafmtCheckMojo(buildProject(dir)).execute(); // must not throw
+        new JavafmtCheckMojo(buildProject(dir), List.of(), Optional.empty()).execute(); // must not throw
     }
 
     @Test
     void checkGoalPassesWhenAllFilesFormatted(@TempDir final Path srcDir) throws Exception {
         final var file = srcDir.resolve("Foo.java");
         Files.writeString(file, Javafmt.format(UNFORMATTED), StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir));
+        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.empty());
         assertThatNoException().isThrownBy(mojo::execute);
     }
 
@@ -68,7 +69,7 @@ class JavafmtCheckMojoTest {
     void checkGoalFailsWithUnformattedFilesNamed(@TempDir final Path srcDir) throws Exception {
         final var file = srcDir.resolve("Unformatted.java");
         Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir));
+        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.empty());
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining("javafmt check failed: 1 file(s) not formatted")
@@ -79,7 +80,7 @@ class JavafmtCheckMojoTest {
     void checkGoalSkipsParseErrorFilesWithoutFailing(@TempDir final Path srcDir) throws Exception {
         final var file = srcDir.resolve("Bad.java");
         Files.writeString(file, "this is not valid java source code", StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir));
+        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.empty());
         assertThatNoException().isThrownBy(mojo::execute);
     }
 
@@ -89,9 +90,9 @@ class JavafmtCheckMojoTest {
         final var file = srcDir.resolve("Foo.java");
         Files.writeString(file, formatted, StandardCharsets.UTF_8);
         final var cacheFile = cacheDir.resolve("javafmt.cache");
-        final var first = new JavafmtCheckMojo(buildProject(srcDir), true, cacheFile);
+        final var first = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
         assertThatNoException().isThrownBy(first::execute);
-        final var second = new JavafmtCheckMojo(buildProject(srcDir), true, cacheFile);
+        final var second = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
         assertThatNoException().isThrownBy(second::execute);
     }
 
@@ -100,7 +101,7 @@ class JavafmtCheckMojoTest {
         final var file = srcDir.resolve("Unformatted.java");
         Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
         final var cacheFile = cacheDir.resolve("javafmt.cache");
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), true, cacheFile);
+        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining(file.toString());
@@ -111,7 +112,7 @@ class JavafmtCheckMojoTest {
         final var fixture = srcDir.resolve("test-fixtures/input.java");
         Files.createDirectories(fixture.getParent());
         Files.writeString(fixture, UNFORMATTED, StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of("**/input.java"));
+        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of("**/input.java"), Optional.empty());
         assertThatNoException().isThrownBy(mojo::execute);
     }
 
@@ -122,7 +123,7 @@ class JavafmtCheckMojoTest {
         Files.writeString(fixture, UNFORMATTED, StandardCharsets.UTF_8);
         final var normal = srcDir.resolve("Normal.java");
         Files.writeString(normal, UNFORMATTED, StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of("**/input.java"));
+        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of("**/input.java"), Optional.empty());
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining(normal.toString())

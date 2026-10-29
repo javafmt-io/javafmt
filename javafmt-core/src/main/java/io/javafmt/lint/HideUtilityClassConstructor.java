@@ -6,7 +6,7 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.Diagnostic;
-import io.javafmt.parser.ChainPathScanner;
+import java.util.List;
 import javax.lang.model.element.Modifier;
 import org.jspecify.annotations.Nullable;
 
@@ -30,25 +30,13 @@ import org.jspecify.annotations.Nullable;
  *       either.</li>
  * </ul>
  */
-public final class HideUtilityClassConstructor implements LintRule {
+public final class HideUtilityClassConstructor implements WarningRule {
 
     private static final String MESSAGE = "utility class should have a private constructor to prevent instantiation";
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
-        return LintScan.diagnostics(
-                ctx,
-                diagnostics -> new ChainPathScanner<>() {
-
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        if (isUtilityCandidate(node) && !hasPrivateConstructor(node)) {
-                            diagnostics.add(new Diagnostic.Warning(MESSAGE, unit.positionOf(node)));
-                        }
-                        return super.visitClass(node, null);
-                    }
-                });
+    public List<Diagnostic> warnings(final LintContext ctx) {
+        return WarningRule.onNode(ctx, ClassTree.class, node -> isUtilityCandidate(node) && !hasPrivateConstructor(node), MESSAGE);
     }
 
     private static boolean isUtilityCandidate(final ClassTree node) {

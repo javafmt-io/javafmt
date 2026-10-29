@@ -1,44 +1,20 @@
 package io.javafmt.lint;
 
-import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.MethodTree;
 import io.javafmt.Diagnostic;
-import io.javafmt.parser.ChainPathScanner;
+import java.util.List;
 
 /**
  * Warns when a class defines {@code equals(SpecificType)} (an overload) instead of the
  * required {@code equals(Object)} override. Covariant overloads are silently ignored by
  * collections and polymorphic code, making them almost always a latent bug.
  */
-public final class CovariantEquals implements LintRule {
+public final class CovariantEquals implements WarningRule {
 
     private static final String MESSAGE = "covariant equals(SpecificType) overload; use equals(Object) to override correctly";
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
-        return LintScan.diagnostics(
-                ctx,
-                diagnostics -> new ChainPathScanner<>() {
-
-                    @Override
-                    public Void visitMethod(final MethodTree node, final Void p) {
-                        if (isCovariantEquals(node)) {
-                            diagnostics.add(new Diagnostic.Warning(MESSAGE, unit.positionOf(node)));
-                        }
-                        return super.visitMethod(node, null);
-                    }
-                });
-    }
-
-    private static boolean isCovariantEquals(final MethodTree method) {
-        if (!method.getName().contentEquals("equals")) {
-            return false;
-        }
-        final var params = method.getParameters();
-        if (params.size() != 1) {
-            return false;
-        }
-        return !(params.getFirst().getType() instanceof IdentifierTree id && id.getName().contentEquals("Object"));
+    public List<Diagnostic> warnings(final LintContext ctx) {
+        return WarningRule.onNode(ctx, MethodTree.class, m -> Declarations.isOneArgumentEquals(m) && !Declarations.isEqualsObject(m), MESSAGE);
     }
 }

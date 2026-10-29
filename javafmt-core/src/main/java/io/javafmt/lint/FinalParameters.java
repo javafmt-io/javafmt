@@ -6,11 +6,10 @@ import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.parser.TreeFacts;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
-import org.jspecify.annotations.Nullable;
+import java.util.stream.Collectors;
 
 /**
  * Adds {@code final} to method and constructor parameters that are safe to fix, and emits
@@ -36,12 +35,21 @@ public final class FinalParameters implements LintRule {
     public LintResult apply(final LintContext ctx) {
         final var unit = ctx.unit();
         final var facts = new TreeFacts(unit);
-        final var methods = collectMethodsWithBodies(unit, facts);
-        return new LintResult(
-                methods.stream()
-                        .flatMap(m -> editsFor(m, unit))
-                        .toList(),
-                methods.stream().flatMap(m -> warningsFor(m, unit)).toList());
+        final var reassignments = new ReassignmentDetector();
+        return methodsWithBodies(ctx, facts)
+                .stream()
+                .flatMap(
+                        m -> m.getParameters()
+                                .stream()
+                                .filter(p -> !Modifiers.hasFinal(p))
+                                .map(p -> Map.entry(p, reassignments.reassigned(m.getBody(), p.getName().toString()))))
+                .collect(
+                        Collectors.teeing(
+                                Collectors.filtering(
+                                        e -> !e.getValue(),
+                                        Collectors.flatMapping(e -> editFor(e.getKey(), unit).stream(), Collectors.toList())),
+                                Collectors.filtering(e -> e.getValue(), Collectors.mapping(e -> warningFor(e.getKey(), unit), Collectors.toList())),
+                                LintResult::new));
     }
 
     /**
@@ -49,56 +57,29 @@ public final class FinalParameters implements LintRule {
      * the record's header components, and the JLS forbids modifiers there, so adding {@code
      * final} would break the re-parse.
      */
-    private static List<MethodTree> collectMethodsWithBodies(final ParsedUnit unit, final TreeFacts facts) {
-        final var collector = new MethodCollector();
-        collector.scan(unit.tree(), null);
-        return collector.methods()
-                .stream()
-                .filter(m -> !facts.isCompactConstructor(m))
-                .toList();
+    private static List<MethodTree> methodsWithBodies(final LintContext ctx, final TreeFacts facts) {
+        return LintScan.collect(
+                ctx,
+                methods -> new ChainScanner<>() {
+
+                    @Override
+                    public Void visitMethod(final MethodTree node, final Void p) {
+                        if (node.getBody() != null && !facts.isCompactConstructor(node)) {
+                            methods.add(node);
+                        }
+                        return super.visitMethod(node, null);
+                    }
+                });
     }
 
-    private static Stream<LintEdit> editsFor(final MethodTree method, final ParsedUnit unit) {
-        return method.getParameters()
-                .stream()
-                .filter(p -> !Modifiers.hasFinal(p))
-                .filter(p -> !Modifiers.reassigned(method.getBody(), p.getName().toString()))
-                .flatMap(p -> Optional.ofNullable(editFor(p, unit)).stream());
-    }
-
-    private static Stream<Diagnostic> warningsFor(final MethodTree method, final ParsedUnit unit) {
-        return method.getParameters()
-                .stream()
-                .filter(p -> !Modifiers.hasFinal(p))
-                .filter(p -> Modifiers.reassigned(method.getBody(), p.getName().toString()))
-                .map(p -> warningFor(p, unit));
-    }
-
-    @Nullable private static LintEdit editFor(final VariableTree param, final ParsedUnit unit) {
-        final var pos = (int) unit.sourcePositions().getStartPosition(unit.tree(), param);
-        return pos < 0 ? null : LintEdit.insert(pos, "final ");
+    private static Optional<LintEdit> editFor(final VariableTree param, final ParsedUnit unit) {
+        final var pos = unit.startOf(param);
+        return pos < 0 ? Optional.empty() : Optional.of(LintEdit.insert(pos, "final "));
     }
 
     private static Diagnostic warningFor(final VariableTree param, final ParsedUnit unit) {
         final var message = "parameter '%s' is reassigned; cannot be made final automatically (use a local copy or AtomicInteger)".formatted(
                 param.getName());
         return new Diagnostic.Warning(message, unit.positionOf(param));
-    }
-
-    private static final class MethodCollector extends ChainScanner<Void, Void> {
-
-        private final List<MethodTree> methods = new ArrayList<>();
-
-        @Override
-        public Void visitMethod(final MethodTree node, final Void p) {
-            if (node.getBody() != null) {
-                methods.add(node);
-            }
-            return super.visitMethod(node, null);
-        }
-
-        List<MethodTree> methods() {
-            return List.copyOf(methods);
-        }
     }
 }

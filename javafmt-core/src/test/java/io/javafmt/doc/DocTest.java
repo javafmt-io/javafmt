@@ -24,8 +24,7 @@ class DocTest {
                 new Doc.Indent(new Doc.Text("i")),
                 new Doc.Group(new Doc.Text("g")),
                 new Doc.Concat(List.of()),
-                new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")),
-                new Doc.Fill(List.of(new Doc.Text("a"), Doc.LINE, new Doc.Text("b"))));
+                new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")));
     }
 
     @ParameterizedTest
@@ -304,8 +303,7 @@ class DocTest {
     }
 
     /**
-     * Pins the contract both print strategies rely on when packing a {@link Doc.Fill}: the
-     * flat width of a content part, or {@code -1} to signal that the line ends inside it.
+     * Pins the flat width of a doc, or {@code -1} to signal that the line ends inside it.
      */
     @Nested
     class FlatWidthOrBreakTests {
@@ -318,8 +316,7 @@ class DocTest {
                     Arguments.of(new Doc.Verbatim("abcd", 0), 4),
                     Arguments.of(new Doc.Indent(new Doc.Text("ab")), 2),
                     Arguments.of(new Doc.Group(new Doc.Text("ab")), 2),
-                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("ab"), Doc.LINE, new Doc.Text("c"))), 4),
-                    Arguments.of(new Doc.Fill(List.of(new Doc.Text("ab"), Doc.LINE, new Doc.Text("c"))), 4));
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("ab"), Doc.LINE, new Doc.Text("c"))), 4));
         }
 
         @ParameterizedTest
@@ -392,6 +389,16 @@ class DocTest {
         void concatOfWithThreeStreams() {
             final var d = Doc.concatOf(Stream.of(Stream.of(new Doc.Text("a")), Stream.of(new Doc.Text("b")), Stream.of(new Doc.Text("c"))));
             assertThat(d).isEqualTo(new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Text("b"), new Doc.Text("c"))));
+        }
+
+        @Test
+        void concatWrapsItsArgumentsInOrder() {
+            assertThat(Doc.concat(new Doc.Text("a"), Doc.LINE)).isEqualTo(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE)));
+        }
+
+        @Test
+        void blankLineIsTwoHardLines() {
+            assertThat(Doc.BLANK_LINE).isEqualTo(new Doc.Concat(List.of(Doc.HARD_LINE, Doc.HARD_LINE)));
         }
     }
 }

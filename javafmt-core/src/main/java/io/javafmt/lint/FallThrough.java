@@ -4,7 +4,7 @@ import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
 import io.javafmt.Diagnostic;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -18,18 +18,18 @@ import java.util.regex.Pattern;
  * by grammar; multi-path control-flow analysis (e.g. {@code if/else} both exiting); cases
  * whose structure exceeds the shared {@link StatementFlow} helper's one-level block recursion.
  */
-public final class FallThrough implements LintRule {
+public final class FallThrough implements WarningRule {
 
     private static final Pattern FALL_THROUGH_PATTERN = Pattern.compile("fall.?through", Pattern.CASE_INSENSITIVE);
 
     private static final String MESSAGE = "case falls through to next case; add 'break;' or a // fallthrough comment if intentional";
 
     @Override
-    public LintResult apply(final LintContext ctx) {
+    public List<Diagnostic> warnings(final LintContext ctx) {
         final var unit = ctx.unit();
-        return LintScan.diagnostics(
+        return LintScan.collect(
                 ctx,
-                diagnostics -> new ChainPathScanner<>() {
+                diagnostics -> new ChainScanner<>() {
 
                     @Override
                     public Void visitSwitch(final SwitchTree node, final Void p) {
@@ -67,10 +67,8 @@ public final class FallThrough implements LintRule {
     }
 
     private static boolean hasFallThroughComment(final CaseTree current, final CaseTree next, final ParsedUnit unit) {
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
-        final var end = (int) positions.getEndPosition(root, current);
-        final var start = (int) positions.getStartPosition(root, next);
+        final var end = unit.endOf(current);
+        final var start = unit.startOf(next);
         if (end < 0 || start < 0 || end > start || start > unit.source().length()) {
             return false;
         }

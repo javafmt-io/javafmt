@@ -9,7 +9,6 @@ import com.sun.source.tree.ProvidesTree;
 import com.sun.source.tree.RequiresTree;
 import com.sun.source.tree.UsesTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.doc.LeadingCommentAttacher;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -25,12 +24,12 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 final class ModuleRenderer {
 
-    Doc render(final ModuleTree node, final LeadingCommentAttacher attacher, final Recursor recursor) {
+    Doc render(final ModuleTree node, final Recursor recursor) {
         final var header = headerText(node);
         final var directives = node.getDirectives();
         final var body = directives.isEmpty()
-                ? new Doc.Concat(List.of(new Doc.Text(header), new Doc.Text(" {}")))
-                : Doc.concatOf(Stream.of(Stream.of(new Doc.Text(header), new Doc.Text(" {")), bodyStream(directives, attacher), Doc.closeBrace()));
+                ? Doc.concat(new Doc.Text(header), new Doc.Text(" {}"))
+                : Doc.concatOf(Stream.of(Stream.of(new Doc.Text(header), new Doc.Text(" {")), bodyStream(directives, recursor), Doc.closeBrace()));
         return ModifierRenderer.prependOwnLineAnnotations(node.getAnnotations(), body, recursor);
     }
 
@@ -39,14 +38,14 @@ final class ModuleRenderer {
         return prefix + node.getName();
     }
 
-    private Stream<Doc> bodyStream(final List<? extends DirectiveTree> directives, final LeadingCommentAttacher attacher) {
+    private Stream<Doc> bodyStream(final List<? extends DirectiveTree> directives, final Recursor recursor) {
         return IntStream.range(0, directives.size())
                 .mapToObj(i -> {
                     final var d = directives.get(i);
-                    final var doc = attacher.attach(d, renderDirective(d));
+                    final var doc = recursor.attach(d, renderDirective(d));
                     final var indented = Doc.indentedLine(doc);
                     if (i > 0 && directives.get(i - 1).getKind() != d.getKind()) {
-                        return new Doc.Concat(List.of(Doc.HARD_LINE, indented));
+                        return Doc.concat(Doc.HARD_LINE, indented);
                     }
                     return indented;
                 });
@@ -100,7 +99,7 @@ final class ModuleRenderer {
         }
         final var inSourceOrder = targets.stream().map(ExpressionTree::toString).<Doc>map(Doc.Text::new);
         final var interior = new Doc.Concat(Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), inSourceOrder));
-        final var continuation = Doc.continuationIndent(new Doc.Concat(List.of(Doc.LINE, interior)));
-        return new Doc.Group(new Doc.Concat(List.of(new Doc.Text(keyword + " " + subject + " " + connector), continuation, new Doc.Text(";"))));
+        final var continuation = Doc.continuationIndent(Doc.concat(Doc.LINE, interior));
+        return new Doc.Group(Doc.concat(new Doc.Text(keyword + " " + subject + " " + connector), continuation, new Doc.Text(";")));
     }
 }

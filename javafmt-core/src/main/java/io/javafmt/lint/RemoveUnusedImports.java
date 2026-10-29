@@ -3,8 +3,7 @@ package io.javafmt.lint;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MemberSelectTree;
-import com.sun.source.util.TreePath;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.HashSet;
@@ -49,14 +48,10 @@ public final class RemoveUnusedImports implements LintRule {
         return LintResult.ofEdits(
                 imports.stream()
                         .filter(i -> !i.isModule())
-                        .filter(i -> !isStarImport(i))
+                        .filter(i -> !Declarations.isStarImport(i))
                         .filter(i -> !usedNames.contains(simpleNameOf(i)))
                         .flatMap(i -> deleteEdit(i, unit).stream())
                         .toList());
-    }
-
-    private static boolean isStarImport(final ImportTree imp) {
-        return imp.getQualifiedIdentifier() instanceof MemberSelectTree ms && ms.getIdentifier().contentEquals("*");
     }
 
     private static String simpleNameOf(final ImportTree imp) {
@@ -66,7 +61,7 @@ public final class RemoveUnusedImports implements LintRule {
 
     private static Set<String> collectUsedNames(final ParsedUnit unit) {
         final var names = new HashSet<String>();
-        new ChainPathScanner<Void, Void>() {
+        new ChainScanner<Void, Void>() {
 
             @Override
             public Void visitImport(final ImportTree node, final Void p) {
@@ -78,7 +73,7 @@ public final class RemoveUnusedImports implements LintRule {
                 names.add(node.getName().toString());
                 return null;
             }
-        }.scan(new TreePath(unit.tree()), null);
+        }.scan(unit.tree(), null);
         names.addAll(namesMentionedInComments(unit.source()));
         return Set.copyOf(names);
     }
@@ -109,7 +104,7 @@ public final class RemoveUnusedImports implements LintRule {
      */
     static Optional<Span> spanOf(final ImportTree imp, final ParsedUnit unit) {
         final var source = unit.source();
-        final var start = (int) unit.sourcePositions().getStartPosition(unit.tree(), imp);
+        final var start = unit.startOf(imp);
         if (start < 0) {
             return Optional.empty();
         }

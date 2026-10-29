@@ -1,10 +1,6 @@
 package io.javafmt.cache;
 
 import io.javafmt.JavafmtConfig;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Objects;
 
 /**
@@ -23,31 +19,18 @@ public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, Stri
         Objects.requireNonNull(classpath, "classpath");
     }
 
-    /** The key for a run that formats without resolved types. */
+    /** The key for a run under {@code config}. An {@code --analyze} run also keys on its classpath. */
     public static CacheKey of(final JavafmtConfig config) {
         Objects.requireNonNull(config, "config");
-        return new CacheKey(config.lint(), config.verifyOutput(), false, "");
-    }
-
-    /** The key for an {@code --analyze} run, which also depends on the classpath it resolves against. */
-    public static CacheKey ofAnalysis(final JavafmtConfig config, final String classpath) {
-        Objects.requireNonNull(config, "config");
-        return new CacheKey(config.lint(), config.verifyOutput(), true, classpath);
+        return switch (config.analysis()) {
+            case JavafmtConfig.Analysis.ParseOnly() -> new CacheKey(config.lint(), config.verifyOutput(), false, "");
+            case JavafmtConfig.Analysis.Attributed(var classpath) -> new CacheKey(config.lint(), config.verifyOutput(), true, classpath);
+        };
     }
 
     /** A short stable digest of this key, for the cache file's header line. */
     public String fingerprint() {
         final var material = "lint=" + lint + " verify=" + verifyOutput + " analyze=" + analyze + " classpath=" + classpath;
-        return HexFormat.of()
-                .formatHex(digest().digest(material.getBytes(StandardCharsets.UTF_8)))
-                .substring(0, 16);
-    }
-
-    private static MessageDigest digest() {
-        try {
-            return MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
+        return FileFormatCache.sha256(material).substring(0, 16);
     }
 }

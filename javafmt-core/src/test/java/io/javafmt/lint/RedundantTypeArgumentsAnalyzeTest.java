@@ -4,10 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.javafmt.Javafmt;
+import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 
 class RedundantTypeArgumentsAnalyzeTest {
+
+    private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     @Test
     void runningOnAnAttributionWhoseSessionHasEndedFailsInsteadOfSilentlySkipping() {
@@ -35,7 +38,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("Stream.of(1, 2, 3);")
                 .doesNotContain("<Integer>of");
@@ -52,7 +55,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("Optional.of(\"hi\")")
                 .doesNotContain("<String>of");
@@ -71,7 +74,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("Stream.<Number>of(1, 2)");
     }
 
@@ -87,7 +90,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("Stream.<Integer>of()");
     }
 
@@ -103,7 +106,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("var dropMe = Stream.of(1, 2);")
                 .contains("var keepMe = Stream.<Number>of(1, 2);");
@@ -121,7 +124,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("Map.of(\"a\", 1)")
                 .doesNotContain("<String, Integer>of");
@@ -147,7 +150,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     Stream<Integer> e() { return Stream.<Integer>of(5); }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("return Stream.of(1, 2);")
                 .contains("return Stream.of(3, 4);")
@@ -167,7 +170,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     List<String> field = new ArrayList<String>();
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("new ArrayList<>();");
     }
 
@@ -188,7 +191,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted)
                 .contains("Stream.of(\"a\").count()")
                 .doesNotContain("<String>of");
@@ -207,7 +210,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     }
                 }
                 """;
-        final var formatted = Javafmt.formatWithAnalyze(source, "").output();
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("Stream.<Object>of(\"a\")");
     }
 }

@@ -48,10 +48,8 @@ public final class ArrayTypeStyle implements LintRule {
         if (!(node.getType() instanceof ArrayTypeTree)) {
             return Optional.empty();
         }
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
-        final var typeStart = (int) positions.getStartPosition(root, node.getType());
-        final var typeEnd = (int) positions.getEndPosition(root, node.getType());
+        final var typeStart = unit.startOf(node.getType());
+        final var typeEnd = unit.endOf(node.getType());
         if (typeStart < 0 || typeEnd < 0 || typeEnd > unit.source().length()) {
             return Optional.empty();
         }
@@ -84,9 +82,8 @@ public final class ArrayTypeStyle implements LintRule {
         if (!(node.getReturnType() instanceof ArrayTypeTree)) {
             return Optional.empty();
         }
-        final var positions = unit.sourcePositions();
-        final var typeStart = (int) positions.getStartPosition(unit.tree(), node.getReturnType());
-        final var typeEnd = (int) positions.getEndPosition(unit.tree(), node.getReturnType());
+        final var typeStart = unit.startOf(node.getReturnType());
+        final var typeEnd = unit.endOf(node.getReturnType());
         if (typeStart < 0 || typeEnd < 0 || typeEnd > unit.source().length()) {
             return Optional.empty();
         }

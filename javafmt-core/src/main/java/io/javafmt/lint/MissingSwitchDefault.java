@@ -4,7 +4,7 @@ import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.PatternCaseLabelTree;
 import com.sun.source.tree.SwitchTree;
 import io.javafmt.Diagnostic;
-import io.javafmt.parser.ChainPathScanner;
+import java.util.List;
 
 /**
  * Warns if a {@code switch} statement has no {@code default} case. Switch expressions never reach
@@ -17,28 +17,19 @@ import io.javafmt.parser.ChainPathScanner;
  * that was what this javadoc used to claim, and arrow-form switch *statements* are ordinary
  * switches like any other.
  */
-public final class MissingSwitchDefault implements LintRule {
+public final class MissingSwitchDefault implements WarningRule {
 
     private static final String MESSAGE = "switch statement does not have a 'default' case";
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
-        return LintScan.diagnostics(
-                ctx,
-                diagnostics -> new ChainPathScanner<>() {
+    public List<Diagnostic> warnings(final LintContext ctx) {
+        return WarningRule.onNode(ctx, SwitchTree.class, node -> !hasDefault(node) && !allLabelsArePatterns(node), MESSAGE);
+    }
 
-                    @Override
-                    public Void visitSwitch(final SwitchTree node, final Void p) {
-                        final var hasDefault = node.getCases()
-                                .stream()
-                                .anyMatch(c -> c.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree));
-                        if (!hasDefault && !allLabelsArePatterns(node)) {
-                            diagnostics.add(new Diagnostic.Warning(MESSAGE, unit.positionOf(node)));
-                        }
-                        return super.visitSwitch(node, null);
-                    }
-                });
+    private static boolean hasDefault(final SwitchTree node) {
+        return node.getCases()
+                .stream()
+                .anyMatch(c -> c.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree));
     }
 
     /**

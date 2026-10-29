@@ -2,12 +2,11 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.CatchTree;
-import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.TryTree;
 import io.javafmt.Diagnostic;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 
@@ -21,14 +20,14 @@ import java.util.List;
  * {@code EmptyBlockCheck} has no token for a method body either; warning on one was javafmt's own
  * addition, and running javafmt over its own source produced six, every one deliberate.
  */
-public final class EmptyBlock implements LintRule {
+public final class EmptyBlock implements WarningRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
+    public List<Diagnostic> warnings(final LintContext ctx) {
         final var unit = ctx.unit();
-        return LintScan.diagnostics(
+        return LintScan.collect(
                 ctx,
-                diagnostics -> new ChainPathScanner<>() {
+                diagnostics -> new ChainScanner<>() {
 
                     @Override
                     public Void visitTry(final TryTree node, final Void p) {
@@ -53,9 +52,7 @@ public final class EmptyBlock implements LintRule {
 
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {
-                        final var path = getCurrentPath();
-                        if (path.getParentPath().getLeaf() instanceof ClassTree
-                            && node.isStatic()
+                        if (node.isStatic()
                             && node.getStatements().isEmpty()
                             && unit.interiorOf(node).isEmpty()) {
                             diagnostics.add(new Diagnostic.Warning("empty static initializer", unit.positionOf(node)));

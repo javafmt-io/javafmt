@@ -42,13 +42,13 @@ public final class TreeFacts {
         if (!ctor.getName().contentEquals("<init>")) {
             return false;
         }
-        final var ctorStart = unit.sourcePositions().getStartPosition(unit.tree(), ctor);
+        final var ctorStart = unit.startOf(ctor);
         if (ctorStart < 0) {
             return false;
         }
         return ctor.getParameters()
                 .stream()
-                .mapToLong(p -> unit.sourcePositions().getStartPosition(unit.tree(), p))
+                .mapToInt(unit::startOf)
                 .anyMatch(pos -> pos >= 0 && pos < ctorStart);
     }
 
@@ -65,7 +65,7 @@ public final class TreeFacts {
         if (type == null) {
             return false;
         }
-        return unit.sourcePositions().getEndPosition(unit.tree(), type) < 0;
+        return unit.endOf(type) < 0;
     }
 
     /**
@@ -74,8 +74,8 @@ public final class TreeFacts {
      * front of a comment counts as a blank line in front of the declaration the comment belongs to.
      */
     public boolean blankLineBetween(final Tree before, final Tree after) {
-        final var declared = (int) unit.sourcePositions().getEndPosition(unit.tree(), before);
-        final var to = (int) unit.sourcePositions().getStartPosition(unit.tree(), after);
+        final var declared = unit.endOf(before);
+        final var to = unit.startOf(after);
         if (declared < 0 || to < declared) {
             return false;
         }
@@ -115,7 +115,7 @@ public final class TreeFacts {
      * chain the author had spread over several lines was collapsed onto one.
      */
     public boolean isFollowedByNewline(final Tree node) {
-        final var endPos = (int) unit.sourcePositions().getEndPosition(unit.tree(), node);
+        final var endPos = unit.endOf(node);
         if (endPos < 0) {
             return false;
         }

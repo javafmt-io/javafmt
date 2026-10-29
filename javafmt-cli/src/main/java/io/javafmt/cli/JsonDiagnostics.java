@@ -1,7 +1,6 @@
 package io.javafmt.cli;
 
 import io.javafmt.Diagnostic;
-import io.javafmt.Position;
 import java.util.Objects;
 import lombok.experimental.UtilityClass;
 
@@ -22,16 +21,7 @@ final class JsonDiagnostics {
     String line(final String file, final Diagnostic d) {
         Objects.requireNonNull(file, "file");
         Objects.requireNonNull(d, "d");
-        final var kind = switch (d) {
-            case Diagnostic.ParseError ignored -> "parse";
-            case Diagnostic.LintError ignored -> "lint";
-            case Diagnostic.InternalError ignored -> "internal";
-            case Diagnostic.Warning ignored -> "warning";
-        };
-        return switch (d.position()) {
-            case Position.At(var line, var column, var ignored) -> object(kind, d.message(), file, line, column);
-            case Position.Unknown() -> object(kind, d.message(), file, 0, 0);
-        };
+        return object(d.kind(), d.message(), file, d.position().line(), d.position().column());
     }
 
     /** A message originating in the CLI rather than in a {@link Diagnostic}. */

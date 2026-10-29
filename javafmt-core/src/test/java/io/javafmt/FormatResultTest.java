@@ -105,7 +105,7 @@ class FormatResultTest {
                 new IdentityHashMap<>(),
                 new IdentityHashMap<>(),
                 new IdentityHashMap<>());
-        final var result = Javafmt.formatParsed(src, unit, JavafmtConfig.defaults());
+        final var result = BatchFormatter.formatParsed(src, unit, JavafmtConfig.defaults());
         assertThat(result.output()).isEqualTo(src);
         assertThat(result.hasErrors()).isTrue();
         final var d = result.diagnostics().getFirst();

@@ -5,9 +5,8 @@ import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.util.TreePath;
 import io.javafmt.Diagnostic;
-import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +39,7 @@ public final class DefaultComesLast implements LintRule {
         final var unit = ctx.unit();
         final var edits = new ArrayList<LintEdit>();
         final var diagnostics = new ArrayList<Diagnostic>();
-        final var scanner = new ChainPathScanner<Void, Void>() {
+        final var scanner = new ChainScanner<Void, Void>() {
 
             @Override
             public Void visitSwitch(final SwitchTree node, final Void p) {
@@ -54,7 +53,7 @@ public final class DefaultComesLast implements LintRule {
                 return super.visitSwitchExpression(node, null);
             }
         };
-        scanner.scan(new TreePath(unit.tree()), null);
+        scanner.scan(unit.tree(), null);
         return new LintResult(edits, diagnostics);
     }
 
@@ -109,11 +108,9 @@ public final class DefaultComesLast implements LintRule {
     }
 
     private static List<LintEdit> buildMoveEdits(final Tree switchNode, final CaseTree defaultCase, final ParsedUnit unit) {
-        final var positions = unit.sourcePositions();
-        final var root = unit.tree();
-        final var defaultStart = (int) positions.getStartPosition(root, defaultCase);
-        final var defaultEnd = (int) positions.getEndPosition(root, defaultCase);
-        final var switchEnd = (int) positions.getEndPosition(root, switchNode);
+        final var defaultStart = unit.startOf(defaultCase);
+        final var defaultEnd = unit.endOf(defaultCase);
+        final var switchEnd = unit.endOf(switchNode);
         if (defaultStart < 0
             || defaultEnd < 0
             || switchEnd < 0

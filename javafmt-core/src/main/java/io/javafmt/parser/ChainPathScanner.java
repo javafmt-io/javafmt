@@ -1,6 +1,5 @@
 package io.javafmt.parser;
 
-import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
@@ -12,13 +11,13 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * {@link TreePathScanner} on top of {@link ChainScanner}: {@link #getCurrentPath()} is the path to
- * the node being visited, including while a chain of binary operators is walked with a loop.
+ * the node being visited, including while a chain is walked with a loop.
  */
 public abstract class ChainPathScanner<R extends @Nullable Object, P extends @Nullable Object> extends ChainScanner<R, P> {
 
     @Nullable private TreePath path;
 
-    private final IdentityHashMap<BinaryTree, TreePath> chainPaths = new IdentityHashMap<>();
+    private final IdentityHashMap<Tree, TreePath> chainPaths = new IdentityHashMap<>();
 
     @Nullable public R scan(final TreePath path, @Nullable final P p) {
         this.path = path;
@@ -49,24 +48,24 @@ public abstract class ChainPathScanner<R extends @Nullable Object, P extends @Nu
     }
 
     @Override
-    void enterChain(final List<BinaryTree> spine) {
+    void enterChain(final List<? extends Tree> spine) {
         var parent = getCurrentPath();
         chainPaths.put(spine.getFirst(), parent);
-        for (final var operator : spine.subList(1, spine.size())) {
-            parent = new TreePath(parent, operator);
-            chainPaths.put(operator, parent);
+        for (final var link : spine.subList(1, spine.size())) {
+            parent = new TreePath(parent, link);
+            chainPaths.put(link, parent);
         }
     }
 
     @Override
-    void exitChain(final List<BinaryTree> spine) {
+    void exitChain(final List<? extends Tree> spine) {
         spine.forEach(chainPaths::remove);
     }
 
     @Override
-    <T extends @Nullable Object> T at(final BinaryTree operator, final Supplier<T> work) {
+    <T extends @Nullable Object> T at(final Tree link, final Supplier<T> work) {
         final var enclosing = path;
-        path = Objects.requireNonNull(chainPaths.get(operator), "operator outside its chain");
+        path = Objects.requireNonNull(chainPaths.get(link), "link outside its chain");
         try {
             return work.get();
         } finally {

@@ -69,7 +69,7 @@ public final class ModifierOrder implements LintRule {
 
     private static Optional<LintEdit> checkModifiers(final ModifiersTree modifiers, final ParsedUnit unit) {
         final var flags = modifiers.getFlags();
-        final var modStart = (int) unit.sourcePositions().getStartPosition(unit.tree(), modifiers);
+        final var modStart = unit.startOf(modifiers);
         if (modStart < 0) {
             return Optional.empty();
         }

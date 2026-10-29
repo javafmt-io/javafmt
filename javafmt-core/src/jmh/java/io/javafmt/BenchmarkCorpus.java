@@ -8,7 +8,7 @@ import java.util.List;
  * printer hot paths: method-chain breaking, wide record components, and deeply
  * nested conditional / ternary chains. Inputs are large enough that printer cost
  * is a measurable fraction of total format time, but small enough that the whole
- * corpus formats well under one millisecond per strategy on a developer laptop.
+ * corpus formats well under one millisecond on a developer laptop.
  */
 public final class BenchmarkCorpus {
 
@@ -169,6 +169,20 @@ public final class BenchmarkCorpus {
             }
         }
         """;
+
+    public static final String DEEP_NESTING = "package demo;\n\nimport java.util.List;\n\nclass DeepNesting {\n\n    Object nested(final List<Object> list) {\n"
+            + "        return "
+            + "list.stream().map(q -> ".repeat(150)
+            + "q"
+            + ").toList()".repeat(150)
+            + ";\n    }\n}\n";
+
+    public static final String DEEP_TWO_LINK_NESTING = "package demo;\n\nimport java.util.List;\n\nclass DeepTwoLinkNesting {\n\n"
+            + "    Object nested(final List<Object> list) {\n        return "
+            + "list.stream().map(q -> ".repeat(150)
+            + "q"
+            + ")".repeat(150)
+            + ";\n    }\n}\n";
 
     public static final List<String> ALL = List.of(METHOD_CHAINS, WIDE_RECORDS, NESTED_CONDITIONALS);
 

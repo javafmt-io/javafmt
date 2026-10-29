@@ -21,7 +21,11 @@ import lombok.experimental.UtilityClass;
 final class WrappableList {
 
     Doc of(final String open, final String separator, final String close, final Stream<Doc> elements) {
-        return build(open, separator, close, elements, false);
+        return new Doc.Group(ungroupedOf(open, separator, close, elements));
+    }
+
+    Doc ungroupedOf(final String open, final String separator, final String close, final Stream<Doc> elements) {
+        return build(open, separator, close, elements, Stream.empty());
     }
 
     /**
@@ -30,7 +34,7 @@ final class WrappableList {
      * brace that opened a block-shaped thing should close like one.
      */
     Doc blockOf(final String open, final String separator, final String close, final Stream<Doc> elements) {
-        return build(open, separator, close, elements, true);
+        return new Doc.Group(build(open, separator, close, elements, Stream.of(Doc.SOFT_LINE)));
     }
 
     /**
@@ -44,14 +48,12 @@ final class WrappableList {
         return new Doc.Group(Doc.continuationIndent(new Doc.Concat(Doc.intersperse(between, elements))));
     }
 
-    private Doc build(final String open, final String separator, final String close, final Stream<Doc> elements, final boolean closeOnOwnLine) {
+    private Doc build(final String open, final String separator, final String close, final Stream<Doc> elements, final Stream<Doc> beforeClose) {
         final var interior = new Doc.Concat(
                 Stream.concat(Stream.of(Doc.SOFT_LINE), Doc.intersperse(List.of(new Doc.Text(separator), Doc.LINE), elements)));
-        final var beforeClose = closeOnOwnLine ? Stream.<Doc>of(Doc.SOFT_LINE) : Stream.<Doc>empty();
-        return new Doc.Group(
-                new Doc.Concat(
-                        Stream.concat(
-                                Stream.<Doc>of(new Doc.Text(open), Doc.continuationIndent(interior)),
-                                Stream.concat(beforeClose, Stream.<Doc>of(new Doc.Text(close))))));
+        return new Doc.Concat(
+                Stream.concat(
+                        Stream.<Doc>of(new Doc.Text(open), Doc.continuationIndent(interior)),
+                        Stream.concat(beforeClose, Stream.<Doc>of(new Doc.Text(close)))));
     }
 }

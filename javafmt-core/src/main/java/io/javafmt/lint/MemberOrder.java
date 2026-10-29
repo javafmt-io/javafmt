@@ -9,7 +9,6 @@ import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
@@ -39,27 +38,27 @@ public final class MemberOrder implements LintRule {
     @Override
     public LintResult apply(final LintContext ctx) {
         final var unit = ctx.unit();
-        final var edits = new ArrayList<LintEdit>();
-        new ChainPathScanner<Void, Void>() {
+        return LintScan.edits(
+                ctx,
+                edits -> new ChainPathScanner<>() {
 
-            @Override
-            public Void visitClass(final ClassTree node, final Void p) {
-                if (!reorderable(getCurrentPath())) {
-                    return super.visitClass(node, null);
-                }
-                final var own = editsFor(node, unit);
-                edits.addAll(own);
-                if (own.isEmpty()) {
-                    return super.visitClass(node, null);
-                }
-                // A nested type that is moving is copied wholesale, so an edit inside it would land
-                // in a span this round is about to delete — which the engine reports as overlapping
-                // edits and refuses the whole file. The lint loop re-parses between rounds, so the
-                // inner body gets its turn on the next pass.
-                return null;
-            }
-        }.scan(unit.tree(), null);
-        return LintResult.ofEdits(List.copyOf(edits));
+                    @Override
+                    public Void visitClass(final ClassTree node, final Void p) {
+                        if (!reorderable(getCurrentPath())) {
+                            return super.visitClass(node, null);
+                        }
+                        final var own = editsFor(node, unit);
+                        edits.addAll(own);
+                        if (own.isEmpty()) {
+                            return super.visitClass(node, null);
+                        }
+                        // A nested type that is moving is copied wholesale, so an edit inside it would land
+                        // in a span this round is about to delete — which the engine reports as overlapping
+                        // edits and refuses the whole file. The lint loop re-parses between rounds, so the
+                        // inner body gets its turn on the next pass.
+                        return null;
+                    }
+                });
     }
 
     private static boolean reorderable(final TreePath path) {
@@ -68,7 +67,7 @@ public final class MemberOrder implements LintRule {
     }
 
     private static List<LintEdit> editsFor(final ClassTree node, final ParsedUnit unit) {
-        final var members = node.getMembers().stream().filter(m -> start(unit, m) >= 0).toList();
+        final var members = node.getMembers().stream().filter(m -> unit.startOf(m) >= 0).toList();
         final var movers = membersToMove(node, members);
         if (movers.isEmpty() || alreadyInOrder(members, movers)) {
             return List.of();
@@ -139,25 +138,17 @@ public final class MemberOrder implements LintRule {
                 .stream()
                 .mapToInt(c -> c.start())
                 .min()
-                .orElse(start(unit, member));
+                .orElse(unit.startOf(member));
         final var trailing = unit.trailingOf(member)
                 .stream()
                 .mapToInt(c -> c.end())
                 .max()
-                .orElse(end(unit, member));
-        return new Span(Math.min(leading, start(unit, member)), Math.max(trailing, end(unit, member)));
+                .orElse(unit.endOf(member));
+        return new Span(Math.min(leading, unit.startOf(member)), Math.max(trailing, unit.endOf(member)));
     }
 
     private static int columnOf(final String source, final int pos) {
         return pos - (source.lastIndexOf('\n', pos - 1) + 1);
-    }
-
-    private static int start(final ParsedUnit unit, final Tree tree) {
-        return (int) unit.sourcePositions().getStartPosition(unit.tree(), tree);
-    }
-
-    private static int end(final ParsedUnit unit, final Tree tree) {
-        return (int) unit.sourcePositions().getEndPosition(unit.tree(), tree);
     }
 
     private record Span(int start, int end) {}

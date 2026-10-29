@@ -7,8 +7,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public sealed interface Doc
-        permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLine, Doc.HardLine, Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak, Doc.Fill {
+public sealed interface Doc permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLine, Doc.HardLine, Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak {
 
     /** The sole {@link Line}. The record holds no state, so every instance is interchangeable. */
     Line LINE = new Line();
@@ -19,11 +18,11 @@ public sealed interface Doc
     /** The sole {@link HardLine}. The record holds no state, so every instance is interchangeable. */
     HardLine HARD_LINE = new HardLine();
 
+    Doc BLANK_LINE = new Concat(List.of(HARD_LINE, HARD_LINE));
+
     /**
      * Returns the flat-render width of {@code doc}, or {@code -1} if it contains a forced
-     * break ({@link HardLine}, or a {@link Verbatim} whose body contains a newline). Useful
-     * for renderers that want a per-construct break threshold independent of the line width
-     * (e.g. break method chains at 80 chars even if the line itself fits 150).
+     * break ({@link HardLine}, or a {@link Verbatim} whose body contains a newline).
      */
     static int flatWidthOrBreak(final Doc doc) {
         var total = 0;
@@ -51,11 +50,6 @@ public sealed interface Doc
                         work.push(ps.get(i));
                     }
                 }
-                case Fill(var ps) -> {
-                    for (var i = ps.size() - 1; i >= 0; i--) {
-                        work.push(ps.get(i));
-                    }
-                }
             }
         }
         return total;
@@ -78,7 +72,6 @@ public sealed interface Doc
             case Indent(var inner) -> endsWithLineComment(inner);
             case Group(var inner, var ignored) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
-            case Fill(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case IfBreak(var breakContents, var ignored) -> endsWithLineComment(breakContents);
             case Line(), SoftLine(), HardLine() -> false;
         };
@@ -97,9 +90,6 @@ public sealed interface Doc
         while (!work.isEmpty()) {
             switch (work.pop()) {
                 case Line(), SoftLine(), HardLine() -> {
-                    return true;
-                }
-                case Fill ignored -> {
                     return true;
                 }
                 case Verbatim(var s, var ignored) -> {
@@ -132,12 +122,16 @@ public sealed interface Doc
     /** A member pushed one indent level in, opening on a fresh line: the body-brace idiom. */
     static Doc indentedLine(final Doc contents) {
         Objects.requireNonNull(contents, "contents");
-        return new Indent(new Concat(List.of(HARD_LINE, contents)));
+        return new Indent(concat(HARD_LINE, contents));
     }
 
     /** The closing "\n}" of a braced body. */
     static Stream<Doc> closeBrace() {
         return Stream.of(HARD_LINE, new Text("}"));
+    }
+
+    static Doc concat(final Doc... parts) {
+        return new Concat(List.of(parts));
     }
 
     /** Concat of several part-streams without nesting Stream.concat towers. */
@@ -236,31 +230,6 @@ public sealed interface Doc
         public IfBreak {
             Objects.requireNonNull(breakContents, "breakContents");
             Objects.requireNonNull(flatContents, "flatContents");
-        }
-    }
-
-    record Fill(List<Doc> parts) implements Doc {
-
-        public Fill {
-            Objects.requireNonNull(parts, "parts");
-            parts = List.copyOf(parts);
-            if ((parts.size() & 1) == 0) {
-                throw new IllegalArgumentException("Fill parts must alternate content/separator/.../content (odd length)");
-            }
-            for (var i = 1; i < parts.size(); i += 2) {
-                requireSeparator(parts.get(i));
-            }
-        }
-
-        private static void requireSeparator(final Doc part) {
-            final var isSeparator = switch (part) {
-                case Line ignored -> true;
-                case SoftLine ignored -> true;
-                default -> false;
-            };
-            if (!isSeparator) {
-                throw new IllegalArgumentException("Fill separators must be Line or SoftLine, got: " + part.getClass().getSimpleName());
-            }
         }
     }
 }
