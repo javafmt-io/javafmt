@@ -141,6 +141,11 @@ jmh {
     if (project.hasProperty("jmhInclude")) {
         includes.add(project.property("jmhInclude") as String)
     }
+    if (providers.gradleProperty("jmhProof").isPresent) {
+        fork.set(3)
+        warmupIterations.set(5)
+        iterations.set(10)
+    }
 }
 
 // Profilers are opt-in: instrumentation distorts the timings the benchmarks exist to measure,

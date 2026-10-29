@@ -40,8 +40,17 @@ jobs:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
 
+      - name: Resolve JReleaser and project versions
+        run: |
+          echo "JRELEASER_VERSION=$(sed -n 's/^jreleaser=//p' .sdkmanrc)" >> "$GITHUB_ENV"
+          echo "JRELEASER_PROJECT_VERSION=$(gradle -q currentVersion)" >> "$GITHUB_ENV"
+
       - name: Release with JReleaser
-        run: gradle jreleaserFullRelease
+        uses: jreleaser/release-action@v2
+        with:
+          version: ${{ env.JRELEASER_VERSION }}
+          arguments: full-release --output-directory build
+          setup-java: false
         env:
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}

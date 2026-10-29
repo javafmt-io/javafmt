@@ -2,3 +2,4 @@
 # Add key=value pairs of SDKs to use below
 java=25.0.5.0+8-tem
 gradle=9.8.2
+jreleaser=1.26.0

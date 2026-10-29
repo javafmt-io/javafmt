@@ -5,6 +5,7 @@ import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,7 +68,14 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
     }
 
     Optional<FileOutcome> slowest() {
-        return outcomes.stream().max((a, b) -> Long.compare(a.millis(), b.millis()));
+        return outcomes.stream().max(Comparator.comparingLong(FileOutcome::millis));
+    }
+
+    List<FileOutcome> slowest(final int count) {
+        return outcomes.stream()
+                .sorted(Comparator.comparingLong(FileOutcome::millis).reversed())
+                .limit(count)
+                .toList();
     }
 
     /**
