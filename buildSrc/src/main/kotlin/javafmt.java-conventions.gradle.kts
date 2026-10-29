@@ -5,6 +5,7 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
     `java-library`
+    jacoco
     id("net.ltgt.errorprone")
 }
 
@@ -52,6 +53,38 @@ tasks.withType<Test>().configureEach {
         showCauses = true
         showStackTraces = true
     }
+}
+
+jacoco {
+    toolVersion = libs.findVersion("jacoco").get().requiredVersion
+}
+
+val jacocoXmlReport = layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml")
+
+val jacocoTestReport = tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.withType<Test>())
+    executionData.from(fileTree(layout.buildDirectory.dir("jacoco")) { include("*.exec") })
+    reports {
+        xml.required = true
+        xml.outputLocation = jacocoXmlReport
+        html.required = true
+    }
+}
+
+tasks.named("check") {
+    dependsOn(jacocoTestReport)
+}
+
+val coverageReportElements = configurations.create("coverageReportElements") {
+    isCanBeConsumed = true
+    isCanBeResolved = false
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named("jacoco-xml-report"))
+    }
+}
+
+artifacts.add(coverageReportElements.name, jacocoXmlReport) {
+    builtBy(jacocoTestReport)
 }
 
 tasks.withType<Javadoc>().configureEach {

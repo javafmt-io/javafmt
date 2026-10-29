@@ -22,6 +22,7 @@ asm = "9.11.1"
 googleJavaFormat = "1.37.0"
 spotlessGradle = "8.10.4"
 intellijPlatform = "2.19.0"
+jacoco = "0.8.16"
 develocity = "4.6.1"
 graalvmNative = "1.1.17"
 
