@@ -15,8 +15,8 @@ on:
 #   gradle :javafmt-cli:metadataCopy --task test \
 #     --dir javafmt-cli/src/main/resources/META-INF/native-image/io.javafmt/javafmt-cli
 #
-#   gradle :javafmt-vscode:daemonAgentCapture -Pagent --no-configuration-cache
-#   gradle :javafmt-vscode:metadataCopy --no-configuration-cache --task daemonAgentCapture \
+#   gradle :javafmt-vscode:daemonAgentCapture -Pagent
+#   gradle :javafmt-vscode:metadataCopy --task daemonAgentCapture \
 #     --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
 #
 # Commit the generated metadata, then re-trigger this workflow. This metadata is already
@@ -51,12 +51,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.6.1'
+          gradle-version: '9.8.2'
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
-      # gradle.properties enables the configuration cache repo-wide, but the GraalVM buildtools
-      # plugin can't serialize the Configuration it needs in generateResourcesConfigFile. Opt out.
       - name: Compile CLI native binary
-        run: gradle :javafmt-cli:nativeCompile --no-configuration-cache
+        run: gradle :javafmt-cli:nativeCompile
 
       # The native binary's whole point is starting instantly, and nothing measured it before.
       # Ten runs of the smallest possible input, so the number is startup rather than formatting.
@@ -104,7 +103,7 @@ jobs:
       # own `release.github.overwrite: true` for the same tag, since both would be writing to the
       # same release concurrently.
       - name: Compile daemon native binary
-        run: gradle :javafmt-vscode:nativeCompile --no-configuration-cache
+        run: gradle :javafmt-vscode:nativeCompile
 
       # Reachability metadata for the daemon's Jackson record types (FormatRequest, FormatResponse,
       # DiagnosticDto) is committed under
@@ -119,8 +118,8 @@ jobs:
       # actually needs to run.
       #
       # Regenerate the metadata after any DTO change with:
-      #   gradle :javafmt-vscode:daemonAgentCapture -Pagent --no-configuration-cache
-      #   gradle :javafmt-vscode:metadataCopy --no-configuration-cache --task daemonAgentCapture \
+      #   gradle :javafmt-vscode:daemonAgentCapture -Pagent
+      #   gradle :javafmt-vscode:metadataCopy --task daemonAgentCapture \
       #     --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
       # (requires a GraalVM toolchain on JAVA_HOME/GRAALVM_HOME -- Temurin ships no
       # native-image-agent).

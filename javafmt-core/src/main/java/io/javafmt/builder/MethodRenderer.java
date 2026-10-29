@@ -134,10 +134,11 @@ final class MethodRenderer {
         if (type instanceof AnnotatedTypeTree annotated && annotated.getUnderlyingType() instanceof ArrayTypeTree arr) {
             return Optional.of(
                     Doc.concatOf(
-                            Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")),
-                            annotated.getAnnotations()
-                                    .stream()
-                                    .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")))));
+                            Stream.of(
+                                    Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")),
+                                    annotated.getAnnotations()
+                                            .stream()
+                                            .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" "))))));
         }
         return Optional.empty();
     }
@@ -164,6 +165,6 @@ final class MethodRenderer {
         final var stmtDocs = BlockRenderer.statementDocs(stmts, recursor);
         final var tailDocs = tail.stream().<Doc>map(CommentDocs::renderComment);
         final var all = Stream.concat(stmtDocs, tailDocs);
-        return Doc.concatOf(Stream.of(header, new Doc.Text(" {")), all.map(Doc::indentedLine), Doc.closeBrace());
+        return Doc.concatOf(Stream.of(Stream.of(header, new Doc.Text(" {")), all.map(Doc::indentedLine), Doc.closeBrace()));
     }
 }

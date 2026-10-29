@@ -23,13 +23,14 @@ final class LoopRenderer {
 
     private Doc buildForHeader(final ForLoopTree node, final Recursor recursor) {
         return Doc.concatOf(
-                Stream.of(new Doc.Text("for (")),
-                forInitializers(node.getInitializer(), recursor),
-                Stream.of(new Doc.Text("; ")),
-                node.getCondition() != null ? Stream.of(renderPart(node.getCondition(), recursor, false)) : Stream.<Doc>empty(),
-                Stream.of(new Doc.Text(node.getUpdate().isEmpty() ? ";" : "; ")),
-                joinInto(node.getUpdate(), recursor, true),
-                Stream.of(new Doc.Text(")")));
+                Stream.of(
+                        Stream.of(new Doc.Text("for (")),
+                        forInitializers(node.getInitializer(), recursor),
+                        Stream.of(new Doc.Text("; ")),
+                        node.getCondition() != null ? Stream.of(renderPart(node.getCondition(), recursor, false)) : Stream.<Doc>empty(),
+                        Stream.of(new Doc.Text(node.getUpdate().isEmpty() ? ";" : "; ")),
+                        joinInto(node.getUpdate(), recursor, true),
+                        Stream.of(new Doc.Text(")"))));
     }
 
     /**

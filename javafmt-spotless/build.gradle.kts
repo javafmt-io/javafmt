@@ -25,7 +25,7 @@ val integrationTest: SourceSet by sourceSets.creating
  * classpath as files. Resolving it there would need a repository and a network; injecting it keeps
  * the TestKit build offline.
  */
-val spotlessPluginRuntime: Configuration by configurations.creating
+val spotlessPluginRuntime = configurations.create("spotlessPluginRuntime")
 
 dependencies {
     spotlessPluginRuntime("com.diffplug.spotless:spotless-plugin-gradle:${libs.versions.spotlessGradle.get()}")

@@ -32,10 +32,11 @@ final class TypeBodyRenderer {
         return ModifierRenderer.prependOwnLineAnnotations(
                 mods,
                 Doc.concatOf(
-                        Stream.of(header, new Doc.Text(" {"), Doc.HARD_LINE),
-                        separated(members, recursor),
-                        tail.stream().map(CommentDocs::renderComment).map(Doc::indentedLine),
-                        Doc.closeBrace()),
+                        Stream.of(
+                                Stream.of(header, new Doc.Text(" {"), Doc.HARD_LINE),
+                                separated(members, recursor),
+                                tail.stream().map(CommentDocs::renderComment).map(Doc::indentedLine),
+                                Doc.closeBrace())),
                 recursor);
     }
 

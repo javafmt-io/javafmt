@@ -175,8 +175,15 @@ public final class JavafmtFormatterStep {
         }
 
         @Override
-        public void close() throws Exception {
-            delegate.close();
+        public void close() {
+            try {
+                delegate.close();
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            } catch (final Exception e) {
+                throw new IllegalStateException(e);
+            }
         }
     }
 

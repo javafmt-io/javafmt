@@ -59,7 +59,7 @@ final class BlockRenderer {
             return new Doc.Concat(List.of(header, new Doc.Text(" {}")));
         }
         final var all = Stream.concat(stmts.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment));
-        return Doc.concatOf(blockParts(header, all), Doc.closeBrace());
+        return Doc.concatOf(Stream.of(blockParts(header, all), Doc.closeBrace()));
     }
 
     Doc buildBlock(final List<Doc> stmts, final List<CommentToken> trailing) {
@@ -67,7 +67,7 @@ final class BlockRenderer {
             return new Doc.Text("{}");
         }
         final var all = Stream.concat(stmts.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment));
-        return Doc.concatOf(Stream.<Doc>of(new Doc.Text("{")), all.map(Doc::indentedLine), Doc.closeBrace());
+        return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text("{")), all.map(Doc::indentedLine), Doc.closeBrace()));
     }
 
     Stream<Doc> blockParts(final String header, final List<Doc> stmts) {
@@ -89,7 +89,7 @@ final class BlockRenderer {
         if (doc instanceof Doc.Concat(var parts) && !parts.isEmpty()) {
             final var last = parts.getLast();
             final var stripped = stripTrailingSemicolonDoc(last);
-            if (stripped != last) {
+            if (!stripped.equals(last)) {
                 final var newParts = new ArrayList<>(parts);
                 newParts.set(newParts.size() - 1, stripped);
                 return new Doc.Concat(newParts);

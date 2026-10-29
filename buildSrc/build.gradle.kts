@@ -7,9 +7,18 @@ repositories {
 }
 
 dependencies {
-    implementation("net.ltgt.gradle:gradle-errorprone-plugin:5.1.0")
-    implementation("com.github.node-gradle:gradle-node-plugin:7.0.1")
-    implementation("org.graalvm.buildtools:native-gradle-plugin:0.10.6")
-    implementation("com.gradleup.shadow:shadow-gradle-plugin:9.0.0")
-    implementation("com.diffplug.spotless:spotless-plugin-gradle:8.4.0")
+    implementation(libs.errorprone.gradle.plugin)
+    implementation(libs.node.gradle.plugin)
+    implementation(libs.graalvm.native.gradle.plugin)
+    implementation(libs.shadow.gradle.plugin)
+    implementation(libs.spotless.gradle.plugin)
+
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.assertj.core)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

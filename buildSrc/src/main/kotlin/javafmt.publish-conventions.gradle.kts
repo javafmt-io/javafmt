@@ -16,7 +16,7 @@ publishing {
             from(components["java"])
             pom {
                 name.set(project.name)
-                description.set(project.description ?: project.rootProject.description ?: "")
+                description.set(project.description ?: providers.gradleProperty("javafmt.description").get())
                 url.set("https://javafmt.io")
                 licenses {
                     license {
@@ -42,7 +42,7 @@ publishing {
     repositories {
         maven {
             name = "staging"
-            url = project.rootProject.layout.buildDirectory.dir("staging-deploy").get().asFile.toURI()
+            url = isolated.rootProject.projectDirectory.dir("build/staging-deploy").asFile.toURI()
         }
         maven {
             name = "github"

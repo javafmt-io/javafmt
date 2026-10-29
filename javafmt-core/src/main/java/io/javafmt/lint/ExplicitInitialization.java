@@ -83,7 +83,7 @@ public final class ExplicitInitialization implements LintRule {
         return switch (type.getPrimitiveTypeKind()) {
             case INT, BYTE, SHORT -> lit.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(lit.getValue());
             // A char's default is written either way, and '\0' is the more common of the two.
-            case CHAR -> isZeroInt(lit) || lit.getKind() == Tree.Kind.CHAR_LITERAL && Character.valueOf('\0').equals(lit.getValue());
+            case CHAR -> isZeroInt(lit) || (lit.getKind() == Tree.Kind.CHAR_LITERAL && Character.valueOf('\0').equals(lit.getValue()));
             case LONG -> lit.getKind() == Tree.Kind.LONG_LITERAL && Long.valueOf(0L).equals(lit.getValue());
             case FLOAT -> lit.getKind() == Tree.Kind.FLOAT_LITERAL && Float.valueOf(0.0F).equals(lit.getValue());
             case DOUBLE -> lit.getKind() == Tree.Kind.DOUBLE_LITERAL && Double.valueOf(0.0).equals(lit.getValue());
@@ -96,9 +96,7 @@ public final class ExplicitInitialization implements LintRule {
      * Deletes {@code " = <default>"} from the field declaration. The {@code '='} is found by
      * scanning backward from the initializer, bounded by the declaration's own start so a
      * malformed span can never latch onto an unrelated {@code '='} earlier in the file, and
-     * skipping any {@code '='} that sits inside a comment — {@code int x = /* default = zero *&#47; 0;}
-     * used to stop at the one in the comment and delete from there, leaving an unterminated comment
-     * that came back to the user as their own parse error.
+     * skipping any {@code '='} that sits inside a block comment between the name and the initializer.
      *
      * <p>No edit is produced when a comment falls inside the span being deleted: the author wrote
      * it and deleting the initializer would take it with it.

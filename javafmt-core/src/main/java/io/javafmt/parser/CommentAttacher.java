@@ -142,7 +142,7 @@ final class CommentAttacher {
      * renderer has to emit it after the separator: emitted before, a {@code //} comment would
      * swallow the comma.
      *
-     * <p>Only {@code //} qualifies. A block comment past the separator, {@code f(a, /* b *&#47; b)},
+     * <p>Only {@code //} qualifies. A block comment past the separator, <code>f(a, /* b *&#47; b)</code>,
      * reads as annotating what comes after it and is already attached that way.
      */
     private boolean trailsPastTheSeparator(
@@ -500,7 +500,7 @@ final class CommentAttacher {
         }
 
         /**
-         * The rest of the line the then-branch's {@code {} opens, so {@code if (x) { // why} keeps
+         * The rest of the line the then-branch's <code>{</code> opens, so <code>if (x) { // why</code> keeps
          * its comment on the header line. The slot starts one character past the brace, which is
          * what leaves it holding nothing but whitespace when the comment is on that same line;
          * a comment on any later line falls through to the block's own leading slot and stays

@@ -98,21 +98,22 @@ final class IfRenderer {
         }
         final var thenParts = thenParts(header, thenStmts, braceLine);
         if (node.getElseStatement() == null) {
-            return Doc.concatOf(thenParts, Doc.closeBrace());
+            return Doc.concatOf(Stream.of(thenParts, Doc.closeBrace()));
         }
         final var elseJoint = elseJointParts(node, attacher);
         if (node.getElseStatement() instanceof IfTree elseIf) {
             final var elseIfDoc = Objects.requireNonNull(recursor.scan(elseIf));
-            return Doc.concatOf(thenParts, Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")), elseJoint, Stream.of(elseIfDoc));
+            return Doc.concatOf(Stream.of(thenParts, Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")), elseJoint, Stream.of(elseIfDoc)));
         }
         final var elseStmts = BlockRenderer.blockStmts(node.getElseStatement(), recursor, attacher);
         return Doc.concatOf(
-                thenParts,
-                Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")),
-                elseJoint,
-                Stream.<Doc>of(new Doc.Text("{")),
-                elseStmts.stream().map(Doc::indentedLine),
-                Doc.closeBrace());
+                Stream.of(
+                        thenParts,
+                        Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")),
+                        elseJoint,
+                        Stream.<Doc>of(new Doc.Text("{")),
+                        elseStmts.stream().map(Doc::indentedLine),
+                        Doc.closeBrace()));
     }
 
     /**

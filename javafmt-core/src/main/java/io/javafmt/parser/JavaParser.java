@@ -406,20 +406,9 @@ public final class JavaParser {
         if (offset == javax.tools.Diagnostic.NOPOS
             || line == javax.tools.Diagnostic.NOPOS
             || column == javax.tools.Diagnostic.NOPOS) {
-            return Position.UNKNOWN;
+            return new Position.Unknown();
         }
         return new Position.At((int) line, (int) column, (int) offset);
-    }
-
-    Position positionOf(final SourcePositions positions, final CompilationUnitTree unit, final com.sun.source.tree.Tree node) {
-        final var offset = positions.getStartPosition(unit, node);
-        if (offset < 0) {
-            return Position.UNKNOWN;
-        }
-        final var lineMap = unit.getLineMap();
-        final var line = (int) lineMap.getLineNumber(offset);
-        final var column = (int) lineMap.getColumnNumber(offset);
-        return new Position.At(line, column, (int) offset);
     }
 
     private record ParsedBatch(

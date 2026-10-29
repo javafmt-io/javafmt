@@ -74,7 +74,7 @@ final class CommentDocs {
     /**
      * The leading comments in front of {@code doc}: {@code ownLine} ones each take a line, while
      * {@code inline} ones — the ones the author wrote on the node's own line, as in
-     * {@code f(/* count *&#47; 3)} — stay on it. Giving an inline comment a line of its own puts a
+     * <code>f(/* count *&#47; 3)</code> — stay on it. Giving an inline comment a line of its own puts a
      * forced break inside the enclosing list, which breaks the whole list one element per line
      * however well it would have fitted.
      */
@@ -83,9 +83,10 @@ final class CommentDocs {
             return doc;
         }
         return Doc.concatOf(
-                ownLine.stream().flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE)),
-                inline.stream().flatMap(c -> Stream.of(renderComment(c), new Doc.Text(" "))),
-                Stream.of(doc));
+                Stream.of(
+                        ownLine.stream().flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE)),
+                        inline.stream().flatMap(c -> Stream.of(renderComment(c), new Doc.Text(" "))),
+                        Stream.of(doc)));
     }
 
     Doc appendTrailing(final Doc doc, final List<CommentToken> comments) {

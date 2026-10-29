@@ -17,7 +17,6 @@ apply(plugin = "javafmt.spotless-conventions")
 val libs = the<VersionCatalogsExtension>().named("libs")
 
 group = "io.javafmt"
-version = project.rootProject.version
 
 java {
     toolchain {
@@ -52,6 +51,13 @@ tasks.withType<Test>().configureEach {
         showExceptions = true
         showCauses = true
         showStackTraces = true
+    }
+}
+
+tasks.withType<Javadoc>().configureEach {
+    (options as StandardJavadocDocletOptions).apply {
+        addBooleanOption("Xdoclint:all,-missing", true)
+        addBooleanOption("Werror", true)
     }
 }
 

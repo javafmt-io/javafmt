@@ -17,32 +17,32 @@ import org.junit.jupiter.params.provider.ValueSource;
  */
 class JavafmtFormatAllTest {
 
-    private static final String DIRTY = """
-            package demo;
-
-            import java.util.ArrayList;
-            import java.util.List;
-
-            final class Dirty%d {
-
-                private final List<String> names;
-
-                Dirty%d(List<String> names) {
-                    this.names = names;
-                }
-
-                List<String> upper() {
-                    ArrayList<String> out = new ArrayList<String>();
-                    for (String n : names)
-                        if (n != null)
-                            out.add(n.toUpperCase());
-                    return out;
-                }
-            }
-            """;
-
     private static List<String> dirtyCorpus(final int n) {
-        return IntStream.range(0, n).mapToObj(i -> DIRTY.formatted(i, i)).toList();
+        return IntStream.range(0, n)
+                .mapToObj(i -> """
+                               package demo;
+               
+                               import java.util.ArrayList;
+                               import java.util.List;
+               
+                               final class Dirty%d {
+               
+                                   private final List<String> names;
+               
+                                   Dirty%d(List<String> names) {
+                                       this.names = names;
+                                   }
+               
+                                   List<String> upper() {
+                                       ArrayList<String> out = new ArrayList<String>();
+                                       for (String n : names)
+                                           if (n != null)
+                                               out.add(n.toUpperCase());
+                                       return out;
+                                   }
+                               }
+                               """.formatted(i, i))
+                .toList();
     }
 
     @Test

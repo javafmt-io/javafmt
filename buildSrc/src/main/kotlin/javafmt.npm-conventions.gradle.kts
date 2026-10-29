@@ -10,7 +10,7 @@ node {
     download.set(false)
 }
 
-val npmBuild by tasks.registering(NpmTask::class) {
+val npmBuild = tasks.register<NpmTask>("npmBuild") {
     args.set(listOf("run", "compile"))
     dependsOn(tasks.named("npmInstall"))
     inputs.files(fileTree(layout.projectDirectory.dir("src")) {
@@ -18,18 +18,22 @@ val npmBuild by tasks.registering(NpmTask::class) {
         exclude("test/unit/**", "__mocks__/**")
     })
     inputs.file(layout.projectDirectory.file("tsconfig.json"))
+    inputs.file(layout.projectDirectory.file("package.json"))
+    inputs.file(layout.projectDirectory.file("package-lock.json"))
     outputs.dir(layout.projectDirectory.dir("out"))
 }
 
-val npmTest by tasks.registering(NpmTask::class) {
+val npmTest = tasks.register<NpmTask>("npmTest") {
     args.set(listOf("test"))
     dependsOn(tasks.named("npmInstall"))
     inputs.files(fileTree(layout.projectDirectory.dir("src")) { include("**/*.ts") })
     inputs.file(layout.projectDirectory.file("jest.config.js"))
+    inputs.file(layout.projectDirectory.file("package.json"))
+    inputs.file(layout.projectDirectory.file("package-lock.json"))
     outputs.file(layout.buildDirectory.file("test-results.json"))
 }
 
-val npmTestIntegration by tasks.registering(NpmTask::class) {
+val npmTestIntegration = tasks.register<NpmTask>("npmTestIntegration") {
     group = "verification"
     description = "Runs VS Code integration tests inside the Extension Development Host; skipped when 'code' is not on PATH."
     args.set(listOf("run", "test:integration"))
@@ -40,7 +44,7 @@ val npmTestIntegration by tasks.registering(NpmTask::class) {
 
 // Invokes vsce via the "package" script defined in package.json.
 // Projects that bundle a daemon jar should wire: tasks.named("packageVsix") { dependsOn(copyDaemonJar) }
-val packageVsix by tasks.registering(NpmTask::class) {
+val packageVsix = tasks.register<NpmTask>("packageVsix") {
     args.set(listOf("run", "package"))
     dependsOn(npmBuild)
     inputs.file(layout.projectDirectory.file("package.json"))

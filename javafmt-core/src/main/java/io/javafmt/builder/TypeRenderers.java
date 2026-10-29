@@ -155,7 +155,7 @@ final class TypeRenderers {
      * {@code int @A [] @B []}.
      */
     private Doc renderArrayDimensionAnnotation(final ArrayTypeTree arr, final Stream<Doc> annotations, final Recursor recursor) {
-        return Doc.concatOf(Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")), annotations, Stream.of(new Doc.Text("[]")));
+        return Doc.concatOf(Stream.of(Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")), annotations, Stream.of(new Doc.Text("[]"))));
     }
 
     /**
@@ -166,8 +166,9 @@ final class TypeRenderers {
      */
     private Doc renderQualifiedTypeAnnotation(final MemberSelectTree qualified, final Stream<Doc> annotations, final Recursor recursor) {
         return Doc.concatOf(
-                Stream.of(recursor.scan(qualified.getExpression()), new Doc.Text(".")),
-                annotations,
-                Stream.of(new Doc.Text(qualified.getIdentifier().toString())));
+                Stream.of(
+                        Stream.of(recursor.scan(qualified.getExpression()), new Doc.Text(".")),
+                        annotations,
+                        Stream.of(new Doc.Text(qualified.getIdentifier().toString()))));
     }
 }

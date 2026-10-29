@@ -23,7 +23,7 @@ final class TryRenderer {
                         BlockRenderer.blockStmts(finallyBlock, recursor, attacher)
                                 .stream()
                                 .map(Doc::indentedLine));
-        return Doc.concatOf(BlockRenderer.blockParts(header, tryStmts), catchStream, finallyStream, Doc.closeBrace());
+        return Doc.concatOf(Stream.of(BlockRenderer.blockParts(header, tryStmts), catchStream, finallyStream, Doc.closeBrace()));
     }
 
     private Doc buildHeader(final TryTree node, final Recursor recursor) {

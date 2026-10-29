@@ -23,7 +23,8 @@ final class ClassLikeRenderer {
         final var superclass = isInterface ? null : node.getExtendsClause();
         final var interfaces = node.getImplementsClause();
         final var permits = node.getPermitsClause();
-        final var namePart = Doc.concatOf(Stream.of(new Doc.Text(prefix)), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor));
+        final var namePart = Doc.concatOf(
+                Stream.of(Stream.of(new Doc.Text(prefix)), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor)));
         final var headerDoc = buildTypeDeclHeader(namePart, superclass, interfaces, isInterface, permits, recursor);
         final var className = node.getSimpleName().toString();
         // Members render in source order. The utility-class constructor used to be pinned to the

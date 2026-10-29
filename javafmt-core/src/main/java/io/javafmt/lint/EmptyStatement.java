@@ -81,7 +81,7 @@ public final class EmptyStatement implements LintRule {
     }
 
     /**
-     * The {@code {} that opens {@code node}'s body. Located from the end of the last header element
+     * The <code>{</code> that opens {@code node}'s body. Located from the end of the last header element
      * rather than from the declaration's start, so the braces in an annotation argument —
      * {@code @Marker({A, B}) class S} — are behind the cursor before the search begins.
      */

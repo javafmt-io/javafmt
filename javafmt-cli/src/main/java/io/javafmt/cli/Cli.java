@@ -10,6 +10,7 @@ import io.javafmt.SourceFiles;
 import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
 import io.javafmt.cache.FormatCache;
+import java.io.Console;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -97,8 +98,7 @@ public final class Cli {
     }
 
     private boolean stdinIsATerminal() {
-        final var console = System.console();
-        return console != null && console.isTerminal();
+        return Optional.ofNullable(System.console()).map(Console::isTerminal).orElse(false);
     }
 
     private Args dropExcludedFiles(final Args parsed) {

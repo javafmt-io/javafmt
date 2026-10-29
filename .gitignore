@@ -2,6 +2,7 @@
 .gradle/
 build/
 buildSrc/build/
+.kotlin/
 # Wrapper is intentionally not committed — use SDKMAN (.sdkmanrc) for `gradle`
 gradlew
 gradlew.bat

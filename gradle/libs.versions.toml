@@ -1,31 +1,29 @@
 [versions]
-junit = "6.0.3"
+junit = "6.1.3"
 assertj = "3.27.7"
-jspecify = "1.0.0"
-lombok = "1.18.44"
-slf4j = "2.0.17"
-maven = "3.9.15"
-maven-plugin-tools = "3.15.2"
+jspecify = "1.0.1"
+lombok = "1.18.48"
+slf4j = "2.0.20"
+maven = "3.10.0"
+maven-plugin-tools = "3.16.0"
 maven-plugin-development = "1.0.3"
-errorprone-plugin = "5.1.0"
-errorprone = "2.49.0"
-nullaway = "0.13.4"
+errorprone-plugin = "5.1.1"
+errorprone = "2.51.0"
+nullaway = "0.14.3"
 jmh = "0.7.3"
-checkstyle = "13.4.0"
-jreleaser = "1.15.0"
-axionRelease = "1.18.0"
-jackson = "3.1.3"
-shadow = "9.0.0"
-nodeGradle = "7.0.1"
-spotlessLib = "4.5.0"
-llmBuildCompactor = "0.4.0"
+checkstyle = "14.3.0"
+jreleaser = "1.26.0"
+jackson = "3.2.4"
+shadow = "9.6.1"
+nodeGradle = "7.1.0"
+spotlessLib = "4.10.4"
 jvmHotpath = "0.2.10"
-# JMH bundles ASM 9.0, which cannot read Java 25 class files; agents inside benchmark forks need this.
-asm = "9.9"
-# Benchmark-only: the head-to-head baseline in GjfComparisonBenchmark.
-googleJavaFormat = "1.27.0"
-spotlessGradle = "8.4.0"
-intellijPlatform = "2.16.0"
+asm = "9.11.1"
+googleJavaFormat = "1.37.0"
+spotlessGradle = "8.10.4"
+intellijPlatform = "2.19.0"
+develocity = "4.6.1"
+graalvmNative = "1.1.17"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -47,6 +45,12 @@ checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checks
 jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
 spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotlessLib" }
 junit4 = { module = "junit:junit", version = "4.13.2" }
+errorprone-gradle-plugin = { module = "net.ltgt.gradle:gradle-errorprone-plugin", version.ref = "errorprone-plugin" }
+node-gradle-plugin = { module = "com.github.node-gradle:gradle-node-plugin", version.ref = "nodeGradle" }
+graalvm-native-gradle-plugin = { module = "org.graalvm.buildtools:native-gradle-plugin", version.ref = "graalvmNative" }
+shadow-gradle-plugin = { module = "com.gradleup.shadow:shadow-gradle-plugin", version.ref = "shadow" }
+spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotlessGradle" }
+develocity-gradle-plugin = { module = "com.gradle:develocity-gradle-plugin", version.ref = "develocity" }
 opentest4j = { module = "org.opentest4j:opentest4j", version = "1.3.0" }
 
 [plugins]
@@ -54,10 +58,8 @@ maven-plugin-development = { id = "org.gradlex.maven-plugin-development", versio
 errorprone = { id = "net.ltgt.errorprone", version.ref = "errorprone-plugin" }
 jmh = { id = "me.champeau.jmh", version.ref = "jmh" }
 jreleaser = { id = "org.jreleaser", version.ref = "jreleaser" }
-axionRelease = { id = "pl.allegro.tech.build.axion-release", version.ref = "axionRelease" }
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
 nodeGradle = { id = "com.github.node-gradle.node", version.ref = "nodeGradle" }
 intellijPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "intellijPlatform" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotlessGradle" }
-llmBuildCompactor = { id = "io.github.sfkamath.llm-build-compactor", version.ref = "llmBuildCompactor" }
 jvmHotpath = { id = "io.github.sfkamath.jvm-hotpath", version.ref = "jvmHotpath" }

@@ -39,7 +39,7 @@ final class ModifierRenderer {
     /**
      * The annotations of a declaration, each as it appears in the source and followed by a space
      * so a modifier or type can be concatenated directly after it. Rendering through
-     * {@link AnnotationTree#toString()} would rebuild the annotation from the parse tree, which
+     * {@code AnnotationTree.toString()} would rebuild the annotation from the parse tree, which
      * drops comments inside the argument list and normalizes away punctuation the lint pass added
      * — {@code ArrayTrailingComma}'s trailing comma in particular, which made the lint pass and
      * the renderer permanently disagree about the output.

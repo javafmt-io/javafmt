@@ -34,18 +34,20 @@ final class EnumRenderer {
             final var pastTheLastSeparator = attacher.interior(node);
             final var constantsInner = new Doc.Indent(
                     Doc.concatOf(
-                            Stream.of(Doc.LINE),
-                            IntStream.range(0, constants.size())
-                                    .boxed()
-                                    .flatMap(
-                                            i -> Stream.concat(
-                                                    i == 0
-                                                            ? Stream.<Doc>empty()
-                                                            : CommentDocs.listSeparator(",", attacher.interior(constants.get(i))).stream(),
-                                                    Stream.of(attacher.attach(constants.get(i), renderConstant(constants.get(i), recursor))))),
-                            Stream.of(trailingSeparator(node, recursor)),
-                            pastTheLastSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
-                            commentsAfterTheLastConstant(node, attacher)));
+                            Stream.of(
+                                    Stream.of(Doc.LINE),
+                                    IntStream.range(0, constants.size())
+                                            .boxed()
+                                            .flatMap(
+                                                    i -> Stream.concat(
+                                                            i == 0
+                                                                    ? Stream.<Doc>empty()
+                                                                    : CommentDocs.listSeparator(",", attacher.interior(constants.get(i))).stream(),
+                                                            Stream.of(
+                                                                    attacher.attach(constants.get(i), renderConstant(constants.get(i), recursor))))),
+                                    Stream.of(trailingSeparator(node, recursor)),
+                                    pastTheLastSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
+                                    commentsAfterTheLastConstant(node, attacher))));
             return ModifierRenderer.prependOwnLineAnnotations(
                     node.getModifiers(),
                     new Doc.Group(
@@ -136,8 +138,7 @@ final class EnumRenderer {
      * each of its three {@code WalkerState} constants this way and javafmt dropped the last one.
      *
      * <p>Only {@link LeadingCommentAttacher#tail}: a comment on the last separator's own line
-     * arrives on {@code interior} instead and {@link #commentsPastTheLastSeparator} has already
-     * written it there.
+     * arrives on {@code interior} instead, and the trailing separator has already written it there.
      */
     private Stream<Doc> commentsAfterTheLastConstant(final ClassTree node, final LeadingCommentAttacher attacher) {
         return attacher.tail(node)
