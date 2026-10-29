@@ -68,6 +68,11 @@ gradle publishAllPublicationsToStagingRepository \
 
 # Check the staging dir — signed JARs, POMs, and .asc files
 ls build/staging-deploy/io/javafmt/
+
+# Load and validate jreleaser.yml the way the release workflow does. The release runs the
+# JReleaser CLI, not a Gradle plugin; `sdk env install` installs the version pinned in .sdkmanrc.
+# Run it from a regular clone: JReleaser cannot read the repository from a git worktree.
+JRELEASER_PROJECT_VERSION=0.1.0 jreleaser config --output-directory build
 ```
 
 ---
@@ -86,7 +91,7 @@ The version is derived from the latest `v*` git tag by the `javafmt.versioning` 
    - The build reads the tag and sets the project version to `0.1.0`
    - Every module builds and tests
    - Artifacts are signed and staged to `build/staging-deploy/`
-   - JReleaser deploys to Maven Central and creates a GitHub release with a generated changelog
+   - The JReleaser CLI (version pinned in `.sdkmanrc`) deploys to Maven Central and creates a GitHub release with a generated changelog
 
 3. **Verify on Central** — new artifacts land at
    `https://central.sonatype.com/artifact/io.javafmt/javafmt-core` within a few minutes of deployment.

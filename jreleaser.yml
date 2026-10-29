@@ -14,6 +14,8 @@ project:
   inceptionYear: "2026"
   authors:
     - Jim Schneidereit
+  java:
+    groupId: io.javafmt
 
 release:
   github:
@@ -41,6 +43,7 @@ deploy:
       central:
         active: RELEASE
         url: https://central.sonatype.com/api/v1/publisher
+        namespace: io.javafmt
         stagingRepositories:
           - build/staging-deploy
         retryDelay: 20

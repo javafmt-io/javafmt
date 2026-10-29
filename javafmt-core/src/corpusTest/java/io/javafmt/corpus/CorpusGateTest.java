@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.javafmt.corpus.CorpusRun.FileOutcome;
 import java.nio.file.Path;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,8 @@ class CorpusGateTest {
      * millisecond. The whole 1,276-file corpus formats in well under this per file.
      */
     private static final long PER_FILE_BUDGET_MILLIS = 5_000;
+
+    private static final int SLOWEST_REPORTED = 10;
 
     private static final CorpusBaseline BASELINE = CorpusBaseline.load();
 
@@ -108,7 +111,6 @@ class CorpusGateTest {
     }
 
     private static String summary(final CorpusRun corpus) {
-        final var slowest = corpus.slowest().orElseThrow();
         return """
 
                 javafmt corpus gate — %d files from java.base/java/{io,lang,nio,time,util}
@@ -118,9 +120,9 @@ class CorpusGateTest {
                   not idempotent          %5d   baseline %d
                   files over 150 chars    %5d   baseline %d
                   over-width lines        %5d
-                  slowest file            %5d ms  %s  (budget %d ms)
                   total                   %5d ms
-                """.formatted(
+                  slowest files (budget %d ms each)
+                %s""".formatted(
                 corpus.outcomes().size(),
                 corpus.count(FileOutcome::unparseable),
                 BASELINE.unparseable(),
@@ -133,9 +135,11 @@ class CorpusGateTest {
                 corpus.count(o -> o.formatted() && o.overWidthLines() > 0),
                 BASELINE.overWidth(),
                 corpus.outcomes().stream().mapToLong(FileOutcome::overWidthLines).sum(),
-                slowest.millis(),
-                slowest.name(),
+                corpus.totalMillis(),
                 PER_FILE_BUDGET_MILLIS,
-                corpus.totalMillis());
+                corpus.slowest(SLOWEST_REPORTED)
+                        .stream()
+                        .map(o -> "    %5d ms  %s%n".formatted(o.millis(), o.name()))
+                        .collect(Collectors.joining()));
     }
 }

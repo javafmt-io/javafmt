@@ -63,7 +63,8 @@ The Wadler-Lindig algorithm runs in **O(n)** with line width as a constant facto
 
 ```
 javafmt/
-├── build.gradle.kts             # root: jreleaser + coverage summary
+├── build.gradle.kts             # root: coverage summary
+├── jreleaser.yml                # release config, run by the JReleaser CLI in release.yml
 ├── settings.gradle.kts          # includes all subprojects
 ├── gradle/
 │   └── libs.versions.toml       # version catalog (single source of truth)
