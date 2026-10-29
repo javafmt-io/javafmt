@@ -66,7 +66,14 @@ public record ParsedUnit(
     }
 
     public Position positionOf(final Tree node) {
-        return JavaParser.positionOf(sourcePositions, tree, node);
+        final var offset = sourcePositions.getStartPosition(tree, node);
+        if (offset < 0) {
+            return new Position.Unknown();
+        }
+        final var lineMap = tree.getLineMap();
+        final var line = (int) lineMap.getLineNumber(offset);
+        final var column = (int) lineMap.getColumnNumber(offset);
+        return new Position.At(line, column, (int) offset);
     }
 
     private static Map<Tree, List<CommentToken>> deepCopy(final Map<Tree, List<CommentToken>> src) {

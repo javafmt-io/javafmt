@@ -44,7 +44,7 @@ dependencies {
 //
 // Requires a GraalVM JDK on the toolchain path (Temurin/OpenJDK ship no native-image-agent
 // dylib). Without -Pagent the task is a plain CLI exercise and is harmless.
-val tracingAgentCapture by tasks.registering(JavaExec::class) {
+val tracingAgentCapture = tasks.register<JavaExec>("tracingAgentCapture") {
     group = "native"
     description = "Run the CLI against the fixture corpus with --check so the native-image-agent can record reflection and resource hints."
     mainClass.set(application.mainClass)
@@ -58,7 +58,7 @@ val tracingAgentCapture by tasks.registering(JavaExec::class) {
     // about exercising parse/format code paths under the agent, not the diagnostic outcome.
     isIgnoreExitValue = true
 
-    val fixturesRoot = rootProject.layout.projectDirectory
+    val fixturesRoot = isolated.rootProject.projectDirectory
         .dir("javafmt-core/src/test/resources/test-fixtures")
     inputs.dir(fixturesRoot).withPropertyName("fixtures").withPathSensitivity(PathSensitivity.RELATIVE)
 

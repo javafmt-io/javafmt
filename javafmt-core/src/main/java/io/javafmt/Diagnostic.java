@@ -13,7 +13,7 @@ public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.Lin
     /** A human-readable description of the issue. */
     String message();
 
-    /** Where in the source the issue occurred, or {@link Position#UNKNOWN} if not applicable. */
+    /** Where in the source the issue occurred, or {@link Position.Unknown} if not applicable. */
     Position position();
 
     /** Whether this diagnostic represents a failure rather than an advisory {@link Warning}. */

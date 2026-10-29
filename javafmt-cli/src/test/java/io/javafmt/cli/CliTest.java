@@ -339,6 +339,11 @@ class CliTest {
             public int read() throws IOException {
                 throw new IOException("pipe burst");
             }
+
+            @Override
+            public int read(final byte[] b, final int off, final int len) throws IOException {
+                throw new IOException("pipe burst");
+            }
         };
         final var run = runStdin(failing);
         assertThat(run.exit()).isEqualTo(2);
@@ -394,6 +399,11 @@ class CliTest {
 
             @Override
             public int read() throws IOException {
+                throw new IOException("pipe burst");
+            }
+
+            @Override
+            public int read(final byte[] b, final int off, final int len) throws IOException {
                 throw new IOException("pipe burst");
             }
         };

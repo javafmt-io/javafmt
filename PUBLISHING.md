@@ -74,7 +74,7 @@ ls build/staging-deploy/io/javafmt/
 
 ## Releasing a new version
 
-The version is derived from git tags by the axion-release plugin. There is no version string in any file to edit.
+The version is derived from the latest `v*` git tag by the `javafmt.versioning` settings plugin in `build-settings/`. There is no version string in any file to edit.
 
 1. **Push a tag** — the release workflow fires on `v*` tags:
    ```bash
@@ -83,7 +83,7 @@ The version is derived from git tags by the axion-release plugin. There is no ve
    ```
 
 2. **Watch the run** at `github.com/javafmt-io/javafmt/actions`:
-   - axion reads the tag and sets the project version to `0.1.0`
+   - The build reads the tag and sets the project version to `0.1.0`
    - Every module builds and tests
    - Artifacts are signed and staged to `build/staging-deploy/`
    - JReleaser deploys to Maven Central and creates a GitHub release with a generated changelog

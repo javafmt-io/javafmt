@@ -102,7 +102,8 @@ final class MethodChainRenderer {
         }
         final var last = links.getLast();
         final var decorated = new Link(
-                Doc.concatOf(Stream.of(last.doc()), comments.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)))),
+                Doc.concatOf(
+                        Stream.of(Stream.of(last.doc()), comments.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))))),
                 comments.stream().anyMatch(c -> c.text().startsWith("//")));
         return Stream.concat(links.stream().limit(links.size() - 1), Stream.of(decorated)).toList();
     }

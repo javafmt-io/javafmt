@@ -136,7 +136,7 @@ public final class LintEngine {
                 "lint did not reach a fixed point after " + MAX_ITERATIONS + " iterations; formatting continued on the partially linted source. "
                                                                              + "Rules still producing edits: "
                         + String.join(", ", unconvergedRules),
-                Position.UNKNOWN);
+                new Position.Unknown());
     }
 
     /**

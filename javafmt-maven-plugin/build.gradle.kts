@@ -1,3 +1,11 @@
+buildscript {
+    dependencies {
+        constraints {
+            classpath(libs.asm)
+        }
+    }
+}
+
 plugins {
     id("javafmt.java-conventions")
     alias(libs.plugins.maven.plugin.development)
@@ -58,7 +66,7 @@ afterEvaluate {
         repositories {
             maven {
                 name = "staging"
-                url = rootProject.layout.buildDirectory.dir("staging-deploy").get().asFile.toURI()
+                url = isolated.rootProject.projectDirectory.dir("build/staging-deploy").asFile.toURI()
             }
         }
     }

@@ -27,7 +27,7 @@ final class SwitchExpressionRenderer {
 
     private Doc renderSwitchLike(final Doc selectorWithParens, final List<? extends CaseTree> cases, final Recursor recursor) {
         final var caseDocs = cases.stream().<Doc>map(recursor::scan).map(Doc::indentedLine);
-        return Doc.concatOf(Stream.<Doc>of(new Doc.Text("switch "), selectorWithParens, new Doc.Text(" {")), caseDocs, Doc.closeBrace());
+        return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text("switch "), selectorWithParens, new Doc.Text(" {")), caseDocs, Doc.closeBrace()));
     }
 
     Doc renderCase(final CaseTree node, final Recursor recursor, final LeadingCommentAttacher attacher) {

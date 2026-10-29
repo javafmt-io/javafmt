@@ -33,7 +33,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A comment stops the scan rather than being stepped over, for the same reason: the replacement
  * runs from the first keyword to the last one the scan reached, so continuing past a comment would
- * write over it. {@code static public /* c *&#47; final} therefore has only its first two keywords
+ * write over it. <code>static public /* c *&#47; final</code> therefore has only its first two keywords
  * reordered.
  */
 public final class ModifierOrder implements LintRule {
@@ -169,7 +169,7 @@ public final class ModifierOrder implements LintRule {
     /**
      * @param comments block comments written among the modifiers. They are carried through the
      *     rewrite rather than stopping it, so a declaration like
-     *     {@code @A /*non-public*&#47; final native @B Object m()} can still be normalised without
+     *     <code>@A /*non-public*&#47; final native @B Object m()</code> can still be normalised without
      *     losing the note. They end up after the annotations and before the keywords.
      */
     private record Scan(List<String> annotations, List<String> comments, List<Modifier> keywords, boolean annotationAfterAKeyword, int lastItemEnd) {}

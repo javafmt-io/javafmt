@@ -30,7 +30,7 @@ final class ModuleRenderer {
         final var directives = node.getDirectives();
         final var body = directives.isEmpty()
                 ? new Doc.Concat(List.of(new Doc.Text(header), new Doc.Text(" {}")))
-                : Doc.concatOf(Stream.of(new Doc.Text(header), new Doc.Text(" {")), bodyStream(directives, attacher), Doc.closeBrace());
+                : Doc.concatOf(Stream.of(Stream.of(new Doc.Text(header), new Doc.Text(" {")), bodyStream(directives, attacher), Doc.closeBrace()));
         return ModifierRenderer.prependOwnLineAnnotations(node.getAnnotations(), body, recursor);
     }
 

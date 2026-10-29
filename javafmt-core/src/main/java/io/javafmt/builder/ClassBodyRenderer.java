@@ -20,6 +20,6 @@ final class ClassBodyRenderer {
                 .stream()
                 .flatMap(m -> Optional.ofNullable(recursor.scanNullable(m)).stream())
                 .<Doc>map(d -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, Doc.HARD_LINE, d))));
-        return Doc.concatOf(Stream.<Doc>of(new Doc.Text(" {")), members, Doc.closeBrace());
+        return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text(" {")), members, Doc.closeBrace()));
     }
 }

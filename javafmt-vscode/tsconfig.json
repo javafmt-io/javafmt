@@ -9,7 +9,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "isolatedModules": true,
+    "types": ["node", "mocha"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "out", "src/test/unit", "src/__mocks__"]

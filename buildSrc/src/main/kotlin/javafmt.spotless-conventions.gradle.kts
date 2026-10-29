@@ -24,7 +24,7 @@ val libs = the<VersionCatalogsExtension>().named("libs")
 // declared in `:javafmt-spotless`'s build. Gradle resolves them as separate
 // variants; no project cycle results because the resolution graphs do not
 // feed each other.
-val javafmtFormatterRuntime by configurations.creating {
+val javafmtFormatterRuntime = configurations.create("javafmtFormatterRuntime") {
     isCanBeResolved = true
     isCanBeConsumed = false
     description = "Classpath used to load io.javafmt.spotless.JavafmtFormatterStep reflectively for the project's own Spotless task."
@@ -40,14 +40,13 @@ dependencies {
 
 configure<SpotlessExtension> {
     java {
-        target("src/**/*.java")
-        targetExclude(
-            // Pre-formatted fixture pairs that intentionally exercise non-canonical input.
-            "src/test/resources/test-fixtures/**",
-            // Oracle corpus is intentionally unformatted — it is what we measure against.
-            "src/oracleTest/resources/corpus/**",
-            "**/input.java",
-            "**/expected.java",
+        target(
+            fileTree("src") {
+                include("**/*.java")
+                exclude("test/resources/test-fixtures/**")
+                exclude("oracleTest/resources/corpus/**")
+                exclude("**/input.java", "**/expected.java")
+            },
         )
 
         // We resolve the formatter jars at configuration time and bake their

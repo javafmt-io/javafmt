@@ -174,7 +174,7 @@ public final class Javafmt {
         return new Diagnostic.Warning(
                 "--analyze requested but attribution failed (" + cause.getClass().getSimpleName() + ": " + cause.getMessage()
                         + "); formatted without the rules that need resolved types",
-                Position.UNKNOWN);
+                new Position.Unknown());
     }
 
     /**
@@ -294,7 +294,7 @@ public final class Javafmt {
                 List.of(
                         new Diagnostic.InternalError(
                                 t.getClass().getSimpleName() + ": " + (message == null ? t.toString() : message),
-                                Position.UNKNOWN)));
+                                new Position.Unknown())));
     }
 
     /**
@@ -325,7 +325,7 @@ public final class Javafmt {
     private Position whereItDiverged(final String linted, final String output) {
         final var offset = RoundTripVerifier.firstDifferingOffset(linted, output);
         if (offset.isEmpty()) {
-            return Position.UNKNOWN;
+            return new Position.Unknown();
         }
         final var at = offset.getAsInt();
         final var line = (int) linted.substring(0, at).chars().filter(c -> c == '\n').count() + 1;
@@ -359,7 +359,7 @@ public final class Javafmt {
         final var diagnostics = e.getDiagnostics();
         if (diagnostics.isEmpty()) {
             final var msg = e.getMessage();
-            return new FormatResult(source, List.of(new Diagnostic.ParseError(msg == null ? e.toString() : msg, Position.UNKNOWN)));
+            return new FormatResult(source, List.of(new Diagnostic.ParseError(msg == null ? e.toString() : msg, new Position.Unknown())));
         }
         return new FormatResult(source, diagnostics);
     }

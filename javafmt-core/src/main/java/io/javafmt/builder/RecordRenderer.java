@@ -41,9 +41,10 @@ final class RecordRenderer {
                             new Doc.Text(")")));
         }
         final var prefixAndComponents = Doc.concatOf(
-                Stream.of(new Doc.Text(prefix)),
-                MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
-                Stream.of(componentListDoc));
+                Stream.of(
+                        Stream.of(new Doc.Text(prefix)),
+                        MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
+                        Stream.of(componentListDoc)));
         final var fullHeader = ClassLikeRenderer.buildTypeDeclHeader(prefixAndComponents, null, node.getImplementsClause(), false, recursor);
         final var headerDoc = new Doc.Group(fullHeader);
         return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, bodyMembers, attacher.trailingInside(node), recursor);

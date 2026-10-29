@@ -44,9 +44,8 @@ dependencies {
 // the one place that drives the full Daemon.serve loop end to end under the agent. Modelled on
 // javafmt-cli's tracingAgentCapture task.
 //
-//   gradle :javafmt-vscode:daemonAgentCapture -Pagent --no-configuration-cache
-//   gradle :javafmt-vscode:metadataCopy --no-configuration-cache \
-//       --task daemonAgentCapture \
+//   gradle :javafmt-vscode:daemonAgentCapture -Pagent
+//   gradle :javafmt-vscode:metadataCopy --task daemonAgentCapture \
 //       --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
 //
 // Note --dir is resolved relative to this module's project directory, not the repo root.
@@ -55,7 +54,7 @@ dependencies {
 // dylib) -- set JAVA_HOME/GRAALVM_HOME to it, since metadataCopy locates native-image-configure
 // via the environment rather than the task's own javaLauncher. Without -Pagent the task is a
 // harmless daemon exercise.
-val daemonAgentCapture by tasks.registering(JavaExec::class) {
+val daemonAgentCapture = tasks.register<JavaExec>("daemonAgentCapture") {
     group = "native"
     description = "Feed real NDJSON requests through Daemon.main() so the native-image-agent can record the Jackson reflection the daemon needs."
     mainClass.set("io.javafmt.vscode.Daemon")
@@ -72,7 +71,6 @@ val daemonAgentCapture by tasks.registering(JavaExec::class) {
         // A FallThrough lint warning: exercises FormatResponse serialized with a real DiagnosticDto.
         """{"id":"2","source":"class Foo { void m(int x) { switch (x) { case 1: System.out.println(); case 2: break; } } }"}""",
     ).joinToString(separator = "\n", postfix = "\n")
-    standardInput = ndjson.byteInputStream(Charsets.UTF_8)
 
     val logFile = layout.buildDirectory.file("tracing-agent/daemon-capture.log")
     outputs.file(logFile)
@@ -81,6 +79,7 @@ val daemonAgentCapture by tasks.registering(JavaExec::class) {
         val out = logFile.get().asFile
         out.parentFile.mkdirs()
         val stream = PrintStream(out.outputStream(), true, Charsets.UTF_8)
+        standardInput = ndjson.byteInputStream(Charsets.UTF_8)
         standardOutput = stream
         errorOutput = stream
     }
@@ -93,7 +92,7 @@ tasks.shadowJar {
     mergeServiceFiles()
 }
 
-val copyDaemonJar by tasks.registering(Copy::class) {
+val copyDaemonJar = tasks.register<Copy>("copyDaemonJar") {
     from(tasks.shadowJar)
     into(layout.projectDirectory.dir("bin"))
     rename { "javafmt-daemon.jar" }
@@ -125,7 +124,7 @@ fun requestedTarget(): String =
         ?: (findProperty("vsceTarget") as String?)
         ?: vsceTarget()
 
-val copyNativeBinary by tasks.registering(Copy::class) {
+val copyNativeBinary = tasks.register<Copy>("copyNativeBinary") {
     dependsOn(tasks.named("nativeCompile"))
     from(layout.buildDirectory.dir("native/nativeCompile"))
     into(layout.projectDirectory.dir("bin").dir(vsceTarget()))
@@ -139,14 +138,14 @@ val copyNativeBinary by tasks.registering(Copy::class) {
 // logic (package.js) -- dead code in this version. So bin/ is staged explicitly here rather than
 // trusted to vsce: this task deletes every target directory except the one being packaged, plus
 // the universal jar, before vsce ever runs.
-val stageTargetBinary by tasks.registering(Delete::class) {
+val stageTargetBinary = tasks.register<Delete>("stageTargetBinary") {
     dependsOn(copyNativeBinary)
     val target = requestedTarget()
     delete(vsceTargets.filter { it != target }.map { layout.projectDirectory.dir("bin").dir(it) })
     delete(layout.projectDirectory.file("bin/javafmt-daemon.jar"))
 }
 
-val packageVsixTarget by tasks.registering(NpmTask::class) {
+val packageVsixTarget = tasks.register<NpmTask>("packageVsixTarget") {
     dependsOn(tasks.named("npmBuild"), stageTargetBinary)
     args.set(listOf("run", "package:target", "--", requestedTarget()))
     inputs.dir(layout.projectDirectory.dir("bin"))

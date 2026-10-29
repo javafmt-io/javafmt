@@ -40,7 +40,7 @@ graalvmNative {
 val shadowJarTask = tasks.named<ShadowJar>("shadowJar")
 
 @Suppress("UNUSED_VARIABLE")
-val nativeCompileLinuxDocker by tasks.registering(Exec::class) {
+val nativeCompileLinuxDocker = tasks.register<Exec>("nativeCompileLinuxDocker") {
     group = "build"
     description = "Compile Linux amd64 native binary using Docker (local cross-compilation)"
     dependsOn(shadowJarTask)

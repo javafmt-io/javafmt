@@ -41,10 +41,8 @@ object JavafmtFormatter {
 
     /**
      * Builds a Spotless `FormatterStep` whose state is the absolute paths of
-     * the jars that make up the javafmt-spotless runtime classpath, plus a
-     * SHA-256 of each jar. The hash is what lets Spotless's task-cache notice
-     * a rebuild of the formatter jar at the same path — without it, edits to
-     * the formatter wouldn't propagate to a long-lived Gradle daemon.
+     * the jars that make up the javafmt-spotless runtime classpath. The jars
+     * need not exist yet; the spotless tasks declare them as classpath inputs.
      *
      * When [analysisClasspath] is provided the step calls [APPLY_WITH_ANALYZE_METHOD]
      * instead of [APPLY_METHOD], enabling attribution-dependent lint rules such as
@@ -52,28 +50,17 @@ object JavafmtFormatter {
      */
     fun step(jars: Collection<File>, analysisClasspath: Collection<File> = emptyList()): FormatterStep {
         val classpathStr = analysisClasspath.joinToString(File.pathSeparator) { it.absolutePath }
-        val state = ClasspathState(ArrayList(jars.map { JarEntry(it.absolutePath, sha256(it)) }), classpathStr)
-        return FormatterStep.create("javafmt", state, FormatterFactory)
+        val paths = ArrayList(jars.map { it.absolutePath })
+        return FormatterStep.create("javafmt", ClasspathState(paths, classpathStr), FormatterFactory)
     }
 
     /**
-     * Identifies a single jar on the formatter classpath by path AND content hash.
-     * Including the hash means the [ClasspathState] changes whenever the jar's
-     * bytes change, invalidating both Spotless's on-disk task cache (which keys
-     * on the serialized state) and our in-process [loaderCache] (which keys on
-     * the list of entries).
+     * Keys [loaderCache] by path and content hash, so a jar rebuilt at the same
+     * path gets a fresh class loader in a long-lived daemon.
      */
-    private data class JarEntry(val path: String, val sha256: String) : Serializable {
-        companion object {
-            private const val serialVersionUID: Long = 1L
-        }
-    }
+    private data class JarEntry(val path: String, val sha256: String) : Serializable
 
-    private data class ClasspathState(val entries: ArrayList<JarEntry>, val analysisClasspath: String?) : Serializable {
-        companion object {
-            private const val serialVersionUID: Long = 2L
-        }
-    }
+    private data class ClasspathState(val jars: ArrayList<String>, val analysisClasspath: String?) : Serializable
 
     /**
      * Top-level serializable function that materializes the [ClasspathState]
@@ -83,10 +70,9 @@ object JavafmtFormatter {
      */
     private object FormatterFactory : SerializedFunction<ClasspathState, FormatterFunc> {
 
-        private const val serialVersionUID: Long = 1L
-
         override fun apply(state: ClasspathState): FormatterFunc {
-            val loader = loaderCache.computeIfAbsent(state.entries) { entries ->
+            val entries = state.jars.map { JarEntry(it, sha256(File(it))) }
+            val loader = loaderCache.computeIfAbsent(entries) { entries ->
                 val urls = entries.map { File(it.path).toURI().toURL() }.toTypedArray()
                 // Use platform parent to keep Gradle's classes out of the formatter's
                 // classpath and avoid version-skew on slf4j etc.

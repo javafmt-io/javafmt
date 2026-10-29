@@ -379,18 +379,18 @@ class DocTest {
 
         @Test
         void concatOfFlattensPartStreams() {
-            final var d = Doc.concatOf(Stream.of(new Doc.Text("a")), Stream.of(new Doc.Text("b")));
+            final var d = Doc.concatOf(Stream.of(Stream.of(new Doc.Text("a")), Stream.of(new Doc.Text("b"))));
             assertThat(d).isEqualTo(new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Text("b"))));
         }
 
         @Test
         void concatOfWithNoArgsIsEmpty() {
-            assertThat(Doc.concatOf()).isEqualTo(new Doc.Concat(List.of()));
+            assertThat(Doc.concatOf(Stream.of())).isEqualTo(new Doc.Concat(List.of()));
         }
 
         @Test
         void concatOfWithThreeStreams() {
-            final var d = Doc.concatOf(Stream.of(new Doc.Text("a")), Stream.of(new Doc.Text("b")), Stream.of(new Doc.Text("c")));
+            final var d = Doc.concatOf(Stream.of(Stream.of(new Doc.Text("a")), Stream.of(new Doc.Text("b")), Stream.of(new Doc.Text("c"))));
             assertThat(d).isEqualTo(new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Text("b"), new Doc.Text("c"))));
         }
     }

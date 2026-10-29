@@ -141,9 +141,8 @@ public sealed interface Doc
     }
 
     /** Concat of several part-streams without nesting Stream.concat towers. */
-    @SafeVarargs
-    static Doc concatOf(final Stream<Doc>... parts) {
-        return new Concat(Arrays.stream(parts).flatMap(Function.identity()));
+    static Doc concatOf(final Stream<Stream<Doc>> parts) {
+        return new Concat(parts.flatMap(Function.identity()));
     }
 
     static Stream<Doc> intersperse(final Doc separator, final Stream<Doc> parts) {

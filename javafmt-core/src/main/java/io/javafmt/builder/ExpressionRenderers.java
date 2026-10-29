@@ -179,14 +179,14 @@ final class ExpressionRenderers {
                 ? Stream.<Doc>of(new Doc.Text("[]"))
                 : Stream.<Doc>empty();
         if (initializers == null) {
-            return Doc.concatOf(prefix, dims, sizelessBrackets, implicitBrackets);
+            return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets));
         }
         final var brace = type == null ? "{" : " {";
         if (initializers.isEmpty()) {
-            return Doc.concatOf(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(new Doc.Text(brace + "}")));
+            return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(new Doc.Text(brace + "}"))));
         }
         final var elements = WrappableList.blockOf(brace, ",", "}", withTrailingComma(initializers.stream().map(recursor::scan).toList()));
-        return Doc.concatOf(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(elements));
+        return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(elements)));
     }
 
     /**
@@ -240,10 +240,11 @@ final class ExpressionRenderers {
         final var argsDoc = args.isEmpty() ? (Doc) new Doc.Text("()") : WrappableList.of("(", ",", ")", args.stream().map(recursor::scan));
         final var body = node.getClassBody();
         final var headParts = Doc.concatOf(
-                qualifier(node, recursor),
-                Stream.of(new Doc.Text("new ")),
-                constructorTypeWitness(node, recursor),
-                Stream.of(recursor.scan(node.getIdentifier()), argsDoc));
+                Stream.of(
+                        qualifier(node, recursor),
+                        Stream.of(new Doc.Text("new ")),
+                        constructorTypeWitness(node, recursor),
+                        Stream.of(recursor.scan(node.getIdentifier()), argsDoc)));
         if (body == null) {
             return headParts;
         }
@@ -269,9 +270,10 @@ final class ExpressionRenderers {
         }
         return Stream.of(
                 Doc.concatOf(
-                        Stream.of(new Doc.Text("<")),
-                        Doc.intersperse(new Doc.Text(", "), typeArguments.stream().map(recursor::scan)),
-                        Stream.of(new Doc.Text(">"))));
+                        Stream.of(
+                                Stream.of(new Doc.Text("<")),
+                                Doc.intersperse(new Doc.Text(", "), typeArguments.stream().map(recursor::scan)),
+                                Stream.of(new Doc.Text(">")))));
     }
 
     Doc renderTypeCast(final TypeCastTree node, final Recursor recursor) {

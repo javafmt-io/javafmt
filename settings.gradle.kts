@@ -1,3 +1,13 @@
+pluginManagement {
+    includeBuild("build-settings")
+}
+
+plugins {
+    id("javafmt.build-scans")
+    id("javafmt.versioning")
+    id("javafmt.reproducible-archives")
+}
+
 rootProject.name = "javafmt"
 
 include("javafmt-core", "javafmt-cli", "javafmt-spotless", "javafmt-intellij", "javafmt-maven-plugin", "javafmt-vscode", "website")

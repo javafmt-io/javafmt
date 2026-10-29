@@ -191,13 +191,14 @@ public final class DocBuilder {
                         .stream()
                         .<Doc>flatMap(decl -> Optional.<Doc>ofNullable(scan(decl)).stream()));
         return Doc.concatOf(
-                CommentDocs.fileHeaderStream(unit.fileHeader()),
-                packageAnnotations,
-                pkgStream,
-                ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit),
-                moduleStream,
-                typeDeclsStream,
-                CommentDocs.fileFooterStream(unit.fileFooter()));
+                Stream.of(
+                        CommentDocs.fileHeaderStream(unit.fileHeader()),
+                        packageAnnotations,
+                        pkgStream,
+                        ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit),
+                        moduleStream,
+                        typeDeclsStream,
+                        CommentDocs.fileFooterStream(unit.fileFooter())));
     }
 
     private Doc visitClass(final ClassTree node) {

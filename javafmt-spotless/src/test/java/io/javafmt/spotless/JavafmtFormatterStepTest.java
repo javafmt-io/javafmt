@@ -51,7 +51,7 @@ class JavafmtFormatterStepTest {
 
     @Test
     void throwOnErrorWithUnknownPositionRendersMessageWithoutPositionPrefix() {
-        final var result = new FormatResult("ignored", List.of(new Diagnostic.ParseError("boom", Position.UNKNOWN)));
+        final var result = new FormatResult("ignored", List.of(new Diagnostic.ParseError("boom", new Position.Unknown())));
         assertThatThrownBy(() -> JavafmtFormatterStep.throwOnError(result))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("javafmt: boom")
