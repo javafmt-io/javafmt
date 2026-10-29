@@ -1,7 +1,7 @@
 package io.javafmt.lint;
 
 import com.sun.source.tree.NewArrayTree;
-import com.sun.source.util.TreeScanner;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public final class ArrayTrailingComma implements LintRule {
         return Optional.of(LintEdit.insert(lastEnd, ","));
     }
 
-    private static final class ArrayCollector extends TreeScanner<Void, Void> {
+    private static final class ArrayCollector extends ChainScanner<Void, Void> {
 
         private final ArrayList<NewArrayTree> arrays = new ArrayList<>();
 

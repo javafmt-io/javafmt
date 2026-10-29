@@ -4,8 +4,8 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 
 /**
  * Warns when {@code ==} or {@code !=} is used to compare values where at least one operand
@@ -25,16 +25,15 @@ public final class StringLiteralEquality implements LintRule {
         final var unit = ctx.unit();
         return LintScan.diagnostics(
                 ctx,
-                diagnostics -> new TreePathScanner<>() {
+                diagnostics -> new ChainPathScanner<>() {
 
                     @Override
-                    public Void visitBinary(final BinaryTree node, final Void p) {
+                    protected void visitBinaryOperator(final BinaryTree node, final Void p) {
                         final var kind = node.getKind();
                         if ((kind == Tree.Kind.EQUAL_TO || kind == Tree.Kind.NOT_EQUAL_TO)
                             && (isStringLiteral(node.getLeftOperand()) || isStringLiteral(node.getRightOperand()))) {
                             diagnostics.add(new Diagnostic.Warning(MESSAGE, unit.positionOf(node)));
                         }
-                        return super.visitBinary(node, null);
                     }
                 });
     }

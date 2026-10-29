@@ -11,9 +11,9 @@ import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.Attribution;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public final class RedundantTypeArguments implements LintRule {
         final var attribution = ctx.attribution();
         final var edits = new ArrayList<LintEdit>();
         final var witnessCalls = new ArrayList<WitnessCall>();
-        new TreePathScanner<Void, Void>() {
+        new ChainPathScanner<Void, Void>() {
 
             @Override
             public Void visitNewClass(final NewClassTree node, final Void p) {
@@ -322,7 +322,7 @@ public final class RedundantTypeArguments implements LintRule {
     @Nullable
     private static TreePath findCallByMethodNameAt(final ParsedUnit unit, final int nameStart) {
         final var matches = new ArrayList<TreePath>();
-        new TreePathScanner<Void, Void>() {
+        new ChainPathScanner<Void, Void>() {
 
             @Override
             public Void visitMethodInvocation(final MethodInvocationTree node, final Void p) {

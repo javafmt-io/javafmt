@@ -12,6 +12,9 @@ interface Recursor {
 
     @Nullable Doc scanNullable(Tree node);
 
+    /** {@code rendered} with the comments attached to {@code node}, as {@link #scan} would return it. */
+    Doc withComments(Tree node, Doc rendered);
+
     /**
      * Scans {@code node} with compact context active for the subtree. While compact, nested
      * method-chain and logical-chain renderers skip their 80-char break heuristics and ignore

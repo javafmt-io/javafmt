@@ -2,8 +2,8 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.StatementTree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Position;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 
@@ -22,7 +22,7 @@ public final class OneStatementPerLine implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new TreePathScanner<>() {
+                edits -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {

@@ -5,7 +5,7 @@ import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.PrimitiveTypeTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
-import com.sun.source.util.TreePathScanner;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
@@ -26,7 +26,7 @@ public final class ExplicitInitialization implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new TreePathScanner<>() {
+                edits -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitVariable(final VariableTree node, final Void p) {

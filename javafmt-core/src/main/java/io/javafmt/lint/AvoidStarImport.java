@@ -2,8 +2,8 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.MemberSelectTree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 
 /**
  * Warns for non-static wildcard imports ({@code import pkg.*;}). Static wildcard imports
@@ -19,7 +19,7 @@ public final class AvoidStarImport implements LintRule {
         final var unit = ctx.unit();
         return LintScan.diagnostics(
                 ctx,
-                diagnostics -> new TreePathScanner<>() {
+                diagnostics -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitImport(final ImportTree node, final Void p) {

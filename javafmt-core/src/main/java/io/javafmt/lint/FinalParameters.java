@@ -2,8 +2,8 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
-import com.sun.source.util.TreeScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.parser.TreeFacts;
 import java.util.ArrayList;
@@ -85,7 +85,7 @@ public final class FinalParameters implements LintRule {
         return new Diagnostic.Warning(message, unit.positionOf(param));
     }
 
-    private static final class MethodCollector extends TreeScanner<Void, Void> {
+    private static final class MethodCollector extends ChainScanner<Void, Void> {
 
         private final List<MethodTree> methods = new ArrayList<>();
 

@@ -7,7 +7,7 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public final class MemberOrder implements LintRule {
     public LintResult apply(final LintContext ctx) {
         final var unit = ctx.unit();
         final var edits = new ArrayList<LintEdit>();
-        new TreePathScanner<Void, Void>() {
+        new ChainPathScanner<Void, Void>() {
 
             @Override
             public Void visitClass(final ClassTree node, final Void p) {

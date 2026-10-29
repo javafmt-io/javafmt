@@ -6,8 +6,8 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.TryTree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 
@@ -28,7 +28,7 @@ public final class EmptyBlock implements LintRule {
         final var unit = ctx.unit();
         return LintScan.diagnostics(
                 ctx,
-                diagnostics -> new TreePathScanner<>() {
+                diagnostics -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitTry(final TryTree node, final Void p) {

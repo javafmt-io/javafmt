@@ -3,8 +3,8 @@ package io.javafmt.lint;
 import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -29,7 +29,7 @@ public final class FallThrough implements LintRule {
         final var unit = ctx.unit();
         return LintScan.diagnostics(
                 ctx,
-                diagnostics -> new TreePathScanner<>() {
+                diagnostics -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitSwitch(final SwitchTree node, final Void p) {

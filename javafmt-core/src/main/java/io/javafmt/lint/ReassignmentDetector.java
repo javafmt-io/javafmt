@@ -7,7 +7,7 @@ import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.UnaryTree;
-import com.sun.source.util.TreeScanner;
+import io.javafmt.parser.ChainScanner;
 
 /**
  * Reports whether a scanned subtree writes to a variable of a given simple name: plain
@@ -23,7 +23,7 @@ import com.sun.source.util.TreeScanner;
  * <p>Array-element assignment ({@code a[0] = 1}) is not a write to {@code a}: the reference is
  * unchanged and {@code final int[] a} still compiles. It is correctly ignored.
  */
-final class ReassignmentDetector extends TreeScanner<Void, Void> {
+final class ReassignmentDetector extends ChainScanner<Void, Void> {
 
     private final String name;
 

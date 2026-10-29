@@ -3,8 +3,8 @@ package io.javafmt.lint;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.MethodTree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 
 /**
  * Warns if a class overrides {@code equals(Object)} without overriding {@code hashCode()},
@@ -18,7 +18,7 @@ public final class EqualsHashCode implements LintRule {
         final var unit = ctx.unit();
         return LintScan.diagnostics(
                 ctx,
-                diagnostics -> new TreePathScanner<>() {
+                diagnostics -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitClass(final ClassTree node, final Void p) {

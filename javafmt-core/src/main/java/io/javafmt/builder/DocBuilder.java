@@ -118,6 +118,11 @@ public final class DocBuilder {
         }
 
         @Override
+        public Doc withComments(final Tree node, final Doc rendered) {
+            return attacher.attach(node, rendered);
+        }
+
+        @Override
         public void emitWarning(final String message, final Tree at) {
             diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(at)));
         }

@@ -19,7 +19,6 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.SourcePositions;
-import com.sun.source.util.TreeScanner;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -195,7 +194,7 @@ final class CommentAttacher {
      */
     private List<long[]> literalsRenderedFromSource(final CompilationUnitTree cu, final SourcePositions pos, final String source) {
         final var spans = new ArrayList<long[]>();
-        new TreeScanner<Void, Void>() {
+        new ChainScanner<Void, Void>() {
 
             @Override
             public Void visitLiteral(final LiteralTree node, final Void p) {
@@ -296,7 +295,7 @@ final class CommentAttacher {
         }
     }
 
-    private static final class Collector extends TreeScanner<Void, Void> {
+    private static final class Collector extends ChainScanner<Void, Void> {
 
         private final CompilationUnitTree cu;
 

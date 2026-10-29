@@ -3,6 +3,7 @@ package io.javafmt;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -130,6 +131,33 @@ class JavafmtFormatAllTest {
         if (results.get(1).hasErrors()) {
             assertThat(results.get(1).output()).isEqualTo(deep);
         }
+    }
+
+    @Test
+    void aFileTooDeepToParseOnASmallStackComesBackUnchangedWithAnInternalError() throws InterruptedException {
+        final var deep = "class Deep {\n\n    int value = " + Stream.generate(() -> "1").limit(100_000).collect(Collectors.joining(" + ")) + ";\n}\n";
+        final var sources = List.of("class Good {}\n", deep);
+        final var results = new AtomicReference<List<FormatResult>>();
+        final var failure = new AtomicReference<Throwable>();
+        final var thread = new Thread(
+                null,
+                () -> {
+                    try {
+                        results.set(Javafmt.formatAll(sources, JavafmtConfig.defaults(), 1));
+                    } catch (final Throwable t) {
+                        failure.set(t);
+                    }
+                },
+                "small-stack",
+                512 * 1024);
+        thread.start();
+        thread.join();
+        assertThat(failure.get()).isNull();
+        assertThat(results.get().getFirst().output()).isEqualTo("class Good {}\n");
+        assertThat(results.get().get(1).output()).isEqualTo(deep);
+        assertThat(results.get().get(1).diagnostics())
+                .singleElement()
+                .isInstanceOf(Diagnostic.InternalError.class);
     }
 
     private static List<String> outputsOf(final List<FormatResult> results) {

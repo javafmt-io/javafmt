@@ -2,8 +2,8 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.MethodTree;
-import com.sun.source.util.TreePathScanner;
 import io.javafmt.Diagnostic;
+import io.javafmt.parser.ChainPathScanner;
 
 /**
  * Warns when a class defines {@code equals(SpecificType)} (an overload) instead of the
@@ -19,7 +19,7 @@ public final class CovariantEquals implements LintRule {
         final var unit = ctx.unit();
         return LintScan.diagnostics(
                 ctx,
-                diagnostics -> new TreePathScanner<>() {
+                diagnostics -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitMethod(final MethodTree node, final Void p) {

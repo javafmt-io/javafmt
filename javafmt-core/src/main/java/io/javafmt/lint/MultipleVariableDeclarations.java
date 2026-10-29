@@ -6,7 +6,7 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import io.javafmt.parser.ParsedUnit;
@@ -38,7 +38,7 @@ public final class MultipleVariableDeclarations implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new TreePathScanner<>() {
+                edits -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {

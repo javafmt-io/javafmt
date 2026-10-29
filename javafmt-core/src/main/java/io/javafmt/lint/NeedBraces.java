@@ -7,7 +7,7 @@ import com.sun.source.tree.ForLoopTree;
 import com.sun.source.tree.IfTree;
 import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.WhileLoopTree;
-import com.sun.source.util.TreePathScanner;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
@@ -34,7 +34,7 @@ public final class NeedBraces implements LintRule {
         final var unit = ctx.unit();
         return LintScan.edits(
                 ctx,
-                edits -> new TreePathScanner<>() {
+                edits -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitIf(final IfTree node, final Void p) {
