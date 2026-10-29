@@ -4,8 +4,8 @@ import java.util.Objects;
 
 /**
  * A parsed compilation unit paired with javac's {@link Attribution} services. Produced by
- * {@link JavaParser#parseAndAttribute(String, String)} when a caller wants type-aware lint
- * rules to run.
+ * {@link AttributionSession#attribute} inside {@link JavaParser#attributing} when a caller wants
+ * type-aware lint rules to run.
  */
 public record AttributedUnit(ParsedUnit unit, Attribution attribution) {
 

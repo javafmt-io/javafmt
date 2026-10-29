@@ -152,8 +152,15 @@ public final class Javafmt {
         final var encoding = SourceEncoding.of(source);
         final var normalized = encoding.normalize(source);
         try {
-            final var attributed = JavaParser.parseAndAttribute(normalized, classpath);
-            return asWritten(encoding, formatWithContext(normalized, LintContext.attributed(attributed), config, PrintStrategy.wadlerLindig()));
+            return JavaParser.attributing(
+                    classpath,
+                    session -> asWritten(
+                            encoding,
+                            formatWithContext(
+                                    normalized,
+                                    LintContext.attributed(session.attribute(normalized)),
+                                    config,
+                                    PrintStrategy.wadlerLindig())));
         } catch (ParseException e) {
             return asWritten(encoding, parseExceptionToResult(normalized, e));
         } catch (RuntimeException e) {
@@ -181,8 +188,8 @@ public final class Javafmt {
 
     /**
      * Formats {@code source} from a pre-computed {@link AttributedOutcome}, intended for
-     * callers that batch-attributed via {@link JavaParser#parseAndAttribute(List, String)}
-     * to amortize task setup across many files. Failed outcomes round-trip the source
+     * callers that batch-attributed inside {@link JavaParser#attributing}, which must also be
+     * where this is called, to amortize task setup across many files. Failed outcomes round-trip the source
      * unchanged with the failure attached as a diagnostic.
      */
     public FormatResult formatWithResult(final String source, final AttributedOutcome outcome) {

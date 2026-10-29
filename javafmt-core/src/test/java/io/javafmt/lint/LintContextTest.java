@@ -18,10 +18,15 @@ class LintContextTest {
 
     @Test
     void attributed_factory_hasPresentAttribution() {
-        final var attributed = JavaParser.parseAndAttribute("class Foo {}", "");
-        final var ctx = LintContext.attributed(attributed);
-        assertThat(ctx.unit()).isSameAs(attributed.unit());
-        assertThat(ctx.attribution()).contains(attributed.attribution());
+        JavaParser.attributing(
+                "",
+                session -> {
+                    final var attributed = session.attribute("class Foo {}");
+                    final var ctx = LintContext.attributed(attributed);
+                    assertThat(ctx.unit()).isSameAs(attributed.unit());
+                    assertThat(ctx.attribution()).contains(attributed.attribution());
+                    return ctx;
+                });
     }
 
     @Test

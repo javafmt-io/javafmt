@@ -1,7 +1,7 @@
 package io.javafmt.parser;
 
 /**
- * Per-source result of {@link JavaParser#parseAndAttribute(java.util.List, String)}. Mirrors
+ * Per-source result of {@link AttributionSession#attribute(java.util.List)}. Mirrors
  * {@link ParseOutcome}'s shape: parse failures surface per-source so the rest of the batch
  * still produces formatted output.
  */

@@ -169,10 +169,15 @@ class JavafmtFormatAllTest {
         // formatWithResult(source, AttributedOutcome) used to hard-code the defaults, so a caller
         // that batch-attributed could not turn anything off.
         final var source = "class A {\n\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
-        final var outcome = io.javafmt.parser.JavaParser.parseAndAttribute(List.of(source), "").getFirst();
-        final var withLint = Javafmt.formatWithResult(source, outcome, JavafmtConfig.defaults());
-        final var withoutLint = Javafmt.formatWithResult(source, outcome, JavafmtConfig.defaults().withLint(false));
-        assertThat(withLint.output()).contains("final int x");
-        assertThat(withoutLint.output()).doesNotContain("final int x");
+        final var outputs = io.javafmt.parser.JavaParser.attributing(
+                "",
+                session -> {
+                    final var outcome = session.attribute(List.of(source)).getFirst();
+                    return List.of(
+                            Javafmt.formatWithResult(source, outcome, JavafmtConfig.defaults()).output(),
+                            Javafmt.formatWithResult(source, outcome, JavafmtConfig.defaults().withLint(false)).output());
+                });
+        assertThat(outputs.getFirst()).contains("final int x");
+        assertThat(outputs.getLast()).doesNotContain("final int x");
     }
 }
