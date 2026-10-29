@@ -217,9 +217,13 @@ class LocalVarUseVarAnalyzeTest {
 
     /** The edits alone, so these tests pin the rewrite and not the renderer's comment placement. */
     private static String rewrittenWithAttribution(final String source) {
-        final var attributed = JavaParser.parseAndAttribute(source, "");
-        final var result = new LocalVarUseVar().apply(LintContext.attributed(attributed));
-        return LintEngine.applyEdits(attributed.unit().source(), result.edits());
+        return JavaParser.attributing(
+                "",
+                session -> {
+                    final var attributed = session.attribute(source);
+                    final var result = new LocalVarUseVar().apply(LintContext.attributed(attributed));
+                    return LintEngine.applyEdits(attributed.unit().source(), result.edits());
+                });
     }
 
     @Test

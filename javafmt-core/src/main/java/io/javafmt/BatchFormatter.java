@@ -3,6 +3,7 @@ package io.javafmt;
 import io.javafmt.lint.LintContext;
 import io.javafmt.lint.LintEngine;
 import io.javafmt.parser.AttributedOutcome;
+import io.javafmt.parser.AttributionSession;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParseOutcome;
 import io.javafmt.printer.PrintStrategy;
@@ -38,7 +39,9 @@ final class BatchFormatter {
     }
 
     List<FormatResult> formatAllWithAnalyze(final List<String> sources, final String classpath, final JavafmtConfig config, final int threads) {
-        return runBatches(sources, config, threads, Integer.MAX_VALUE, chunk -> attributedContexts(chunk, classpath));
+        return JavaParser.attributing(
+                classpath,
+                session -> runBatches(sources, config, threads, Integer.MAX_VALUE, chunk -> attributedContexts(chunk, session)));
     }
 
     /**
@@ -56,21 +59,12 @@ final class BatchFormatter {
         if (sources.isEmpty()) {
             return List.of();
         }
-        final var pool = Executors.newFixedThreadPool(
-                Math.max(1, threads),
-                r -> {
-                    final var thread = new Thread(r, "javafmt-render");
-                    thread.setDaemon(true);
-                    return thread;
-                });
-        try {
+        try (final var pool = Executors.newFixedThreadPool(Math.max(1, threads), Thread.ofPlatform().name("javafmt-render").daemon(true).factory())) {
             final var chunk = Math.min(chunkSize, sources.size());
             return IntStream.iterate(0, start -> start < sources.size(), start -> start + chunk)
                     .mapToObj(start -> sources.subList(start, Math.min(sources.size(), start + chunk)))
                     .flatMap(slice -> formatChunk(slice, config, pool, parser).stream())
                     .toList();
-        } finally {
-            pool.shutdownNow();
         }
     }
 
@@ -222,10 +216,10 @@ final class BatchFormatter {
      * a warning, so the degradation reaches the user instead of the run merely looking like a
      * successful {@code --analyze} pass.
      */
-    private ParsedChunk attributedContexts(final List<String> chunk, final String classpath) {
+    private ParsedChunk attributedContexts(final List<String> chunk, final AttributionSession session) {
         try {
             return new ParsedChunk(
-                    JavaParser.parseAndAttribute(chunk, classpath)
+                    session.attribute(chunk)
                             .stream()
                             .map(
                                     outcome -> switch (outcome) {

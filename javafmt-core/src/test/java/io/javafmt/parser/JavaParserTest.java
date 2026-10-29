@@ -7,13 +7,99 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.Position;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import javax.tools.StandardJavaFileManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class JavaParserTest {
+
+    @Test
+    void parsingOnManyShortLivedThreadsKeepsNoFileManagerPerThread() {
+        final var before = JavaParser.idleFileManagers();
+        IntStream.range(0, 20)
+                .forEach(i -> {
+                    final var thread = Thread.ofPlatform().start(() -> JavaParser.parse("class T" + i + " {}"));
+                    try {
+                        thread.join();
+                    } catch (final InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new IllegalStateException(e);
+                    }
+                });
+        assertThat(JavaParser.idleFileManagers()).isLessThanOrEqualTo(Math.max(before, 1));
+    }
+
+    @Test
+    void reattributingReusesTheSessionOfTheOriginalAttribution() {
+        final var sessions = JavaParser.attributing(
+                "",
+                session -> {
+                    final var original = session.attribute("class A { java.util.List<String> xs = java.util.List.of(); }");
+                    final var reattributed = JavaParser.reattribute(
+                            "class A { java.util.List<String> ys = java.util.List.of(); }",
+                            original.attribution());
+                    return List.of(session, original.attribution().session(), reattributed.attribution().session());
+                });
+        assertThat(sessions).allSatisfy(s -> assertThat(s).isSameAs(sessions.getFirst()));
+    }
+
+    @Test
+    void concurrentSessionsOnOneClasspathNeverShareAFileManager() throws InterruptedException {
+        final var held = new CountDownLatch(1);
+        final var release = new CountDownLatch(1);
+        final var first = new AtomicReference<StandardJavaFileManager>();
+        final var holder = Thread.ofPlatform()
+                .start(
+                        () -> JavaParser.attributing(
+                                "",
+                                session -> {
+                                    first.set(session.fileManager());
+                                    held.countDown();
+                                    awaitUninterruptibly(release);
+                                    return session;
+                                }));
+        held.await();
+        final var second = JavaParser.attributing("", session -> session.fileManager());
+        release.countDown();
+        holder.join();
+        assertThat(second).isNotSameAs(first.get());
+    }
+
+    @Test
+    void aSessionRefusesToAttributeAfterItsAttributingCallReturns() {
+        final var session = JavaParser.attributing("", Function.identity());
+        assertThatThrownBy(() -> session.attribute("class A {}")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void attributingTwiceOnOneClasspathReusesTheFileManager() {
+        final var first = JavaParser.attributing("", session -> session.fileManager());
+        final var second = JavaParser.attributing("", session -> session.fileManager());
+        assertThat(second).isSameAs(first);
+    }
+
+    @Test
+    void attributingOnDifferentClasspathsNeverSharesAFileManager() {
+        final var plain = JavaParser.attributing("", session -> session.fileManager());
+        final var other = JavaParser.attributing(System.getProperty("java.class.path"), session -> session.fileManager());
+        assertThat(other).isNotSameAs(plain);
+    }
+
+    @Test
+    void idleAttributionFileManagersAreBoundedAcrossManyClasspaths() {
+        final var capacity = JavaParser.ATTRIBUTION_POOL_CAPACITY;
+        final var prefix = System.getProperty("java.io.tmpdir") + "/javafmt-classpath-";
+        IntStream.range(0, capacity + 5).forEach(i -> JavaParser.attributing(prefix + i, session -> session.attribute("class A {}")));
+        assertThat(JavaParser.idleAttributionFileManagers()).isLessThanOrEqualTo(capacity);
+    }
 
     @Test
     void parsesSimpleClass() {
@@ -141,45 +227,38 @@ class JavaParserTest {
     }
 
     @Test
-    void parseAndAttribute_simpleSource_resolvesFieldType() {
+    void attribute_simpleSource_resolvesFieldType() {
         final var source = """
                 class Foo {
                     String greeting = "hi";
                 }
                 """;
-        final var attributed = JavaParser.parseAndAttribute(source, "");
-        final var unit = attributed.unit();
-        final var cls = (ClassTree) unit.tree().getTypeDecls().getFirst();
-        // Attribution synthesizes a default constructor at the head of the member list,
-        // so pick the first VariableTree rather than the first member.
-        final var field = (VariableTree) cls.getMembers()
-                .stream()
-                .filter(VariableTree.class::isInstance)
-                .findFirst()
-                .orElseThrow();
-        final var fieldPath = com.sun.source.util.TreePath.getPath(unit.tree(), field);
-        final var fieldType = attributed.attribution().trees().getTypeMirror(fieldPath);
-        assertThat(fieldType).isNotNull();
-        assertThat(fieldType.toString()).isEqualTo("java.lang.String");
+        final var fieldType = JavaParser.attributing("", session -> firstFieldType(session.attribute(source)));
+        assertThat(fieldType).isEqualTo("java.lang.String");
     }
 
     @Test
-    void parseAndAttribute_emptyClasspath_returnsServices() {
-        final var attributed = JavaParser.parseAndAttribute("class Foo {}", "");
-        assertThat(attributed.attribution().trees()).isNotNull();
-        assertThat(attributed.attribution().types()).isNotNull();
-        assertThat(attributed.attribution().elements()).isNotNull();
+    void attribute_emptyClasspath_returnsServices() {
+        JavaParser.attributing(
+                "",
+                session -> {
+                    final var attribution = session.attribute("class Foo {}").attribution();
+                    assertThat(attribution.trees()).isNotNull();
+                    assertThat(attribution.types()).isNotNull();
+                    assertThat(attribution.elements()).isNotNull();
+                    return attribution;
+                });
     }
 
     @Test
-    void parseAndAttribute_invalidSource_throwsParseException() {
-        assertThatThrownBy(() -> JavaParser.parseAndAttribute("class {", "")).isInstanceOf(ParseException.class);
+    void attribute_invalidSource_throwsParseException() {
+        assertThatThrownBy(() -> JavaParser.attributing("", session -> session.attribute("class {"))).isInstanceOf(ParseException.class);
     }
 
     @Test
-    void parseAndAttribute_batchValidSources_returnsOkForAll() {
+    void attribute_batchValidSources_returnsOkForAll() {
         final var sources = java.util.List.of("class A {}", "class B {}", "class C {}");
-        final var outcomes = JavaParser.parseAndAttribute(sources, "");
+        final var outcomes = JavaParser.attributing("", session -> session.attribute(sources));
         assertThat(outcomes).hasSize(3);
         assertThat(outcomes).allMatch(o -> o instanceof AttributedOutcome.Ok);
         // All units share the same Attribution since they come from one JavacTask.
@@ -191,9 +270,9 @@ class JavaParserTest {
     }
 
     @Test
-    void parseAndAttribute_batchSurfacesPerSourceParseFailures() {
+    void attribute_batchSurfacesPerSourceParseFailures() {
         final var sources = java.util.List.of("class A {}", "class {", "class C {}");
-        final var outcomes = JavaParser.parseAndAttribute(sources, "");
+        final var outcomes = JavaParser.attributing("", session -> session.attribute(sources));
         assertThat(outcomes).hasSize(3);
         assertThat(outcomes.getFirst()).isInstanceOf(AttributedOutcome.Ok.class);
         assertThat(outcomes.get(1)).isInstanceOf(AttributedOutcome.Failed.class);
@@ -201,12 +280,12 @@ class JavaParserTest {
     }
 
     @Test
-    void parseAndAttribute_batchSourceThatCrashesAnalysis_failsOnlyThatSource() {
+    void attribute_batchSourceThatCrashesAnalysis_failsOnlyThatSource() {
         // javac's parser folds a long operator chain iteratively but its analyzer walks the
         // resulting tree recursively, so this source parses and then exhausts the stack during
         // analyze(). One such source must not cost the rest of the batch its attribution.
         final var pathological = "class Deep { int value = " + "1 + ".repeat(100_000) + "1; }";
-        final var outcomes = JavaParser.parseAndAttribute(java.util.List.of("class A {}", pathological, "class C {}"), "");
+        final var outcomes = JavaParser.attributing("", session -> session.attribute(java.util.List.of("class A {}", pathological, "class C {}")));
         assertThat(outcomes).hasSize(3);
         assertThat(outcomes.getFirst()).isInstanceOf(AttributedOutcome.Ok.class);
         assertThat(outcomes.get(1)).isInstanceOf(AttributedOutcome.Failed.class);
@@ -214,32 +293,27 @@ class JavaParserTest {
     }
 
     @Test
-    void parseAndAttribute_batchEmpty_returnsEmpty() {
-        assertThat(JavaParser.parseAndAttribute(java.util.List.of(), "")).isEmpty();
+    void attribute_batchEmpty_returnsEmpty() {
+        final var outcomes = JavaParser.attributing("", session -> session.attribute(List.<String>of()));
+        assertThat(outcomes).isEmpty();
     }
 
     @Test
-    void parseAndAttribute_batchCrossFileTypesResolve() {
+    void attribute_batchCrossFileTypesResolve() {
         // Class B references type A — only resolvable when both are attributed together.
         final var sources = java.util.List.of("class A { int value() { return 42; } }", "class B { A field; }");
-        final var outcomes = JavaParser.parseAndAttribute(sources, "");
-        final var unitB = ((AttributedOutcome.Ok) outcomes.get(1)).unit();
-        final var clsB = (ClassTree) unitB.unit().tree().getTypeDecls().getFirst();
-        final var field = (VariableTree) clsB.getMembers()
-                .stream()
-                .filter(VariableTree.class::isInstance)
-                .findFirst()
-                .orElseThrow();
-        final var fieldType = unitB.attribution()
-                .trees()
-                .getTypeMirror(com.sun.source.util.TreePath.getPath(unitB.unit().tree(), field));
-        assertThat(fieldType).isNotNull();
-        assertThat(fieldType.toString()).isEqualTo("A");
+        final var fieldType = JavaParser.attributing(
+                "",
+                session -> switch (session.attribute(sources).get(1)) {
+                    case AttributedOutcome.Ok ok -> firstFieldType(ok.unit());
+                    case AttributedOutcome.Failed failed -> throw failed.error();
+                });
+        assertThat(fieldType).isEqualTo("A");
     }
 
     @Test
     void attributionFileManagersDoNotLeakClasspathAcrossCalls() {
-        // The attributed path reuses one file manager per classpath. Reuse must not let one
+        // The attributed path pools file managers per classpath. Reuse must not let one
         // classpath's locations bleed into another's, in either direction.
         final var source = """
             class Fixture {
@@ -258,8 +332,33 @@ class JavaParserTest {
         assertThat(resolvesLintEdit(source, realClasspath)).isTrue();
     }
 
+    private static String firstFieldType(final AttributedUnit attributed) {
+        final var tree = attributed.unit().tree();
+        final var cls = (ClassTree) tree.getTypeDecls().getFirst();
+        // Attribution synthesizes a default constructor at the head of the member list,
+        // so pick the first VariableTree rather than the first member.
+        final var field = cls.getMembers()
+                .stream()
+                .filter(VariableTree.class::isInstance)
+                .findFirst()
+                .orElseThrow();
+        return String.valueOf(attributed.attribution().trees().getTypeMirror(com.sun.source.util.TreePath.getPath(tree, field)));
+    }
+
+    private static void awaitUninterruptibly(final CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+
     private static boolean resolvesLintEdit(final String source, final String classpath) {
-        final var attributed = JavaParser.parseAndAttribute(source, classpath);
+        return JavaParser.attributing(classpath, session -> resolvesLintEdit(session.attribute(source)));
+    }
+
+    private static boolean resolvesLintEdit(final AttributedUnit attributed) {
         final var trees = attributed.attribution().trees();
         final var found = new boolean[1];
         new com.sun.source.util.TreePathScanner<Void, Void>() {

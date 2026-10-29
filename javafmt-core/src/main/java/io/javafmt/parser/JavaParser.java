@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -30,15 +33,14 @@ import lombok.experimental.UtilityClass;
 /**
  * Parses Java source via the JDK's {@code javax.tools} compiler API.
  *
- * <p><b>Threading.</b> A {@link StandardJavaFileManager} is cached in a {@link ThreadLocal}
- * and lives for the lifetime of the thread that first calls {@link #parseUnit}; it is
- * never closed. This avoids re-paying javac's boot-classpath scan and {@code JarFile}
- * inflation on every call. Concurrent calls from different threads each use their own
- * file manager and do not contend; a single thread's calls are serialized through its
- * file manager but that's the normal case (one source per thread). Process-cached:
- * the {@link JavaCompiler} and each thread's {@link StandardJavaFileManager}. Per-call:
- * the {@link com.sun.source.util.JavacTask}, its diagnostic collector, and the in-memory
- * {@link JavaFileObject}.
+ * <p><b>Threading.</b> A parse borrows a {@link StandardJavaFileManager} from a shared pool
+ * and returns it when the call ends, so javac's boot-classpath scan and {@code JarFile}
+ * inflation are paid once per manager rather than once per call. A manager is never used by two
+ * calls at once, because it is not thread-safe, and the pool holds no more managers than the most
+ * parses that ever ran at the same time, however many threads a long-lived host such as the
+ * Gradle daemon cycles through. Attribution has a pool of its own: see {@link #attributing}.
+ * Per-call: the {@link com.sun.source.util.JavacTask},
+ * its diagnostic collector, and the in-memory {@link JavaFileObject}.
  *
  * <p>Annotation processing is disabled ({@code -proc:none}). This implementation uses
  * only exported {@code javax.tools} and {@code com.sun.source} APIs, so consumers do
@@ -54,9 +56,9 @@ import lombok.experimental.UtilityClass;
  * needed matching {@code --add-exports} flags. The {@code Add-Exports} JAR-manifest
  * attribute (JEP 261) only fires for {@code java -jar} launches, not classpath
  * consumption, so there is no transparent way to ship it. We kept the dominant cache
- * (per-thread file manager) and accept the cost of {@code initPlugins} per call. The
- * planned next step is {@code parseUnits(List)} (one task per batch), which recovers
- * most of the lost throughput while staying inside the public API.
+ * (a reused file manager) and accept the cost of {@code initPlugins} per task;
+ * {@code parseUnits(List)} (one task per batch) recovers most of the lost throughput while
+ * staying inside the public API.
  *
  * <p>{@link #HAS_JAVAC_INTERNAL_ACCESS} probes {@code jdk.compiler}'s exports at class
  * init; a future opt-in fast path can branch on it before attempting an internal-API
@@ -69,24 +71,17 @@ public final class JavaParser {
 
     private final JavaCompiler COMPILER = lookupCompiler();
 
-    private final ThreadLocal<StandardJavaFileManager> FILE_MANAGER = ThreadLocal.withInitial(() -> {
-        ensureJavaHome();
-        return COMPILER.getStandardFileManager(null, Locale.ROOT, StandardCharsets.UTF_8);
-    });
+    private final Queue<StandardJavaFileManager> IDLE_FILE_MANAGERS = new ConcurrentLinkedQueue<>();
+
+    final int ATTRIBUTION_POOL_CAPACITY = Math.max(2, Runtime.getRuntime().availableProcessors());
 
     /**
-     * File managers for the attributed path, keyed by classpath. Kept out of {@link #FILE_MANAGER}
-     * because setting {@code -classpath} on a task mutates the manager's classpath location, which
-     * would pollute the parse-only fast path; keyed by classpath so two different classpaths never
-     * see each other's locations. {@link ThreadLocal} for the same reason as the parse-only manager
-     * — {@link StandardJavaFileManager} is not thread-safe. Never closed: the {@link Attribution}
-     * services handed back to callers keep references into it.
-     *
-     * <p>Reuse matters because ~96% of a single-file attribution is fixed setup (measured: 6.7 ms
-     * for one file, 11.4 ms for 32). {@code RedundantTypeArguments} re-attributes once per file
-     * that carries a type witness, so a fresh manager per call roughly doubled {@code --analyze}.
+     * Kept apart from {@link #IDLE_FILE_MANAGERS} because setting {@code -classpath} on a task
+     * mutates the manager's classpath location, which would pollute the parse-only path, and keyed
+     * by classpath so two classpaths never see each other's locations. Reuse matters because ~96%
+     * of a single-file attribution is fixed setup (measured: 6.7 ms for one file, 11.4 ms for 32).
      */
-    private final ThreadLocal<Map<String, StandardJavaFileManager>> ATTRIBUTION_FILE_MANAGERS = ThreadLocal.withInitial(LinkedHashMap::new);
+    private final FileManagerPool ATTRIBUTION_FILE_MANAGERS = new FileManagerPool(ATTRIBUTION_POOL_CAPACITY, JavaParser::newFileManager);
 
     private final List<String> TASK_OPTIONS = List.of("-proc:none");
 
@@ -102,9 +97,36 @@ public final class JavaParser {
         }
     }
 
-    private StandardJavaFileManager attributionFileManager(final String classpath) {
-        return ATTRIBUTION_FILE_MANAGERS.get()
-                .computeIfAbsent(classpath, ignored -> COMPILER.getStandardFileManager(null, Locale.ROOT, StandardCharsets.UTF_8));
+    private StandardJavaFileManager newFileManager() {
+        ensureJavaHome();
+        return COMPILER.getStandardFileManager(null, Locale.ROOT, StandardCharsets.UTF_8);
+    }
+
+    int idleFileManagers() {
+        return IDLE_FILE_MANAGERS.size();
+    }
+
+    int idleAttributionFileManagers() {
+        return ATTRIBUTION_FILE_MANAGERS.idleCount();
+    }
+
+    /**
+     * Runs {@code work} with an {@link AttributionSession} on {@code classpath}, lending it a pooled
+     * file manager that goes back to the pool when {@code work} returns. Everything that uses the
+     * session's {@link Attribution}s, linting included, belongs inside {@code work}: once it
+     * returns, another caller may be handed the same manager.
+     */
+    public <T> T attributing(final String classpath, final Function<AttributionSession, T> work) {
+        Objects.requireNonNull(classpath, "classpath");
+        Objects.requireNonNull(work, "work");
+        final var fileManager = ATTRIBUTION_FILE_MANAGERS.borrow(classpath);
+        final var session = new AttributionSession(classpath, fileManager);
+        try {
+            return work.apply(session);
+        } finally {
+            session.end();
+            ATTRIBUTION_FILE_MANAGERS.giveBack(classpath, fileManager);
+        }
     }
 
     private boolean computeHasJavacInternalAccess() {
@@ -136,66 +158,28 @@ public final class JavaParser {
     }
 
     /**
-     * Parses {@code source} and runs javac's attribution pass, returning the parsed unit
-     * together with javac's {@link Trees}, {@link javax.lang.model.util.Types}, and
-     * {@link javax.lang.model.util.Elements} services. Use this for lint rules that need
-     * resolved type information.
-     *
-     * <p>Single-source convenience over {@link #parseAndAttribute(List, String)}. Throws on
-     * parse failure (mirrors {@link #parseUnit(String)}'s contract).
+     * Attributes {@code source} in the same session as {@code like}, for rules that re-attribute a
+     * rewritten copy of a file they are already linting. Throws on parse failure, as
+     * {@link AttributionSession#attribute(String)} does.
      */
-    public AttributedUnit parseAndAttribute(final String source, final String classpath) {
-        Objects.requireNonNull(source, "source");
-        Objects.requireNonNull(classpath, "classpath");
-        final var outcome = parseAndAttribute(List.of(source), classpath).getFirst();
-        return switch (outcome) {
-            case AttributedOutcome.Ok ok -> ok.unit();
-            case AttributedOutcome.Failed failed -> throw failed.error();
-        };
+    public AttributedUnit reattribute(final String source, final Attribution like) {
+        Objects.requireNonNull(like, "like");
+        return like.session().attribute(source);
     }
 
-    /**
-     * Parses {@code sources} as a single {@link JavacTask} and runs attribution, amortizing
-     * task setup across the batch the way {@link #parseUnits} does for parse-only. All
-     * returned {@link AttributedUnit}s share the same {@link Attribution} services, which
-     * also means cross-file type references resolve within the batch.
-     *
-     * <p>The task runs on {@link #ATTRIBUTION_FILE_MANAGERS}' manager for {@code classpath},
-     * never {@link #FILE_MANAGER}: setting {@code -classpath} on the task mutates the file
-     * manager's classpath location, which would pollute the parse-only fast path. Those
-     * managers are intentionally not closed because the returned {@link Attribution}'s
-     * services keep references into them.
-     *
-     * <p>Per-source parse errors surface as {@link AttributedOutcome.Failed}; the batch
-     * never short-circuits. An attribution failure (from {@code task.analyze()}) does not
-     * either: the batch is re-attributed one source at a time so that only the source javac
-     * choked on comes back {@link AttributedOutcome.Failed}. Sources recovered that way each
-     * carry their own {@link Attribution}, so cross-file references no longer resolve within
-     * a degraded batch.
-     */
-    public List<AttributedOutcome> parseAndAttribute(final List<String> sources, final String classpath) {
-        Objects.requireNonNull(sources, "sources");
-        Objects.requireNonNull(classpath, "classpath");
-        if (sources.isEmpty()) {
-            return List.of();
-        }
-        return attributeBatch(sources, classpath);
-    }
-
-    private List<AttributedOutcome> attributeBatch(final List<String> sources, final String classpath) {
+    List<AttributedOutcome> attributeBatch(final List<String> sources, final AttributionSession session) {
+        final var classpath = session.classpath();
         final var options = classpath.isEmpty() ? TASK_OPTIONS : Stream.concat(TASK_OPTIONS.stream(), Stream.of("-classpath", classpath)).toList();
-        ensureJavaHome();
-        final var fileManager = attributionFileManager(classpath);
-        final var batch = parseBatch(sources, fileManager, options);
+        final var batch = parseBatch(sources, session.fileManager(), options);
         final var task = batch.task();
         try {
             task.analyze();
         } catch (IOException e) {
             throw new AssertionError(e);
         } catch (RuntimeException e) {
-            return attributeIndividually(sources, classpath, e);
+            return attributeIndividually(sources, session, e);
         }
-        final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), classpath);
+        final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), session);
         final var positions = attribution.trees().getSourcePositions();
         return IntStream.range(0, batch.stripped().size())
                 .<AttributedOutcome>mapToObj(
@@ -215,12 +199,15 @@ public final class JavaParser {
      * sources javac can handle keep their attribution. A single source that fails again lands
      * here with nothing left to split, and carries {@code batchFailure} out as its own failure.
      */
-    private List<AttributedOutcome> attributeIndividually(final List<String> sources, final String classpath, final RuntimeException batchFailure) {
+    private List<AttributedOutcome> attributeIndividually(
+            final List<String> sources,
+            final AttributionSession session,
+            final RuntimeException batchFailure) {
         if (sources.size() == 1) {
             return List.of(new AttributedOutcome.Failed(batchFailure));
         }
         return sources.stream()
-                .map(source -> attributeBatch(List.of(source), classpath).getFirst())
+                .map(source -> attributeBatch(List.of(source), session).getFirst())
                 .toList();
     }
 
@@ -312,19 +299,23 @@ public final class JavaParser {
         if (sources.isEmpty()) {
             return List.of();
         }
-        final var fileManager = FILE_MANAGER.get();
-        final var batch = parseBatch(sources, fileManager, TASK_OPTIONS);
-        final var positions = Trees.instance(batch.task()).getSourcePositions();
-        return IntStream.range(0, batch.stripped().size())
-                .<ParseOutcome>mapToObj(
-                        i -> outcomeFor(
-                                i,
-                                batch.stripped().get(i),
-                                batch.fileObjects().get(i).toUri(),
-                                batch.treeByUri(),
-                                batch.errorsByUri(),
-                                positions))
-                .toList();
+        final var fileManager = Optional.ofNullable(IDLE_FILE_MANAGERS.poll()).orElseGet(JavaParser::newFileManager);
+        try {
+            final var batch = parseBatch(sources, fileManager, TASK_OPTIONS);
+            final var positions = Trees.instance(batch.task()).getSourcePositions();
+            return IntStream.range(0, batch.stripped().size())
+                    .<ParseOutcome>mapToObj(
+                            i -> outcomeFor(
+                                    i,
+                                    batch.stripped().get(i),
+                                    batch.fileObjects().get(i).toUri(),
+                                    batch.treeByUri(),
+                                    batch.errorsByUri(),
+                                    positions))
+                    .toList();
+        } finally {
+            IDLE_FILE_MANAGERS.offer(fileManager);
+        }
     }
 
     /**

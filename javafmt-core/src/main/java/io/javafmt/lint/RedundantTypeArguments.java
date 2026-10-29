@@ -238,7 +238,7 @@ public final class RedundantTypeArguments implements LintRule {
     /**
      * Strips every candidate witness in one pass, re-attributes once, then decides each
      * candidate against the shared re-attributed unit. Cost is one extra
-     * {@link JavaParser#parseAndAttribute} per file regardless of candidate count — the
+     * {@link JavaParser#reattribute} per file regardless of candidate count — the
      * per-candidate variant of this rule was unusable on real files (5–20+ witness sites
      * each paying ~50–200ms for a full attribution).
      *
@@ -269,8 +269,11 @@ public final class RedundantTypeArguments implements LintRule {
         final var modifiedSource = stripAllWitnesses(unit.source(), sorted);
         final AttributedUnit reattributed;
         try {
-            reattributed = JavaParser.parseAndAttribute(modifiedSource, attribution.classpath());
-        } catch (RuntimeException ignored) {
+            reattributed = JavaParser.reattribute(modifiedSource, attribution);
+        } catch (final RuntimeException e) {
+            if (attribution.session().hasEnded()) {
+                throw e;
+            }
             return;
         }
         IntStream.range(0, sorted.size())

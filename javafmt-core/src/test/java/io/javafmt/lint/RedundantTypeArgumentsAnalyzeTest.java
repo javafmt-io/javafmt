@@ -1,11 +1,28 @@
 package io.javafmt.lint;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.javafmt.Javafmt;
+import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 
 class RedundantTypeArgumentsAnalyzeTest {
+
+    @Test
+    void runningOnAnAttributionWhoseSessionHasEndedFailsInsteadOfSilentlySkipping() {
+        final var source = """
+                import java.util.Optional;
+                class Fixture {
+
+                    Optional<String> test() {
+                        return Optional.<String>of("hi");
+                    }
+                }
+                """;
+        final var attributed = JavaParser.attributing("", session -> session.attribute(source));
+        assertThatThrownBy(() -> new RedundantTypeArguments().apply(LintContext.attributed(attributed))).isInstanceOf(IllegalStateException.class);
+    }
 
     @Test
     void streamOfRedundantWitnessOverConcreteArgsIsDropped() {

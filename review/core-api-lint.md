@@ -330,7 +330,7 @@ unchanged + `Diagnostic.ParseError`) is implemented and tested.
 - **What**: `JavaParser` documents its threading model carefully (`JavaParser.java:33-45`), but
   `Javafmt` — the type users actually touch — says nothing. As far as I can tell it *is* safe:
   `LINT_ENGINE` (`Javafmt.java:38`) holds an immutable rule list, rules keep no state across
-  `apply`, and file managers are `ThreadLocal`. There is no test asserting it.
+  `apply`, and javac file managers are lent from pools to one caller at a time. There is no test asserting it.
 - **Why it matters for release**: Gradle/Maven/IDE hosts call this from pools; users need the
   guarantee in writing.
 - **Suggested fix**: state "safe for concurrent use from multiple threads" on `Javafmt`, and add a
