@@ -31,7 +31,7 @@ buildscript {
 }
 
 plugins {
-    id("com.diffplug.spotless") version "8.4.0"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 spotless {
@@ -80,49 +80,13 @@ echo "class X{}" | javafmt    # stdin -> stdout
 
 ## What it enforces
 
-The short version: 150-character lines, 4-space indent, K&R braces (always), and a ruff-style lint pass that auto-fixes the safe checks and warns on the rest.
-
-The full contract is in [Formatting rules](./rules.md).
-
-## Configuration
-
-There's basically nothing to configure — javafmt is opinionated and non-configurable on principle. See [Formatting rules](./rules.md).
+See [Formatting rules](./rules.md).
 
 ## CLI reference
 
-`javafmt --help` prints this same summary.
+Run `javafmt --help` for every option and the exit codes.
 
-| Flag | Description |
-|------|-------------|
-| `--check` | Do not write anything; exit 1 if any file would be reformatted. |
-| `--diagnostics=<fmt>` | Diagnostic format: `text` (default) or `json` (NDJSON on stderr). |
-| `--exclude <glob>` | Skip paths matching the glob. Repeatable. |
-| `--no-default-excludes` | Search `build`, `target`, `out`, `generated`, `node_modules` and `.git` too. |
-| `--threads <n>` | Files to format concurrently. Defaults to the CPU count. |
-| `--cache <path>` | Skip files unchanged since the last run recorded in this file. |
-| `--analyze` | Enable lint rules that need resolved types. Requires a classpath. |
-| `--classpath <cp>` | Classpath used by `--analyze`. |
-| `--classpath-file <path>` | Read the `--analyze` classpath from a file. |
-| `-` | Read from stdin, as with no file arguments at all. |
-| `--` | Treat every following argument as a path, not a flag. |
-| `-h`, `--help` | Show this message. |
-| `--version` | Show the javafmt version. |
-
-A directory argument is searched recursively, skipping any directory below it named `build`,
-`target`, `out`, `generated`, `node_modules` or `.git` — build output and downloaded dependencies
-get rewritten by whatever produced them, so formatting them is churn. The names are only skipped
-below the directory you named, so `javafmt build` still formats what is inside `build`, and
-`--no-default-excludes` turns the skipping off everywhere.
-
-### Exit codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | nothing to do |
-| 1 | a file would be reformatted, or could not be formatted |
-| 2 | bad usage, or a file could not be read or written |
-
-### JSON diagnostics (`--diagnostics=json`)
+## JSON diagnostics (`--diagnostics=json`)
 
 With `--diagnostics=json`, stderr switches from human-readable text to NDJSON: one JSON object per line, one line per diagnostic.
 

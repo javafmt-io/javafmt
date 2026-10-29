@@ -1,3 +1,4 @@
+import net.ltgt.gradle.errorprone.errorprone
 import java.io.PrintStream
 
 plugins {
@@ -14,6 +15,11 @@ nativeBinary {
     imageName.set("javafmt")
 }
 
+tasks.named<JavaCompile>("compileJava") {
+    options.compilerArgs.add("-Aproject=${project.group}/${project.name}")
+    options.errorprone.option("NullAway:ExcludedFieldAnnotations", "picocli.CommandLine.Spec")
+}
+
 graalvmNative {
     binaries {
         named("main") {
@@ -28,6 +34,8 @@ graalvmNative {
 
 dependencies {
     implementation(project(":javafmt-core"))
+    implementation(libs.picocli)
+    annotationProcessor(libs.picocli.codegen)
     runtimeOnly(libs.slf4j.simple)
     testImplementation(testFixtures(project(":javafmt-core")))
 }
