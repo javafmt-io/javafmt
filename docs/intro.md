@@ -43,7 +43,7 @@ spotless {
 
 Use `addStep(…create())`, not `custom("javafmt") { … }`. A `custom` step's up-to-date key is the integer you pass to `bumpThisNumberIfACustomStepChanges`, so upgrading javafmt would leave `spotlessCheck` passing on stale formatting. `create()` keys on the javafmt version, so an upgrade reformats.
 
-`JavafmtFormatterStep.create(JavafmtConfig)` takes a configuration — line width, excludes — instead of the defaults.
+`JavafmtFormatterStep.create(JavafmtConfig)` takes a configuration instead of the defaults. To skip files, use Spotless's own `targetExclude("src/main/java/gen/**")` in Gradle or `<excludes>` in the Spotless Maven plugin; the step formats and lints every file Spotless hands it.
 
 `create(JavafmtConfig, String)` additionally passes a compile classpath, which turns on the lint rules that need resolved types (redundant type witnesses, star-import explosion). These are the rules javafmt applies to its own source:
 

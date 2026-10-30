@@ -8,7 +8,6 @@ import io.javafmt.FormatResult;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.JavafmtVersion;
-import io.javafmt.PathFilter;
 import io.javafmt.Position;
 import java.io.File;
 import java.io.Serializable;
@@ -51,8 +50,7 @@ public final class JavafmtFormatterStep {
      */
     FormatterStep createForVersion(final JavafmtConfig config, final String analysisClasspath, final String formatterVersion) {
         final var analyzed = analysisClasspath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(analysisClasspath));
-        final var state = new State(formatterVersion, analyzed);
-        return new LintingStep(FormatterStep.create(NAME, state, JavafmtFormatterStep::buildFunc), state, PathFilter.ofGlobs(analyzed.excludes()));
+        return FormatterStep.create(NAME, new State(formatterVersion, analyzed), state -> new Func(state.config()));
     }
 
     public String apply(final String source) {
@@ -87,21 +85,6 @@ public final class JavafmtFormatterStep {
     }
 
     /**
-     * Build the per-state {@link FormatterFunc}. When {@code excludes} is empty we return a plain
-     * (file-agnostic) func so the step state stays cheap and serialization-stable. Otherwise we
-     * return a {@link FormatterFunc.NeedsFile} that consults the path on each call via {@link
-     * PathFilter}, matched against the full path and the bare filename — a match in either skips
-     * the file.
-     */
-    private FormatterFunc buildFunc(final State state) {
-        if (state.config().excludes().isEmpty()) {
-            return input -> throwOnError(resultFor(input, state.config()));
-        }
-        final var filter = PathFilter.ofGlobs(state.config().excludes());
-        return (FormatterFunc.NeedsFile) (input, file) -> isExcluded(filter, file) ? input : throwOnError(resultFor(input, state.config()));
-    }
-
-    /**
      * The full result for {@code config}. With semantic analysis, a result with errors is replaced
      * by the parse-only one, for both the formatted output and the lint pass's warnings.
      */
@@ -110,10 +93,6 @@ public final class JavafmtFormatterStep {
         return result.hasErrors() && config.analysis() instanceof JavafmtConfig.Analysis.Attributed
                 ? Javafmt.formatWithResult(source, config.withAnalysis(new JavafmtConfig.Analysis.ParseOnly()))
                 : result;
-    }
-
-    private boolean isExcluded(final PathFilter filter, final File file) {
-        return file != null && filter.excludes(file.toPath());
     }
 
     /**
@@ -128,59 +107,20 @@ public final class JavafmtFormatterStep {
         };
     }
 
-    /**
-     * The published step: {@code format} is the delegate Spotless built, and {@code lint} reports
-     * javafmt's warning-only rules — {@code FallThrough}, {@code EqualsHashCode},
-     * {@code MissingSwitchDefault}, {@code AvoidStarImport} and the rest.
-     *
-     * <p>Those rules are a headline feature, and Gradle via Spotless was the one integration where
-     * they did nothing: {@code apply} throws on errors and dropped {@code warnings()} on the floor,
-     * so no Gradle user ever saw one. {@code FormatterStep.lint} is where Spotless asks for them.
-     *
-     * <p>Equality and serialization are the delegate's, so up-to-date checking still keys on the
-     * javafmt version and the config exactly as before; {@code config} rides along only so
-     * {@code lint} can format with the same settings.
-     */
-    record LintingStep(FormatterStep delegate, State state, PathFilter excludes) implements FormatterStep {
+    record Func(JavafmtConfig config) implements FormatterFunc {
 
-        LintingStep {
-            Objects.requireNonNull(delegate, "delegate");
-            Objects.requireNonNull(state, "state");
-            Objects.requireNonNull(excludes, "excludes");
+        Func {
+            Objects.requireNonNull(config, "config");
         }
 
         @Override
-        public String getName() {
-            return delegate.getName();
-        }
-
-        @Override
-        public String format(final String rawUnix, final File file) throws Exception {
-            return delegate.format(rawUnix, file);
+        public String apply(final String input) {
+            return throwOnError(resultFor(input, config));
         }
 
         @Override
         public List<Lint> lint(final String content, final File file) {
-            if (isExcluded(excludes, file)) {
-                return List.of();
-            }
-            return resultFor(content, state.config())
-                    .warnings()
-                    .stream()
-                    .map(JavafmtFormatterStep::toLint)
-                    .toList();
-        }
-
-        @Override
-        public void close() {
-            try {
-                delegate.close();
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(e);
-            } catch (final Exception e) {
-                throw new IllegalStateException(e);
-            }
+            return resultFor(content, config).warnings().stream().map(JavafmtFormatterStep::toLint).toList();
         }
     }
 

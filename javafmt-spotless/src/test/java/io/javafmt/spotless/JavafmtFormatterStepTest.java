@@ -12,12 +12,9 @@ import io.javafmt.Position;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -94,41 +91,6 @@ class JavafmtFormatterStepTest {
     }
 
     @Test
-    void createWithExcludes_returnsInputUnchangedForMatchingPath(@TempDir final Path dir) throws Exception {
-        final var unformatted = Fixtures.UNFORMATTED_FOO;
-        final var input = dir.resolve("input.java");
-        Files.writeString(input, unformatted);
-        final var step = JavafmtFormatterStep.create(JavafmtConfig.defaults().withExcludes(List.of("**/input.java")));
-        assertThat(step.format(unformatted, input.toFile())).isEqualTo(unformatted);
-    }
-
-    @Test
-    void createWithExcludes_formatsNonMatchingPath(@TempDir final Path dir) throws Exception {
-        final var unformatted = Fixtures.UNFORMATTED_FOO;
-        final var other = dir.resolve("Other.java");
-        Files.writeString(other, unformatted);
-        final var step = JavafmtFormatterStep.create(JavafmtConfig.defaults().withExcludes(List.of("**/input.java")));
-        assertThat(step.format(unformatted, other.toFile())).isEqualTo(Fixtures.FORMATTED_FOO);
-    }
-
-    @Test
-    void createWithExcludes_basenameMatchesEvenForDeepPath(@TempDir final Path dir) throws Exception {
-        final var unformatted = Fixtures.UNFORMATTED_FOO;
-        final var nested = dir.resolve("a/b/c/expected.java");
-        Files.createDirectories(nested.getParent());
-        Files.writeString(nested, unformatted);
-        final var step = JavafmtFormatterStep.create(JavafmtConfig.defaults().withExcludes(List.of("**/expected.java")));
-        assertThat(step.format(unformatted, nested.toFile())).isEqualTo(unformatted);
-    }
-
-    @Test
-    void createWithExcludes_emptyExcludesActsLikeNoOp() throws Exception {
-        final var unformatted = Fixtures.UNFORMATTED_FOO;
-        final var step = JavafmtFormatterStep.create(JavafmtConfig.defaults().withExcludes(List.of()));
-        assertThat(step.format(unformatted, null)).isEqualTo(Fixtures.FORMATTED_FOO);
-    }
-
-    @Test
     void lintReportsJavafmtsWarningsSoSpotlessCanShowThem() throws Exception {
         // A star import trips AvoidStarImport, a warning-only rule: the file still formats, the
         // build still passes, and until now Gradle users were never told.
@@ -141,14 +103,6 @@ class JavafmtFormatterStepTest {
     @Test
     void lintReportsNothingForSourceThatTripsNoWarning() throws Exception {
         assertThat(JavafmtFormatterStep.create().lint(Fixtures.FORMATTED_FOO, null)).isEmpty();
-    }
-
-    @Test
-    void lintReportsNothingForAnExcludedFile(@TempDir final Path dir) throws Exception {
-        final var excluded = dir.resolve("Generated.java");
-        Files.writeString(excluded, STAR_IMPORT_SOURCE);
-        final var step = JavafmtFormatterStep.create(JavafmtConfig.defaults().withExcludes(List.of("**/Generated.java")));
-        assertThat(step.lint(STAR_IMPORT_SOURCE, excluded.toFile())).isEmpty();
     }
 
     @Test
@@ -202,9 +156,9 @@ class JavafmtFormatterStepTest {
 
     static Stream<JavafmtConfig> configsDifferingFromDefaults() {
         return Stream.of(
-                new JavafmtConfig(List.of("**/Generated.java"), true, true),
-                new JavafmtConfig(List.of(), false, true),
-                new JavafmtConfig(List.of(), true, false));
+                JavafmtConfig.defaults().withVerifyOutput(false),
+                JavafmtConfig.defaults().withLint(false),
+                JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/lib/a.jar")));
     }
 
     private static String serialize(final Object o) throws Exception {
