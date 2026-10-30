@@ -9,9 +9,6 @@ import java.util.Objects;
  * <p>A cache written under one configuration must not be read under another. Without this, a plain
  * run followed by an {@code --analyze} run finds every file up to date, skips it, and the
  * analyze-only rewrites never happen — which looks from the outside like javafmt doing nothing.
- *
- * <p>{@link JavafmtConfig#excludes()} is deliberately left out: it decides which files a run
- * visits, not what any one of them formats to.
  */
 public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, String classpath) {
 

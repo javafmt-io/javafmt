@@ -92,6 +92,16 @@ class SpotlessIntegrationTest {
         assertThat(result.getOutput()).contains("star import");
     }
 
+    @Test
+    void spotlessTargetExcludeKeepsAFileFromBeingFormattedOrLinted(@TempDir final Path dir) throws IOException {
+        writeProject(dir, DEFAULT_STEP, "targetExclude 'src/**/Generated.java'");
+        final var unformattedWithStarImport = "import java.util.*;\nclass Generated { List<String> xs; }\n";
+        final var generated = writeSource(dir, "Generated.java", unformattedWithStarImport);
+        build(dir, "spotlessApply");
+        build(dir, "spotlessCheck");
+        assertThat(Files.readString(generated)).isEqualTo(unformattedWithStarImport);
+    }
+
     private static BuildResult build(final Path dir, final String... arguments) {
         return runner(dir, arguments).build();
     }
@@ -122,6 +132,10 @@ class SpotlessIntegrationTest {
 
     /** Writes the build exactly as {@code docs/intro.md} describes it, bar the injected classpath. */
     private static void writeProject(final Path dir, final String stepExpression) throws IOException {
+        writeProject(dir, stepExpression, "");
+    }
+
+    private static void writeProject(final Path dir, final String stepExpression, final String targetExclude) throws IOException {
         Files.writeString(dir.resolve("settings.gradle"), "rootProject.name = 'javafmt-spotless-it'\n");
         Files.writeString(dir.resolve("build.gradle"), """
                                                        buildscript {
@@ -136,10 +150,11 @@ class SpotlessIntegrationTest {
                                                        spotless {
                                                            java {
                                                                target 'src/**/*.java'
+                                                               %s
                                                                addStep %s
                                                            }
                                                        }
-                                                       """.formatted(generatedBuildClasspath(), stepExpression));
+                                                       """.formatted(generatedBuildClasspath(), targetExclude, stepExpression));
     }
 
     /** The injected classpath as a Groovy argument list of quoted paths. */
