@@ -1,7 +1,11 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask
+import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 
 plugins {
     java
+    jacoco
     alias(libs.plugins.intellijPlatform)
     id("javafmt.spotless-conventions")
 }
@@ -21,10 +25,36 @@ java {
     }
 }
 
+val protocol = configurations.dependencyScope("protocol")
+
+configurations.compileOnly { extendsFrom(protocol.get()) }
+configurations.testImplementation { extendsFrom(protocol.get()) }
+
+val protocolRuntime = configurations.resolvable("protocolRuntime") {
+    extendsFrom(protocol.get())
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+        attribute(TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE, objects.named(TargetJvmEnvironment.STANDARD_JVM))
+    }
+}
+
 dependencies {
     // Deliberately no javafmt-core: it is class file major 69 and IDEA 2025.2's JBR 21 reads at
     // most 65. Formatting happens out of process in the native javafmt binary.
     compileOnly(libs.jspecify)
+    protocol(project(":javafmt-daemon")) {
+        capabilities {
+            requireFeature("protocol")
+        }
+        isTransitive = false
+    }
+    protocol(libs.protobuf.java)
+    protocol(libs.protovalidate) {
+        isTransitive = false
+    }
 
     intellijPlatform {
         intellijIdeaCommunity("2025.2")
@@ -41,7 +71,32 @@ dependencies {
     // JavafmtExternalFormatProcessorTest uses io.javafmt.Fixtures. Test code runs on the Java 25
     // launcher below, never inside JBR 21, so a major-69 class on the test classpath is harmless.
     testImplementation(testFixtures(project(":javafmt-core")))
+    testImplementation(testFixtures(project(":javafmt-daemon")))
     testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+val relocatedPluginJar = tasks.register<ShadowJar>("relocatedPluginJar") {
+    val composedJar = tasks.named<ComposedJarTask>("composedJar")
+    from(zipTree(composedJar.flatMap { it.archiveFile })) {
+        exclude("META-INF/MANIFEST.MF")
+    }
+    manifest.inheritFrom(composedJar.get().manifest)
+    configurations.add(protocolRuntime)
+    relocate("com.google.protobuf", "io.javafmt.intellij.protobuf")
+    relocate("build.buf.validate", "io.javafmt.intellij.validate")
+    exclude(
+        "build/buf/protovalidate/**",
+        "buf/**",
+        "google/protobuf/**",
+        "META-INF/maven/**",
+        "META-INF/versions/**/module-info.class",
+        "module-info.class",
+    )
+    destinationDirectory.set(layout.buildDirectory.dir("relocated"))
+}
+
+tasks.named<PrepareSandboxTask>("prepareSandbox") {
+    pluginJar.set(relocatedPluginJar.flatMap { it.archiveFile })
 }
 
 // The version gate needs the plugin's own version at runtime: a plugin that demands a newer
@@ -76,6 +131,22 @@ val generatePluginVersionClass = tasks.register("generatePluginVersionClass") {
 
 sourceSets["main"].java.srcDir(generatePluginVersionClass)
 
+val nativeChecksumsPath = providers.gradleProperty("javafmt.nativeChecksums")
+
+val generateNativeChecksums = tasks.register("generateNativeChecksums") {
+    val checksums = providers.fileContents(objects.fileProperty().fileProvider(nativeChecksumsPath.map { File(it) })).asText.orElse("")
+    val outputDir = layout.buildDirectory.dir("generated/resources/native-checksums")
+    inputs.property("checksums", checksums)
+    outputs.dir(outputDir)
+    doLast {
+        val packageDir = outputDir.get().asFile.resolve("io/javafmt/intellij")
+        packageDir.mkdirs()
+        packageDir.resolve("native-checksums.txt").writeText(checksums.get())
+    }
+}
+
+sourceSets["main"].resources.srcDir(generateNativeChecksums)
+
 tasks.withType<Javadoc>().configureEach {
     (options as StandardJavadocDocletOptions).apply {
         addBooleanOption("Xdoclint:all,-missing", true)
@@ -92,10 +163,34 @@ tasks.named<Test>("test") {
     // The version gate is derived from the plugin's own version, so the test that pins the two
     // together needs the version the build stamped, independently of the generated source.
     systemProperty("javafmt.buildVersion", project.version.toString())
+    systemProperty("javafmt.nativeChecksums", nativeChecksumsPath.getOrElse(""))
     systemProperty("java.awt.headless", "true")
+    val pluginJar = relocatedPluginJar.flatMap { it.archiveFile }
+    inputs.file(pluginJar).withPropertyName("pluginJar").withPathSensitivity(PathSensitivity.NONE)
+    systemProperty("javafmt.pluginJar", pluginJar.get().asFile.absolutePath)
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(25))
     })
+    finalizedBy(tasks.named("jacocoTestReport"))
+    extensions.configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+jacoco {
+    toolVersion = libs.versions.jacoco.get()
+}
+
+tasks.named<JacocoReport>("jacocoTestReport") {
+    classDirectories.setFrom(layout.buildDirectory.dir("instrumented/instrumentCode"))
+    reports {
+        xml.required = true
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("jacocoTestReport"))
 }
 
 intellijPlatform {
@@ -112,8 +207,10 @@ intellijPlatform {
             Java files. Reformatting a selection, and any request that may only change whitespace,
             still goes to IntelliJ's built-in formatter, because javafmt's lint pass rewrites code
             (it inserts <code>final</code>, adds braces, drops unused imports) rather than only
-            laying it out. Requires the <code>javafmt</code> binary on <code>PATH</code>, or a path
-            configured under <em>Settings | Tools | javafmt</em>. When no binary is found, or when
+            laying it out. Formatting runs in javafmt's native binary: the plugin uses the path
+            configured under <em>Settings | Tools | javafmt</em>, else a <code>javafmt</code> on
+            <code>PATH</code>, else downloads the matching binary from the javafmt GitHub release
+            on the first reformat and verifies its checksum. When no binary is available, or when
             javafmt cannot parse the file, it is left exactly as it was and a notification says
             why — IntelliJ's own formatter does not step in for a whole-file reformat.
         """.trimIndent()

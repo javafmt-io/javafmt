@@ -15,6 +15,7 @@ bin/
 node_modules/
 .vscode-test/
 out/
+javafmt-vscode/src/gen/
 
 # Docusaurus
 .docusaurus/

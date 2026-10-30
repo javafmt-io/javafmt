@@ -4,12 +4,7 @@ import io.javafmt.Diagnostic;
 import java.util.Objects;
 import lombok.experimental.UtilityClass;
 
-/**
- * Renders a {@link Diagnostic} as one line of NDJSON for {@code --diagnostics=json}.
- *
- * <p>Hand-rolled rather than delegating to a JSON library: {@code javafmt-cli} would otherwise gain
- * a runtime dependency for six fields, and the native image would need reachability metadata for it.
- */
+/** Renders a {@link Diagnostic} as one line of NDJSON for {@code --diagnostics=json}. */
 @UtilityClass
 final class JsonDiagnostics {
 

@@ -1,105 +1,63 @@
 import com.github.gradle.node.npm.task.NpmTask
-import java.io.PrintStream
 
 plugins {
-    id("javafmt.java-conventions")
     id("javafmt.npm-conventions")
-    application
-    id("javafmt.native-conventions")
 }
 
-application {
-    mainClass.set("io.javafmt.vscode.Daemon")
+val nativeExecutable = configurations.dependencyScope("nativeExecutable")
+
+val nativeExecutableFiles = configurations.resolvable("nativeExecutableFiles") {
+    extendsFrom(nativeExecutable.get())
 }
 
-nativeBinary {
-    imageName.set("javafmt-daemon")
-    dockerOutputDir.set(layout.projectDirectory.dir("bin"))
+val daemonProto = configurations.dependencyScope("daemonProto")
+
+val daemonProtoFiles = configurations.resolvable("daemonProtoFiles") {
+    extendsFrom(daemonProto.get())
 }
 
-graalvmNative {
-    binaries {
-        named("main") {
-            mainClass.set("io.javafmt.vscode.Daemon")
-            javaLauncher.set(javaToolchains.launcherFor {
-                languageVersion.set(JavaLanguageVersion.of(25))
-                vendor.set(JvmVendorSpec.GRAAL_VM)
-            })
-        }
-    }
+val daemonFixtures = configurations.dependencyScope("daemonFixtures")
+
+val daemonFixtureFiles = configurations.resolvable("daemonFixtureFiles") {
+    extendsFrom(daemonFixtures.get())
 }
 
 dependencies {
-    implementation(project(":javafmt-core"))
-    implementation(libs.jackson.databind)
-    implementation(libs.slf4j.api)
-    runtimeOnly(libs.slf4j.simple)
+    nativeExecutable(project(path = ":javafmt-cli", configuration = "nativeExecutable"))
+    daemonProto(project(path = ":javafmt-daemon", configuration = "protoElements"))
+    daemonFixtures(project(path = ":javafmt-daemon", configuration = "fixtureElements"))
 }
 
-// Tracing-agent capture: feeds real NDJSON requests through the daemon's actual Daemon.main()
-// entry point so the GraalVM native-image-agent observes the exact Jackson code paths the native
-// binary must survive on its first real request -- deserializing FormatRequest, then serializing
-// a FormatResponse with both an empty diagnostics list and one holding a real DiagnosticDto. The
-// unit tests construct several of these records directly without going through Json; this task is
-// the one place that drives the full Daemon.serve loop end to end under the agent. Modelled on
-// javafmt-cli's tracingAgentCapture task.
-//
-//   gradle :javafmt-vscode:daemonAgentCapture -Pagent
-//   gradle :javafmt-vscode:metadataCopy --task daemonAgentCapture \
-//       --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
-//
-// Note --dir is resolved relative to this module's project directory, not the repo root.
-//
-// Requires a GraalVM JDK on the toolchain path (Temurin/OpenJDK ship no native-image-agent
-// dylib) -- set JAVA_HOME/GRAALVM_HOME to it, since metadataCopy locates native-image-configure
-// via the environment rather than the task's own javaLauncher. Without -Pagent the task is a
-// harmless daemon exercise.
-val daemonAgentCapture = tasks.register<JavaExec>("daemonAgentCapture") {
-    group = "native"
-    description = "Feed real NDJSON requests through Daemon.main() so the native-image-agent can record the Jackson reflection the daemon needs."
-    mainClass.set("io.javafmt.vscode.Daemon")
-    classpath = sourceSets.main.get().runtimeClasspath
-    // The native-image-agent dylib only ships with GraalVM, not Temurin/OpenJDK.
-    javaLauncher.set(javaToolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(25))
-        vendor.set(JvmVendorSpec.GRAAL_VM)
-    })
-
-    val ndjson = listOf(
-        // Clean input: no diagnostics -- exercises FormatResponse serialized with an empty list.
-        """{"id":"1","source":"class A{}"}""",
-        // A FallThrough lint warning: exercises FormatResponse serialized with a real DiagnosticDto.
-        """{"id":"2","source":"class Foo { void m(int x) { switch (x) { case 1: System.out.println(); case 2: break; } } }"}""",
-    ).joinToString(separator = "\n", postfix = "\n")
-
-    val logFile = layout.buildDirectory.file("tracing-agent/daemon-capture.log")
-    outputs.file(logFile)
-
-    doFirst {
-        val out = logFile.get().asFile
-        out.parentFile.mkdirs()
-        val stream = PrintStream(out.outputStream(), true, Charsets.UTF_8)
-        standardInput = ndjson.byteInputStream(Charsets.UTF_8)
-        standardOutput = stream
-        errorOutput = stream
-    }
+val syncDaemonProto = tasks.register<Sync>("syncDaemonProto") {
+    from(daemonProtoFiles)
+    into(layout.buildDirectory.dir("daemon-proto"))
 }
 
-tasks.shadowJar {
-    archiveBaseName.set("javafmt-daemon")
-    archiveClassifier.set("")
-    archiveVersion.set("")
-    mergeServiceFiles()
+val syncDaemonFixtures = tasks.register<Sync>("syncDaemonFixtures") {
+    from(daemonFixtureFiles)
+    into(layout.buildDirectory.dir("daemon-fixtures"))
 }
 
-val copyDaemonJar = tasks.register<Copy>("copyDaemonJar") {
-    from(tasks.shadowJar)
-    into(layout.projectDirectory.dir("bin"))
-    rename { "javafmt-daemon.jar" }
+val generateProtocol = tasks.register<NpmTask>("generateProtocol") {
+    args.set(listOf("run", "generate"))
+    dependsOn(tasks.named("npmInstall"))
+    inputs.files(syncDaemonProto).withPropertyName("proto")
+    inputs.file(layout.projectDirectory.file("buf.gen.yaml"))
+    inputs.file(layout.projectDirectory.file("package-lock.json"))
+    outputs.dir(layout.projectDirectory.dir("src/gen"))
+}
+
+tasks.named("npmBuild") {
+    dependsOn(generateProtocol)
+}
+
+tasks.named("npmTest") {
+    dependsOn(generateProtocol)
+    inputs.files(syncDaemonFixtures).withPropertyName("fixtures")
 }
 
 // The full vsce target vocabulary this scheme lays bin/ out for, regardless of which of them
-// this repo's CI actually has runners to build (see native.yml's matrix for the current three).
+// this repo's CI actually has runners to build (see native.yml's matrix for the ones it does).
 val vsceTargets = listOf("darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "win32-x64")
 
 fun vsceTarget(): String {
@@ -125,10 +83,9 @@ fun requestedTarget(): String =
         ?: vsceTarget()
 
 val copyNativeBinary = tasks.register<Copy>("copyNativeBinary") {
-    dependsOn(tasks.named("nativeCompile"))
-    from(layout.buildDirectory.dir("native/nativeCompile"))
+    from(nativeExecutableFiles)
     into(layout.projectDirectory.dir("bin").dir(vsceTarget()))
-    include("javafmt-daemon", "javafmt-daemon.exe")
+    include("javafmt", "javafmt.exe")
 }
 
 // vsce 3.9.1 documents --target as packaging a single platform and --ignore-other-target-folders
@@ -136,22 +93,19 @@ val copyNativeBinary = tasks.register<Copy>("copyNativeBinary") {
 // VSIX manifest metadata (and gates node_modules dependency detection), and
 // ignoreOtherTargetFolders is parsed by vsce's CLI (main.js) and never read by its file-collection
 // logic (package.js) -- dead code in this version. So bin/ is staged explicitly here rather than
-// trusted to vsce: this task deletes every target directory except the one being packaged, plus
-// the universal jar, before vsce ever runs.
+// trusted to vsce: this task deletes everything in bin/ except the target directory being packaged
+// before vsce ever runs.
 val stageTargetBinary = tasks.register<Delete>("stageTargetBinary") {
     dependsOn(copyNativeBinary)
     val target = requestedTarget()
     delete(vsceTargets.filter { it != target }.map { layout.projectDirectory.dir("bin").dir(it) })
-    delete(layout.projectDirectory.file("bin/javafmt-daemon.jar"))
+    delete(fileTree(layout.projectDirectory.dir("bin")) { exclude("$target/**") })
 }
 
-val packageVsixTarget = tasks.register<NpmTask>("packageVsixTarget") {
+tasks.register<NpmTask>("packageVsixTarget") {
     dependsOn(tasks.named("npmBuild"), stageTargetBinary)
-    args.set(listOf("run", "package:target", "--", requestedTarget()))
-    inputs.dir(layout.projectDirectory.dir("bin"))
-}
-
-tasks.named("packageVsix") {
-    dependsOn(copyDaemonJar)
+    val vsixVersion = project.version.toString().substringBefore('-')
+    inputs.property("vsixVersion", vsixVersion)
+    args.set(listOf("run", "package:target", "--", requestedTarget(), vsixVersion, "--no-git-tag-version", "--no-update-package-json"))
     inputs.dir(layout.projectDirectory.dir("bin"))
 }

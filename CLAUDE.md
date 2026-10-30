@@ -51,7 +51,7 @@ first use after a clean build.
 ## Architecture
 
 - **`javafmt-core` has minimal runtime dependencies.** Every dep must be deliberate and well-justified, e.g. `slf4j-api` is acceptable. Test-only deps (JUnit 5, AssertJ) are always fine.
-- Integration modules (`javafmt-spotless`, `javafmt-maven-plugin`, `javafmt-cli`, `javafmt-intellij`) depend on `javafmt-core` and add only their integration-specific dependencies.
+- Integration modules (`javafmt-spotless`, `javafmt-maven-plugin`, `javafmt-gradle-plugin`, `javafmt-cli`, `javafmt-intellij`) depend on `javafmt-core` and add only their integration-specific dependencies.
 - `javafmt-maven-plugin` is a Maven plugin JAR but is built by Gradle via the `org.gradlex.maven-plugin-development` plugin, which generates the `META-INF/maven/plugin.xml` descriptor from `@Mojo` annotations. One build system for the whole monorepo, no `mvn install` bootstrap needed.
 - Shared build conventions live in `buildSrc/src/main/kotlin/javafmt.java-conventions.gradle.kts`.
 - All dependency versions go in `gradle/libs.versions.toml`, nowhere else.

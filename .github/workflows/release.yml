@@ -6,7 +6,12 @@ on:
       - 'v*'
 
 jobs:
+  native:
+    uses: ./.github/workflows/native.yml
+    secrets: inherit
+
   release:
+    needs: native
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,7 +27,7 @@ jobs:
       - name: Set up Java 25
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
+          java-version: '25.0.5'
           distribution: 'temurin'
 
       - name: Set up Gradle
@@ -31,8 +36,34 @@ jobs:
           gradle-version: '9.8.2'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
+      - name: Download native binaries
+        uses: actions/download-artifact@v7
+        with:
+          pattern: native-*
+          path: build/release-assets/native
+          merge-multiple: true
+
+      - name: Download VS Code extensions
+        uses: actions/download-artifact@v7
+        with:
+          pattern: vsix-*
+          path: build/release-assets/vsix
+          merge-multiple: true
+
+      - name: Checksum native binaries
+        working-directory: build/release-assets/native
+        run: |
+          sha256sum javafmt-* > SHA256SUMS
+          cat SHA256SUMS
+
       - name: Build and test
-        run: gradle build
+        run: gradle build :javafmt-intellij:buildPlugin -Pjavafmt.nativeChecksums="$GITHUB_WORKSPACE/build/release-assets/native/SHA256SUMS"
+
+      - name: Stage the IntelliJ plugin
+        run: |
+          plugin=(javafmt-intellij/build/distributions/*.zip)
+          [ -f "${plugin[0]}" ]
+          cp "${plugin[0]}" "build/release-assets/javafmt-intellij-$(gradle -q currentVersion).zip"
 
       - name: Publish to local staging
         run: gradle publishAllPublicationsToStagingRepository
@@ -67,3 +98,35 @@ jobs:
           path: |
             build/jreleaser/trace.log
             build/jreleaser/output.properties
+
+  publish-gradle-plugin:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pin archive timestamps to the tagged commit
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25.0.5'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.8.2'
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: Publish the Gradle plugin to the Plugin Portal
+        run: gradle :javafmt-gradle-plugin:publishPlugins
+        env:
+          GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
+          GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}

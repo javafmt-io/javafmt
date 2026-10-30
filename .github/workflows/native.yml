@@ -2,10 +2,11 @@ name: Native
 
 on:
   workflow_dispatch:
-  push:
-    tags: ['v*']
+  workflow_call:
 
-# Builds platform-specific native binaries for javafmt-cli and the VS Code daemon.
+# Builds platform-specific native binaries for javafmt-cli, which also serves the editor
+# integrations through `javafmt --daemon`, and the VS Code extension that bundles each one.
+# release.yml calls this workflow and attaches what it uploads to the GitHub Release.
 # GraalVM cannot cross-compile, so each OS/arch runs its own job.
 #
 # First-time setup: before this workflow can succeed, the GraalVM tracing agent
@@ -15,13 +16,9 @@ on:
 #   gradle :javafmt-cli:metadataCopy --task test \
 #     --dir javafmt-cli/src/main/resources/META-INF/native-image/io.javafmt/javafmt-cli
 #
-#   gradle :javafmt-vscode:daemonAgentCapture -Pagent
-#   gradle :javafmt-vscode:metadataCopy --task daemonAgentCapture \
-#     --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
-#
 # Commit the generated metadata, then re-trigger this workflow. This metadata is already
-# committed as of the daemon's first working native build; regenerate it only if FormatRequest,
-# FormatResponse, or DiagnosticDto change shape.
+# committed; the daemon's protobuf messages in javafmt-daemon's daemon.proto are registered by
+# hand, so add any message or enum added there.
 
 jobs:
   native:
@@ -31,6 +28,8 @@ jobs:
         include:
           - os: ubuntu-24.04
             target: linux-x64
+          - os: ubuntu-24.04-arm
+            target: linux-arm64
           - os: macos-latest
             target: darwin-arm64
           - os: windows-latest
@@ -46,7 +45,7 @@ jobs:
       - uses: graalvm/setup-graalvm@v1
         with:
           java-version: '25'
-          distribution: 'graalvm'
+          distribution: 'graalvm-community'
           native-image-job-reports: 'true'
 
       - uses: gradle/actions/setup-gradle@v6
@@ -86,56 +85,41 @@ jobs:
           printf 'class A{int x=1;}\n' | "$binary" --diagnostics=json 2>/tmp/err.txt | grep -q 'int x = 1;'
           [ ! -s /tmp/err.txt ]
 
-      - name: Upload CLI binary
-        uses: actions/upload-artifact@v7
+      - name: Smoke test the CLI daemon
+        run: gradle :javafmt-cli:nativeDaemonTest
+
+      - uses: actions/setup-node@v6
         with:
-          name: javafmt-${{ matrix.target }}
-          path: |
-            javafmt-cli/build/native/nativeCompile/javafmt
-            javafmt-cli/build/native/nativeCompile/javafmt.exe
-          if-no-files-found: error
+          node-version: 'lts/*'
 
-      # native.yml deliberately publishes workflow artifacts only, named on the matrix's vsce
-      # target vocabulary (javafmt-<target>, javafmt-daemon-<target>) rather than the mismatched
-      # per-OS names this replaced. Attaching them to a GitHub release belongs to the JReleaser
-      # `distributions` work tracked as P0.4 (needs: this job, download the artifacts, one
-      # `distributions` block), not here: native.yml attaching directly would race jreleaser.yml's
-      # own `release.github.overwrite: true` for the same tag, since both would be writing to the
-      # same release concurrently.
-      - name: Compile daemon native binary
-        run: gradle :javafmt-vscode:nativeCompile
+      - name: Package the VS Code extension for this platform
+        run: gradle :javafmt-vscode:packageVsixTarget
+        env:
+          VSCE_TARGET: ${{ matrix.target }}
 
-      # Reachability metadata for the daemon's Jackson record types (FormatRequest, FormatResponse,
-      # DiagnosticDto) is committed under
-      # javafmt-vscode/src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode. Without
-      # it, native-image strips the record accessors Jackson needs and the daemon crashes on its
-      # first request with UnsupportedFeatureError. NativeDaemonRoundTripTest asserts the binary
-      # survives a real NDJSON round trip (both an empty and a populated diagnostics list) and is
-      # the regression guard if a DTO's shape ever changes; it's gated on the binary being present
-      # so it merely SKIPs on developer machines that haven't run nativeCompile. This job just
-      # built the binary above, so the explicit existence check below turns a missing binary into
-      # a hard failure here rather than letting the gate silently skip the one place this test
-      # actually needs to run.
-      #
-      # Regenerate the metadata after any DTO change with:
-      #   gradle :javafmt-vscode:daemonAgentCapture -Pagent
-      #   gradle :javafmt-vscode:metadataCopy --task daemonAgentCapture \
-      #     --dir src/main/resources/META-INF/native-image/io.javafmt/javafmt-vscode
-      # (requires a GraalVM toolchain on JAVA_HOME/GRAALVM_HOME -- Temurin ships no
-      # native-image-agent).
-      - name: Smoke test the daemon binary
+      - name: Stage release assets
         shell: bash
         run: |
-          binary=javafmt-vscode/build/native/nativeCompile/javafmt-daemon
-          [ -f "$binary" ] || binary=javafmt-vscode/build/native/nativeCompile/javafmt-daemon.exe
-          [ -x "$binary" ]
-          gradle :javafmt-vscode:test --tests "io.javafmt.vscode.NativeDaemonRoundTripTest"
+          version=$(gradle -q currentVersion)
+          binary=javafmt-cli/build/native/nativeCompile/javafmt
+          suffix=''
+          if [ -f "$binary.exe" ]; then binary="$binary.exe"; suffix='.exe'; fi
+          mkdir -p staged/native staged/vsix
+          cp "$binary" "staged/native/javafmt-$version-${{ matrix.target }}$suffix"
+          vsix=(javafmt-vscode/*.vsix)
+          [ -f "${vsix[0]}" ]
+          cp "${vsix[0]}" "staged/vsix/javafmt-vscode-$version-${{ matrix.target }}.vsix"
 
-      - name: Upload daemon binary
+      - name: Upload native binary
         uses: actions/upload-artifact@v7
         with:
-          name: javafmt-daemon-${{ matrix.target }}
-          path: |
-            javafmt-vscode/build/native/nativeCompile/javafmt-daemon
-            javafmt-vscode/build/native/nativeCompile/javafmt-daemon.exe
+          name: native-${{ matrix.target }}
+          path: staged/native/
+          if-no-files-found: error
+
+      - name: Upload VS Code extension
+        uses: actions/upload-artifact@v7
+        with:
+          name: vsix-${{ matrix.target }}
+          path: staged/vsix/
           if-no-files-found: error

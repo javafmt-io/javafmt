@@ -12,7 +12,9 @@ errorprone = "2.51.0"
 nullaway = "0.14.3"
 jmh = "0.7.3"
 checkstyle = "14.3.0"
-jackson = "3.2.4"
+protobuf = "4.36.2"
+protobufPlugin = "0.10.0"
+protovalidate = "1.3.0"
 shadow = "9.6.1"
 nodeGradle = "7.1.0"
 spotlessLib = "4.10.4"
@@ -25,6 +27,9 @@ jacoco = "0.8.16"
 picocli = "4.7.7"
 develocity = "4.6.1"
 graalvmNative = "1.1.17"
+pluginPublish = "2.2.1"
+foojay = "1.0.0"
+gradlePluginMinimumGradle = "9.1.0"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -43,7 +48,10 @@ maven-plugin-api = { module = "org.apache.maven:maven-plugin-api", version.ref =
 maven-core = { module = "org.apache.maven:maven-core", version.ref = "maven" }
 maven-plugin-annotations = { module = "org.apache.maven.plugin-tools:maven-plugin-annotations", version.ref = "maven-plugin-tools" }
 checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
-jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protobuf" }
+protoc = { module = "com.google.protobuf:protoc", version.ref = "protobuf" }
+protovalidate = { module = "build.buf:protovalidate", version.ref = "protovalidate" }
 spotless-lib = { module = "com.diffplug.spotless:spotless-lib", version.ref = "spotlessLib" }
 junit4 = { module = "junit:junit", version = "4.13.2" }
 errorprone-gradle-plugin = { module = "net.ltgt.gradle:gradle-errorprone-plugin", version.ref = "errorprone-plugin" }
@@ -54,6 +62,7 @@ spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradl
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 picocli-codegen = { module = "info.picocli:picocli-codegen", version.ref = "picocli" }
 develocity-gradle-plugin = { module = "com.gradle:develocity-gradle-plugin", version.ref = "develocity" }
+foojay-resolver = { module = "org.gradle.toolchains:foojay-resolver", version.ref = "foojay" }
 opentest4j = { module = "org.opentest4j:opentest4j", version = "1.3.0" }
 
 [plugins]
@@ -65,3 +74,5 @@ nodeGradle = { id = "com.github.node-gradle.node", version.ref = "nodeGradle" }
 intellijPlatform = { id = "org.jetbrains.intellij.platform", version.ref = "intellijPlatform" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotlessGradle" }
 jvmHotpath = { id = "io.github.sfkamath.jvm-hotpath", version.ref = "jvmHotpath" }
+pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "pluginPublish" }
+protobuf = { id = "com.google.protobuf", version.ref = "protobufPlugin" }

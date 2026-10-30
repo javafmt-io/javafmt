@@ -46,7 +46,7 @@ The plan, phase by phase, plus the things still unsettled. For architecture, see
 **Goal**: format-on-save in IntelliJ IDEA and VS Code, with output identical to CI.
 
 1. IntelliJ plugin via `ExternalFormatProcessor` (whole-file only; partial ranges fall back to IntelliJ's own formatter).
-2. VS Code extension talking NDJSON to a long-lived `javafmt-daemon`, so editor formatting doesn't pay JVM cold-start per request.
+2. VS Code extension talking NDJSON to a long-lived `javafmt --daemon`, so editor formatting doesn't pay process start per request.
 3. Both ship platform-native binaries with a fat-JAR fallback.
 
 ## Phase 6 — Configurability

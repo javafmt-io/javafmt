@@ -9,4 +9,8 @@ module.exports = {
         '^child_process$': '<rootDir>/src/__mocks__/child_process.js',
     },
     clearMocks: true,
+    collectCoverage: true,
+    collectCoverageFrom: ['src/extension.ts', 'src/protocol.ts'],
+    coverageDirectory: 'build/coverage',
+    coverageReporters: [['lcovonly', { projectRoot: '..' }], 'text-summary'],
 };

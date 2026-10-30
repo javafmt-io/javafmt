@@ -1,4 +1,6 @@
+import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
+import org.graalvm.buildtools.gradle.tasks.BuildNativeImageTask
 import java.io.PrintStream
 
 plugins {
@@ -32,12 +34,58 @@ graalvmNative {
     }
 }
 
+val nativeExecutable = configurations.consumable("nativeExecutable")
+
+artifacts {
+    add(nativeExecutable.name, tasks.named<BuildNativeImageTask>("nativeCompile").flatMap { it.outputDirectory })
+}
+
+val nativeDaemonTest = sourceSets.create("nativeDaemonTest")
+
+configurations.named(nativeDaemonTest.implementationConfigurationName) {
+    extendsFrom(configurations.testImplementation.get())
+}
+
+configurations.named(nativeDaemonTest.runtimeOnlyConfigurationName) {
+    extendsFrom(configurations.testRuntimeOnly.get())
+}
+
+tasks.named<JavaCompile>(nativeDaemonTest.compileJavaTaskName) {
+    options.errorprone {
+        check("NullAway", CheckSeverity.OFF)
+    }
+}
+
+abstract class NativeBinaryDirectory : CommandLineArgumentProvider {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val directory: DirectoryProperty
+
+    override fun asArguments() = listOf("-Djavafmt.test.nativeBinaryDir=${directory.get().asFile.absolutePath}")
+}
+
+tasks.register<Test>("nativeDaemonTest") {
+    description = "Runs the native javafmt binary as a daemon over both wire formats."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    testClassesDirs = nativeDaemonTest.output.classesDirs
+    classpath = nativeDaemonTest.runtimeClasspath
+    jvmArgumentProviders.add(objects.newInstance<NativeBinaryDirectory>().apply {
+        directory = tasks.named<BuildNativeImageTask>("nativeCompile").flatMap { it.outputDirectory }
+    })
+    extensions.configure<JacocoTaskExtension> {
+        isEnabled = false
+    }
+}
+
 dependencies {
     implementation(project(":javafmt-core"))
+    implementation(project(":javafmt-daemon"))
     implementation(libs.picocli)
+    implementation(libs.slf4j.api)
     annotationProcessor(libs.picocli.codegen)
     runtimeOnly(libs.slf4j.simple)
     testImplementation(testFixtures(project(":javafmt-core")))
+    testImplementation(testFixtures(project(":javafmt-daemon")))
 }
 
 // Tracing-agent capture: runs the CLI against javafmt-core's test fixture corpus so the

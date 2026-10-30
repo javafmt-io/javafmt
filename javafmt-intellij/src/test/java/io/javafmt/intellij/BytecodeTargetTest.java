@@ -22,11 +22,12 @@ class BytecodeTargetTest {
     private static final int MAX_MAJOR = 65;
 
     /**
-     * Matches "io.javafmt." not followed by "intellij" as a whole word, so it catches any
-     * cross-package reference to javafmt-core — a fully-qualified use as well as an import —
-     * while leaving this module's own package statements and self-references alone.
+     * Matches "io.javafmt." not followed by "intellij" or "daemon.protocol" as a whole word, so it
+     * catches any cross-package reference to javafmt-core — a fully-qualified use as well as an
+     * import — while leaving this module's own package statements, self-references and the
+     * generated daemon protocol alone.
      */
-    private static final Pattern CORE_REFERENCE = Pattern.compile("io\\.javafmt\\.(?!intellij\\b)");
+    private static final Pattern CORE_REFERENCE = Pattern.compile("io\\.javafmt\\.(?!intellij\\b|daemon\\.protocol\\b)");
 
     @Test
     void everyShimClassLoadsInJbr21() throws IOException {

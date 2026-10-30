@@ -62,7 +62,7 @@ jacoco {
 val jacocoXmlReport = layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml")
 
 val jacocoTestReport = tasks.named<JacocoReport>("jacocoTestReport") {
-    dependsOn(tasks.withType<Test>())
+    dependsOn(tasks.withType<Test>().matching { it.extensions.getByType<JacocoTaskExtension>().isEnabled })
     executionData.from(fileTree(layout.buildDirectory.dir("jacoco")) { include("*.exec") })
     reports {
         xml.required = true

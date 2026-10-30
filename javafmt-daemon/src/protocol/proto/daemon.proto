@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package javafmt.daemon;
+
+import "buf/validate/validate.proto";
+
+option java_multiple_files = true;
+option java_package = "io.javafmt.daemon.protocol";
+option java_outer_classname = "DaemonProto";
+
+message FormatRequest {
+  uint32 id = 1 [(buf.validate.field).required = true];
+  optional string source = 2 [(buf.validate.field).required = true];
+}
+
+message FormatReply {
+  uint32 id = 1 [(buf.validate.field).required = true];
+  string output = 2;
+  repeated Diagnostic diagnostics = 3;
+}
+
+message Diagnostic {
+  Severity severity = 1 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+  Kind kind = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+  string message = 3 [(buf.validate.field).string.min_len = 1];
+  uint32 line = 4;
+  uint32 column = 5;
+}
+
+enum Severity {
+  SEVERITY_UNSPECIFIED = 0;
+  SEVERITY_ERROR = 1;
+  SEVERITY_WARNING = 2;
+}
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_PARSE = 1;
+  KIND_LINT = 2;
+  KIND_INTERNAL = 3;
+  KIND_WARNING = 4;
+  KIND_CLI = 5;
+}

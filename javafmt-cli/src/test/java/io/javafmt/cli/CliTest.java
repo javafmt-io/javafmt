@@ -3,6 +3,7 @@ package io.javafmt.cli;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.javafmt.Fixtures;
+import io.javafmt.daemon.DaemonFixtures;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -623,6 +624,48 @@ class CliTest {
         } finally {
             Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rw-------"));
         }
+    }
+
+    @Test
+    void daemonFlag_answersEachDelimitedRequestWithOneDelimitedReplyUntilStdinCloses() {
+        final var out = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+                new String[] {"--daemon",},
+                new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
+                new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8),
+                true);
+        assertThat(exit).isZero();
+        assertThat(DaemonFixtures.hexFrames(out.toByteArray())).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_HEX);
+    }
+
+    @Test
+    void daemonFlag_servesWithTheThreadCountGivenByThreads() {
+        final var run = runStdin(DaemonFixtures.text(DaemonFixtures.REQUESTS_JSON), "--daemon", "--json", "--threads", "1");
+        assertThat(run.exit()).isZero();
+        assertThat(run.out().lines().toList()).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_JSON);
+    }
+
+    @Test
+    void daemonJsonFlag_answersEachJsonRequestLineWithOneJsonReplyLine() {
+        final var run = runStdin(DaemonFixtures.text(DaemonFixtures.REQUESTS_JSON), "--daemon", "--json");
+        assertThat(run.exit()).isZero();
+        assertThat(run.out().lines().toList()).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_JSON);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"A.java", "--check", "-"})
+    void daemonFlag_cannotBeCombinedWithPathsOrCheck(final String other) {
+        final var run = run("--daemon", other);
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err()).contains("--daemon reads requests from stdin and cannot be combined with --check or paths");
+    }
+
+    @Test
+    void jsonFlag_onlyAppliesToTheDaemon() {
+        final var run = runStdin(Fixtures.UNFORMATTED_FOO, "--json");
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err()).contains("--json only applies to --daemon");
     }
 
     private static Run run(final String... args) {

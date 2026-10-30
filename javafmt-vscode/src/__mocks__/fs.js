@@ -1,9 +1,7 @@
-const actual = jest.requireActual('fs');
-const realExistsSync = actual.existsSync;
+const actual = jest.requireActual('node:fs');
 
 module.exports = {
     ...actual,
-    existsSync: jest.fn(function existsSync(p) {
-        return typeof realExistsSync === 'function' ? realExistsSync(p) : false;
-    }),
+    accessSync: jest.fn((...args) => actual.accessSync(...args)),
+    statSync: jest.fn((...args) => actual.statSync(...args)),
 };

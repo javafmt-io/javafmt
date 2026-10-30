@@ -1,7 +1,0 @@
-[
-  {
-    "name": "com.sun.tools.javac.api.JavacTrees",
-    "allDeclaredMethods": true,
-    "allPublicMethods": true
-  }
-]

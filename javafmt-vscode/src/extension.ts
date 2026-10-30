@@ -1,39 +1,49 @@
 import * as vscode from 'vscode';
 import * as child_process from 'child_process';
-import * as readline from 'readline';
-import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DiagnosticDto, FormatResponse, parseResponse } from './protocol';
+import { Diagnostic, FormatReply, Kind, Severity, decodeReplies, encodeRequest } from './protocol';
 
 type PendingRequest = {
-    resolve: (response: FormatResponse) => void;
+    resolve: (reply: FormatReply) => void;
     reject: (err: Error) => void;
 };
 
 let ctx: vscode.ExtensionContext;
 let daemon: child_process.ChildProcess | null = null;
-const pending = new Map<string, PendingRequest>();
+const pending = new Map<number, PendingRequest>();
+let lastId = 0;
 let diagnosticCollection: vscode.DiagnosticCollection;
-let statusBar: vscode.StatusBarItem;
+let statusItem: vscode.LanguageStatusItem;
+let reportedMissingBinary = false;
+
+const REQUEST_TIMEOUT_MS = 10_000;
 
 export function activate(context: vscode.ExtensionContext): void {
     ctx = context;
+    reportedMissingBinary = false;
 
     diagnosticCollection = vscode.languages.createDiagnosticCollection('javafmt');
     ctx.subscriptions.push(diagnosticCollection);
 
-    statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBar.command = 'javafmt.restartDaemon';
-    ctx.subscriptions.push(statusBar);
-    ctx.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(syncStatusBar));
-    syncStatusBar();
+    statusItem = vscode.languages.createLanguageStatusItem('javafmt', { language: 'java' });
+    statusItem.name = 'javafmt';
+    statusItem.text = 'javafmt';
+    statusItem.command = { title: 'Restart daemon', command: 'javafmt.restartDaemon' };
+    ctx.subscriptions.push(statusItem);
 
     ctx.subscriptions.push(
         vscode.commands.registerCommand('javafmt.restartDaemon', () => {
-            stopDaemon();
-            startDaemon();
+            restartDaemon();
             void vscode.window.showInformationMessage('javafmt daemon restarted.');
+        })
+    );
+
+    ctx.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration('javafmt')) {
+                restartDaemon();
+            }
         })
     );
 
@@ -54,16 +64,6 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 
-    // javafmt.formatOnSave: convenience alias so users don't have to set
-    // editor.formatOnSave + [java].editor.defaultFormatter manually.
-    ctx.subscriptions.push(
-        vscode.workspace.onWillSaveTextDocument((e) => {
-            if (e.document.languageId !== 'java') return;
-            if (!vscode.workspace.getConfiguration('javafmt').get<boolean>('formatOnSave', false)) return;
-            e.waitUntil(getFormattingEdits(e.document));
-        })
-    );
-
     startDaemon();
 }
 
@@ -72,51 +72,36 @@ export function deactivate(): void {
 }
 
 // Exported for testing.
-export function isJavaDocument(languageId: string | undefined): boolean {
-    return languageId === 'java';
-}
-
-// Exported for testing.
 export function statusFor(
     state: 'ready' | 'formatting' | 'error',
     detail?: string,
-): { text: string; tooltip: string } {
+): { detail: string; severity: vscode.LanguageStatusSeverity; busy: boolean } {
     switch (state) {
         case 'ready':
-            return { text: '$(check) javafmt', tooltip: 'javafmt: ready — click to restart daemon' };
+            return { detail: 'ready', severity: vscode.LanguageStatusSeverity.Information, busy: false };
         case 'formatting':
-            return { text: '$(loading~spin) javafmt', tooltip: 'javafmt: formatting…' };
+            return { detail: 'formatting', severity: vscode.LanguageStatusSeverity.Information, busy: true };
         case 'error':
-            return { text: '$(error) javafmt', tooltip: `javafmt: ${detail ?? 'error'}` };
+            return { detail: detail ?? 'error', severity: vscode.LanguageStatusSeverity.Error, busy: false };
     }
 }
 
 // Exported for testing.
-export function toDiagnostics(dtos: DiagnosticDto[]): vscode.Diagnostic[] {
-    // DiagnosticDto uses 1-based line/col; vscode.Position is 0-based
-    return dtos.map((d) => {
-        const line = Math.max(0, d.line - 1);
-        const col = Math.max(0, d.col - 1);
-        const pos = new vscode.Position(line, col);
-        const severity = d.severity === 'error'
-            ? vscode.DiagnosticSeverity.Error
-            : vscode.DiagnosticSeverity.Warning;
-        return new vscode.Diagnostic(new vscode.Range(pos, pos), d.message, severity);
+export function toDiagnostics(diagnostics: Diagnostic[]): vscode.Diagnostic[] {
+    return diagnostics.map((d) => {
+        const pos = new vscode.Position(Math.max(0, d.line - 1), Math.max(0, d.column - 1));
+        const severity = d.severity === Severity.WARNING
+            ? vscode.DiagnosticSeverity.Warning
+            : vscode.DiagnosticSeverity.Error;
+        const diagnostic = new vscode.Diagnostic(new vscode.Range(pos, pos), d.message, severity);
+        diagnostic.source = 'javafmt';
+        diagnostic.code = (Kind[d.kind] ?? String(d.kind)).toLowerCase();
+        return diagnostic;
     });
 }
 
-function syncStatusBar(): void {
-    if (isJavaDocument(vscode.window.activeTextEditor?.document.languageId)) {
-        statusBar.show();
-    } else {
-        statusBar.hide();
-    }
-}
-
 function setStatus(state: 'ready' | 'formatting' | 'error', detail?: string): void {
-    const { text, tooltip } = statusFor(state, detail);
-    statusBar.text = text;
-    statusBar.tooltip = tooltip;
+    Object.assign(statusItem, statusFor(state, detail));
 }
 
 async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.TextEdit[]> {
@@ -127,9 +112,9 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
     }
     setStatus('formatting');
     const source = doc.getText();
-    let response: FormatResponse;
+    let reply: FormatReply;
     try {
-        response = await sendRequest(source);
+        reply = await sendRequest(source);
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setStatus('error', msg);
@@ -137,27 +122,36 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
         return [];
     }
     setStatus('ready');
-    diagnosticCollection.set(doc.uri, toDiagnostics(response.diagnostics));
-    if (response.output === source) return [];
+    diagnosticCollection.set(doc.uri, toDiagnostics(reply.diagnostics));
+    if (reply.output === source) return [];
     const fullRange = new vscode.Range(
         new vscode.Position(0, 0),
         doc.lineAt(doc.lineCount - 1).range.end
     );
-    return [vscode.TextEdit.replace(fullRange, response.output)];
+    return [vscode.TextEdit.replace(fullRange, reply.output)];
 }
 
 function startDaemon(): void {
-    const config = vscode.workspace.getConfiguration('javafmt');
-    const java = config.get<string>('javaExecutable', 'java');
-    const jarOverride = config.get<string>('daemonJar', '');
+    const binaryPath = vscode.workspace.getConfiguration('javafmt').get<string>('binaryPath', '');
+
+    makeBundledBinaryExecutable(ctx.extensionPath, process.platform, process.arch);
 
     let daemonCommand: DaemonCommand;
     try {
-        daemonCommand = resolveDaemonCommand(ctx.extensionPath, java, jarOverride);
+        daemonCommand = resolveDaemonCommand(binaryPath, {
+            extensionPath: ctx.extensionPath,
+            searchPath: process.env.PATH,
+            platform: process.platform,
+            arch: process.arch,
+            isExecutable: isExecutableFile,
+        });
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setStatus('error', msg);
-        void vscode.window.showErrorMessage(`javafmt: ${msg}`);
+        if (!reportedMissingBinary) {
+            reportedMissingBinary = true;
+            void vscode.window.showErrorMessage(`javafmt: ${msg}`);
+        }
         return;
     }
 
@@ -166,32 +160,46 @@ function startDaemon(): void {
     daemon = proc;
     setStatus('ready');
 
-    const rl = readline.createInterface({ input: proc.stdout! });
-    rl.on('line', (line: string) => {
-        const response = parseResponse(line);
-        if (!response) return;
-        const req = pending.get(response.id);
-        if (req) {
-            pending.delete(response.id);
-            req.resolve(response);
+    const gone = (reason: string): void => {
+        if (daemon !== proc) {
+            return;
         }
-    });
-
-    // slf4j-simple writes to stderr; discard to avoid clogging the pipe
-    proc.stderr!.on('data', (_chunk: Buffer) => {});
-
-    proc.on('exit', (code: number | null) => {
-        // Only clear daemon if this process is still the active one (guards against restart races)
-        if (daemon === proc) {
-            daemon = null;
-            setStatus('error', `daemon exited with code ${code}`);
-        }
-        const err = new Error(`javafmt daemon exited with code ${code}`);
+        daemon = null;
+        proc.kill();
+        setStatus('error', reason);
+        const err = new Error(`javafmt ${reason}`);
         for (const req of pending.values()) {
             req.reject(err);
         }
         pending.clear();
-    });
+    };
+
+    void (async () => {
+        try {
+            for await (const reply of decodeReplies(proc.stdout!)) {
+                const req = pending.get(reply.id);
+                if (req) {
+                    pending.delete(reply.id);
+                    req.resolve(reply);
+                }
+            }
+        } catch {
+            gone('daemon sent a reply that is not part of its protocol');
+        }
+    })();
+
+    // slf4j-simple writes to stderr; discard to avoid clogging the pipe
+    proc.stderr!.on('data', (_chunk: Buffer) => {});
+
+    proc.on('exit', (code: number | null) => gone(`daemon exited with code ${code}`));
+    proc.on('error', (err: Error) => gone(`daemon failed: ${err.message}`));
+    proc.stdin!.on('error', (err: Error) => gone(`daemon input failed: ${err.message}`));
+}
+
+function restartDaemon(): void {
+    reportedMissingBinary = false;
+    stopDaemon();
+    startDaemon();
 }
 
 function stopDaemon(): void {
@@ -208,13 +216,16 @@ function stopDaemon(): void {
 
 export type DaemonCommand = { command: string; args: string[] };
 
-// Exported for testing. Mirrors vsceTarget() in javafmt-vscode/build.gradle.kts, which lays
-// binaries out at bin/<target>/javafmt-daemon during packaging. Node's process.platform/
-// process.arch and Java's os.name/os.arch use different vocabularies, so this mapping and the
-// Kotlin one are independently written — daemon-command.test.ts's vsceTarget describe block
-// pins this function's output to the same five-name set the Kotlin side hard-codes, so the two
-// implementations drifting apart fails a test instead of silently falling back to the jar.
-export function vsceTarget(platform: string = process.platform, arch: string = process.arch): string {
+export type DaemonEnvironment = {
+    extensionPath: string;
+    searchPath: string | undefined;
+    platform: string;
+    arch: string;
+    isExecutable: (file: string) => boolean;
+};
+
+// Exported for testing.
+export function vsceTarget(platform: string, arch: string): string {
     const normalizedArch = arch === 'arm64' ? 'arm64' : 'x64';
     if (platform === 'darwin') return `darwin-${normalizedArch}`;
     if (platform === 'linux') return `linux-${normalizedArch}`;
@@ -222,37 +233,73 @@ export function vsceTarget(platform: string = process.platform, arch: string = p
     return '';
 }
 
-// Exported for testing. An explicitly configured daemonJar always wins over native-binary
-// detection — the user opted out of autodetection by setting it, so honour that choice
-// completely rather than silently preferring a native binary that happens to also be present.
-export function resolveDaemonCommand(extensionPath: string, javaExecutable: string, daemonJar: string): DaemonCommand {
-    if (daemonJar) {
-        if (!fs.existsSync(daemonJar)) {
-            throw new Error(`configured daemon jar not found at ${daemonJar}`);
+function makeBundledBinaryExecutable(extensionPath: string, platform: string, arch: string): void {
+    const target = vsceTarget(platform, arch);
+    if (!target || platform === 'win32') {
+        return;
+    }
+    const bundled = path.join(extensionPath, 'bin', target, 'javafmt');
+    try {
+        if (fs.statSync(bundled).isFile() && !isExecutableFile(bundled)) {
+            fs.chmodSync(bundled, fs.statSync(bundled).mode | fs.constants.S_IXUSR);
         }
-        return { command: javaExecutable, args: ['-jar', daemonJar] };
+    } catch {
+        return;
     }
-    const exe = process.platform === 'win32' ? 'javafmt-daemon.exe' : 'javafmt-daemon';
-    const native = path.join(extensionPath, 'bin', vsceTarget(), exe);
-    if (fs.existsSync(native)) {
-        return { command: native, args: [] };
+}
+
+function isExecutableFile(file: string): boolean {
+    try {
+        fs.accessSync(file, fs.constants.X_OK);
+        return fs.statSync(file).isFile();
+    } catch {
+        return false;
     }
-    const jar = path.join(extensionPath, 'bin', 'javafmt-daemon.jar');
-    if (!fs.existsSync(jar)) {
-        throw new Error('no native daemon for this platform and no daemon jar found — run "gradle :javafmt-vscode:build" to build it');
-    }
-    return { command: javaExecutable, args: ['-jar', jar] };
 }
 
 // Exported for testing.
-export function buildRequest(id: string, source: string): object {
-    return { id, source };
+export function resolveDaemonCommand(binaryPath: string, env: DaemonEnvironment): DaemonCommand {
+    if (binaryPath) {
+        if (!env.isExecutable(binaryPath)) {
+            throw new Error(`configured javafmt binary not found or not executable at ${binaryPath}`);
+        }
+        return { command: binaryPath, args: ['--daemon'] };
+    }
+    const names = env.platform === 'win32' ? ['javafmt.exe', 'javafmt'] : ['javafmt'];
+    const target = vsceTarget(env.platform, env.arch);
+    const bundledDirs = target ? [path.join(env.extensionPath, 'bin', target)] : [];
+    const pathDirs = (env.searchPath ?? '').split(path.delimiter).filter((dir) => dir !== '');
+    const found = [...bundledDirs, ...pathDirs]
+        .flatMap((dir) => names.map((name) => path.join(dir, name)))
+        .find((candidate) => env.isExecutable(candidate));
+    if (!found) {
+        throw new Error('no javafmt binary found — set javafmt.binaryPath, or put javafmt on your PATH');
+    }
+    return { command: found, args: ['--daemon'] };
 }
 
-function sendRequest(source: string): Promise<FormatResponse> {
+function sendRequest(source: string): Promise<FormatReply> {
+    const proc = daemon!;
     return new Promise((resolve, reject) => {
-        const id = crypto.randomUUID();
-        pending.set(id, { resolve, reject });
-        daemon!.stdin!.write(JSON.stringify(buildRequest(id, source)) + '\n');
+        lastId = lastId >= 0xffffffff ? 1 : lastId + 1;
+        const id = lastId;
+        const timer = setTimeout(() => {
+            pending.delete(id);
+            reject(new Error(`javafmt did not respond within ${REQUEST_TIMEOUT_MS / 1000}s`));
+            if (daemon === proc) {
+                stopDaemon();
+            }
+        }, REQUEST_TIMEOUT_MS);
+        pending.set(id, {
+            resolve: (response) => {
+                clearTimeout(timer);
+                resolve(response);
+            },
+            reject: (err) => {
+                clearTimeout(timer);
+                reject(err);
+            },
+        });
+        proc.stdin!.write(encodeRequest(id, source));
     });
 }

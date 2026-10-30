@@ -7,11 +7,14 @@ import com.intellij.formatting.service.FormattingServiceUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.codeStyle.CodeStyleManager;
+import com.intellij.testFramework.PlatformTestUtil;
+import com.intellij.testFramework.ServiceContainerUtil;
 import io.javafmt.Fixtures;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,6 +22,9 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -38,6 +44,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     private static final String UNFORMATTED_WARNED = "class Warned { int x; }";
 
     private static final String FORMATTED_WARNED = "class Warned {\n\n    int x;\n}\n";
+
+    private static final String DOWNLOADED = "javafmt-" + FakeRelease.VERSION + "-linux-x64";
 
     private final List<Notification> notifications = new ArrayList<>();
 
@@ -59,6 +67,15 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                                 notifications.add(notification);
                             }
                         });
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        try {
+            JavafmtDaemons.getInstance(getProject()).stop();
+        } finally {
+            super.tearDown();
+        }
     }
 
     @Test
@@ -137,6 +154,15 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         assertThat(notifications).isNotEmpty();
         assertThat(notifications.getFirst().getContent()).contains("Broken.java");
         assertThat(notifications.getFirst().getType()).isEqualTo(NotificationType.WARNING);
+    }
+
+    @Test
+    public void testAnInternalErrorIsReportedAsAnError(@TempDir final Path dir) throws IOException {
+        enableJavafmtWithFakeBinary(dir);
+        final var file = myFixture.configureByText("Internal.java", "class Internal {}");
+        reformat(file);
+        assertThat(file.getText()).isEqualTo("class Internal {}");
+        assertThat(notifications).singleElement().satisfies(notification -> assertThat(notification.getType()).isEqualTo(NotificationType.ERROR));
     }
 
     @Test
@@ -229,6 +255,24 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     @Test
+    public void testSuccessiveReformatsShareOneJavafmtProcess(@TempDir final Path dir) throws IOException {
+        enableJavafmt();
+        final var starts = dir.resolve("daemon-starts");
+        final var binary = dir.resolve("javafmt-fake-warm");
+        Files.writeString(
+                binary,
+                "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo 'javafmt 0.2.0'\n    exit 0\nfi\necho x >> '" + starts + "'\n"
+                        + JavafmtDaemonTest.ECHO_REQUESTS);
+        Files.setPosixFilePermissions(binary, PosixFilePermissions.fromString("rwxr-xr-x"));
+        JavafmtSettings.getInstance(getProject()).setBinaryPath(binary.toString());
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        reformat(file);
+        reformat(file);
+        reformat(file);
+        assertThat(Files.readString(starts).lines()).hasSize(1);
+    }
+
+    @Test
     public void testSelectionReformatGoesToIntellijsOwnFormatter(@TempDir final Path dir) throws IOException {
         enableJavafmtWithFakeBinary(dir);
         final var file = myFixture.configureByText("Foo.java", "class Foo {\nint x;\n}\n");
@@ -255,15 +299,93 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         assertThat(FormattingServiceUtil.findService(file, false, true)).isNotInstanceOf(JavafmtFormattingService.class);
     }
 
+    @Test
+    public void testWithoutABinaryAReformatStartsOneDownloadWithoutWaitingForIt(@TempDir final Path dir) throws Exception {
+        enableJavafmt();
+        final var binary = Files.readAllBytes(fakeBinary(dir));
+        final var go = new CountDownLatch(1);
+        try (final var release = FakeRelease.servingAfter(go, Map.of(DOWNLOADED, binary))) {
+            final var provider = useDownloadsFrom(release, dir.resolve("cache"), FakeRelease.sha256(binary));
+            final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+            reformat(file);
+            reformat(file);
+            assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
+            assertThat(notifications)
+                    .singleElement()
+                    .satisfies(notification -> {
+                        assertThat(notification.getType()).isEqualTo(NotificationType.INFORMATION);
+                        assertThat(notification.getContent()).contains("downloading");
+                    });
+            go.countDown();
+            assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Installed.class);
+            assertThat(release.requests()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void testAReformatAfterTheDownloadFormats(@TempDir final Path dir) throws Exception {
+        enableJavafmt();
+        final var binary = Files.readAllBytes(fakeBinary(dir));
+        try (final var release = FakeRelease.serving(Map.of(DOWNLOADED, binary))) {
+            final var provider = useDownloadsFrom(release, dir.resolve("cache"), FakeRelease.sha256(binary));
+            assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Installed.class);
+            final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+            reformat(file);
+            assertThat(myFixture.getEditor().getDocument().getText()).isEqualTo(Fixtures.FORMATTED_FOO);
+            assertThat(notifications).isEmpty();
+            assertThat(release.requests()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void testAFailedDownloadLeavesTheFileAloneAndSaysHowToFixIt(@TempDir final Path dir) throws IOException {
+        enableJavafmt();
+        try (final var release = FakeRelease.serving(Map.of())) {
+            useDownloadsFrom(release, dir.resolve("cache"), FakeRelease.sha256(new byte[0]));
+            final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+            reformat(file);
+            PlatformTestUtil.waitWithEventsDispatching(
+                    "no download failure notice",
+                    () -> notifications.stream().anyMatch(n -> n.getType() == NotificationType.WARNING),
+                    20);
+            assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
+            assertThat(notifications.stream().filter(n -> n.getType() == NotificationType.WARNING))
+                    .singleElement()
+                    .satisfies(notification -> assertThat(notification.getContent()).contains("javafmt.binaryPath"));
+        }
+    }
+
+    @Test
+    public void testAConfiguredBinaryPathNeverDownloads(@TempDir final Path dir) throws IOException {
+        enableJavafmtWithFakeBinary(dir);
+        try (final var release = FakeRelease.serving(Map.of(DOWNLOADED, new byte[0]))) {
+            useDownloadsFrom(release, dir.resolve("cache"), FakeRelease.sha256(new byte[0]));
+            final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+            reformat(file);
+            assertThat(myFixture.getEditor().getDocument().getText()).isEqualTo(Fixtures.FORMATTED_FOO);
+            assertThat(release.requests()).isZero();
+        }
+    }
+
+    private JavafmtBinaryProvider useDownloadsFrom(final FakeRelease release, final Path cache, final String sha256) {
+        final var installer = new BinaryInstaller(release.base(), cache, new ReleaseAsset.Published(DOWNLOADED, sha256));
+        final var provider = new JavafmtBinaryProvider(
+                installer,
+                JavafmtBinaryProviderTest::runOnNewThread,
+                () -> cache.resolve("empty-path").toString());
+        ServiceContainerUtil.replaceService(ApplicationManager.getApplication(), JavafmtBinaryProvider.class, provider, getTestRootDisposable());
+        return provider;
+    }
+
     private void enableJavafmt() {
         JavafmtSettings.getInstance(getProject()).setEnabled(true);
     }
 
     /**
      * Enables javafmt and points its binary path at a fake {@code javafmt} that understands exactly
-     * the fixture inputs these tests format: it reports a supported version, echoes back anything it
-     * does not recognize (byte for byte, including a trailing newline if present, so an already
-     * formatted file round-trips as a no-op) and returns one non-internal diagnostic on stderr for
+     * the fixture inputs these tests format: it reports a supported version, serves
+     * {@code --daemon} requests, echoes back anything it does not recognize (byte for byte, so an
+     * already formatted file round-trips as a no-op) and replies with one error diagnostic for
      * {@code Broken.java}'s known-unparseable source.
      */
     private void enableJavafmtWithFakeBinary(final Path dir) throws IOException {
@@ -272,42 +394,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     private static Path fakeBinary(final Path dir) throws IOException {
-        // The sentinel ("echo X", stripped back off below) survives $()'s own trailing-newline
-        // stripping, so a trailing newline in stdin is preserved in $input exactly as javafmt's
-        // own echo-on-failure and idempotent-reformat behaviour require.
-        final var script = "#!/bin/sh\n"
-                + "if [ \"$1\" = \"--version\" ]; then\n"
-                + "    echo 'javafmt 0.2.0'\n"
-                + "    exit 0\n"
-                + "fi\n"
-                + "input=\"$(cat; echo X)\"\n"
-                + "input=\"${input%X}\"\n"
-                + "case \"$input\" in\n"
-                + "    'class Foo { int x; }')\n"
-                + "        printf 'class Foo {\\n\\n    int x;\\n}\\n'\n"
-                + "        ;;\n"
-                + "    'class A { int x; }')\n"
-                + "        printf 'class A {\\n\\n    int x;\\n}\\n'\n"
-                + "        ;;\n"
-                + "    'class B { int x; }')\n"
-                + "        printf 'class B {\\n\\n    int x;\\n}\\n'\n"
-                + "        ;;\n"
-                + "    'class Warned { int x; }')\n"
-                + "        printf 'class Warned {\\n\\n    int x;\\n}\\n'\n"
-                + "        echo '{\"kind\":\"warning\",\"message\":\"utility class has no private constructor\",\"line\":1,\"col\":1}' >&2\n"
-                + "        ;;\n"
-                + "    'class Broken { int x = ; }')\n"
-                + "        printf '%s' \"$input\"\n"
-                + "        echo '{\"kind\":\"error\",\"message\":\"expected an expression\",\"line\":1,\"col\":24}' >&2\n"
-                + "        ;;\n"
-                + "    *)\n"
-                + "        printf '%s' \"$input\"\n"
-                + "        ;;\n"
-                + "esac\n";
-        final var path = dir.resolve("javafmt-fake");
-        Files.writeString(path, script);
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
-        return path;
+        return FakeDaemon.script(dir, "javafmt-fake");
     }
 
     /** A fake binary that answers {@code --version} with {@code version} and otherwise refuses; used only to probe the version gate. */
@@ -326,8 +413,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
 
     /**
      * A fake binary that appends one line to {@code counterFile} every time it is invoked with
-     * {@code --version}, always reports a supported version, and echoes stdin back unchanged for
-     * anything else — so a test can format through it and then assert on how many times its
+     * {@code --version}, always reports a supported version, and otherwise serves {@code --daemon}
+     * requests by echoing each source back unchanged — so a test can format through it and then assert on how many times its
      * {@code --version} branch actually ran, independent of whatever the format call did.
      */
     private static Path fakeBinaryCountingVersionProbes(final Path dir, final Path counterFile) throws IOException {
@@ -336,8 +423,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                 + "    echo x >> '" + counterFile + "'\n"
                 + "    echo 'javafmt 0.2.0'\n"
                 + "    exit 0\n"
-                + "fi\n"
-                + "cat\n";
+                + "fi\n" + JavafmtDaemonTest.ECHO_REQUESTS;
         final var path = dir.resolve("javafmt-fake-counting");
         Files.writeString(path, script);
         Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));

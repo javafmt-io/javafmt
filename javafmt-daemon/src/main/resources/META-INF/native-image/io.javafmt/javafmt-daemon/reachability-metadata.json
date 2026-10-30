@@ -1,0 +1,36 @@
+{
+  "reflection": [
+    {
+      "type": "io.javafmt.daemon.protocol.Diagnostic",
+      "allPublicMethods": true
+    },
+    {
+      "type": "io.javafmt.daemon.protocol.Diagnostic$Builder",
+      "allPublicMethods": true
+    },
+    {
+      "type": "io.javafmt.daemon.protocol.FormatReply",
+      "allPublicMethods": true
+    },
+    {
+      "type": "io.javafmt.daemon.protocol.FormatReply$Builder",
+      "allPublicMethods": true
+    },
+    {
+      "type": "io.javafmt.daemon.protocol.FormatRequest",
+      "allPublicMethods": true
+    },
+    {
+      "type": "io.javafmt.daemon.protocol.FormatRequest$Builder",
+      "allPublicMethods": true
+    },
+    {
+      "type": "io.javafmt.daemon.protocol.Kind",
+      "allPublicMethods": true
+    },
+    {
+      "type": "io.javafmt.daemon.protocol.Severity",
+      "allPublicMethods": true
+    }
+  ]
+}
