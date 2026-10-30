@@ -15,22 +15,16 @@ import java.util.stream.Stream;
  * the {@code lib/src.zip} that ships with the toolchain. Nothing is downloaded and nothing is
  * checked in — the build hands the test the path of the JDK it already compiles against.
  *
- * <p>These packages are the point: 1,300 files of ordinary, heavily-generic, heavily-commented
+ * <p>The whole module is the point: 3,400 files of ordinary, heavily-generic, heavily-commented
  * production Java that nobody wrote to suit javafmt.
  */
 final class JdkCorpus {
 
-    private static final List<String> PACKAGES = List.of(
-            "java.base/java/util",
-            "java.base/java/lang",
-            "java.base/java/io",
-            "java.base/java/nio",
-            "java.base/java/time");
+    private static final String MODULE = "java.base";
 
     static List<Entry> load(final Path srcZip) {
         try (var zip = FileSystems.newFileSystem(srcZip, Map.<String, Object>of())) {
-            return PACKAGES.stream()
-                    .map(zip::getPath)
+            return Stream.of(zip.getPath(MODULE))
                     .filter(Files::isDirectory)
                     .flatMap(JdkCorpus::javaFilesUnder)
                     .map(JdkCorpus::read)

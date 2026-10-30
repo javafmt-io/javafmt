@@ -7,7 +7,8 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public sealed interface Doc permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLine, Doc.HardLine, Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak {
+public sealed interface Doc
+        permits Doc.Text, Doc.Verbatim, Doc.BlockComment, Doc.Line, Doc.SoftLine, Doc.HardLine, Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak {
 
     /** The sole {@link Line}. The record holds no state, so every instance is interchangeable. */
     Line LINE = new Line();
@@ -22,7 +23,7 @@ public sealed interface Doc permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLi
 
     /**
      * Returns the flat-render width of {@code doc}, or {@code -1} if it contains a forced
-     * break ({@link HardLine}, or a {@link Verbatim} whose body contains a newline).
+     * break ({@link HardLine}, {@link BlockComment}, or a {@link Verbatim} whose body contains a newline).
      */
     static int flatWidthOrBreak(final Doc doc) {
         var total = 0;
@@ -39,7 +40,7 @@ public sealed interface Doc permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLi
                 }
                 case Line() -> total += 1;
                 case SoftLine() -> {}
-                case HardLine() -> {
+                case HardLine(), BlockComment _ -> {
                     return -1;
                 }
                 case Indent(var inner) -> work.push(inner);
@@ -73,7 +74,7 @@ public sealed interface Doc permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLi
             case Group(var inner, var ignored) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case IfBreak(var breakContents, var ignored) -> endsWithLineComment(breakContents);
-            case Line(), SoftLine(), HardLine() -> false;
+            case Line(), SoftLine(), HardLine(), BlockComment _ -> false;
         };
     }
 
@@ -89,7 +90,7 @@ public sealed interface Doc permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLi
         work.push(doc);
         while (!work.isEmpty()) {
             switch (work.pop()) {
-                case Line(), SoftLine(), HardLine() -> {
+                case Line(), SoftLine(), HardLine(), BlockComment _ -> {
                     return true;
                 }
                 case Verbatim(var s, var ignored) -> {
@@ -179,6 +180,17 @@ public sealed interface Doc permits Doc.Text, Doc.Verbatim, Doc.Line, Doc.SoftLi
 
         public Verbatim {
             Objects.requireNonNull(value, "value");
+        }
+    }
+
+    record BlockComment(List<String> lines, int sourceColumn) implements Doc {
+
+        public BlockComment {
+            Objects.requireNonNull(lines, "lines");
+            lines = List.copyOf(lines);
+            if (lines.size() < 2) {
+                throw new IllegalArgumentException("a block comment needs at least two lines");
+            }
         }
     }
 

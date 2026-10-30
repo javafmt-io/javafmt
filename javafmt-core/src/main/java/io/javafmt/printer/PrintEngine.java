@@ -2,6 +2,7 @@ package io.javafmt.printer;
 
 import io.javafmt.doc.Doc;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import lombok.experimental.UtilityClass;
@@ -37,6 +38,7 @@ final class PrintEngine {
                     col = VerbatimEmitter.emit(sb, col, s, sourceCol);
                     verbatimEnd = s.isEmpty() ? verbatimEnd : sb.length();
                 }
+                case Doc.BlockComment(var lines, var sourceCol) -> col = emitBlockComment(sb, col, frame.indent(), lines, sourceCol, verbatimEnd);
                 case Doc.Line _ when frame.mode() == Mode.FLAT -> {
                     sb.append(' ');
                     col++;
@@ -64,6 +66,28 @@ final class PrintEngine {
         }
         stripTrailingWhitespace(sb, verbatimEnd);
         return sb.toString();
+    }
+
+    private int emitBlockComment(
+            final StringBuilder sb,
+            final int col,
+            final int indent,
+            final List<String> lines,
+            final int sourceCol,
+            final int verbatimEnd) {
+        final var continuation = lines.subList(1, lines.size());
+        final var minLeading = continuation.stream().filter(line -> !line.isBlank()).mapToInt(PrintEngine::leadingSpaces).min().orElse(sourceCol);
+        final var shift = minLeading >= sourceCol ? col - sourceCol : indent - minLeading;
+        sb.append(lines.getFirst());
+        continuation.forEach(line -> {
+            stripTrailingWhitespace(sb, verbatimEnd);
+            sb.append('\n').repeat(' ', Math.max(0, leadingSpaces(line) + shift)).append(line, leadingSpaces(line), line.length());
+        });
+        return sb.length() - sb.lastIndexOf("\n") - 1;
+    }
+
+    private int leadingSpaces(final String line) {
+        return (int) line.chars().takeWhile(c -> c == ' ').count();
     }
 
     private void stripTrailingWhitespace(final StringBuilder sb, final int verbatimEnd) {
@@ -128,6 +152,12 @@ final class PrintEngine {
                 case Doc.SoftLine _ -> {}
                 case Doc.HardLine _ -> {
                     return consumedCandidate;
+                }
+                case Doc.BlockComment(var lines, var ignored) -> {
+                    b -= lines.getFirst().length();
+                    if (b >= 0) {
+                        return consumedCandidate;
+                    }
                 }
                 case Doc.Indent(var d) -> work.push(new Frame(f.indent() + INDENT_SIZE, f.mode(), d));
                 case Doc.Group(var d, var ignored) -> work.push(new Frame(f.indent(), Mode.FLAT, d));

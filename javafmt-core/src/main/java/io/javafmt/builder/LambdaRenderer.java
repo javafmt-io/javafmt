@@ -38,6 +38,9 @@ final class LambdaRenderer {
      */
     private Doc renderParamList(final LambdaExpressionTree node, final Recursor recursor) {
         final var params = node.getParameters();
+        if (params.isEmpty()) {
+            return new Doc.Text("()");
+        }
         if (params.size() == 1
             && params.getFirst().getType() == null
             && recursor.sourceSpan(node).charAt(0) != '(') {

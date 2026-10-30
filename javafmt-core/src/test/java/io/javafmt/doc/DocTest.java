@@ -341,6 +341,11 @@ class DocTest {
         }
 
         @Test
+        void blockCommentReportsBreak() {
+            assertThat(Doc.flatWidthOrBreak(new Doc.BlockComment(List.of("/* a", "   b */"), 0))).isEqualTo(-1);
+        }
+
+        @Test
         void breakNestedAnywhereReportsBreak() {
             final var doc = new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Group(new Doc.Indent(Doc.HARD_LINE))));
             assertThat(Doc.flatWidthOrBreak(doc)).isEqualTo(-1);
