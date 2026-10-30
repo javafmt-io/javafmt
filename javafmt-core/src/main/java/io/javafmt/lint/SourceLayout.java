@@ -11,7 +11,7 @@ import lombok.experimental.UtilityClass;
  * fit? It can be answered here because an enum declaration always starts a line of its own, so its
  * column does not move when javafmt reformats the file and the same source gives the same answer on
  * every run. The same trick does not work for an array initializer, which can sit anywhere on a
- * line — see the D9 note in {@code PLAN.md}.
+ * line, so whether it prints on one line is a printer decision a lint rule cannot make.
  */
 @UtilityClass
 final class SourceLayout {
