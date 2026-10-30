@@ -143,6 +143,38 @@ class PrinterTest {
     }
 
     @Nested
+    class BlockCommentTests {
+
+        static Stream<Arguments> placements() {
+            return Stream.of(
+                    Arguments.of("x; ", 3, List.of("/* a", "      b */"), "x; /* a\n      b */"),
+                    Arguments.of("xyz; ", 3, List.of("/* a", "      b */"), "xyz; /* a\n        b */"),
+                    Arguments.of("x; ", 9, List.of("/* a", "            b */"), "x; /* a\n      b */"),
+                    Arguments.of("x; ", 3, List.of("/* a", "  b */"), "x; /* a\n    b */"),
+                    Arguments.of("    ", 6, List.of("/*", "       * a", "       */"), "    /*\n     * a\n     */"));
+        }
+
+        @ParameterizedTest(name = "{3}")
+        @MethodSource("placements")
+        void continuationLinesFollowTheOpenerOrTheIndent(final String before, final int sourceCol, final List<String> lines, final String expected) {
+            assertThat(printAfter(before, lines, sourceCol)).isEqualTo(expected);
+        }
+
+        @ParameterizedTest(name = "{3}")
+        @MethodSource("placements")
+        void printingTheOutputAgainIsStable(final String before, final int sourceCol, final List<String> lines, final String expected) {
+            final var printedLines = List.of(expected.split("\n", -1));
+            final var opener = printedLines.getFirst().indexOf("/*");
+            final var reparsed = Stream.concat(Stream.of(printedLines.getFirst().substring(opener)), printedLines.stream().skip(1)).toList();
+            assertThat(printAfter(before, reparsed, opener)).isEqualTo(expected);
+        }
+
+        private static String printAfter(final String before, final List<String> lines, final int sourceCol) {
+            return new Printer(80).print(new Doc.Indent(new Doc.Concat(List.of(new Doc.Text(before), new Doc.BlockComment(lines, sourceCol)))));
+        }
+    }
+
+    @Nested
     class VerbatimTests {
 
         // A text block as it would appear in source at column 8:

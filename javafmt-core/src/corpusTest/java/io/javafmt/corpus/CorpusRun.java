@@ -11,7 +11,7 @@ import java.util.Optional;
 
 /**
  * One pass of javafmt over the whole corpus, kept as a value so every property the gate checks is
- * measured from the same run rather than reformatting 1,300 files once per assertion.
+ * measured from the same run rather than reformatting 3,400 files once per assertion.
  */
 record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
 

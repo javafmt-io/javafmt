@@ -24,7 +24,7 @@ class CorpusGateTest {
 
     /**
      * Generous on purpose: this exists to catch a file that never finishes, not to police a
-     * millisecond. The whole 1,276-file corpus formats in well under this per file.
+     * millisecond. The whole 3,379-file corpus formats in well under this per file.
      */
     private static final long PER_FILE_BUDGET_MILLIS = 5_000;
 
@@ -44,7 +44,9 @@ class CorpusGateTest {
     void theCorpusIsTheOneTheBaselineWasRecordedAgainst() {
         // Every other assertion here is a count, and a count only means something against a known
         // denominator. A different JDK ships different files, and the numbers below would be noise.
-        assertThat(run.outcomes()).hasSize(BASELINE.files());
+        assertThat(run.outcomes())
+                .describedAs("files: set %s=%d in corpus-baseline.properties", BASELINE.keyFor("files"), run.outcomes().size())
+                .hasSize(BASELINE.files());
     }
 
     @Test
@@ -92,7 +94,7 @@ class CorpusGateTest {
                         key,
                         offenders.size(),
                         recorded,
-                        key,
+                        BASELINE.keyFor(key),
                         offenders.size(),
                         offenders.stream().limit(5).toList())
                 .isEqualTo(recorded);
@@ -113,7 +115,7 @@ class CorpusGateTest {
     private static String summary(final CorpusRun corpus) {
         return """
 
-                javafmt corpus gate — %d files from java.base/java/{io,lang,nio,time,util}
+                javafmt corpus gate — %d files from java.base
                   parse errors            %5d   baseline %d
                   refused (internal)      %5d   baseline %d
                   output does not reparse %5d   baseline %d

@@ -23,17 +23,9 @@ final class CommentDocs {
         if (lines.size() == 1) {
             return new Doc.Text(lines.getFirst());
         }
-        final var strip = computeStrip(lines, comment.startColumn());
-        return new Doc.Concat(
-                Stream.concat(
-                        Stream.of(new Doc.Text(lines.getFirst())),
-                        IntStream.range(1, lines.size())
-                                .boxed()
-                                .flatMap(i -> Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text(stripCols(lines.get(i), strip))))));
-    }
-
-    private int computeStrip(final List<String> lines, final int openerCol) {
-        return Math.min(openerCol, lines.stream().skip(1).filter(line -> !line.isBlank()).mapToInt(CommentDocs::leadingCols).min().orElse(openerCol));
+        return new Doc.BlockComment(
+                Stream.concat(Stream.of(lines.getFirst()), lines.stream().skip(1).map(CommentDocs::expandLeadingWhitespace)).toList(),
+                comment.startColumn());
     }
 
     private int leadingCols(final String line) {
@@ -51,23 +43,9 @@ final class CommentDocs {
         return col;
     }
 
-    private String stripCols(final String line, final int strip) {
-        var col = 0;
-        var i = 0;
-        while (i < line.length()) {
-            final var c = line.charAt(i);
-            if (c == ' ') {
-                col++;
-                i++;
-            } else if (c == '\t') {
-                col = (col / TAB_WIDTH + 1) * TAB_WIDTH;
-                i++;
-            } else {
-                break;
-            }
-        }
-        final var remaining = Math.max(0, col - strip);
-        return " ".repeat(remaining) + line.substring(i);
+    private String expandLeadingWhitespace(final String line) {
+        final var indentEnd = (int) line.chars().takeWhile(c -> c == ' ' || c == '\t').count();
+        return " ".repeat(leadingCols(line)) + line.substring(indentEnd);
     }
 
     Doc prepend(final List<CommentToken> comments, final Doc doc) {
