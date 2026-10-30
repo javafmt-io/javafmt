@@ -1,12 +1,15 @@
 package io.javafmt.cli;
 
 import io.javafmt.JavafmtVersion;
+import io.javafmt.daemon.Daemon;
+import io.javafmt.daemon.Wire;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.Callable;
 import org.jspecify.annotations.Nullable;
 import picocli.CommandLine.ArgGroup;
@@ -37,6 +40,12 @@ final class FormatCommand implements Callable<Integer> {
     @Option(names = "--check", description = "Do not write anything; exit 1 if any file would be reformatted.")
     private boolean check;
 
+    @Option(names = "--daemon", description = "Serve length-delimited protobuf format requests from stdin until it closes, one reply each on stdout. For editor integrations.")
+    private boolean daemon;
+
+    @Option(names = "--json", description = "With --daemon, speak protobuf's JSON mapping instead, one message per line. For debugging.")
+    private boolean json;
+
     @Option( names = "--diagnostics", paramLabel = "<format>", defaultValue = "text", description = "Diagnostic format on stderr: text, or json for NDJSON. Default: ${DEFAULT-VALUE}.")
     private DiagnosticsFormat diagnostics = DiagnosticsFormat.TEXT;
 
@@ -46,7 +55,7 @@ final class FormatCommand implements Callable<Integer> {
     @Option(names = "--no-default-excludes", description = "Search build, target, out, generated, node_modules and .git too.")
     private boolean noDefaultExcludes;
 
-    private int threads = Runtime.getRuntime().availableProcessors();
+    private OptionalInt threads = OptionalInt.empty();
 
     @Option(names = "--cache", paramLabel = "<file>", description = "Skip files unchanged since the last run recorded in this file.")
     private Optional<Path> cache = Optional.empty();
@@ -65,20 +74,26 @@ final class FormatCommand implements Callable<Integer> {
         this.stdinIsATerminal = stdinIsATerminal;
     }
 
-    @Option(names = "--threads", paramLabel = "<n>", description = "Files to format concurrently. Default: the CPU count.")
+    @Option( names = "--threads", paramLabel = "<n>", description = "Files, or with --daemon requests, to format concurrently. Default: the CPU count, or for --daemon the CPU count up to 4.")
     void setThreads(final int threads) {
         if (threads <= 0) {
             throw new ParameterException(spec.commandLine(), "--threads must be a positive integer, but was: " + threads);
         }
-        this.threads = threads;
+        this.threads = OptionalInt.of(threads);
     }
 
     @Override
     public Integer call() {
+        if (daemon) {
+            return serveDaemon();
+        }
+        if (json) {
+            throw new ParameterException(spec.commandLine(), "--json only applies to --daemon");
+        }
         final var args = new FormatRun.Args(
                 paths,
                 check,
-                threads,
+                threads.orElse(Runtime.getRuntime().availableProcessors()),
                 cache,
                 excludes,
                 !noDefaultExcludes,
@@ -97,6 +112,14 @@ final class FormatCommand implements Callable<Integer> {
             return FormatRun.runStdin(args, in, out, err);
         }
         return FormatRun.runPaths(args, err);
+    }
+
+    private int serveDaemon() {
+        if (check || !paths.isEmpty()) {
+            throw new ParameterException(spec.commandLine(), "--daemon reads requests from stdin and cannot be combined with --check or paths");
+        }
+        Daemon.serve(json ? Wire.JSON : Wire.BINARY, in, out, threads.orElse(Daemon.DEFAULT_THREADS));
+        return 0;
     }
 
     private List<Path> beforeEndOfOptions(final List<Path> positionals) {

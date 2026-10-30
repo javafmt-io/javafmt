@@ -31,6 +31,7 @@ val npmTest = tasks.register<NpmTask>("npmTest") {
     inputs.file(layout.projectDirectory.file("package.json"))
     inputs.file(layout.projectDirectory.file("package-lock.json"))
     outputs.file(layout.buildDirectory.file("test-results.json"))
+    outputs.dir(layout.buildDirectory.dir("coverage"))
 }
 
 val npmTestIntegration = tasks.register<NpmTask>("npmTestIntegration") {
@@ -43,7 +44,6 @@ val npmTestIntegration = tasks.register<NpmTask>("npmTestIntegration") {
 }
 
 // Invokes vsce via the "package" script defined in package.json.
-// Projects that bundle a daemon jar should wire: tasks.named("packageVsix") { dependsOn(copyDaemonJar) }
 val packageVsix = tasks.register<NpmTask>("packageVsix") {
     args.set(listOf("run", "package"))
     dependsOn(npmBuild)

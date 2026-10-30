@@ -6,11 +6,12 @@ plugins {
     id("javafmt.build-scans")
     id("javafmt.versioning")
     id("javafmt.reproducible-archives")
+    id("javafmt.toolchains")
 }
 
 rootProject.name = "javafmt"
 
-include("javafmt-core", "javafmt-cli", "javafmt-spotless", "javafmt-intellij", "javafmt-maven-plugin", "javafmt-vscode", "website")
+include("javafmt-core", "javafmt-daemon", "javafmt-cli", "javafmt-spotless", "javafmt-intellij", "javafmt-maven-plugin", "javafmt-gradle-plugin", "javafmt-vscode", "website")
 
 dependencyResolutionManagement {
     // PREFER_PROJECT lets javafmt-intellij declare IntelliJ Platform repos at the project

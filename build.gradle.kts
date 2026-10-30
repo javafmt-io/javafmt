@@ -13,7 +13,7 @@ val coverageReports = configurations.create("coverageReports") {
 }
 
 dependencies {
-    listOf("javafmt-cli", "javafmt-core", "javafmt-maven-plugin", "javafmt-spotless", "javafmt-vscode").forEach {
+    listOf("javafmt-cli", "javafmt-core", "javafmt-daemon", "javafmt-maven-plugin", "javafmt-spotless").forEach {
         coverageReports(project(":$it"))
     }
 }

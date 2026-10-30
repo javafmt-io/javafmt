@@ -32,6 +32,19 @@ release:
       hide:
         uncategorized: true
 
+files:
+  artifacts:
+    - path: build/release-assets/native/javafmt-{{projectVersion}}-darwin-arm64
+    - path: build/release-assets/native/javafmt-{{projectVersion}}-linux-arm64
+    - path: build/release-assets/native/javafmt-{{projectVersion}}-linux-x64
+    - path: build/release-assets/native/javafmt-{{projectVersion}}-win32-x64.exe
+    - path: build/release-assets/native/SHA256SUMS
+    - path: build/release-assets/javafmt-intellij-{{projectVersion}}.zip
+    - path: build/release-assets/vsix/javafmt-vscode-{{projectVersion}}-darwin-arm64.vsix
+    - path: build/release-assets/vsix/javafmt-vscode-{{projectVersion}}-linux-arm64.vsix
+    - path: build/release-assets/vsix/javafmt-vscode-{{projectVersion}}-linux-x64.vsix
+    - path: build/release-assets/vsix/javafmt-vscode-{{projectVersion}}-win32-x64.vsix
+
 signing:
   active: RELEASE
   armored: true

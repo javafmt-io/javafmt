@@ -1,87 +1,87 @@
-import { activate, deactivate, toDiagnostics, isJavaDocument, statusFor, buildRequest } from '../../extension';
+import { create, fromBinary } from '@bufbuild/protobuf';
+import { sizeDelimitedEncode, sizeDelimitedPeek } from '@bufbuild/protobuf/wire';
+import { activate, deactivate, toDiagnostics, statusFor, vsceTarget } from '../../extension';
+import { Diagnostic, DiagnosticSchema, FormatReplySchema, FormatRequestSchema, Kind, Severity } from '../../gen/daemon_pb';
 import * as child_process from 'child_process';
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import { PassThrough } from 'stream';
-import { DiagnosticSeverity, Position, mockStatusBar, setActiveTextEditor } from '../../__mocks__/vscode';
+import { DiagnosticSeverity, LanguageStatusSeverity, Position, mockStatusItem } from '../../__mocks__/vscode';
 import * as vscode from 'vscode';
 import type * as vscodeTypes from 'vscode';
 
-describe('buildRequest', () => {
-    it('echoes the id and source into the payload', () => {
-        const payload = buildRequest('abc', 'class B {}') as Record<string, unknown>;
-        expect(payload.id).toBe('abc');
-        expect(payload.source).toBe('class B {}');
-    });
-});
+function diagnostic(severity: Severity, kind: Kind, message: string, line: number, column: number): Diagnostic {
+    return create(DiagnosticSchema, { severity, kind, message, line, column });
+}
 
 describe('toDiagnostics', () => {
     it('returns an empty array for no diagnostics', () => {
         expect(toDiagnostics([])).toEqual([]);
     });
 
-    it('converts 1-based line/col to 0-based vscode.Position', () => {
-        const [d] = toDiagnostics([{ severity: 'warning', message: 'FallThrough', line: 3, col: 5 }]);
+    it('converts 1-based line/column to 0-based vscode.Position', () => {
+        const [d] = toDiagnostics([diagnostic(Severity.WARNING, Kind.WARNING, 'FallThrough', 3, 5)]);
         expect(d.range.start).toEqual(new Position(2, 4));
     });
 
-    it('clamps unknown position (line=0, col=0) to Position(0, 0)', () => {
-        const [d] = toDiagnostics([{ severity: 'error', message: 'parse error', line: 0, col: 0 }]);
+    it('clamps unknown position (line=0, column=0) to Position(0, 0)', () => {
+        const [d] = toDiagnostics([diagnostic(Severity.ERROR, Kind.PARSE, 'parse error', 0, 0)]);
         expect(d.range.start).toEqual(new Position(0, 0));
     });
 
-    it('maps severity "error" to DiagnosticSeverity.Error', () => {
-        const [d] = toDiagnostics([{ severity: 'error', message: 'e', line: 1, col: 1 }]);
+    it('maps an error to DiagnosticSeverity.Error', () => {
+        const [d] = toDiagnostics([diagnostic(Severity.ERROR, Kind.LINT, 'e', 1, 1)]);
         expect(d.severity).toBe(DiagnosticSeverity.Error);
     });
 
-    it('maps severity "warning" to DiagnosticSeverity.Warning', () => {
-        const [d] = toDiagnostics([{ severity: 'warning', message: 'w', line: 1, col: 1 }]);
+    it('maps a warning to DiagnosticSeverity.Warning', () => {
+        const [d] = toDiagnostics([diagnostic(Severity.WARNING, Kind.WARNING, 'w', 1, 1)]);
         expect(d.severity).toBe(DiagnosticSeverity.Warning);
     });
 
+    it('treats a severity it does not know as an error', () => {
+        const [d] = toDiagnostics([diagnostic(7 as Severity, Kind.LINT, 'e', 1, 1)]);
+        expect(d.severity).toBe(DiagnosticSeverity.Error);
+    });
+
     it('sets range.start === range.end (zero-width point diagnostic)', () => {
-        const [d] = toDiagnostics([{ severity: 'warning', message: 'w', line: 5, col: 10 }]);
+        const [d] = toDiagnostics([diagnostic(Severity.WARNING, Kind.WARNING, 'w', 5, 10)]);
         expect(d.range.start).toEqual(d.range.end);
     });
 
     it('preserves the diagnostic message verbatim', () => {
-        const [d] = toDiagnostics([{ severity: 'warning', message: 'EqualsHashCode', line: 1, col: 1 }]);
+        const [d] = toDiagnostics([diagnostic(Severity.WARNING, Kind.WARNING, 'EqualsHashCode', 1, 1)]);
         expect(d.message).toBe('EqualsHashCode');
     });
-});
 
-describe('isJavaDocument', () => {
-    it('returns true for java', () => expect(isJavaDocument('java')).toBe(true));
-    it('returns false for other languages', () => expect(isJavaDocument('kotlin')).toBe(false));
-    it('returns false for undefined (no active editor)', () => expect(isJavaDocument(undefined)).toBe(false));
+    it('labels the diagnostic as javafmt and carries its kind as the code', () => {
+        const [d] = toDiagnostics([diagnostic(Severity.ERROR, Kind.INTERNAL, 'dropped token', 0, 0)]);
+        expect(d.source).toBe('javafmt');
+        expect(d.code).toBe('internal');
+    });
 });
 
 describe('statusFor', () => {
-    it('ready: correct text and tooltip', () => {
-        const { text, tooltip } = statusFor('ready');
-        expect(text).toBe('$(check) javafmt');
-        expect(tooltip).toBe('javafmt: ready — click to restart daemon');
+    it('ready: idle at information severity', () => {
+        expect(statusFor('ready')).toEqual({ detail: 'ready', severity: LanguageStatusSeverity.Information, busy: false });
     });
 
-    it('formatting: correct text and tooltip', () => {
-        const { text, tooltip } = statusFor('formatting');
-        expect(text).toBe('$(loading~spin) javafmt');
-        expect(tooltip).toBe('javafmt: formatting…');
+    it('formatting: busy at information severity', () => {
+        expect(statusFor('formatting')).toEqual({ detail: 'formatting', severity: LanguageStatusSeverity.Information, busy: true });
     });
 
-    it('error with detail: embeds detail in tooltip', () => {
-        const { text, tooltip } = statusFor('error', 'daemon crashed');
-        expect(text).toBe('$(error) javafmt');
-        expect(tooltip).toBe('javafmt: daemon crashed');
+    it('error with detail: shows the detail at error severity', () => {
+        expect(statusFor('error', 'daemon crashed')).toEqual({ detail: 'daemon crashed', severity: LanguageStatusSeverity.Error, busy: false });
     });
 
     it('error without detail: falls back to "error"', () => {
-        expect(statusFor('error').tooltip).toBe('javafmt: error');
+        expect(statusFor('error').detail).toBe('error');
     });
 });
 
-function makeContext(prefix = ''): vscodeTypes.ExtensionContext {
+function makeContext(prefix = '/nonexistent-extension'): vscodeTypes.ExtensionContext {
     return {
         subscriptions: { push: jest.fn() },
         extensionPath: prefix,
@@ -91,51 +91,85 @@ function makeContext(prefix = ''): vscodeTypes.ExtensionContext {
 
 function mockProcess(): child_process.ChildProcess {
     return Object.assign(new EventEmitter(), {
-        stdin: { write: jest.fn() },
+        stdin: Object.assign(new EventEmitter(), { write: jest.fn() }),
         stdout: new PassThrough(),
         stderr: new PassThrough(),
         kill: jest.fn(),
     }) as unknown as child_process.ChildProcess;
 }
 
-describe('after activate()', () => {
-    let onChangeEditor: () => void;
-    let onWillSave: (e: { document: { languageId: string }; waitUntil: jest.Mock }) => void;
+function sentRequestId(proc: child_process.ChildProcess): number {
+    const bytes = (proc.stdin!.write as jest.Mock).mock.calls.at(-1)[0] as Uint8Array;
+    const peek = sizeDelimitedPeek(bytes);
+    if (peek.eof) {
+        throw new Error('no whole request was written');
+    }
+    return fromBinary(FormatRequestSchema, bytes.subarray(peek.offset, peek.offset + peek.size)).id ?? 0;
+}
 
+function reply(proc: child_process.ChildProcess, id: number, output: string): void {
+    (proc.stdout as PassThrough).write(sizeDelimitedEncode(FormatReplySchema, create(FormatReplySchema, { id, output })));
+}
+
+function onlyExecutable(isExecutable: (p: string) => boolean): void {
+    (fs.accessSync as jest.Mock).mockImplementation((p: fs.PathLike) => {
+        if (!isExecutable(String(p))) {
+            throw new Error(`ENOENT ${String(p)}`);
+        }
+    });
+    (fs.statSync as jest.Mock).mockImplementation((p: fs.PathLike) => ({ isFile: () => isExecutable(String(p)) }));
+}
+
+function realFileSystem(): void {
+    const actual = jest.requireActual<typeof fs>('node:fs');
+    (fs.accessSync as jest.Mock).mockImplementation(actual.accessSync);
+    (fs.statSync as jest.Mock).mockImplementation(actual.statSync);
+}
+
+function configureBinaryPathOnce(binaryPath: string): void {
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValueOnce({
+        get: jest.fn((key: string, defaultValue: unknown) => (key === 'binaryPath' ? binaryPath : defaultValue)),
+    });
+}
+
+function configurationChanged(affects: (section: string) => boolean): void {
+    const listener = (vscode.workspace.onDidChangeConfiguration as jest.Mock).mock.calls.at(-1)[0] as (e: { affectsConfiguration: (section: string) => boolean }) => void;
+    listener({ affectsConfiguration: affects });
+}
+
+function formatProvider(): vscodeTypes.DocumentFormattingEditProvider & {
+    provideDocumentFormattingEdits: (doc: unknown) => Promise<vscodeTypes.TextEdit[]>;
+} {
+    return (vscode.languages.registerDocumentFormattingEditProvider as jest.Mock).mock.calls.at(-1)[1];
+}
+
+function document(): unknown {
+    return {
+        getText: () => 'class A{}',
+        uri: {},
+        lineCount: 1,
+        lineAt: () => ({ range: { end: new Position(0, 9) } }),
+    };
+}
+
+describe('after activate()', () => {
     beforeEach(() => {
         deactivate();
         activate(makeContext());
-        // Clear counts from activate() itself so assertions start from zero.
-        mockStatusBar.show.mockClear();
-        mockStatusBar.hide.mockClear();
-        onChangeEditor = (vscode.window.onDidChangeActiveTextEditor as jest.Mock).mock.calls[0][0] as () => void;
-        onWillSave = (vscode.workspace.onWillSaveTextDocument as jest.Mock).mock.calls[0][0] as typeof onWillSave;
     });
 
-    afterEach(() => {
-        setActiveTextEditor(undefined);
+    describe('language status item', () => {
+        it('is created for java documents and restarts the daemon when clicked', () => {
+            expect(vscode.languages.createLanguageStatusItem).toHaveBeenCalledWith('javafmt', { language: 'java' });
+            expect(mockStatusItem.name).toBe('javafmt');
+            expect(mockStatusItem.text).toBe('javafmt');
+            expect(mockStatusItem.command).toEqual({ title: 'Restart daemon', command: 'javafmt.restartDaemon' });
+        });
     });
 
-    describe('syncStatusBar', () => {
-        it('shows the status bar when the active editor is Java', () => {
-            setActiveTextEditor({ document: { languageId: 'java' } });
-            onChangeEditor();
-            expect(mockStatusBar.show).toHaveBeenCalledTimes(1);
-            expect(mockStatusBar.hide).not.toHaveBeenCalled();
-        });
-
-        it('hides the status bar for non-Java editors', () => {
-            setActiveTextEditor({ document: { languageId: 'kotlin' } });
-            onChangeEditor();
-            expect(mockStatusBar.hide).toHaveBeenCalledTimes(1);
-            expect(mockStatusBar.show).not.toHaveBeenCalled();
-        });
-
-        it('hides the status bar when there is no active editor', () => {
-            setActiveTextEditor(undefined);
-            onChangeEditor();
-            expect(mockStatusBar.hide).toHaveBeenCalledTimes(1);
-            expect(mockStatusBar.show).not.toHaveBeenCalled();
+    describe('format on save', () => {
+        it('is left to VS Code’s editor.formatOnSave rather than a save hook of its own', () => {
+            expect(vscode.workspace.onWillSaveTextDocument).not.toHaveBeenCalled();
         });
     });
 
@@ -154,61 +188,163 @@ describe('after activate()', () => {
             deactivate();
         });
 
-        it('spawns the native binary directly (no java -jar) when the platform binary exists', () => {
+        afterEach(() => {
+            jest.useRealTimers();
+            realFileSystem();
+        });
+
+        const bundled = path.join('/ext', 'bin', vsceTarget(process.platform, process.arch), process.platform === 'win32' ? 'javafmt.exe' : 'javafmt');
+
+        it('spawns the binary bundled for this platform in daemon mode, with no Java runtime involved', () => {
             const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
-            jest.spyOn(fs, 'existsSync').mockImplementation((p) => !String(p).endsWith('.jar'));
+            onlyExecutable((p) => /javafmt(\.exe)?$/.test(p));
             deactivate();
-            activate(makeContext());
-            expect(spawnSpy).toHaveBeenCalledWith(
-                expect.stringContaining('javafmt-daemon'),
-                [],
-                expect.any(Object),
-            );
+            activate(makeContext('/ext'));
+            expect(spawnSpy).toHaveBeenCalledWith(bundled, ['--daemon'], expect.any(Object));
         });
 
-        it('spawns via java -jar when only the bundled jar exists', () => {
+        it('restores the executable bit the VSIX zip dropped from the bundled binary before running it', () => {
+            if (process.platform === 'win32') {
+                return;
+            }
             const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
-            jest.spyOn(fs, 'existsSync').mockImplementation((p) => String(p).endsWith('.jar'));
+            const extensionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'javafmt-ext-'));
+            const binary = path.join(extensionPath, 'bin', vsceTarget(process.platform, process.arch), 'javafmt');
+            fs.mkdirSync(path.dirname(binary), { recursive: true });
+            fs.writeFileSync(binary, '#!/bin/sh\n', { mode: 0o644 });
+            try {
+                deactivate();
+                activate(makeContext(extensionPath));
+                expect(fs.statSync(binary).mode & 0o777).toBe(0o744);
+                expect(spawnSpy).toHaveBeenCalledWith(binary, ['--daemon'], expect.any(Object));
+            } finally {
+                fs.rmSync(extensionPath, { recursive: true, force: true });
+            }
+        });
+
+        it('falls back to javafmt on PATH when nothing is bundled', () => {
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+            onlyExecutable((p) => p !== bundled && /javafmt(\.exe)?$/.test(p));
             deactivate();
-            activate(makeContext());
-            expect(spawnSpy).toHaveBeenCalledWith(
-                'java',
-                ['-jar', expect.stringContaining('.jar')],
-                expect.any(Object),
-            );
+            activate(makeContext('/ext'));
+            expect(spawnSpy).toHaveBeenCalledWith(expect.not.stringContaining(path.join('/ext', 'bin')), ['--daemon'], expect.any(Object));
         });
 
-        it('shows error message when neither native binary nor jar exists', () => {
-            jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+        it('spawns the binary configured in javafmt.binaryPath', () => {
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+            onlyExecutable((p) => p === '/custom/javafmt' || p === bundled);
+            configureBinaryPathOnce('/custom/javafmt');
             deactivate();
-            activate(makeContext());
-            expect(vscode.window.showErrorMessage).toHaveBeenLastCalledWith(
-                expect.stringContaining('no native daemon'),
-            );
-        });
-    });
-
-    describe('formatOnSave guard', () => {
-        it('skips non-Java documents regardless of the formatOnSave setting', () => {
-            const waitUntil = jest.fn();
-            onWillSave({ document: { languageId: 'python' }, waitUntil });
-            expect(waitUntil).not.toHaveBeenCalled();
+            activate(makeContext('/ext'));
+            expect(spawnSpy).toHaveBeenCalledWith('/custom/javafmt', ['--daemon'], expect.any(Object));
         });
 
-        it('skips Java documents when javafmt.formatOnSave is false (default)', () => {
-            const waitUntil = jest.fn();
-            onWillSave({ document: { languageId: 'java' }, waitUntil });
-            expect(waitUntil).not.toHaveBeenCalled();
+        it('reports a missing binary once per session, not on every format', async () => {
+            onlyExecutable(() => false);
+            deactivate();
+            (vscode.window.showErrorMessage as jest.Mock).mockClear();
+            activate(makeContext('/ext'));
+            await formatProvider().provideDocumentFormattingEdits(document());
+            await formatProvider().provideDocumentFormattingEdits(document());
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledTimes(1);
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('no javafmt binary found'));
         });
 
-        it('calls waitUntil for Java documents when javafmt.formatOnSave is true', () => {
-            (vscode.workspace.getConfiguration as jest.Mock).mockReturnValueOnce({
-                get: jest.fn(() => true),
-            });
-            const waitUntil = jest.fn().mockImplementation((p: Promise<unknown>) => p?.catch(() => {}));
-            const doc = { languageId: 'java', getText: jest.fn(() => '') };
-            onWillSave({ document: doc as { languageId: string }, waitUntil });
-            expect(waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+        it('restarts the daemon when a javafmt setting changes', () => {
+            const first = mockProcess();
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementationOnce(() => first).mockImplementation(() => mockProcess());
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            configurationChanged((section) => section === 'javafmt');
+            expect(first.kill).toHaveBeenCalled();
+            expect(spawnSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('leaves the daemon alone when an unrelated setting changes', () => {
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            configurationChanged((section) => section === 'editor');
+            expect(spawnSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it('treats a process that fails to start like one that exited, and starts a new one on the next format', async () => {
+            const first = mockProcess();
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementationOnce(() => first).mockImplementation(() => mockProcess());
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            first.emit('error', new Error('spawn EACCES'));
+            expect(mockStatusItem.detail).toContain('EACCES');
+            expect(mockStatusItem.severity).toBe(LanguageStatusSeverity.Error);
+            void formatProvider().provideDocumentFormattingEdits(document());
+            expect(spawnSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('stops a daemon whose input pipe fails', () => {
+            const first = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => first);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            (first.stdin as unknown as EventEmitter).emit('error', new Error('write EPIPE'));
+            expect(first.kill).toHaveBeenCalled();
+        });
+
+        it('installs the output the daemon replies with', async () => {
+            const proc = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => proc);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            const edits = formatProvider().provideDocumentFormattingEdits(document());
+            reply(proc, sentRequestId(proc), 'class A {}\n');
+            await expect(edits).resolves.toEqual([expect.objectContaining({ newText: 'class A {}\n' })]);
+        });
+
+        it('stops a daemon that sends something other than a reply', async () => {
+            const proc = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => proc);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            const edits = formatProvider().provideDocumentFormattingEdits(document());
+            (proc.stdout as PassThrough).write(Buffer.from([3, 0xff, 0xff, 0xff]));
+            await expect(edits).resolves.toEqual([]);
+            expect(proc.kill).toHaveBeenCalled();
+            expect(mockStatusItem.detail).toContain('not part of its protocol');
+        });
+
+        it('does not fail requests to a new daemon when the one it replaced exits', async () => {
+            const first = mockProcess();
+            const second = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementationOnce(() => first).mockImplementation(() => second);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            configurationChanged((section) => section === 'javafmt');
+            const edits = formatProvider().provideDocumentFormattingEdits(document());
+            first.emit('exit', 1);
+            first.emit('error', new Error('spawn EACCES'));
+            reply(second, sentRequestId(second), 'class A {}\n');
+            await expect(edits).resolves.toEqual([expect.objectContaining({ newText: 'class A {}\n' })]);
+            expect(second.kill).not.toHaveBeenCalled();
+        });
+
+        it('gives up on a request after 10s and restarts the daemon', async () => {
+            jest.useFakeTimers();
+            const first = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => first);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            const edits = formatProvider().provideDocumentFormattingEdits(document());
+            jest.advanceTimersByTime(10_000);
+            await expect(edits).resolves.toEqual([]);
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('did not respond within 10s'));
+            expect(first.kill).toHaveBeenCalled();
         });
     });
 });

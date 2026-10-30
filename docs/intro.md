@@ -62,7 +62,17 @@ spotless {
 
 ### VS Code
 
-Search **javafmt** in the Marketplace.
+Search **javafmt** in the Marketplace. The extension bundles the native [`javafmt` binary](#cli) for your platform and runs it as one long-lived `javafmt --daemon` process. Set `javafmt.binaryPath` to use a different binary. No Java runtime is needed.
+
+javafmt is VS Code's Java document formatter, so *Format Document* and VS Code's own format-on-save use it. To format on save, turn on `editor.formatOnSave` for Java in your `settings.json`:
+
+```json
+"[java]": {
+    "editor.formatOnSave": true
+}
+```
+
+If another Java extension also offers a formatter, add `"editor.defaultFormatter": "javafmt.javafmt"` to the same block.
 
 ### IntelliJ IDEA
 

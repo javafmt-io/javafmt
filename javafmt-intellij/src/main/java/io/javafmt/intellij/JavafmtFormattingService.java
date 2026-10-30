@@ -8,15 +8,9 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.FileTime;
-import java.util.List;
-import java.util.Map;
+import io.javafmt.daemon.protocol.Diagnostic;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,18 +41,6 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
     /** Must match the {@code notificationGroup} id registered in {@code plugin.xml}. */
     private static final String NOTIFICATION_GROUP = "javafmt";
-
-    /**
-     * Version probes are cached per binary identity (path, size, and last-modified time), not just
-     * per path. A stale cached {@code false} (the binary was old, then upgraded) only costs one
-     * unnecessary warning on the next reformat — cheap to accept. A stale cached {@code true} is the
-     * direction that actually matters: keyed on path alone, a binary replaced in place at the same
-     * path (a downgrade, a symlink swap, a rebuild) would keep reading as supported for the rest of
-     * the IDE session, letting a binary that does not understand {@code --diagnostics=json} be
-     * driven as if it did. Including size and mtime in the key means a replaced binary gets a new
-     * key and is re-probed instead of silently reusing the old verdict in either direction.
-     */
-    private static final Map<VersionCacheKey, Boolean> VERSION_SUPPORTED = new ConcurrentHashMap<>();
 
     @Override
     @NotNull
@@ -108,7 +90,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
     private static String describe(final JavafmtBinary.Outcome.Formatted formatted) {
         return formatted.diagnostics()
                 .stream()
-                .map(ShimDiagnostic::message)
+                .map(Diagnostic::getMessage)
                 .collect(Collectors.joining("\n"));
     }
 
@@ -118,28 +100,6 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 .createNotification("javafmt", message, type)
                 .notify(project);
     }
-
-    private static boolean probeSupportedVersion(final JavafmtBinary binary) {
-        return binary.version().map(JavafmtBinary::isSupportedVersion).orElse(false);
-    }
-
-    /**
-     * A cache key identifying the binary at {@code path} by content, not merely by location: size
-     * and last-modified time change whenever the file at that path is replaced, so a downgrade, a
-     * symlink swap, or a rebuild in place invalidates the cached verdict instead of reusing it.
-     * Empty when the file cannot be stat'd (e.g. it vanished between resolving and probing it), in
-     * which case the caller probes directly rather than caching under a key that cannot detect a
-     * later replacement.
-     */
-    private static Optional<VersionCacheKey> versionCacheKey(final Path path) {
-        try {
-            return Optional.of(new VersionCacheKey(path, Files.getLastModifiedTime(path), Files.size(path)));
-        } catch (final IOException e) {
-            return Optional.empty();
-        }
-    }
-
-    private record VersionCacheKey(Path path, FileTime lastModified, long size) {}
 
     /**
      * One reformat, run off the EDT by the platform.
@@ -155,11 +115,11 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
         /**
          * The thread the platform runs {@link #run} on, published so {@link #cancel} can interrupt
-         * it. {@code JavafmtBinary.format} waits on the child with an interruptible
-         * {@code Process.waitFor}, so an interrupt there kills the child and returns a refusal
-         * rather than leaving the subprocess running.
+         * it. {@code JavafmtDaemon.format} waits for the reply with an interruptible wait, so an
+         * interrupt there returns at once, leaves the file alone without a notification, and the
+         * daemon drops the late reply.
          */
-        private volatile Thread worker;
+        @Nullable private Thread worker;
 
         private JavafmtFormattingTask(final AsyncFormattingRequest request) {
             this.request = request;
@@ -167,44 +127,100 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
         @Override
         public void run() {
-            worker = Thread.currentThread();
+            synchronized (this) {
+                worker = Thread.currentThread();
+            }
+            try {
+                format();
+            } finally {
+                synchronized (this) {
+                    worker = null;
+                }
+            }
+        }
+
+        private void format() {
             final var context = request.getContext();
             final var project = context.getProject();
             final var fileName = context.getContainingFile().getName();
             final var content = request.getDocumentText();
-            final var resolved = JavafmtBinary.resolve(JavafmtSettings.getInstance(project).getBinaryPath());
+            final var provider = JavafmtBinaryProvider.getInstance();
+            final var resolved = locate(project, provider);
             if (resolved.isEmpty()) {
-                notifyUser(
-                        project,
-                        NotificationType.WARNING,
-                        "No javafmt binary found. Set its path under Settings | Tools | javafmt, or put javafmt on your PATH.");
                 request.onTextReady(content);
                 return;
             }
-            final var binary = new JavafmtBinary(resolved.get());
-            final var supported = versionCacheKey(resolved.get())
-                    .map(key -> VERSION_SUPPORTED.computeIfAbsent(key, ignored -> probeSupportedVersion(binary)))
-                    .orElseGet(() -> probeSupportedVersion(binary));
-            if (!supported) {
+            final var binary = resolved.get();
+            final var supported = provider.versionGate().isSupported(binary);
+            if (supported.isEmpty()) {
+                if (!Thread.currentThread().isInterrupted()) {
+                    notifyUser(project, NotificationType.WARNING, "The javafmt binary at " + binary.path() + " did not report its version in time.");
+                }
+                request.onTextReady(content);
+                return;
+            }
+            if (!supported.get()) {
                 notifyUser(
                         project,
                         NotificationType.WARNING,
-                        "The javafmt binary at " + resolved.get() + " is too old: javafmt " + JavafmtBinary.minimumVersion()
+                        "The javafmt binary at " + binary.path() + " is too old: javafmt " + JavafmtBinary.minimumVersion()
                                 + " or newer is required.");
                 request.onTextReady(content);
                 return;
             }
-            final var outcome = binary.format(content, List.of());
-            if (outcome instanceof JavafmtBinary.Outcome.Refused refused) {
-                LOG.warn("javafmt: " + refused.reason());
+            switch (JavafmtDaemons.getInstance(project).format(binary, content)) {
+                case JavafmtBinary.Outcome.Cancelled ignored -> request.onTextReady(content);
+                case JavafmtBinary.Outcome.Refused refused -> {
+                    LOG.warn("javafmt: " + refused.reason());
+                    notifyUser(
+                            project,
+                            refused.internal() ? NotificationType.ERROR : NotificationType.WARNING,
+                            fileName + " was left unformatted: " + refused.reason());
+                    request.onTextReady(content);
+                }
+                case JavafmtBinary.Outcome.Formatted formatted -> install(project, fileName, content, formatted);
+            }
+        }
+
+        private static Optional<BinaryIdentity> locate(final Project project, final JavafmtBinaryProvider provider) {
+            final var configured = JavafmtSettings.getInstance(project).getBinaryPath();
+            if (!configured.isBlank()) {
+                final var found = JavafmtBinary.resolve(configured).flatMap(BinaryIdentity::of);
+                if (found.isEmpty()) {
+                    notifyUser(
+                            project,
+                            NotificationType.WARNING,
+                            "No javafmt binary found at " + configured + ". Fix javafmt.binaryPath under Settings | Tools | javafmt, or clear it.");
+                }
+                return found;
+            }
+            final var onPath = provider.onPath();
+            if (onPath.isPresent()) {
+                return onPath;
+            }
+            final var download = provider.download(project);
+            download.thenAccept(installation -> reportFailedDownload(project, provider, installation));
+            if (download.isDone() && download.join() instanceof Installation.Installed installed) {
+                return BinaryIdentity.of(installed.executable());
+            }
+            if (!download.isDone() && provider.claimDownloadNotice()) {
+                notifyUser(project, NotificationType.INFORMATION, "javafmt is downloading its formatter; formatting will start when it's ready.");
+            }
+            return Optional.empty();
+        }
+
+        private static void reportFailedDownload(final Project project, final JavafmtBinaryProvider provider, final Installation installation) {
+            if (installation instanceof Installation.Failed failed && provider.claimFailureNotice()) {
+                LOG.warn("javafmt: " + failed.reason());
                 notifyUser(
                         project,
-                        refused.internal() ? NotificationType.ERROR : NotificationType.WARNING,
-                        fileName + " was left unformatted: " + refused.reason());
-                request.onTextReady(content);
-                return;
+                        NotificationType.WARNING,
+                        "javafmt could not download its binary: " + failed.reason()
+                                + ". Set javafmt.binaryPath under Settings | Tools | javafmt, or put javafmt on your PATH.");
             }
-            final var formatted = (JavafmtBinary.Outcome.Formatted) outcome;
+        }
+
+        private void install(final Project project, final String fileName, final String content, final JavafmtBinary.Outcome.Formatted formatted) {
             if (formatted.hasFailure()) {
                 report(project, fileName, formatted);
                 request.onTextReady(content);
@@ -219,10 +235,9 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
         }
 
         @Override
-        public boolean cancel() {
-            final var thread = worker;
-            if (thread != null) {
-                thread.interrupt();
+        public synchronized boolean cancel() {
+            if (worker != null) {
+                worker.interrupt();
             }
             return true;
         }

@@ -1,0 +1,3 @@
+{"id":1,"output":"class A {}\n"}
+{"id":2,"output":"class Broken {","diagnostics":[{"severity":"SEVERITY_ERROR","kind":"KIND_PARSE","message":"reached end of file while parsing","line":1,"column":15}]}
+{"id":3,"diagnostics":[{"severity":"SEVERITY_ERROR","kind":"KIND_CLI","message":"source: value is required"}]}

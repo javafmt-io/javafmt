@@ -16,11 +16,16 @@ gradlePlugin {
             id = "javafmt.build-scans"
             implementationClass = "BuildScansPlugin"
         }
+        register("toolchains") {
+            id = "javafmt.toolchains"
+            implementationClass = "ToolchainsPlugin"
+        }
     }
 }
 
 dependencies {
     implementation(libs.develocity.gradle.plugin)
+    implementation(libs.foojay.resolver)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

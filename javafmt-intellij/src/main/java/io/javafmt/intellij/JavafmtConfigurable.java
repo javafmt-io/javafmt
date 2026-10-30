@@ -94,9 +94,12 @@ public final class JavafmtConfigurable implements Configurable {
     }
 
     private static String describeBinary(final String configuredPath) {
+        if (configuredPath.isBlank()) {
+            return JavafmtBinaryProvider.getInstance().describe();
+        }
         return JavafmtBinary.resolve(configuredPath)
-                .map(path -> new JavafmtBinary(path).version().map(v -> path + " (" + v + ")").orElse(path.toString()))
-                .orElse("not found — set a path above, or put javafmt on your PATH");
+                .map(path -> new JavafmtBinary(path).version().reportedVersion().map(v -> path + " (" + v + ")").orElse(path.toString()))
+                .orElse("not found — fix the path above, or clear it to use javafmt from PATH or a downloaded one");
     }
 
     @Override

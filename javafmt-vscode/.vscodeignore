@@ -1,5 +1,7 @@
 **
 !out/**
+!node_modules/@bufbuild/protobuf/package.json
+!node_modules/@bufbuild/protobuf/dist/commonjs/**
 !bin/**
 !package.json
 !LICENSE
