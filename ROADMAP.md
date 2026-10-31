@@ -67,7 +67,6 @@ The plan, phase by phase, plus the things still unsettled. For architecture, see
 
 ## Open questions
 
-1. **Enum sorting.** Alphabetical sort can break code if enum constants reference each other (`A(B)` where `B` is defined later). Detect those cases and skip sorting, or always sort and let the compiler catch it?
-2. **Member reordering.** Same risk: reordering methods can break forward references in field initializers. Handle carefully or keep opt-in.
-3. **GraalVM native-image.** `com.sun.source.tree` uses service loading internally. The tracing agent covers most of it, but new constructs may regress. If this becomes unmaintainable, fat JAR only.
-4. **Error recovery.** What does the formatter do with syntactically invalid Java? Return the input unchanged, return partial formatting, or error out. Leaning toward: return input unchanged plus a warning diagnostic.
+1. **Member reordering.** Reordering methods can break forward references in field initializers. Handle carefully or keep opt-in.
+2. **GraalVM native-image.** `com.sun.source.tree` uses service loading internally. The tracing agent covers most of it, but new constructs may regress. If this becomes unmaintainable, fat JAR only.
+3. **Error recovery.** What does the formatter do with syntactically invalid Java? Return the input unchanged, return partial formatting, or error out. Leaning toward: return input unchanged plus a warning diagnostic.

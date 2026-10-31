@@ -67,7 +67,7 @@ first use after a clean build.
 - **Lambdas**: Palantir style, multi-line lambdas on their own lines, body indented relative to the enclosing chain
 - **Method chains**: break before `.` if chain doesn't fit, 8-space continuation indent
 - **Single-line constructs**: an `if` written in the compact one-line form `if (cond) {stmt;}` — no space inside the braces, one statement per branch, no comment, whole chain on one line — is preserved if it fits in 150 chars; every other shape, and every loop body, expands
-- **Annotations**: every class, method and constructor annotation on its own line (including `@Override`); parameter and field annotations stay inline
+- **Annotations**: every class, method and constructor annotation on its own line (including `@Override`); parameter annotations stay inline; field annotations stay inline when none has arguments and the author wrote them inline, otherwise each goes on its own line
 - **Parameter lists**: a wrapped method/constructor parameter list or record component list aligns under the first one, one per line, falling back to +8 when alignment would pass 150; call-site arguments wrap at +8 and pack
 - **Overflow**: string literals and annotation argument lists may run past 150 and are never split
 - **Javadoc/comments**: left alone (v1)
