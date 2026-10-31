@@ -94,8 +94,7 @@ final class TypeRenderers {
         final var argumentDocs = Doc.intersperse(new Doc.Text(", "), arguments.stream().map(recursor::scan));
         return new Doc.Concat(
                 Stream.concat(
-                        Stream.of(recursor.scan(node.getType()), new Doc.Text("<")),
-                        Stream.concat(argumentDocs, Stream.<Doc>of(new Doc.Text(">")))));
+                        Stream.of(recursor.scan(node.getType()), new Doc.Text("<")), Stream.concat(argumentDocs, Stream.<Doc>of(new Doc.Text(">")))));
     }
 
     /**
@@ -168,8 +167,7 @@ final class TypeRenderers {
     private Doc renderQualifiedTypeAnnotation(final MemberSelectTree qualified, final Stream<Doc> annotations, final Recursor recursor) {
         return Doc.concatOf(
                 Stream.of(
-                        Stream.of(recursor.scan(qualified.getExpression()), new Doc.Text(".")),
-                        annotations,
+                        Stream.of(recursor.scan(qualified.getExpression()), new Doc.Text(".")), annotations,
                         Stream.of(new Doc.Text(qualified.getIdentifier().toString()))));
     }
 }

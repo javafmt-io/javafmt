@@ -41,9 +41,7 @@ final class BinaryInstaller {
 
     static BinaryInstaller forThisPlugin() {
         return new BinaryInstaller(
-                RELEASES.resolve("v" + JavafmtPluginVersion.VERSION + "/"),
-                PathManager.getSystemDir().resolve("javafmt"),
-                ReleaseAsset.forThisIde());
+                RELEASES.resolve("v" + JavafmtPluginVersion.VERSION + "/"), PathManager.getSystemDir().resolve("javafmt"), ReleaseAsset.forThisIde());
     }
 
     ReleaseAsset asset() {

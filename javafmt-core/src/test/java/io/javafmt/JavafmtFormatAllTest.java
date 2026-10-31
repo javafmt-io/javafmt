@@ -125,9 +125,7 @@ class JavafmtFormatAllTest {
     void aFileJavacCannotAttributeIsFormattedParseOnlyWithAWarning() {
         final var source = "class A {\n\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
         final var results = BatchFormatter.formatChunk(
-                List.of(source),
-                ANALYZE,
-                BatchFormatter.Renderer.INLINE,
+                List.of(source), ANALYZE, BatchFormatter.Renderer.INLINE,
                 chunk -> BatchFormatter.fromAttributed(chunk, List.of(new Staged.Failed<>(new IllegalStateException("javac crashed")))));
         assertThat(results.getFirst().output()).isEqualTo(Javafmt.format(source));
         assertThat(results.getFirst().diagnostics())
@@ -164,8 +162,7 @@ class JavafmtFormatAllTest {
                 .toList();
         assertThat(analyzed).isNotEqualTo(sources.stream().map(Javafmt::format).toList());
         final var retried = JavaParser.attributing(
-                "",
-                session -> formatChunkFailingWhenBatched(sources, chunk -> BatchFormatter.attributedContexts(chunk, session)));
+                "", session -> formatChunkFailingWhenBatched(sources, chunk -> BatchFormatter.attributedContexts(chunk, session)));
         assertThat(outputsOf(retried)).isEqualTo(analyzed);
     }
 
@@ -223,9 +220,7 @@ class JavafmtFormatAllTest {
     private static List<FormatResult> formatChunkFailingWhenBatched(final List<String> sources,
                                                                     final Function<List<String>, List<BatchFormatter.Prepared>> parser) {
         return BatchFormatter.formatChunk(
-                sources,
-                JavafmtConfig.defaults(),
-                BatchFormatter.Renderer.INLINE,
+                sources, JavafmtConfig.defaults(), BatchFormatter.Renderer.INLINE,
                 chunk -> {
                     if (chunk.size() > 1) {
                         throw new IllegalStateException("the whole chunk failed");
@@ -291,8 +286,7 @@ class JavafmtFormatAllTest {
                         failure.set(t);
                     }
                 },
-                "small-stack",
-                512 * 1024);
+                "small-stack", 512 * 1024);
         thread.start();
         thread.join();
         assertThat(failure.get()).isNull();

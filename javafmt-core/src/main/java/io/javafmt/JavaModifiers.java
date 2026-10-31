@@ -19,20 +19,8 @@ import javax.lang.model.element.Modifier;
 public final class JavaModifiers {
 
     public final List<Modifier> JLS_ORDER = List.of(
-            Modifier.PUBLIC,
-            Modifier.PROTECTED,
-            Modifier.PRIVATE,
-            Modifier.ABSTRACT,
-            Modifier.DEFAULT,
-            Modifier.STATIC,
-            Modifier.FINAL,
-            Modifier.SEALED,
-            Modifier.NON_SEALED,
-            Modifier.TRANSIENT,
-            Modifier.VOLATILE,
-            Modifier.SYNCHRONIZED,
-            Modifier.NATIVE,
-            Modifier.STRICTFP);
+            Modifier.PUBLIC, Modifier.PROTECTED, Modifier.PRIVATE, Modifier.ABSTRACT, Modifier.DEFAULT, Modifier.STATIC, Modifier.FINAL,
+            Modifier.SEALED, Modifier.NON_SEALED, Modifier.TRANSIENT, Modifier.VOLATILE, Modifier.SYNCHRONIZED, Modifier.NATIVE, Modifier.STRICTFP);
 
     public final Set<Modifier> KNOWN_MODIFIERS = Collections.unmodifiableSet(EnumSet.copyOf(JLS_ORDER));
 }

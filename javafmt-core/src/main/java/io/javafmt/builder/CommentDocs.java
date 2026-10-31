@@ -57,8 +57,7 @@ final class CommentDocs {
      * The leading comments in front of {@code doc}: {@code ownLine} ones each take a line, while
      * {@code inline} ones — the ones the author wrote on the node's own line, as in
      * <code>f(/* count *&#47; 3)</code> — stay on it. Giving an inline comment a line of its own puts a
-     * forced break inside the enclosing list, which breaks the whole list one element per line
-     * however well it would have fitted.
+     * forced break inside the enclosing list, which breaks it however well it would have fitted.
      */
     Doc prepend(final List<CommentToken> ownLine, final List<CommentToken> inline, final Doc doc) {
         if (ownLine.isEmpty() && inline.isEmpty()) {
@@ -67,8 +66,7 @@ final class CommentDocs {
         return Doc.concatOf(
                 Stream.of(
                         ownLine.stream().flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE)),
-                        inline.stream().flatMap(c -> Stream.of(renderComment(c), new Doc.Text(" "))),
-                        Stream.of(doc)));
+                        inline.stream().flatMap(c -> Stream.of(renderComment(c), new Doc.Text(" "))), Stream.of(doc)));
     }
 
     Doc appendTrailing(final Doc doc, final List<CommentToken> comments) {
@@ -107,6 +105,17 @@ final class CommentDocs {
                         i -> Stream.concat(
                                 i == 0 ? Stream.empty() : listSeparator(",", attacher.interior(items.get(i))).stream(),
                                 Stream.of(render.apply(items.get(i)))));
+    }
+
+    <T extends Tree> Doc commaFill(final List<? extends T> items, final LeadingCommentAttacher attacher, final Function<? super T, Doc> render) {
+        return new Doc.Fill(
+                IntStream.range(0, items.size())
+                        .boxed()
+                        .flatMap(
+                                i -> Stream.concat(
+                                        i == 0 ? Stream.empty() : Stream.of(new Doc.Concat(listSeparator(",", attacher.interior(items.get(i))))),
+                                        Stream.of(render.apply(items.get(i)))))
+                        .toList());
     }
 
     Stream<Doc> fileHeaderStream(final List<CommentToken> comments) {

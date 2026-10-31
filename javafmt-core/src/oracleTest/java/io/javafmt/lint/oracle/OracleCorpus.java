@@ -76,17 +76,14 @@ public final class OracleCorpus {
                                                             final Map<String, String> checkProperties) {
         Objects.requireNonNull(name, "name");
         final var result = Javafmt.formatWithResult(
-                source,
-                VERIFYING.withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))));
+                source, VERIFYING.withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))));
         assertNoInternalError(name, result);
         final var formatted = result.output();
         assertStillCompiles(name, source, formatted);
         final var violations = CheckstyleOracle.run(formatted, checkClassName, checkProperties);
         assertThat(violations)
                 .as(
-                        "javafmt --analyze output for corpus file '%s' should have zero %s violations; output:%n%s",
-                        name,
-                        simpleName(checkClassName),
+                        "javafmt --analyze output for corpus file '%s' should have zero %s violations; output:%n%s", name, simpleName(checkClassName),
                         formatted)
                 .isEmpty();
     }
@@ -120,12 +117,7 @@ public final class OracleCorpus {
                 .as(
                         "javafmt output for corpus file '%s' still has %s violations and no diagnostic "
                             + "containing '%s'; output:%n%s%nresidual violations: %s%njavafmt diagnostics: %s",
-                        name,
-                        simpleName(checkClassName),
-                        diagnosticMessageSubstring,
-                        formatted,
-                        violations,
-                        result.diagnostics())
+                        name, simpleName(checkClassName), diagnosticMessageSubstring, formatted, violations, result.diagnostics())
                 .isTrue();
     }
 

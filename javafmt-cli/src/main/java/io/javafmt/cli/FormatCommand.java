@@ -92,14 +92,8 @@ final class FormatCommand implements Callable<Integer> {
             throw new ParameterException(spec.commandLine(), "--json only applies to --daemon");
         }
         final var formatArguments = new FormatRun.Arguments(
-                paths,
-                check,
-                threads.orElse(Runtime.getRuntime().availableProcessors()),
-                cache,
-                excludes,
-                !noDefaultExcludes,
-                Optional.ofNullable(analysis).filter(a -> a.analyze).map(a -> a.classpath),
-                diagnostics == DiagnosticsFormat.JSON);
+                paths, check, threads.orElse(Runtime.getRuntime().availableProcessors()), cache, excludes, !noDefaultExcludes,
+                Optional.ofNullable(analysis).filter(a -> a.analyze).map(a -> a.classpath), diagnostics == DiagnosticsFormat.JSON);
         if (beforeEndOfOptions(paths).contains(STDIN)) {
             if (paths.size() > 1) {
                 throw new ParameterException(spec.commandLine(), "'-' reads stdin and cannot be combined with file arguments");

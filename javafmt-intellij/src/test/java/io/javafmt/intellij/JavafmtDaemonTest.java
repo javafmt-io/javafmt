@@ -64,14 +64,9 @@ class JavafmtDaemonTest {
                                     "class Broken {",
                                     List.of(
                                             FakeDaemon.diagnostic(
-                                                    Severity.SEVERITY_ERROR,
-                                                    Kind.KIND_PARSE,
-                                                    "reached end of file while parsing",
-                                                    1,
-                                                    15))),
+                                                    Severity.SEVERITY_ERROR, Kind.KIND_PARSE, "reached end of file while parsing", 1, 15))),
                             new JavafmtBinary.Outcome.Formatted(
-                                    "",
-                                    List.of(FakeDaemon.diagnostic(Severity.SEVERITY_ERROR, Kind.KIND_CLI, "source: value is required", 0, 0))));
+                                    "", List.of(FakeDaemon.diagnostic(Severity.SEVERITY_ERROR, Kind.KIND_CLI, "source: value is required", 0, 0))));
         } finally {
             daemon.stop();
         }

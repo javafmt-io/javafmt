@@ -31,15 +31,8 @@ class JavafmtVerifyOutputTest {
     private static ParsedUnit unitThatLosesATrailingComment() {
         final var parsed = JavaParser.parseUnit(SOURCE);
         return new ParsedUnit(
-                parsed.tree(),
-                SOURCE_WITH_NOTE,
-                parsed.sourcePositions(),
-                List.of(),
-                List.of(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>());
+                parsed.tree(), SOURCE_WITH_NOTE, parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
+                new IdentityHashMap<>(), new IdentityHashMap<>());
     }
 
     @Test

@@ -19,7 +19,8 @@ public sealed interface Doc
             Doc.Group,
             Doc.Concat,
             Doc.IfBreak,
-            Doc.Choice {
+            Doc.Choice,
+            Doc.Fill {
 
     /** The sole {@link Line}. The record holds no state, so every instance is interchangeable. */
     Line LINE = new Line();
@@ -64,6 +65,7 @@ public sealed interface Doc
                         work.push(ps.get(i));
                     }
                 }
+                case Fill(var ps) -> work.push(new Concat(ps));
             }
         }
         return total;
@@ -88,6 +90,7 @@ public sealed interface Doc
             case Choice(var preferred, var _) -> endsWithLineComment(preferred);
             case Group(var inner, var _) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
+            case Fill(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case IfBreak(var breakContents, var _) -> endsWithLineComment(breakContents);
             case Line(), SoftLine(), HardLine(), BlockComment _ -> false;
         };
@@ -123,6 +126,7 @@ public sealed interface Doc
                     work.push(fallback);
                 }
                 case Concat(var ps) -> ps.forEach(work::push);
+                case Fill(var ps) -> ps.forEach(work::push);
             }
         }
         return false;
@@ -278,6 +282,17 @@ public sealed interface Doc
         public Choice {
             Objects.requireNonNull(preferred, "preferred");
             Objects.requireNonNull(fallback, "fallback");
+        }
+    }
+
+    record Fill(List<Doc> parts) implements Doc {
+
+        public Fill {
+            Objects.requireNonNull(parts, "parts");
+            parts = List.copyOf(parts);
+            if (parts.size() % 2 == 0 && !parts.isEmpty()) {
+                throw new IllegalArgumentException("a fill alternates items and separators, starting and ending with an item");
+            }
         }
     }
 }

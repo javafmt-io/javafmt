@@ -94,20 +94,17 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             final var suffix = name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
             final var format = project.getTasks()
                     .register(
-                            FORMAT + suffix,
-                            JavafmtFormat.class,
+                            FORMAT + suffix, JavafmtFormat.class,
                             task -> {
                                 describe(task, GROUP, "Formats the " + name + " Java sources with javafmt.");
                                 configure(task, sourceSet);
                             });
             final var check = project.getTasks()
                     .register(
-                            CHECK + suffix,
-                            JavafmtCheck.class,
+                            CHECK + suffix, JavafmtCheck.class,
                             task -> {
                                 describe(
-                                        task,
-                                        LifecycleBasePlugin.VERIFICATION_GROUP,
+                                        task, LifecycleBasePlugin.VERIFICATION_GROUP,
                                         "Checks that the " + name + " Java sources are formatted with javafmt.");
                                 configure(task, sourceSet);
                                 task.getMarker().set(project.getLayout().getBuildDirectory().file("javafmt/" + name + ".checked"));

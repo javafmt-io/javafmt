@@ -137,8 +137,7 @@ class ChainScannerTest {
                         failure.set(t);
                     }
                 },
-                "small-stack",
-                128 * 1024);
+                "small-stack", 128 * 1024);
         thread.start();
         thread.join();
         return failure.get();

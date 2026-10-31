@@ -162,8 +162,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             }
             if (!supported.get()) {
                 notifyUser(
-                        project,
-                        NotificationType.WARNING,
+                        project, NotificationType.WARNING,
                         "The javafmt binary at " + binary.path() + " is too old: javafmt " + JavafmtBinary.minimumVersion()
                                 + " or newer is required.");
                 request.onTextReady(content);
@@ -174,8 +173,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 case JavafmtBinary.Outcome.Refused refused -> {
                     LOG.warn("javafmt: " + refused.reason());
                     notifyUser(
-                            project,
-                            refused.internal() ? NotificationType.ERROR : NotificationType.WARNING,
+                            project, refused.internal() ? NotificationType.ERROR : NotificationType.WARNING,
                             fileName + " was left unformatted: " + refused.reason());
                     request.onTextReady(content);
                 }
@@ -189,8 +187,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 final var found = JavafmtBinary.resolve(configured).flatMap(BinaryIdentity::of);
                 if (found.isEmpty()) {
                     notifyUser(
-                            project,
-                            NotificationType.WARNING,
+                            project, NotificationType.WARNING,
                             "No javafmt binary found at " + configured + ". Fix javafmt.binaryPath under Settings | Tools | javafmt, or clear it.");
                 }
                 return found;
@@ -214,8 +211,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             if (installation instanceof Installation.Failed failed && provider.claimFailureNotice()) {
                 LOG.warn("javafmt: " + failed.reason());
                 notifyUser(
-                        project,
-                        NotificationType.WARNING,
+                        project, NotificationType.WARNING,
                         "javafmt could not download its binary: " + failed.reason()
                                 + ". Set javafmt.binaryPath under Settings | Tools | javafmt, or put javafmt on your PATH.");
             }

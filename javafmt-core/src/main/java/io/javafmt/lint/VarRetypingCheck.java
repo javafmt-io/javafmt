@@ -113,11 +113,7 @@ class VarRetypingCheck {
                 .filter(path -> unproven.stream().anyMatch(proposal -> inScope(proposal, shift.start(unit.startOf(path.getLeaf())), unit, shift)))
                 .filter(
                         path -> !matches(
-                                path,
-                                after.get(shiftedKey(path.getLeaf(), unit, shift)),
-                                attribution,
-                                rewritten.attribution(),
-                                retypedVariables))
+                                path, after.get(shiftedKey(path.getLeaf(), unit, shift)), attribution, rewritten.attribution(), retypedVariables))
                 .map(path -> (long) shift.start(unit.startOf(path.getLeaf())));
         return Stream.concat(newErrors, changed).collect(Collectors.toSet());
     }

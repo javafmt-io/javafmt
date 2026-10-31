@@ -47,8 +47,7 @@ public final class FinalParameters implements LintRule {
                 .collect(
                         Collectors.teeing(
                                 Collectors.filtering(
-                                        e -> !e.getValue(),
-                                        Collectors.flatMapping(e -> editFor(e.getKey(), unit).stream(), Collectors.toList())),
+                                        e -> !e.getValue(), Collectors.flatMapping(e -> editFor(e.getKey(), unit).stream(), Collectors.toList())),
                                 Collectors.filtering(e -> e.getValue(), Collectors.mapping(e -> warningFor(e.getKey(), unit), Collectors.toList())),
                                 LintResult::new));
     }

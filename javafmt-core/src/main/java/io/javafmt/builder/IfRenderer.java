@@ -111,12 +111,8 @@ final class IfRenderer {
         final var elseStatements = BlockRenderer.blockStatements(node.getElseStatement(), recursor);
         return Doc.concatOf(
                 Stream.of(
-                        thenParts,
-                        Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")),
-                        elseJoint,
-                        Stream.<Doc>of(new Doc.Text("{")),
-                        elseStatements.stream().map(Doc::indentedLine),
-                        Doc.closeBrace()));
+                        thenParts, Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")), elseJoint, Stream.<Doc>of(new Doc.Text("{")),
+                        elseStatements.stream().map(Doc::indentedLine), Doc.closeBrace()));
     }
 
     /**
@@ -127,8 +123,7 @@ final class IfRenderer {
      */
     private Stream<Doc> thenParts(final Doc header, final List<Doc> thenStatements, final List<CommentToken> braceLine) {
         return Stream.of(
-                Stream.of(header, new Doc.Text(" {")),
-                braceLine.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
+                Stream.of(header, new Doc.Text(" {")), braceLine.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
                 thenStatements.stream().map(Doc::indentedLine))
                 .flatMap(Function.identity());
     }

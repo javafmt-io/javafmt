@@ -24,12 +24,9 @@ final class LoopRenderer {
     private Doc buildForHeader(final ForLoopTree node, final Recursor recursor) {
         return Doc.concatOf(
                 Stream.of(
-                        Stream.of(new Doc.Text("for (")),
-                        forInitializers(node.getInitializer(), recursor),
-                        Stream.of(new Doc.Text("; ")),
+                        Stream.of(new Doc.Text("for (")), forInitializers(node.getInitializer(), recursor), Stream.of(new Doc.Text("; ")),
                         node.getCondition() != null ? Stream.of(renderPart(node.getCondition(), recursor, false)) : Stream.<Doc>empty(),
-                        Stream.of(new Doc.Text(node.getUpdate().isEmpty() ? ";" : "; ")),
-                        joinInto(node.getUpdate(), recursor, true),
+                        Stream.of(new Doc.Text(node.getUpdate().isEmpty() ? ";" : "; ")), joinInto(node.getUpdate(), recursor, true),
                         Stream.of(new Doc.Text(")"))));
     }
 
@@ -82,11 +79,8 @@ final class LoopRenderer {
         final var variable = node.getVariable();
         final var typeDoc = variable.getType() == null ? new Doc.Text("var") : recursor.scan(variable.getType());
         final var header = Doc.concat(
-                new Doc.Text("for (" + ModifierRenderer.prefixOf(variable.getModifiers(), recursor)),
-                typeDoc,
-                new Doc.Text(" " + Names.of(variable) + " : "),
-                recursor.scan(node.getExpression()),
-                new Doc.Text(")"));
+                new Doc.Text("for (" + ModifierRenderer.prefixOf(variable.getModifiers(), recursor)), typeDoc,
+                new Doc.Text(" " + Names.of(variable) + " : "), recursor.scan(node.getExpression()), new Doc.Text(")"));
         return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
     }
 

@@ -25,15 +25,8 @@ class ParsedUnitTest {
         final var parsed = JavaParser.parseUnit("class C {}");
         final var cls = parsed.tree().getTypeDecls().getFirst();
         final var truncated = new ParsedUnit(
-                parsed.tree(),
-                "class",
-                parsed.sourcePositions(),
-                List.of(),
-                List.of(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>());
+                parsed.tree(), "class", parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
+                new IdentityHashMap<>(), new IdentityHashMap<>());
         assertThatThrownBy(() -> truncated.sourceSpanOf(cls))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("CLASS");
@@ -49,15 +42,8 @@ class ParsedUnitTest {
         final var leadingMap = new IdentityHashMap<Tree, List<CommentToken>>();
         leadingMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
-                parsed.tree(),
-                parsed.source(),
-                parsed.sourcePositions(),
-                List.of(),
-                List.of(),
-                leadingMap,
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>());
+                parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), leadingMap, new IdentityHashMap<>(),
+                new IdentityHashMap<>(), new IdentityHashMap<>());
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.leadingOf(cls)).hasSize(1);
     }
@@ -72,15 +58,8 @@ class ParsedUnitTest {
         final var trailingMap = new IdentityHashMap<Tree, List<CommentToken>>();
         trailingMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
-                parsed.tree(),
-                parsed.source(),
-                parsed.sourcePositions(),
-                List.of(),
-                List.of(),
-                new IdentityHashMap<>(),
-                trailingMap,
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>());
+                parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), trailingMap,
+                new IdentityHashMap<>(), new IdentityHashMap<>());
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.trailingOf(cls)).hasSize(1);
     }
@@ -95,15 +74,8 @@ class ParsedUnitTest {
         final var interiorMap = new IdentityHashMap<Tree, List<CommentToken>>();
         interiorMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
-                parsed.tree(),
-                parsed.source(),
-                parsed.sourcePositions(),
-                List.of(),
-                List.of(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                interiorMap,
-                new IdentityHashMap<>());
+                parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
+                interiorMap, new IdentityHashMap<>());
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.interiorOf(cls)).hasSize(1);
     }
@@ -118,15 +90,8 @@ class ParsedUnitTest {
         final var tailMap = new IdentityHashMap<Tree, List<CommentToken>>();
         tailMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
-                parsed.tree(),
-                parsed.source(),
-                parsed.sourcePositions(),
-                List.of(),
-                List.of(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                tailMap);
+                parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
+                new IdentityHashMap<>(), tailMap);
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.tailOf(cls)).hasSize(1);
     }

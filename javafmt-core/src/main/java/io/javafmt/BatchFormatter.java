@@ -75,12 +75,7 @@ final class BatchFormatter {
                     .map(CompletableFuture::join)
                     .toList();
             final var results = formatOn(
-                    pool,
-                    workers,
-                    reads.stream()
-                            .map(read -> read instanceof FileRead.Pending(var _, var source) ? source : "")
-                            .toList(),
-                    config);
+                    pool, workers, reads.stream().map(read -> read instanceof FileRead.Pending(var _, var source) ? source : "").toList(), config);
             return IntStream.range(0, reads.size())
                     .mapToObj(
                             i -> switch (reads.get(i)) {
@@ -123,10 +118,7 @@ final class BatchFormatter {
                                     chunks.stream()
                                             .<Supplier<List<FormatResult>>>map(chunk -> () -> formatParseOnly(chunk, config, Renderer.on(pool)))
                                             .toList(),
-                                    (i, failure) -> chunks.get(i)
-                                            .stream()
-                                            .map(source -> FormatStages.internalErrorResult(source, failure))
-                                            .toList())
+                                    (i, failure) -> chunks.get(i).stream().map(source -> FormatStages.internalErrorResult(source, failure)).toList())
                                     .stream()
                                     .flatMap(List::stream)
                                     .toList();
@@ -157,10 +149,7 @@ final class BatchFormatter {
 
     FormatResult formatParsed(final String source, final ParsedUnit unit, final JavafmtConfig config) {
         return formatChunk(
-                List.of(source),
-                config,
-                Renderer.INLINE,
-                _ -> List.of(new Prepared(new Staged.Ok<>(LintContext.parseOnly(unit)), List.of())))
+                List.of(source), config, Renderer.INLINE, _ -> List.of(new Prepared(new Staged.Ok<>(LintContext.parseOnly(unit)), List.of())))
                 .getFirst();
     }
 

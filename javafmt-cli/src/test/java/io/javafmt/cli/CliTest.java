@@ -193,8 +193,7 @@ class CliTest {
             Files.writeString(target, unformatted);
         }
         final var arguments = Stream.<String>concat(
-                excludes.stream().flatMap(g -> Stream.of("--exclude", g)),
-                filenames.stream().map(n -> dir.resolve(n).toString()))
+                excludes.stream().flatMap(g -> Stream.of("--exclude", g)), filenames.stream().map(n -> dir.resolve(n).toString()))
                 .toArray(String[]::new);
         final var run = run(arguments);
         assertThat(run.exit()).isZero();
@@ -215,9 +214,7 @@ class CliTest {
                 Arguments.of("basenameMatch", List.of("Keep.java", "input.java"), List.of("**/input.java"), List.of("Keep.java")),
                 Arguments.of("noMatch", List.of("A.java", "B.java"), List.of("**/nope.java"), List.of("A.java", "B.java")),
                 Arguments.of(
-                        "multiGlobMatch",
-                        List.of("A.java", "input.java", "expected.java"),
-                        List.of("**/input.java", "**/expected.java"),
+                        "multiGlobMatch", List.of("A.java", "input.java", "expected.java"), List.of("**/input.java", "**/expected.java"),
                         List.of("A.java")),
                 Arguments.of("fullPathMatch", List.of("nested/skip.java", "Keep.java"), List.of("**/nested/**"), List.of("Keep.java")));
     }
@@ -586,11 +583,8 @@ class CliTest {
         final var out = new ByteArrayOutputStream();
         final var err = new ByteArrayOutputStream();
         final var exit = Cli.run(
-                new String[0],
-                new ByteArrayInputStream(new byte[0]),
-                new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(err, true, StandardCharsets.UTF_8),
-                true);
+                new String[0], new ByteArrayInputStream(new byte[0]), new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8), true);
         assertThat(exit).isEqualTo(2);
         assertThat(err.toString(StandardCharsets.UTF_8)).contains("Usage: javafmt");
     }
@@ -630,11 +624,8 @@ class CliTest {
     void daemonFlag_answersEachDelimitedRequestWithOneDelimitedReplyUntilStdinCloses() {
         final var out = new ByteArrayOutputStream();
         final var exit = Cli.run(
-                new String[] {"--daemon",},
-                new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
-                new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8),
-                true);
+                new String[] {"--daemon",}, new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
+                new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8), true);
         assertThat(exit).isZero();
         assertThat(DaemonFixtures.hexFrames(out.toByteArray())).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_HEX);
     }
@@ -680,10 +671,7 @@ class CliTest {
         final var out = new ByteArrayOutputStream();
         final var err = new ByteArrayOutputStream();
         final var exit = Cli.run(
-                arguments,
-                in,
-                new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(err, true, StandardCharsets.UTF_8));
+                arguments, in, new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Run(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 
