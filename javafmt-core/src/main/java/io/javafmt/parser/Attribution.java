@@ -1,7 +1,11 @@
 package io.javafmt.parser;
 
+import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.Trees;
 
+import java.net.URI;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
@@ -15,14 +19,22 @@ import javax.lang.model.util.Types;
  * <p>{@code session} is the {@link AttributionSession} the task ran in. Rules that re-attribute a
  * modified source (e.g. to test whether removing a type witness changes inference) pass this to
  * {@link JavaParser#reattribute}, which reuses its classpath and file manager.
+ *
+ * <p>{@code errors} holds every error javac reported while attributing, keyed by the URI of the
+ * source it came from.
  */
-public record Attribution(Trees trees, Types types, Elements elements, AttributionSession session) {
+public record Attribution(Trees trees, Types types, Elements elements, AttributionSession session, Map<URI, List<AttributionError>> errors) {
 
     public Attribution {
         Objects.requireNonNull(trees, "trees");
         Objects.requireNonNull(types, "types");
         Objects.requireNonNull(elements, "elements");
         Objects.requireNonNull(session, "session");
+        errors = Map.copyOf(Objects.requireNonNull(errors, "errors"));
+    }
+
+    public List<AttributionError> errorsIn(final CompilationUnitTree unit) {
+        return errors.getOrDefault(unit.getSourceFile().toUri(), List.of());
     }
 
     public String classpath() {

@@ -8,7 +8,7 @@ class LintRuleNameTest {
 
     @Test
     void nameDefaultsToSimpleClassName() {
-        final LintRule anonymousShape = new AvoidStarImport();
+        final var anonymousShape = new AvoidStarImport();
         assertThat(anonymousShape.name()).isEqualTo("AvoidStarImport");
         assertThat(new NeedBraces().name()).isEqualTo("NeedBraces");
     }

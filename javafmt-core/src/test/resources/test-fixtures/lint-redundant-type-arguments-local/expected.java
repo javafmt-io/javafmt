@@ -1,6 +1,8 @@
 class Fixture {
 
     void test() {
-        final Wrapper<String> _ = new SubWrapper<>();
+        Wrapper<String> w = new SubWrapper<>();
+        w = new SubWrapper<String>();
+        System.out.println(w);
     }
 }
