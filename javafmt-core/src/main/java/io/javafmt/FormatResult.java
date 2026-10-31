@@ -17,7 +17,6 @@ import java.util.Objects;
  * @param diagnostics errors and warnings raised while formatting, in no particular order
  */
 public record FormatResult(String output, List<Diagnostic> diagnostics) {
-
     public FormatResult {
         Objects.requireNonNull(output, "output");
         Objects.requireNonNull(diagnostics, "diagnostics");

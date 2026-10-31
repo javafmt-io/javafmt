@@ -1,5 +1,4 @@
 class Fixture {
-
     void make(final int n, final int m) {
         final var _ = new int[n][];
         final var _ = new int[n][m];

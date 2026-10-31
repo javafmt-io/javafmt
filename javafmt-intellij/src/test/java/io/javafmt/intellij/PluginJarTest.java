@@ -18,7 +18,6 @@ import java.util.zip.ZipEntry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PluginJarTest {
-
     private static final int MAX_MAJOR = 65;
 
     @Test

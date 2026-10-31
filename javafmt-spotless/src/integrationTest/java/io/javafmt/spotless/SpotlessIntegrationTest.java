@@ -30,9 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * and pinned to exactly the code under test rather than to whatever is published.
  */
 class SpotlessIntegrationTest {
-
     /** Formats cleanly but trips the warning-only {@code AvoidStarImport} rule. */
-    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n\n    List<String> xs;\n}\n";
+    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n    List<String> xs;\n}\n";
 
     private static final String DEFAULT_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create()";
 

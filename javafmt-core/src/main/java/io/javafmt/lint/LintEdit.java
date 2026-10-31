@@ -8,7 +8,6 @@ import java.util.Objects;
  * {@code start == end}.
  */
 public record LintEdit(int start, int end, String replacement) {
-
     public LintEdit {
         Objects.requireNonNull(replacement, "replacement");
         if (start < 0 || end < start) {

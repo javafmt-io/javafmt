@@ -1,5 +1,4 @@
 class Fixture {
-
     // leading line comment on a field
     int count;
 

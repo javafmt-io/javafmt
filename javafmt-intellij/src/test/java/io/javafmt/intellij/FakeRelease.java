@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 final class FakeRelease implements AutoCloseable {
-
     static final String VERSION = "1.2.3";
 
     private static final String PREFIX = "/download/v" + VERSION + "/";
@@ -137,7 +136,6 @@ final class FakeRelease implements AutoCloseable {
 
     @FunctionalInterface
     private interface Responder {
-
         void respond(HttpExchange exchange, byte[] body) throws IOException;
     }
 }

@@ -1,5 +1,4 @@
 class Fixture {
-
     public Fixture(final String paramAlphaLong,
                    final String paramBetaLong,
                    final String paramGammaLong,

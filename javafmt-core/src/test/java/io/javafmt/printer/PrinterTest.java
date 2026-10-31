@@ -17,10 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PrinterTest {
-
     @Nested
     class TextTests {
-
         @Test
         void text_emitsValue() {
             assertThat(new Printer(80).print(new Doc.Text("hello"))).isEqualTo("hello");
@@ -34,7 +32,6 @@ class PrinterTest {
 
     @Nested
     class ConcatTests {
-
         @Test
         void concat_empty_emitsNothing() {
             assertThat(new Printer(80).print(new Doc.Concat(List.of()))).isEmpty();
@@ -49,7 +46,6 @@ class PrinterTest {
 
     @Nested
     class HardLineTests {
-
         @Test
         void hardLine_emitsNewline() {
             assertThat(new Printer(80).print(Doc.HARD_LINE)).isEqualTo("\n");
@@ -70,7 +66,6 @@ class PrinterTest {
 
     @Nested
     class LineTests {
-
         @Test
         void line_atRoot_emitsNewline() {
             assertThat(new Printer(80).print(Doc.LINE)).isEqualTo("\n");
@@ -92,7 +87,6 @@ class PrinterTest {
 
     @Nested
     class SoftLineTests {
-
         @Test
         void softLine_atRoot_emitsNewline() {
             assertThat(new Printer(80).print(Doc.SOFT_LINE)).isEqualTo("\n");
@@ -112,7 +106,6 @@ class PrinterTest {
 
     @Nested
     class IndentTests {
-
         @Test
         void indent_addsSpacesToNestedContent() {
             final var doc = new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, new Doc.Text("x"))));
@@ -128,7 +121,6 @@ class PrinterTest {
 
     @Nested
     class AlignTests {
-
         @Test
         void align_indentsLineBreaksToTheColumnWhereItStarts() {
             final var doc = Doc.concat(new Doc.Text("abc("), new Doc.Align(Doc.concat(new Doc.Text("x,"), Doc.HARD_LINE, new Doc.Text("y"))));
@@ -145,7 +137,6 @@ class PrinterTest {
 
     @Nested
     class ChoiceTests {
-
         @ParameterizedTest
         @MethodSource("choiceCases")
         void choice_takesThePreferredLayoutOnlyWhenEveryLineFits(final int lineWidth, final String last, final String expected) {
@@ -165,7 +156,6 @@ class PrinterTest {
 
     @Nested
     class FillTests {
-
         @Test
         void fill_packsAsManyItemsPerLineAsFit() {
             final var items = IntStream.rangeClosed(1, 7).mapToObj(i -> String.valueOf(i).repeat(30)).toList();
@@ -232,7 +222,6 @@ class PrinterTest {
 
     @Nested
     class IfBreakTests {
-
         @Test
         void ifBreak_atRoot_usesBreakContents() {
             final var doc = new Doc.IfBreak(new Doc.Text("B"), new Doc.Text("F"));
@@ -248,7 +237,6 @@ class PrinterTest {
 
     @Nested
     class BlockCommentTests {
-
         static Stream<Arguments> placements() {
             return Stream.of(
                     Arguments.of("x; ", 3, List.of("/* a", "      b */"), "x; /* a\n      b */"),
@@ -280,7 +268,6 @@ class PrinterTest {
 
     @Nested
     class VerbatimTests {
-
         // A text block as it would appear in source at column 8:
         //         """
         //         hello
@@ -369,7 +356,6 @@ class PrinterTest {
 
     @Nested
     class TrailingWhitespaceTests {
-
         @ParameterizedTest
         @MethodSource("trailingWhitespaceCases")
         void trailingWhitespace_strippedOutsideVerbatim(final Doc doc, final String expected) {
@@ -404,7 +390,6 @@ class PrinterTest {
 
     @Nested
     class LookaheadAwareFitDecision {
-
         // When deciding whether a Group can render FLAT, the printer counts what follows the
         // group on the same line, so a suffix that would overflow breaks the group.
         @Test
@@ -438,7 +423,6 @@ class PrinterTest {
 
     @Nested
     class EdgeCaseTests {
-
         @Test
         void group_whenColAlreadyExceedsLineWidth_alwaysBreaks() {
             // col=6 after Text("123456"), lineWidth=5 -> remaining=-1, group always breaks
@@ -450,7 +434,6 @@ class PrinterTest {
 
     @Nested
     class ComplexTests {
-
         private static Doc blockDoc() {
             return new Doc.Group(
                     new Doc.Concat(
@@ -474,7 +457,6 @@ class PrinterTest {
 
     @Nested
     class ConstructorValidationTests {
-
         @Test
         void lineWidth_zero_throws() {
             assertThatThrownBy(() -> new Printer(0)).isInstanceOf(IllegalArgumentException.class);
@@ -493,7 +475,6 @@ class PrinterTest {
 
     @Nested
     class ScalingTests {
-
         private static Doc nestedGroups(final int n) {
             var inner = (Doc) new Doc.Text("x");
             for (var i = 0; i < n; i++) {

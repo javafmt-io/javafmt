@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CompileCheckTest {
-
     @Test
     void validSourceCompiles() {
         assertThat(CompileCheck.check("class A {\n    int x = 1;\n}\n")).isInstanceOf(CompileCheck.Outcome.Compiles.class);

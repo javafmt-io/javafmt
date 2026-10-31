@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  * emits the return type from the syntax tree rather than from source text.
  */
 class ArrayTypeStyleOracleTest {
-
     ArrayTypeStyleOracleTest() {}
 
     private static final String CORPUS = "array-type-style";

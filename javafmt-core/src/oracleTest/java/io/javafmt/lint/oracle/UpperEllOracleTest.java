@@ -14,7 +14,6 @@ import java.util.stream.Stream;
  * {@code UpperEllCheck}.
  */
 class UpperEllOracleTest {
-
     UpperEllOracleTest() {}
 
     private static final String CORPUS = "upper-ell";

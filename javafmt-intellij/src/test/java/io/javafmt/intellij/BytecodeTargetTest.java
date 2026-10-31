@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * plugin.
  */
 class BytecodeTargetTest {
-
     /** JBR 21 in IDEA 2025.2 reads at most class file major 65. */
     private static final int MAX_MAJOR = 65;
 

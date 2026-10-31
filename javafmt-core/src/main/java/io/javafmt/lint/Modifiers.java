@@ -14,7 +14,6 @@ import javax.lang.model.element.Modifier;
  */
 @UtilityClass
 final class Modifiers {
-
     List<Modifier> canonicalOrder() {
         return JavaModifiers.JLS_ORDER;
     }

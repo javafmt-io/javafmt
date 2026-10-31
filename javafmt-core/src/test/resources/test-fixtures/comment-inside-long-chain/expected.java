@@ -1,5 +1,4 @@
 class Fixture {
-
     void run() {
         value.first() // about first
                 .second()

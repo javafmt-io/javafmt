@@ -17,14 +17,12 @@ import java.util.List;
  * {@code for} loop header.
  */
 public final class OneStatementPerLine implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainScanner<>() {
-
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {
                         checkBlock(node.getStatements(), unit, edits);

@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 public record Request(List<File> files, Optional<String> analysisClasspath, boolean write, File projectDirectory, int threads) {
-
     public Request {
         files = List.copyOf(files);
         Objects.requireNonNull(analysisClasspath, "analysisClasspath");

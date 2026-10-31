@@ -16,7 +16,6 @@ import org.jspecify.annotations.Nullable;
  */
 @UtilityClass
 final class BodyMemberRenderer {
-
     @Nullable
     static Doc render(final Tree member, final String className, final Recursor recursor) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {

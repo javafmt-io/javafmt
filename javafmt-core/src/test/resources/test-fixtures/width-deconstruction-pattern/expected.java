@@ -1,5 +1,4 @@
 class Fixture {
-
     String matched(final Object shape) {
         return switch (shape) {
             case Rectangle(

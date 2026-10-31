@@ -6,7 +6,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public sealed interface Staged<T> {
-
     default <R> Staged<R> map(final Function<? super T, ? extends R> f) {
         return switch (this) {
             case Ok<T>(var value) -> new Ok<>(f.apply(value));
@@ -45,14 +44,12 @@ public sealed interface Staged<T> {
     }
 
     record Ok<T>(T value) implements Staged<T> {
-
         public Ok {
             Objects.requireNonNull(value, "value");
         }
     }
 
     record Failed<T>(RuntimeException failure) implements Staged<T> {
-
         public Failed {
             Objects.requireNonNull(failure, "failure");
         }

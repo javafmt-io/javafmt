@@ -15,7 +15,6 @@ import java.util.function.Supplier;
  * the node being visited, including while a chain is walked with a loop.
  */
 public abstract class ChainPathScanner<R extends @Nullable Object, P extends @Nullable Object> extends ChainScanner<R, P> {
-
     @Nullable private TreePath path;
 
     private final IdentityHashMap<Tree, TreePath> chainPaths = new IdentityHashMap<>();

@@ -19,7 +19,6 @@ import java.util.List;
  * switches like any other.
  */
 public final class MissingSwitchDefault implements WarningRule {
-
     private static final String MESSAGE = "switch statement does not have a 'default' case";
 
     @Override

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
-
     @Test
     public void testDisabledByDefault() {
         assertThat(JavafmtSettings.getInstance(getProject()).isEnabled()).isFalse();

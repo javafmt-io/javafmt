@@ -17,7 +17,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class MethodRenderer {
-
     @Nullable
     static Doc render(final MethodTree node, final Recursor recursor) {
         if (node.getName().contentEquals("<init>")) {

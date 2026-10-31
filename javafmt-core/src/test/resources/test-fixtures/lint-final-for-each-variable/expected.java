@@ -1,5 +1,4 @@
 class OrderTotals {
-
     long total(final List<Order> orders) {
         var sum = 0L;
         for (final Order order : orders) {

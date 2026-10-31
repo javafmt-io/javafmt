@@ -14,7 +14,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ClassLikeRendererTest {
-
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -23,7 +22,6 @@ class ClassLikeRendererTest {
 
     @Nested
     class EmptyBody {
-
         @ParameterizedTest
         @ValueSource(strings = {"class Foo {}", "class Foo {   }", "class Foo {\n\n}", "class Foo {\n\n    \n}"})
         void emptyClass_noPackage_rendersOnOneLine(final String source) {
@@ -45,7 +43,6 @@ class ClassLikeRendererTest {
 
     @Nested
     class Annotations {
-
         @Test
         void classWithAnnotation_rendersOnOwnLineAboveDeclaration() {
             assertThat(format("@Accessors(fluent = true) class Foo {}")).isEqualTo("@Accessors(fluent = true)\nclass Foo {}");
@@ -60,7 +57,6 @@ class ClassLikeRendererTest {
 
     @Nested
     class InterfaceDeclaration {
-
         @Test
         void emptyInterface_rendersOnOneLine() {
             assertThat(format("interface Foo {}")).isEqualTo("interface Foo {}");
@@ -68,25 +64,24 @@ class ClassLikeRendererTest {
 
         @Test
         void interfaceWithAbstractMethod_rendersSignatureWithSemicolon() {
-            assertThat(format("interface Foo { void bar(); }")).isEqualTo("interface Foo {\n\n    void bar();\n}");
+            assertThat(format("interface Foo { void bar(); }")).isEqualTo("interface Foo {\n    void bar();\n}");
         }
 
         @Test
         void interfaceWithDefaultMethod_rendersBodyLikeClassMethod() {
             assertThat(format("interface Foo { default void bar() { System.out.println(); } }"))
-                    .isEqualTo("interface Foo {\n\n    default void bar() {\n        System.out.println();\n    }\n}");
+                    .isEqualTo("interface Foo {\n    default void bar() {\n        System.out.println();\n    }\n}");
         }
 
         @Test
         void interfaceWithConstantField_rendersField() {
             assertThat(format("interface Foo { public static final int MAX = 100; }"))
-                    .isEqualTo("interface Foo {\n\n    public static final int MAX = 100;\n}");
+                    .isEqualTo("interface Foo {\n    public static final int MAX = 100;\n}");
         }
     }
 
     @Nested
     class Supertypes {
-
         @Test
         void class_withExtends_rendersSuperclass() {
             assertThat(format("class Foo extends Bar {}")).isEqualTo("class Foo extends Bar {}");
@@ -171,98 +166,96 @@ class ClassLikeRendererTest {
 
     @Nested
     class NestedTypes {
-
         @Test
         void class_withNestedClass_rendersInBody() {
-            assertThat(format("class Outer { class Inner {} }")).isEqualTo("class Outer {\n\n    class Inner {}\n}");
+            assertThat(format("class Outer { class Inner {} }")).isEqualTo("class Outer {\n    class Inner {}\n}");
         }
 
         @Test
         void class_withNestedInterface_rendersInBody() {
-            assertThat(format("class Outer { interface Inner {} }")).isEqualTo("class Outer {\n\n    interface Inner {}\n}");
+            assertThat(format("class Outer { interface Inner {} }")).isEqualTo("class Outer {\n    interface Inner {}\n}");
         }
 
         @Test
         void class_withNestedRecord_rendersInBody() {
-            assertThat(format("class Outer { record Inner(int x) {} }")).isEqualTo("class Outer {\n\n    record Inner(int x) {}\n}");
+            assertThat(format("class Outer { record Inner(int x) {} }")).isEqualTo("class Outer {\n    record Inner(int x) {}\n}");
         }
 
         @Test
         void class_withNestedEnum_rendersInBody() {
-            assertThat(format("class Outer { enum Inner { A } }")).isEqualTo("class Outer {\n\n    enum Inner { A }\n}");
+            assertThat(format("class Outer { enum Inner { A } }")).isEqualTo("class Outer {\n    enum Inner { A }\n}");
         }
 
         @Test
         void interface_withNestedClass_rendersInBody() {
-            assertThat(format("interface Outer { class Inner {} }")).isEqualTo("interface Outer {\n\n    class Inner {}\n}");
+            assertThat(format("interface Outer { class Inner {} }")).isEqualTo("interface Outer {\n    class Inner {}\n}");
         }
 
         @Test
         void class_withMethodAndNestedClass_declarationOrderPreserved() {
-            assertThat(format("class Outer { void a() {} class Inner {} }")).isEqualTo("class Outer {\n\n    void a() {}\n\n    class Inner {}\n}");
+            assertThat(format("class Outer { void a() {} class Inner {} }")).isEqualTo("class Outer {\n    void a() {}\n\n    class Inner {}\n}");
         }
 
         @Test
         void class_withFieldAndNestedClass_bothRender() {
-            assertThat(format("class Outer { int x; class Inner {} }")).isEqualTo("class Outer {\n\n    int x;\n\n    class Inner {}\n}");
+            assertThat(format("class Outer { int x; class Inner {} }")).isEqualTo("class Outer {\n    int x;\n\n    class Inner {}\n}");
         }
 
         @Test
         void class_withDeeplyNestedTypes_rendersAllLevels() {
-            assertThat(format("class A { class B { class C {} } }")).isEqualTo("class A {\n\n    class B {\n\n        class C {}\n    }\n}");
+            assertThat(format("class A { class B { class C {} } }")).isEqualTo("class A {\n    class B {\n        class C {}\n    }\n}");
         }
 
         @Test
         void class_withNestedClassThatHasExtends_rendersFullHeader() {
             assertThat(format("class Outer { class Inner extends Base implements Runnable {} }"))
-                    .isEqualTo("class Outer {\n\n    class Inner extends Base implements Runnable {}\n}");
+                    .isEqualTo("class Outer {\n    class Inner extends Base implements Runnable {}\n}");
         }
     }
 
     @Nested
     class InitializerBlocks {
-
         @Test
         void class_withStaticInitializerBlock_rendersWithStaticKeyword() {
-            assertThat(format("class Foo { static { x = 1; } }")).isEqualTo("class Foo {\n\n    static {\n        x = 1;\n    }\n}");
+            assertThat(format("class Foo { static { x = 1; } }")).isEqualTo("class Foo {\n    static {\n        x = 1;\n    }\n}");
         }
 
         @Test
         void class_withEmptyStaticInitializerBlock_rendersOnOneLine() {
-            assertThat(format("class Foo { static {} }")).isEqualTo("class Foo {\n\n    static {}\n}");
+            assertThat(format("class Foo { static {} }")).isEqualTo("class Foo {\n    static {}\n}");
         }
 
         @Test
         void class_withInstanceInitializerBlock_rendersWithoutKeyword() {
-            assertThat(format("class Foo { { x = 1; } }")).isEqualTo("class Foo {\n\n    {\n        x = 1;\n    }\n}");
+            assertThat(format("class Foo { { x = 1; } }")).isEqualTo("class Foo {\n    {\n        x = 1;\n    }\n}");
         }
 
         @Test
         void class_withEmptyInstanceInitializerBlock_rendersOnOneLine() {
-            assertThat(format("class Foo { {} }")).isEqualTo("class Foo {\n\n    {}\n}");
+            assertThat(format("class Foo { {} }")).isEqualTo("class Foo {\n    {}\n}");
         }
 
         @Test
         void class_withMultiStatementStaticInitializer_eachStatementOnOwnLine() {
             assertThat(format("class Foo { static { a(); b(); c(); } }"))
-                    .isEqualTo("class Foo {\n\n    static {\n        a();\n        b();\n        c();\n    }\n}");
+                    .isEqualTo("class Foo {\n    static {\n        a();\n        b();\n        c();\n    }\n}");
         }
 
         @Test
         void record_withStaticInitializerBlock_rendersInBody() {
             assertThat(format("record R(int x) { static { initialize(); } }"))
-                    .isEqualTo("record R(int x) {\n\n    static {\n        initialize();\n    }\n}");
+                    .isEqualTo("record R(int x) {\n    static {\n        initialize();\n    }\n}");
         }
 
         @Test
         void enum_withStaticInitializerBlock_rendersAfterConstants() {
             assertThat(format("enum E { A; static { initialize(); } }"))
-                    .isEqualTo("enum E {\n\n    A;\n\n    static {\n        initialize();\n    }\n}");
+                    .isEqualTo("enum E {\n    A;\n\n    static {\n        initialize();\n    }\n}");
         }
 
         @Test
         void enum_withInstanceInitializerBlock_rendersInBody() {
-            assertThat(format("enum E { A; { initialize(); } }")).isEqualTo("enum E {\n\n    A;\n\n    {\n        initialize();\n    }\n}");
+            assertThat(format("enum E { A; { initialize(); } }")).isEqualTo("enum E {\n    A;\n\n    {\n        initialize();\n    }\n}");
         }
 
         @Test
@@ -270,9 +263,7 @@ class ClassLikeRendererTest {
             final var source = "class Outer { class Inner { static { initialize(); } } }";
             final var expected = """
                 class Outer {
-
                     class Inner {
-
                         static {
                             initialize();
                         }

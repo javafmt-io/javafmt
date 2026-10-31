@@ -30,14 +30,12 @@ import java.util.Optional;
  * single separator, so the pair has to go from the source or the output is a token short.
  */
 public final class EnumTrailingComma implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainScanner<>() {
-
                     @Override
                     public Void visitClass(final ClassTree node, final Void p) {
                         if (node.getKind() == Tree.Kind.ENUM) {

@@ -1,5 +1,4 @@
 class Fixture {
-
     void resources() throws Exception {
         try (
                 var firstResourceWithAVeryMuchLongerName = open("a");

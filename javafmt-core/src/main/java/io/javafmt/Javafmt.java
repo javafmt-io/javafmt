@@ -19,7 +19,6 @@ import java.util.Objects;
  */
 @UtilityClass
 public final class Javafmt {
-
     /** {@link #format(String)} with an explicit configuration. */
     public String format(final String source, final JavafmtConfig config) {
         return formatWithResult(source, config).output();

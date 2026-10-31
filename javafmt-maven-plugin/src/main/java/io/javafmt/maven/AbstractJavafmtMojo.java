@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 
 /** Template contract: {@link #execute()} is final; subclasses supply {@link #handle}. */
 abstract class AbstractJavafmtMojo extends AbstractMojo {
-
     @Nullable
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject project;

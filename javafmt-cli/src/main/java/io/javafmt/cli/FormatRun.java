@@ -31,7 +31,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class FormatRun {
-
     int runPaths(final Arguments parsed, final PrintStream err) {
         final var expansion = expandDirectories(parsed, err);
         final var exit = runFiles(dropExcludedFiles(expansion.arguments()), err);
@@ -245,7 +244,6 @@ final class FormatRun {
                      boolean defaultExcludes,
                      Optional<String> classpath,
                      boolean jsonDiagnostics) {
-
         Arguments {
             files = List.copyOf(files);
             excludes = List.copyOf(excludes);

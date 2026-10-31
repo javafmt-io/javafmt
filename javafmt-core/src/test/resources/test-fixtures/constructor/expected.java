@@ -1,5 +1,4 @@
 class Fixture {
-
     private final int x;
 
     public Fixture() {

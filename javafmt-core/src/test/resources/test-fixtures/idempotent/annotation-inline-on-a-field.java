@@ -1,5 +1,4 @@
 class Fixture {
-
     @Deprecated static final int LIMIT = 10;
 
     @Deprecated @Marker static final int BOTH = 15;

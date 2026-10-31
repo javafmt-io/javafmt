@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class JavaParserTest {
-
     @Test
     void parsingOnManyShortLivedThreadsKeepsNoFileManagerPerThread() {
         final var before = JavaParser.idleFileManagers();
@@ -373,7 +372,6 @@ class JavaParserTest {
         final var trees = attributed.attribution().trees();
         final var found = new boolean[1];
         new com.sun.source.util.TreePathScanner<Void, Void>() {
-
             @Override
             public Void visitMethod(final com.sun.source.tree.MethodTree node, final Void p) {
                 // Constructors have no return type, and javac synthesizes one for every class.

@@ -1,5 +1,4 @@
 class Fixture {
-
     Object lambda() {
         return (
                 argumentAlphaLongName,

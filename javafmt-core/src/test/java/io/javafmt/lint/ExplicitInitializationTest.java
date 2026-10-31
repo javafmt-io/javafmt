@@ -8,7 +8,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExplicitInitializationTest {
-
     @ParameterizedTest
     @ValueSource(strings = {"class Fixture { int x = 0; }", "class Fixture { byte x = 0; }", "class Fixture { short x = 0; }", "class Fixture { boolean x = false; }", "class Fixture { Object x = null; }", "class Fixture { String x = null; }"})
     void redundantDefaultInitializerRemovedFromField(final String src) {

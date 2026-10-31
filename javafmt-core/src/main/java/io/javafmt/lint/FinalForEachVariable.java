@@ -8,7 +8,6 @@ import io.javafmt.parser.ParsedUnit;
 import java.util.Optional;
 
 public final class FinalForEachVariable implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -16,7 +15,6 @@ public final class FinalForEachVariable implements LintRule {
         final var loops = LintScan.<EnhancedForLoopTree>collect(
                 context,
                 sink -> new ChainScanner<>() {
-
                     @Override
                     public Void visitEnhancedForLoop(final EnhancedForLoopTree node, final Void p) {
                         sink.add(node);

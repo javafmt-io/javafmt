@@ -22,7 +22,6 @@ import java.util.stream.Stream;
  */
 @UtilityClass
 final class WrappableList {
-
     Doc of(final String open, final String separator, final String close, final Stream<Doc> elements) {
         return new Doc.Group(build(open, separator, close, elements, Stream.empty()));
     }

@@ -32,7 +32,6 @@ import javax.lang.model.element.Modifier;
  * </ul>
  */
 public final class HideUtilityClassConstructor implements WarningRule {
-
     private static final String MESSAGE = "utility class should have a private constructor to prevent instantiation";
 
     @Override

@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class MethodChainRenderer {
-
     /**
      * In compact context (e.g. an operand of a broken logical chain), the author-broke
      * heuristic below is skipped — only a hard newline inside the chain forces a break.
@@ -119,7 +118,6 @@ final class MethodChainRenderer {
      * group prints.
      */
     private record Link(Doc doc, boolean endsTheLine) {
-
         Link(final Doc doc) {
             this(doc, false);
         }

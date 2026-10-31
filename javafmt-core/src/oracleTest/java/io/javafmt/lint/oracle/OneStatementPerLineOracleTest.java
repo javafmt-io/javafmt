@@ -17,7 +17,6 @@ import java.util.stream.Stream;
  * update clauses are one statement each by the grammar.
  */
 class OneStatementPerLineOracleTest {
-
     OneStatementPerLineOracleTest() {}
 
     private static final String CORPUS = "one-statement-per-line";

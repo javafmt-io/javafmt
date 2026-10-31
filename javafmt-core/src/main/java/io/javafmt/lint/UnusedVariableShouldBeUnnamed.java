@@ -23,7 +23,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public final class UnusedVariableShouldBeUnnamed implements LintRule {
-
     private static final String UNNAMED = "_";
 
     private static final int FIRST_RELEASE_WITH_UNNAMED_VARIABLES = 22;
@@ -38,7 +37,6 @@ public final class UnusedVariableShouldBeUnnamed implements LintRule {
         return LintScan.edits(
                 context,
                 edits -> new ChainPathScanner<>() {
-
                     @Override
                     public Void visitVariable(final VariableTree node, final Void p) {
                         final var name = node.getName().toString();
@@ -108,7 +106,6 @@ public final class UnusedVariableShouldBeUnnamed implements LintRule {
     private static Set<String> identifiersIn(final Tree scope) {
         final var names = new HashSet<String>();
         new ChainScanner<Void, Void>() {
-
             @Override
             public Void visitIdentifier(final IdentifierTree node, final Void p) {
                 names.add(node.getName().toString());

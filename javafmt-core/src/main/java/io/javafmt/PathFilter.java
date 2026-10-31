@@ -21,7 +21,6 @@ import java.util.Set;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public final class PathFilter implements Serializable {
-
     @Serial
     private static final long serialVersionUID = 1L;
 

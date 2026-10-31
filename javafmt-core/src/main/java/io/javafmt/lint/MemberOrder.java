@@ -33,7 +33,6 @@ import javax.lang.model.element.Modifier;
  * one expression or one method, and moving anything there buys nothing.
  */
 public final class MemberOrder implements LintRule {
-
     private static final String CONSTRUCTOR_NAME = "<init>";
 
     @Override
@@ -42,7 +41,6 @@ public final class MemberOrder implements LintRule {
         return LintScan.edits(
                 context,
                 edits -> new ChainPathScanner<>() {
-
                     @Override
                     public Void visitClass(final ClassTree node, final Void p) {
                         if (!reorderable(getCurrentPath())) {

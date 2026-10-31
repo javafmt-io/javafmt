@@ -48,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class DocBuilderBenchmark {
-
     @Param({"methodChains", "wideRecords", "nestedConditionals"})
     public String corpus = "methodChains";
 

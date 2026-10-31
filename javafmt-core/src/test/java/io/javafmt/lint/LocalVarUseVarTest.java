@@ -9,7 +9,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LocalVarUseVarTest {
-
     private static String rewritten(final String body) {
         final var unit = JavaParser.parseUnit("""
                 import java.util.ArrayList;

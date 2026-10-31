@@ -1,7 +1,6 @@
 import java.util.List;
 
 class Fixture {
-
     List<@Marker(
             firstAttributeName = "alpha value here now",
             secondAttributeName = "beta value here now",
@@ -9,7 +8,6 @@ class Fixture {
 }
 
 @interface Marker {
-
     String firstAttributeName();
 
     String secondAttributeName();

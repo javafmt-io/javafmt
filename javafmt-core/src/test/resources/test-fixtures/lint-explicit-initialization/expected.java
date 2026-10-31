@@ -1,4 +1,3 @@
 class Fixture {
-
     int count;
 }

@@ -10,7 +10,6 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class DaemonHandler {
-
     FormatReply handle(final int id, final String source) {
         final var result = Javafmt.formatWithResult(source, JavafmtConfig.defaults());
         return FormatReply.newBuilder()

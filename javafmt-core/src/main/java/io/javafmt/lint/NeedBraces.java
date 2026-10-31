@@ -29,14 +29,12 @@ import java.util.List;
  * visited recursively and its own bodies are braced on their own merits.
  */
 public final class NeedBraces implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainScanner<>() {
-
                     @Override
                     public Void visitIf(final IfTree node, final Void p) {
                         addEditsFor(node.getThenStatement(), edits, unit);

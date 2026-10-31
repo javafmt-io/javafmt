@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RoundTripVerifierTest {
-
     private static final String SOURCE = """
             class Fixture {
 

@@ -16,7 +16,6 @@ import java.util.stream.Stream;
  * exhaustiveness from an expression.
  */
 class MissingSwitchDefaultOracleTest {
-
     MissingSwitchDefaultOracleTest() {}
 
     private static final String CORPUS = "missing-switch-default";

@@ -24,7 +24,6 @@ import java.util.List;
  * input, so the dirty numbers — not the clean ones — are what a first run over a codebase costs.
  */
 public final class RealWorldCorpus {
-
     private static final String CORPUS_PROPERTY = "javafmt.corpus";
 
     private static final String SRC_ZIP_PROPERTY = "javafmt.corpus.srczip";

@@ -8,7 +8,6 @@ import io.javafmt.doc.LeadingCommentAttacher;
 import org.jspecify.annotations.Nullable;
 
 interface Recursor extends LeadingCommentAttacher {
-
     Doc scan(Tree node);
 
     @Nullable

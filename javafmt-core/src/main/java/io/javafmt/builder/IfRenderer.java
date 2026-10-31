@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class IfRenderer {
-
     /**
      * javac wraps an {@code if} condition in {@code JCParens}, so the scanned condition already
      * includes its own outer parentheses — this method does not add them again.

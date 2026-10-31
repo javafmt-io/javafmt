@@ -11,7 +11,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReassignmentDetectorTest {
-
     @ParameterizedTest
     @ValueSource(strings = {"x = 1;", "x += 1;", "x -= 1;", "x++;", "++x;", "x--;", "--x;"})
     void detectsWritesToTheNamedVariable(final String statement) {
@@ -88,7 +87,6 @@ class ReassignmentDetectorTest {
 
     private static BlockTree bodyOfTest(final com.sun.source.tree.CompilationUnitTree tree) {
         final var found = new TreeScanner<Void, Void>() {
-
             private BlockTree body;
 
             @Override

@@ -26,14 +26,12 @@ import java.util.stream.Stream;
  * back in agreement.
  */
 public final class EmptyStatement implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainScanner<>() {
-
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {
                         node.getStatements()

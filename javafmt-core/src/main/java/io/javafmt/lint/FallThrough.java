@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
  * whose structure exceeds the shared {@link StatementFlow} helper's one-level block recursion.
  */
 public final class FallThrough implements WarningRule {
-
     private static final Pattern FALL_THROUGH_PATTERN = Pattern.compile("fall.?through", Pattern.CASE_INSENSITIVE);
 
     private static final String MESSAGE = "case falls through to next case; add 'break;' or a // fallthrough comment if intentional";
@@ -31,7 +30,6 @@ public final class FallThrough implements WarningRule {
         return LintScan.collect(
                 context,
                 diagnostics -> new ChainScanner<>() {
-
                     @Override
                     public Void visitSwitch(final SwitchTree node, final Void p) {
                         inspect(node.getCases(), diagnostics, unit);

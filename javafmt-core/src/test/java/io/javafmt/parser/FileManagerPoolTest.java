@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FileManagerPoolTest {
-
     private final Set<StandardJavaFileManager> closed = Collections.newSetFromMap(new IdentityHashMap<>());
 
     @Test

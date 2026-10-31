@@ -32,7 +32,6 @@ import javax.lang.model.element.Modifier;
 
 @UtilityClass
 final class CommentAttacher {
-
     /**
      * Orders slots so the innermost slot fires first when two slots enclose the same comment: by
      * ascending {@code hi}, then by {@link Reach}, then ascending {@code lo}.
@@ -264,7 +263,6 @@ final class CommentAttacher {
      * left after the comma.
      */
     private record Slot(@Nullable Tree previous, @Nullable Tree owner, long lo, long hi, Kind kind, Reach reach, boolean crossesSeparator) {
-
         Slot(@Nullable final Tree previous, @Nullable final Tree owner, final long lo, final long hi, final Kind kind) {
             this(previous, owner, lo, hi, kind, Reach.PRECISE, false);
         }
@@ -275,7 +273,6 @@ final class CommentAttacher {
     }
 
     private static final class Collector extends ChainScanner<Void, Void> {
-
         private final CompilationUnitTree cu;
 
         private final SourcePositions pos;

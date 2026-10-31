@@ -78,7 +78,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class DocBuilder {
-
     private final ParsedUnit unit;
 
     private final TreeFacts facts;
@@ -92,7 +91,6 @@ public final class DocBuilder {
     private int compactDepth;
 
     private final Recursor recursor = new Recursor() {
-
         @Override
         public Doc scan(final Tree node) {
             Objects.requireNonNull(node, "node");
@@ -414,7 +412,6 @@ public final class DocBuilder {
     private record Prerendered(Doc doc, List<Diagnostic> diagnostics) {}
 
     private record CommentAttacher(ParsedUnit unit) implements LeadingCommentAttacher {
-
         @Override
         public Doc attach(final Tree node, final Doc doc) {
             final var leading = unit.leadingOf(node);

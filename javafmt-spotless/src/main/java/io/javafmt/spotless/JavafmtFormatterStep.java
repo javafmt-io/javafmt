@@ -18,7 +18,6 @@ import java.util.Objects;
 
 @UtilityClass
 public final class JavafmtFormatterStep {
-
     private final String NAME = "javafmt";
 
     public FormatterStep create() {
@@ -117,7 +116,6 @@ public final class JavafmtFormatterStep {
     }
 
     record Func(JavafmtConfig config) implements FormatterFunc {
-
         Func {
             Objects.requireNonNull(config, "config");
         }
@@ -144,7 +142,6 @@ public final class JavafmtFormatterStep {
      *     analysis classpath, which decides which lint rules can fire.
      */
     record State(String formatterVersion, JavafmtConfig config) implements Serializable {
-
         State {
             Objects.requireNonNull(formatterVersion, "formatterVersion");
             Objects.requireNonNull(config, "config");

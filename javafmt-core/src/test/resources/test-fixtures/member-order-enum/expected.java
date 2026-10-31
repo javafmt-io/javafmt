@@ -1,5 +1,4 @@
 enum Fixture {
-
     FIRST,
     SECOND;
 

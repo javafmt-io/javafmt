@@ -15,7 +15,6 @@ import java.util.Objects;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JavafmtPluginFunctionalTest {
-
     private static final String FOO = "src/main/java/Foo.java";
 
     private static final String FOO_TEST = "src/test/java/FooTest.java";
@@ -26,7 +25,7 @@ class JavafmtPluginFunctionalTest {
 
     private static final String PROBLEMS_REPORT = "build/reports/problems/problems-report.html";
 
-    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n\n    List<String> xs;\n}\n";
+    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n    List<String> xs;\n}\n";
 
     @Test
     void formatRewritesEveryJavaSourceSetInPlace(@TempDir final Path dir) {

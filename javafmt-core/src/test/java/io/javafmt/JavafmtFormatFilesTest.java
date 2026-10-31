@@ -21,7 +21,6 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JavafmtFormatFilesTest {
-
     private static final String UNFORMATTED = "class   Foo{\n\nvoid bar()  { }\n}\n";
 
     @Test
@@ -77,7 +76,6 @@ class JavafmtFormatFilesTest {
         paths.forEach(path -> write(path, "class F {}\n"));
         final var hashingThreads = ConcurrentHashMap.<String>newKeySet();
         final var cache = new FormatCache() {
-
             @Override
             public boolean isUpToDate(final Path file, final String currentContent) {
                 hashingThreads.add(Thread.currentThread().getName());

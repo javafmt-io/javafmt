@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * rejects for unrelated reasons do not have to be excluded by hand.
  */
 class LintCompileSafetyTest {
-
     @ParameterizedTest(name = "{0}")
     @MethodSource("cases")
     void formatsToCompilingOutput(final String name, final String source, final boolean analyze) {
@@ -80,24 +79,23 @@ class LintCompileSafetyTest {
                         "witness-comment", wrap("Optional<String> o = Optional /* a.b */.empty();\nSystem.out.println(o);", "java.util.Optional"),
                         false),
                 Arguments.of(
-                        "final-field", "class Fixture {\n\n    static final int LIMIT = 0;\n\n    int m() {\n        return LIMIT;\n    }\n}\n",
-                        false),
-                Arguments.of("interface-field", "interface Fixture {\n\n    int LIMIT = 0;\n}\n", false),
+                        "final-field", "class Fixture {\n    static final int LIMIT = 0;\n\n    int m() {\n        return LIMIT;\n    }\n}\n", false),
+                Arguments.of("interface-field", "interface Fixture {\n    int LIMIT = 0;\n}\n", false),
                 Arguments.of(
                         "two-imports-one-line",
-                        "import java.util.List; import java.util.Set;\n\nclass Fixture {\n\n    List<String> xs() {\n        return List.of();\n    }\n}\n",
+                        "import java.util.List; import java.util.Set;\n\nclass Fixture {\n    List<String> xs() {\n        return List.of();\n    }\n}\n",
                         false),
-                Arguments.of("modifier-order-comment", "class Fixture {\n\n    static public /* c */ final int X = 1;\n}\n", false),
+                Arguments.of("modifier-order-comment", "class Fixture {\n    static public /* c */ final int X = 1;\n}\n", false),
                 Arguments.of(
                         "modifier-order-sealed",
-                        "public class Fixture {\n\n    static public sealed interface I permits R {}\n\n    record R() implements I {}\n}\n", false),
+                        "public class Fixture {\n    static public sealed interface I permits R {}\n\n    record R() implements I {}\n}\n", false),
                 Arguments.of("mvd-c-style", wrap("int a, b[];\nSystem.out.println(a + b.length);"), false),
                 Arguments.of("mvd-plain-local", wrap("int a, b;\nSystem.out.println(a + b);"), false),
                 // Three rules used to rewrite a span that every declarator of a group shares, which
                 // emitted the same edit once per declarator and made the whole file refuse. Each
                 // now waits for MultipleVariableDeclarations to split the group.
-                Arguments.of("mvd-interface-field-group", "interface Fixture {\n\n    public static final int A = 1, B = 2;\n}\n", false),
-                Arguments.of("mvd-modifier-order-group", "class Fixture {\n\n    static private int a = 1, b = 2;\n}\n", false),
+                Arguments.of("mvd-interface-field-group", "interface Fixture {\n    public static final int A = 1, B = 2;\n}\n", false),
+                Arguments.of("mvd-modifier-order-group", "class Fixture {\n    static private int a = 1, b = 2;\n}\n", false),
                 Arguments.of(
                         "mvd-var-candidate-group",
                         wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"), false),
@@ -252,6 +250,6 @@ class LintCompileSafetyTest {
 
     private static String wrap(final String body, final String... imports) {
         final var importBlock = Stream.of(imports).map(i -> "import " + i + ";\n").reduce("", String::concat);
-        return importBlock + "\nclass Fixture {\n\n    void test() {\n        " + body.replace("\n", "\n        ") + "\n    }\n}\n";
+        return importBlock + "\nclass Fixture {\n    void test() {\n        " + body.replace("\n", "\n        ") + "\n    }\n}\n";
     }
 }

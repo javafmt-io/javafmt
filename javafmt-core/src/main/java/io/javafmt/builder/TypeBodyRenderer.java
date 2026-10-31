@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  */
 @UtilityClass
 final class TypeBodyRenderer {
-
     /**
      * @param tail comments sitting after the last member and before the closing brace. They have
      *     no member to hang off, so nothing else would emit them and the file would come back
@@ -37,7 +36,7 @@ final class TypeBodyRenderer {
                 modifiers,
                 Doc.concatOf(
                         Stream.of(
-                                Stream.of(header, new Doc.Text(" {"), Doc.HARD_LINE), separated(members, recursor),
+                                Stream.of(header, new Doc.Text(" {")), separated(members, recursor),
                                 tail.stream().map(CommentDocs::renderComment).map(Doc::indentedLine), Doc.closeBrace())),
                 recursor);
     }

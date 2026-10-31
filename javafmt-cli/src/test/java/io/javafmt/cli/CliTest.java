@@ -24,7 +24,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CliTest {
-
     @Test
     void stdinNoArguments_formatsAndWritesToStdout() {
         final var run = runStdin(Fixtures.UNFORMATTED_FOO);
@@ -41,7 +40,7 @@ class CliTest {
         final var run = run(a.toString(), b.toString());
         assertThat(run.exit()).isZero();
         assertThat(Files.readString(a)).isEqualTo(Fixtures.FORMATTED_A);
-        assertThat(Files.readString(b)).isEqualTo("class B {\n\n    int y;\n}\n");
+        assertThat(Files.readString(b)).isEqualTo("class B {\n    int y;\n}\n");
     }
 
     @Test
@@ -111,7 +110,7 @@ class CliTest {
     @Test
     void batchWithOneMalformedJava_reportsPathAndExitsNonZero(@TempDir final Path dir) throws Exception {
         final var good = dir.resolve("Good.java");
-        Files.writeString(good, "class Good {\n\n    int x;\n}\n");
+        Files.writeString(good, "class Good {\n    int x;\n}\n");
         final var bad = dir.resolve("Bad.java");
         Files.writeString(bad, "class {");
         final var run = run(good.toString(), bad.toString());
@@ -165,7 +164,7 @@ class CliTest {
         Files.writeString(a, "class A   {   int  y;  }");
         final var second = run("--cache", cacheFile.toString(), a.toString());
         assertThat(second.exit()).isZero();
-        assertThat(Files.readString(a)).isEqualTo("class A {\n\n    int y;\n}\n");
+        assertThat(Files.readString(a)).isEqualTo("class A {\n    int y;\n}\n");
     }
 
     @Test
@@ -336,7 +335,6 @@ class CliTest {
     @Test
     void brokenStdinIsExitTwoWithReadError() {
         final var failing = new InputStream() {
-
             @Override
             public int read() throws IOException {
                 throw new IOException("pipe burst");
@@ -398,7 +396,6 @@ class CliTest {
     @Test
     void jsonDiagnostics_brokenStdinEmitsJsonOnStderr() {
         final var failing = new InputStream() {
-
             @Override
             public int read() throws IOException {
                 throw new IOException("pipe burst");
@@ -475,7 +472,7 @@ class CliTest {
         }
     }
 
-    private static final String EQUALS_WITHOUT_HASHCODE = "class Warned {\n\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
+    private static final String EQUALS_WITHOUT_HASHCODE = "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
 
     @Test
     void aFileArgumentReportsTheWarningsStdinModeReports(@TempDir final Path dir) throws Exception {

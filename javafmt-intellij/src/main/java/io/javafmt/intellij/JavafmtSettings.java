@@ -19,7 +19,6 @@ import java.util.Objects;
 @Service(Service.Level.PROJECT)
 @State(name = "JavafmtSettings", storages = @Storage("javafmt.xml"))
 public final class JavafmtSettings implements PersistentStateComponent<JavafmtSettings.State> {
-
     private State state = new State();
 
     public static JavafmtSettings getInstance(final Project project) {
@@ -58,7 +57,6 @@ public final class JavafmtSettings implements PersistentStateComponent<JavafmtSe
      * which is why this is neither a record nor immutable.
      */
     public static final class State {
-
         public boolean enabled;
 
         public String binaryPath = "";

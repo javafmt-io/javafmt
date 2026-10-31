@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class NewlineAtEndOfFileTest {
-
     @Test
     void fileWithoutTrailingNewlineGetsOneInserted() {
         final var unit = JavaParser.parseUnit("class Fixture {}");

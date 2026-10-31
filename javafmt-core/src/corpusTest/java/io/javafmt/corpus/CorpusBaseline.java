@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
  * the work the gate is supposed to measure.
  */
 record CorpusBaseline(String os, Set<String> perOsKeys, int files, int unparseable, int refused, int notReparsing, int notIdempotent, int overWidth) {
-
     private static final String RESOURCE = "/corpus-baseline.properties";
 
     CorpusBaseline {

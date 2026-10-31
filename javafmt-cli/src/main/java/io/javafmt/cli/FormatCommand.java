@@ -24,7 +24,6 @@ import java.util.concurrent.Callable;
 
 @Command( name = "javafmt", mixinStandardHelpOptions = true, versionProvider = FormatCommand.Version.class, showAtFileInUsageHelp = true, showEndOfOptionsDelimiterInUsageHelp = true, description = { "Formats Java source in place. With no paths, or with '-', reads from stdin and writes the result to stdout.", "Directories are searched recursively for .java files.", }, exitCodeListHeading = "%nExit Codes:%n", exitCodeList = { "0:nothing to do", "1:a file would be reformatted, or could not be formatted", "2:bad usage, or a file could not be read or written", })
 final class FormatCommand implements Callable<Integer> {
-
     private static final Path STDIN = Path.of("-");
 
     private final InputStream in;
@@ -127,7 +126,6 @@ final class FormatCommand implements Callable<Integer> {
     enum DiagnosticsFormat { JSON, TEXT, }
 
     static final class Analysis {
-
         @Option(names = "--analyze", required = true, description = "Enable lint rules that need resolved types. Requires --classpath.")
         private boolean analyze;
 
@@ -136,7 +134,6 @@ final class FormatCommand implements Callable<Integer> {
     }
 
     static final class Version implements IVersionProvider {
-
         @Override
         public String[] getVersion() {
             return new String[] {"javafmt " + JavafmtVersion.VERSION,};

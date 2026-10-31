@@ -11,14 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * that the declarators and everything the author wrote around them come through untouched.
  */
 class MultipleVariableDeclarationsTest {
-
     private static String split(final String source) {
         final var unit = JavaParser.parseUnit(source);
         return LintEngine.applyEdits(unit.source(), new MultipleVariableDeclarations().apply(LintContext.parseOnly(unit)).edits());
     }
 
     private static String inMethod(final String declaration) {
-        return "class Fixture {\n\n    void test() {\n        " + declaration + "\n    }\n}\n";
+        return "class Fixture {\n    void test() {\n        " + declaration + "\n    }\n}\n";
     }
 
     @Test
@@ -90,7 +89,7 @@ class MultipleVariableDeclarationsTest {
 
     @Test
     void fieldMultipleDeclarationsSplit() {
-        assertThat(split("class Fixture {\n\n    int x, y;\n}\n"))
+        assertThat(split("class Fixture {\n    int x, y;\n}\n"))
                 .contains("int x;")
                 .contains("int y;");
     }
@@ -108,7 +107,7 @@ class MultipleVariableDeclarationsTest {
 
     @Test
     void aCommentBeforeEachDeclaratorSurvivesTheSplit() {
-        final var source = "class Fixture {\n\n    static final byte\n        /* first */\n        A = 0,\n        /* second */\n        B = 1;\n}\n";
+        final var source = "class Fixture {\n    static final byte\n        /* first */\n        A = 0,\n        /* second */\n        B = 1;\n}\n";
         assertThat(split(source))
                 .contains("/* first */")
                 .contains("/* second */")
@@ -120,7 +119,7 @@ class MultipleVariableDeclarationsTest {
     void aCommentInsideTheSharedPrefixStopsTheSplit() {
         // The prefix is copied once per declaration, so a comment inside it would come out several
         // times over.
-        final var unit = JavaParser.parseUnit("class Fixture {\n\n    private /* why */ static int a = 1, b = 2;\n}\n");
+        final var unit = JavaParser.parseUnit("class Fixture {\n    private /* why */ static int a = 1, b = 2;\n}\n");
         assertThat(new MultipleVariableDeclarations().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
     }
 

@@ -8,7 +8,6 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class Declarations {
-
     boolean isStarImport(final ImportTree imp) {
         return imp.getQualifiedIdentifier() instanceof MemberSelectTree ms && ms.getIdentifier().contentEquals("*");
     }

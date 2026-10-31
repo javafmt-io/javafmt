@@ -14,7 +14,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class CommentDocs {
-
     private final int TAB_WIDTH = 4;
 
     Doc renderComment(final CommentToken comment) {

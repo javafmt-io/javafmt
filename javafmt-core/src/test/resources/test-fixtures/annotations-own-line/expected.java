@@ -1,5 +1,4 @@
 class Probe {
-
     @Deprecated private String f;
 
     @Override

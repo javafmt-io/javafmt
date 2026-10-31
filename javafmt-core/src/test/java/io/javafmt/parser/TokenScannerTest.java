@@ -10,7 +10,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TokenScannerTest {
-
     private static List<String> texts(final String source) {
         return TokenScanner.scan(source).stream().map(SourceToken::text).toList();
     }

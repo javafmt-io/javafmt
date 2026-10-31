@@ -12,7 +12,6 @@ import java.util.Objects;
  *     extra lex of both strings per file. See {@link io.javafmt.parser.RoundTripVerifier}.
  */
 public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysis, int release) implements java.io.Serializable {
-
     public static final int LATEST_RELEASE = 25;
 
     public JavafmtConfig {
@@ -57,11 +56,9 @@ public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysi
     }
 
     public sealed interface Analysis extends java.io.Serializable {
-
         record ParseOnly() implements Analysis {}
 
         record Attributed(String classpath) implements Analysis {
-
             public Attributed {
                 Objects.requireNonNull(classpath, "classpath");
             }

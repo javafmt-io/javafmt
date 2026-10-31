@@ -3,7 +3,6 @@ package io.javafmt.parser;
 import java.util.Objects;
 
 public record CommentToken(int start, int end, String text, int startColumn) {
-
     public CommentToken {
         Objects.requireNonNull(text, "text");
         if (start < 0 || end < start) {

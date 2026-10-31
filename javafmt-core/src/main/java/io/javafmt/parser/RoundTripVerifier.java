@@ -36,7 +36,6 @@ import java.util.stream.IntStream;
  */
 @UtilityClass
 public final class RoundTripVerifier {
-
     /**
      * Verifies that {@code after} preserves every token and comment of {@code before}.
      * Returns a description of what changed, or empty when the output is faithful.

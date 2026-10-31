@@ -21,7 +21,6 @@ import javax.tools.ToolProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DeepExpressionTest {
-
     private static final int SEARCH_CEILING = 1 << 17;
 
     @TempDir
@@ -62,7 +61,6 @@ class DeepExpressionTest {
     private static boolean javacCompiles(final String source) {
         final var compiler = ToolProvider.getSystemJavaCompiler();
         final var file = new SimpleJavaFileObject(URI.create("string:///Deep.java"), JavaFileObject.Kind.SOURCE) {
-
             @Override
             public CharSequence getCharContent(final boolean ignoreEncodingErrors) {
                 return source;
@@ -92,7 +90,6 @@ class DeepExpressionTest {
     }
 
     enum Chain {
-
         ALTERNATING("Deep", "a", ".f().a", ""),
         ARITHMETIC("int", "1", " + 1", ""),
         FIELD_SELECT("Deep", "a", ".a", ""),

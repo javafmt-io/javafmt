@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ParsedUnitTest {
-
     @Test
     void sourceSpanOfIsTheNodesSourceText() {
         final var parsed = JavaParser.parseUnit("class C {}\n");

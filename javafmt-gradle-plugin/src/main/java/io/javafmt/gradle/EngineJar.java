@@ -11,7 +11,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 
 final class EngineJar {
-
     private static final String RESOURCE = "javafmt-engine.jar";
 
     static File extractTo(final File directory, final String hash) {

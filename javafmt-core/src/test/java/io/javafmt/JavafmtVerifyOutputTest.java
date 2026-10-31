@@ -16,8 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link Diagnostic.InternalError} instead of silently dropping the user's code.
  */
 class JavafmtVerifyOutputTest {
-
-    private static final String SOURCE = "class Fixture {\n\n    int x;\n}\n";
+    private static final String SOURCE = "class Fixture {\n    int x;\n}\n";
 
     private static final String SOURCE_WITH_NOTE = SOURCE + "// a note the renderer never sees\n";
 
@@ -90,11 +89,11 @@ class JavafmtVerifyOutputTest {
                 .contains("if (n > 0) {");
     }
 
-    private static final String SUPER_CALL_WITH_NOTE = "class Fixture {\n\n    Fixture() {\n        super(); // keep this\n    }\n}\n";
+    private static final String SUPER_CALL_WITH_NOTE = "class Fixture {\n    Fixture() {\n        super(); // keep this\n    }\n}\n";
 
-    private static final String SUPER_CALL_LINTED_AWAY = "class Fixture {\n\n    Fixture() {\n    }\n}\n";
+    private static final String SUPER_CALL_LINTED_AWAY = "class Fixture {\n    Fixture() {\n    }\n}\n";
 
-    private static final String SUPER_CALL_PRINTED = "class Fixture {\n\n    Fixture() {}\n}\n";
+    private static final String SUPER_CALL_PRINTED = "class Fixture {\n    Fixture() {}\n}\n";
 
     @Test
     void aCommentTheLintPassDroppedBecomesAnInternalError() {
@@ -109,8 +108,8 @@ class JavafmtVerifyOutputTest {
     void theLintCommentCheckSaysNothingWhenTheCommentSurvives() {
         // The rule declined to delete the line, so the comment is in the post-lint source and in
         // the output. Neither check has anything to say.
-        final var linted = "class Fixture {\n\n    Fixture() {\n        // keep this\n    }\n}\n";
-        final var printed = "class Fixture {\n\n    Fixture() {\n        // keep this\n    }\n}\n";
+        final var linted = "class Fixture {\n    Fixture() {\n        // keep this\n    }\n}\n";
+        final var printed = "class Fixture {\n    Fixture() {\n        // keep this\n    }\n}\n";
         assertThat(FormatStages.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, linted, printed)).isEmpty();
     }
 

@@ -3,6 +3,5 @@ class VeryLongGenericHolder<
     SecondTypeParameter extends Runnable,
     ThirdTypeParameter extends CharSequence
 > {
-
     FirstTypeParameter value;
 }

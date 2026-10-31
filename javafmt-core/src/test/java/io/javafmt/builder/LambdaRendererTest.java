@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LambdaRendererTest {
-
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -19,7 +18,6 @@ class LambdaRendererTest {
         assertThat(format("class Foo { void test() { run(x -> x); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    run(x -> x);
                                }
@@ -31,7 +29,6 @@ class LambdaRendererTest {
         assertThat(format("class Foo { void test() { combine((a, b) -> a + b); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    combine((a, b) -> a + b);
                                }
@@ -43,7 +40,6 @@ class LambdaRendererTest {
         assertThat(format("class Foo { void test() { run(() -> 42); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    run(() -> 42);
                                }
@@ -55,7 +51,6 @@ class LambdaRendererTest {
         assertThat(format("class Foo { void test() { run(x -> { doIt(x); }); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    run(x -> {
                                        doIt(x);

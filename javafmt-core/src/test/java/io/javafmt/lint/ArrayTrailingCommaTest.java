@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ArrayTrailingCommaTest {
-
     @Test
     void singleElementArrayGetsTrailingComma() {
         final var unit = JavaParser.parseUnit("""

@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class SwitchExpressionRenderer {
-
     Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor) {
         return renderSwitchLike(recursor.scan(node.getExpression()), node.getCases(), recursor);
     }

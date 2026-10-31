@@ -10,7 +10,6 @@ import java.util.List;
 
 @UtilityClass
 final class LambdaRenderer {
-
     Doc render(final LambdaExpressionTree node, final Recursor recursor) {
         final var paramList = renderParamList(node, recursor);
         return switch (node.getBodyKind()) {

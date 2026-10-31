@@ -11,7 +11,6 @@ import java.util.List;
  * collections and polymorphic code, making them almost always a latent bug.
  */
 public final class CovariantEquals implements WarningRule {
-
     private static final String MESSAGE = "covariant equals(SpecificType) overload; use equals(Object) to override correctly";
 
     @Override

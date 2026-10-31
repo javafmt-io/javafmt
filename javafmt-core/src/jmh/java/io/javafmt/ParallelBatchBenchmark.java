@@ -23,7 +23,6 @@ import java.util.stream.IntStream;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class ParallelBatchBenchmark {
-
     @Param({"64", "256",})
     public int files = 64;
 

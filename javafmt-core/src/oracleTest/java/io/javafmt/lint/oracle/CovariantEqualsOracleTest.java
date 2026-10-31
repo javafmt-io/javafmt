@@ -18,7 +18,6 @@ import java.util.stream.Stream;
  * way. Warning about more than the oracle demands cannot break soundness.
  */
 class CovariantEqualsOracleTest {
-
     CovariantEqualsOracleTest() {}
 
     private static final String CORPUS = "covariant-equals";

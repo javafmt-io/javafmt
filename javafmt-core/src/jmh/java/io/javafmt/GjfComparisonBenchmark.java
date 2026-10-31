@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class GjfComparisonBenchmark {
-
     private static final int CANDIDATES = 32;
 
     private List<String> shared = List.of();
