@@ -119,7 +119,6 @@ Lambda parameters are never `final`.
 ## Method chains
 
 - Break before each `.` when the chain does not fit in 150 characters, or when the author already put a `.` on its own line. A chain that contains a multi-line text block always breaks.
-- Exception: an author-broken chain inside a call's argument list stays broken only when that argument list wraps. When the whole call fits on one line, the chain is joined onto it.
 - Continuation indent is 8 spaces past the statement. Not dot-aligned.
 - The first call of a chain stays on the line of its receiver (`orders.stream()`, `return Shipments.builder()`).
 - `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters or when the author already broke them.

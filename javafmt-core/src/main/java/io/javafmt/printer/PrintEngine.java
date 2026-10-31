@@ -18,94 +18,102 @@ final class PrintEngine {
 
     String print(final int lineWidth, final Doc doc) {
         Objects.requireNonNull(doc, "doc");
-        final var sb = new StringBuilder();
+        final var output = new StringBuilder();
         final var stack = new ArrayDeque<Frame>();
         final var work = new ArrayDeque<Frame>();
         stack.push(new Frame(0, Mode.BREAK, doc));
-        var col = 0;
+        var column = 0;
         var verbatimEnd = 0;
         while (!stack.isEmpty()) {
             final var frame = stack.pop();
             switch (frame.doc()) {
-                case Doc.Text(var s) -> {
-                    sb.append(s);
-                    col += s.length();
+                case Doc.Text(var text) -> {
+                    output.append(text);
+                    column += text.length();
                 }
-                case Doc.Verbatim(var s, var sourceCol) -> {
-                    if (s.startsWith("\n")) {
-                        stripTrailingWhitespace(sb, verbatimEnd);
+                case Doc.Verbatim(var text, var sourceColumn) -> {
+                    if (text.startsWith("\n")) {
+                        stripTrailingWhitespace(output, verbatimEnd);
                     }
-                    col = VerbatimEmitter.emit(sb, col, s, sourceCol);
-                    verbatimEnd = s.isEmpty() ? verbatimEnd : sb.length();
+                    column = VerbatimEmitter.emit(output, column, text, sourceColumn);
+                    verbatimEnd = text.isEmpty() ? verbatimEnd : output.length();
                 }
-                case Doc.BlockComment(var lines, var sourceCol) -> col = emitBlockComment(sb, col, frame.indent(), lines, sourceCol, verbatimEnd);
+                case Doc.BlockComment(var lines, var sourceColumn) ->
+                    column = emitBlockComment(output, column, frame.indent(), lines, sourceColumn, verbatimEnd);
                 case Doc.Line _ when frame.mode() == Mode.FLAT -> {
-                    sb.append(' ');
-                    col++;
+                    output.append(' ');
+                    column++;
                 }
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
                 case Doc.Line _, Doc.SoftLine _, Doc.HardLine _ -> {
-                    stripTrailingWhitespace(sb, verbatimEnd);
-                    sb.append('\n').repeat(' ', frame.indent());
-                    col = frame.indent();
+                    stripTrailingWhitespace(output, verbatimEnd);
+                    output.append('\n').repeat(' ', frame.indent());
+                    column = frame.indent();
                 }
-                case Doc.Indent(var d) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), d));
-                case Doc.Align(var d) -> stack.push(new Frame(col, frame.mode(), d));
+                case Doc.Indent(var contents) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
+                case Doc.Align(var contents) -> stack.push(new Frame(column, frame.mode(), contents));
                 case Doc.Choice(var preferred, var fallback) -> {
                     final var preferredFrame = new Frame(frame.indent(), frame.mode(), preferred);
-                    final var fits = frame.mode() == Mode.FLAT || fitsEveryLine(preferredFrame, col, lineWidth, stack, work);
+                    final var fits = frame.mode() == Mode.FLAT || fitsEveryLine(preferredFrame, column, lineWidth, stack, work);
                     stack.push(fits ? preferredFrame : new Frame(frame.indent(), frame.mode(), fallback));
                 }
                 case Doc.Concat(var parts) -> {
-                    for (var i = parts.size() - 1; i >= 0; i--) {
-                        stack.push(new Frame(frame.indent(), frame.mode(), parts.get(i)));
+                    for (var index = parts.size() - 1; index >= 0; index--) {
+                        stack.push(new Frame(frame.indent(), frame.mode(), parts.get(index)));
                     }
                 }
                 case Doc.Fill(var parts) when frame.mode() == Mode.FLAT -> pushParts(stack, frame, parts);
-                case Doc.Fill(var parts) -> fill(frame, parts, lineWidth - col, stack, work);
-                case Doc.Group(var d, var preferBreak) -> {
-                    final var flat = new Frame(frame.indent(), Mode.FLAT, d);
-                    final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, lineWidth - col, stack, work));
-                    stack.push(fits ? flat : new Frame(frame.indent(), Mode.BREAK, d));
+                case Doc.Fill(var parts) -> fill(frame, parts, lineWidth - column, stack, work);
+                case Doc.Group(var contents, var preferBreak) -> {
+                    final var flat = new Frame(frame.indent(), Mode.FLAT, contents);
+                    final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, lineWidth - column, stack, work));
+                    stack.push(fits ? flat : new Frame(frame.indent(), Mode.BREAK, contents));
                 }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
                     stack.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? breakContents : flatContents));
             }
         }
-        stripTrailingWhitespace(sb, verbatimEnd);
-        return sb.toString();
+        stripTrailingWhitespace(output, verbatimEnd);
+        return output.toString();
     }
 
-    private int emitBlockComment(final StringBuilder sb,
-                                 final int col,
+    private int emitBlockComment(final StringBuilder output,
+                                 final int column,
                                  final int indent,
                                  final List<String> lines,
-                                 final int sourceCol,
+                                 final int sourceColumn,
                                  final int verbatimEnd) {
         final var continuation = lines.subList(1, lines.size());
-        final var minLeading = continuation.stream().filter(line -> !line.isBlank()).mapToInt(PrintEngine::leadingSpaces).min().orElse(sourceCol);
-        final var shift = minLeading >= sourceCol ? col - sourceCol : indent - minLeading;
-        sb.append(lines.getFirst());
+        final var minimumLeading = continuation.stream()
+                .filter(line -> !line.isBlank())
+                .mapToInt(PrintEngine::leadingSpaces)
+                .min()
+                .orElse(sourceColumn);
+        final var shift = minimumLeading >= sourceColumn ? column - sourceColumn : indent - minimumLeading;
+        output.append(lines.getFirst());
         continuation.forEach(line -> {
-            stripTrailingWhitespace(sb, verbatimEnd);
-            sb.append('\n').repeat(' ', Math.max(0, leadingSpaces(line) + shift)).append(line, leadingSpaces(line), line.length());
+            stripTrailingWhitespace(output, verbatimEnd);
+            output.append('\n').repeat(' ', Math.max(0, leadingSpaces(line) + shift)).append(line, leadingSpaces(line), line.length());
         });
-        return sb.length() - sb.lastIndexOf("\n") - 1;
+        return output.length() - output.lastIndexOf("\n") - 1;
     }
 
     private int leadingSpaces(final String line) {
-        return (int) line.chars().takeWhile(c -> c == ' ').count();
+        return (int) line.chars().takeWhile(character -> character == ' ').count();
     }
 
-    private void stripTrailingWhitespace(final StringBuilder sb, final int verbatimEnd) {
-        final var start = sb.length() - (int) IntStream.iterate(sb.length() - 1, i -> i >= 0 && isSpaceOrTab(sb.charAt(i)), i -> i - 1).count();
+    private void stripTrailingWhitespace(final StringBuilder output, final int verbatimEnd) {
+        final var trailing = (int) IntStream.iterate(
+                output.length() - 1, index -> index >= 0 && isSpaceOrTab(output.charAt(index)), index -> index - 1)
+                .count();
+        final var start = output.length() - trailing;
         if (start >= verbatimEnd) {
-            sb.setLength(start);
+            output.setLength(start);
         }
     }
 
-    private boolean isSpaceOrTab(final char c) {
-        return c == ' ' || c == '\t';
+    private boolean isSpaceOrTab(final char character) {
+        return character == ' ' || character == '\t';
     }
 
     /**
@@ -116,7 +124,7 @@ final class PrintEngine {
      * the stream ends (FIT). This bounds each call by {@code min(subtree size, upcoming size)}
      * rather than re-walking the whole remaining document, which is what keeps total fit-check
      * work O(n) across a print instead of O(n²). Inner Group choices are assumed FLAT (best case
-     * for fit).
+     * for fit), except a Group that prefers to break: one inside the candidate means NOT FIT.
      *
      * <p><b>HardLine semantics.</b> Encountered while still walking the candidate's own
      * descendants, it means "this Group's contents include a forced break, so flat rendering is
@@ -194,7 +202,12 @@ final class PrintEngine {
                 }
                 case Doc.Indent(var contents) -> work.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> work.push(new Frame(column, frame.mode(), contents));
-                case Doc.Group(var contents, var _) -> work.push(new Frame(frame.indent(), Mode.FLAT, contents));
+                case Doc.Group(var contents, var preferBreak) -> {
+                    if (preferBreak && !consumedCandidate && reach == Reach.FIRST_LINE) {
+                        return false;
+                    }
+                    work.push(new Frame(frame.indent(), Mode.FLAT, contents));
+                }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
                     work.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? breakContents : flatContents));
                 case Doc.Choice(var preferred, var fallback) ->
@@ -247,20 +260,20 @@ final class PrintEngine {
                         return false;
                     }
                 }
-                case Doc.Verbatim(var s, var _) -> {
-                    if (s.indexOf('\n') >= 0) {
+                case Doc.Verbatim(var text, var _) -> {
+                    if (text.indexOf('\n') >= 0) {
                         return false;
                     }
                 }
                 case Doc.Text _ -> {}
-                case Doc.Group(var d, var preferBreak) -> {
-                    if (preferBreak && !grouped) {
+                case Doc.Group(var contents, var preferBreak) -> {
+                    if (preferBreak) {
                         return false;
                     }
-                    pending.push(new Pending(d, true));
+                    pending.push(new Pending(contents, true));
                 }
-                case Doc.Indent(var d) -> pending.push(new Pending(d, grouped));
-                case Doc.Align(var d) -> pending.push(new Pending(d, grouped));
+                case Doc.Indent(var contents) -> pending.push(new Pending(contents, grouped));
+                case Doc.Align(var contents) -> pending.push(new Pending(contents, grouped));
                 case Doc.IfBreak(var breakContents, var flatContents) -> pending.push(new Pending(grouped ? flatContents : breakContents, grouped));
                 case Doc.Choice(var preferred, var fallback) -> {
                     pending.push(new Pending(preferred, grouped));
@@ -283,8 +296,8 @@ final class PrintEngine {
     }
 
     private void pushParts(final ArrayDeque<Frame> target, final Frame frame, final List<Doc> parts) {
-        for (var i = parts.size() - 1; i >= frame.firstPart(); i--) {
-            target.push(new Frame(frame.indent(), frame.mode(), parts.get(i)));
+        for (var index = parts.size() - 1; index >= frame.firstPart(); index--) {
+            target.push(new Frame(frame.indent(), frame.mode(), parts.get(index)));
         }
     }
 
