@@ -56,7 +56,7 @@ final class CommentAttacher {
         final var interior = new IdentityHashMap<Tree, List<CommentToken>>();
         final var tail = new IdentityHashMap<Tree, List<CommentToken>>();
         var idx = 0;
-        for (var c : comments) {
+        for (final var c : comments) {
             idx = advancePast(slots, idx, c);
             if (opaque.stream().anyMatch(span -> span[0] <= c.start() && c.end() <= span[1])) {
                 continue;
@@ -214,7 +214,7 @@ final class CommentAttacher {
         slots.add(new Slot(null, null, 0L, pos.getStartPosition(cu, ordered.getFirst()), Kind.FILE_HEADER));
         Tree prev = null;
         var prevEnd = 0L;
-        for (var curr : ordered) {
+        for (final var curr : ordered) {
             final var currStart = pos.getStartPosition(cu, curr);
             if (prev != null) {
                 final var kind = curr != cu.getPackage() ? Kind.LEADING : Kind.TAIL;
@@ -585,7 +585,7 @@ final class CommentAttacher {
             }
             Tree prev = null;
             var prevEnd = containerLo;
-            for (var child : real) {
+            for (final var child : real) {
                 final var childStart = pos.getStartPosition(cu, child);
                 slots.add(new Slot(prev, child, prevEnd, childStart, Kind.LEADING, Reach.PRECISE, crossesSeparator));
                 final var childEnd = pos.getEndPosition(cu, child);

@@ -188,7 +188,7 @@ class CliTest {
             throws Exception {
         final var dir = Files.createTempDirectory("javafmt-exclude");
         final var unformatted = Fixtures.UNFORMATTED_FOO;
-        for (var name : filenames) {
+        for (final var name : filenames) {
             final var target = dir.resolve(name);
             Files.createDirectories(target.getParent() == null ? dir : target.getParent());
             Files.writeString(target, unformatted);
@@ -199,7 +199,7 @@ class CliTest {
                 .toArray(String[]::new);
         final var run = run(args);
         assertThat(run.exit()).isZero();
-        for (var name : filenames) {
+        for (final var name : filenames) {
             final var actual = Files.readString(dir.resolve(name));
             if (expectedRewritten.contains(name)) {
                 assertThat(actual)

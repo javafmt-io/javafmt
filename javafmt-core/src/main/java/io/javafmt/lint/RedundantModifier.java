@@ -60,7 +60,7 @@ public final class RedundantModifier implements LintRule {
     private static void checkClassMemberModifiers(final ClassTree classNode, final ParsedUnit unit, final List<LintEdit> edits) {
         final var isInterface = classNode.getKind() == Tree.Kind.INTERFACE;
         final var isFinalClass = classNode.getKind() == Tree.Kind.CLASS && classNode.getModifiers().getFlags().contains(Modifier.FINAL);
-        for (var member : classNode.getMembers()) {
+        for (final var member : classNode.getMembers()) {
             if (member instanceof MethodTree method) {
                 if (isInterface) {
                     checkInterfaceMethodModifiers(method, unit, edits);

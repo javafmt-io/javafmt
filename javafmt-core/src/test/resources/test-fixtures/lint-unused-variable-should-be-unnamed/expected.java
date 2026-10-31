@@ -5,7 +5,7 @@ class Fixture {
 
     int count(final List<String> items, final Object o, final BiFunction<String, String, String> join) {
         var count = 0;
-        for (var _ : items) {
+        for (final var _ : items) {
             count++;
         }
         try {

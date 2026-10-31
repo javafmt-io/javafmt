@@ -56,13 +56,13 @@ class JavafmtMojoTest {
         final var files = java.util.stream.IntStream.range(0, 8)
                 .mapToObj(i -> srcDir.resolve("F" + i + ".java"))
                 .toList();
-        for (var file : files) {
+        for (final var file : files) {
             Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
         }
         final var mojo = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.empty());
         mojo.execute();
         final var formatted = Javafmt.format(UNFORMATTED);
-        for (var file : files) {
+        for (final var file : files) {
             assertThat(Files.readString(file, StandardCharsets.UTF_8)).isEqualTo(formatted);
         }
     }

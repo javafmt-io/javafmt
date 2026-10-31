@@ -160,7 +160,7 @@ public final class ModifierOrder implements LintRule {
 
     @Nullable
     private static Modifier matchModifier(final String src, final int pos, final Set<Modifier> flags) {
-        for (var mod : Modifiers.canonicalOrder()) {
+        for (final var mod : Modifiers.canonicalOrder()) {
             if (flags.contains(mod) && Modifiers.skipModifierKeyword(src, pos, mod.toString()) >= 0) {
                 return mod;
             }

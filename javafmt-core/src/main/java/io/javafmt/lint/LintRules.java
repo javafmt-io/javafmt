@@ -19,6 +19,7 @@ public final class LintRules {
             new FinalLocalVariable(),
             new FinalParameters(),
             new FinalCatchParameter(),
+            new FinalForEachVariable(),
             new ArrayTrailingComma(),
             new EnumTrailingComma(),
             new ExplodeStarImports(),
