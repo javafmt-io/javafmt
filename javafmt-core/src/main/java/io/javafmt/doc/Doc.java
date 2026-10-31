@@ -238,7 +238,8 @@ public sealed interface Doc
      * {@code preferBreakOnAuthor} is true the group additionally prefers BREAK whenever the
      * enclosing mode is not already FLAT — the renderer's callers use this to honor an author's
      * deliberate multi-line layout for constructs like method chains and {@code &&}/{@code ||}
-     * compounds even when they'd technically fit on one line.
+     * compounds even when they'd technically fit on one line. A group that holds such a group cannot
+     * render flat either, so the author's layout survives an enclosing group that would fit.
      */
     record Group(Doc contents, boolean preferBreakOnAuthor) implements Doc {
         public Group {
