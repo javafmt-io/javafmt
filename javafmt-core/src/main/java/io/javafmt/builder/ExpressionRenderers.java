@@ -235,7 +235,11 @@ final class ExpressionRenderers {
         final var arguments = node.getArguments();
         final var argumentsDoc = arguments.isEmpty()
                 ? (Doc) new Doc.Text("()")
-                : WrappableList.packedOf("(", ",", ")", arguments.stream().map(recursor::scan));
+                : new Doc.Group(
+                        Doc.concat(
+                                new Doc.Text("("),
+                                Doc.continuationIndent(Doc.concat(Doc.SOFT_LINE, CommentDocs.commaFill(arguments, recursor, recursor::scan))),
+                                new Doc.Text(")")));
         final var body = node.getClassBody();
         final var headParts = Doc.concatOf(
                 Stream.of(

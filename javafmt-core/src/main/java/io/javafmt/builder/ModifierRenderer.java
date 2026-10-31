@@ -141,7 +141,12 @@ final class ModifierRenderer {
         }
         return new Doc.Concat(
                 Stream.concat(
-                        annotations.stream().flatMap(a -> Stream.concat(splitToTextLines(annotationText(a, recursor)), Stream.of(Doc.HARD_LINE))),
+                        annotations.stream()
+                                .flatMap(
+                                        a -> Stream.of(
+                                                CommentDocs.appendTrailing(
+                                                        new Doc.Concat(splitToTextLines(annotationText(a, recursor))), recursor.trailing(a)),
+                                                Doc.HARD_LINE)),
                         Stream.of(doc)));
     }
 

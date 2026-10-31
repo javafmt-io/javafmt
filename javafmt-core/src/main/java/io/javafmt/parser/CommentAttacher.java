@@ -1,5 +1,6 @@
 package io.javafmt.parser;
 
+import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
@@ -10,6 +11,7 @@ import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ModuleTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
@@ -23,11 +25,14 @@ import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
 
 @UtilityClass
@@ -283,6 +288,8 @@ final class CommentAttacher {
 
         private final List<long[]> opaque;
 
+        private final Set<Tree> enumConstantCreations = Collections.newSetFromMap(new IdentityHashMap<>());
+
         Collector(final CompilationUnitTree cu, final SourcePositions pos, final String source, final List<Slot> slots, final List<long[]> opaque) {
             this.cu = cu;
             this.pos = pos;
@@ -322,6 +329,11 @@ final class CommentAttacher {
             // Nothing else in the list can match: the gap a comment has to cross is spaces, tabs
             // and commas only, and every other member is separated by a `;` or a `}`.
             collect(node, members(node, isRecord), true, node.getKind() == Tree.Kind.ENUM);
+            collectAnnotationLineEnds(node.getModifiers());
+            members(node, isRecord)
+                    .stream()
+                    .flatMap(member -> member instanceof VariableTree v && !isEnumConstant(v) ? Stream.of(v.getModifiers()) : Stream.empty())
+                    .forEach(this::collectAnnotationLineEnds);
             if (isRecord) {
                 collect(node, recordComponents(node), false);
             }
@@ -337,11 +349,16 @@ final class CommentAttacher {
         @Override
         public Void visitBlock(final BlockTree node, final Void p) {
             collect(node, node.getStatements(), true);
+            node.getStatements()
+                    .stream()
+                    .flatMap(statement -> statement instanceof VariableTree v ? Stream.of(v.getModifiers()) : Stream.empty())
+                    .forEach(this::collectAnnotationLineEnds);
             return super.visitBlock(node, null);
         }
 
         @Override
         public Void visitMethod(final MethodTree node, final Void p) {
+            collectAnnotationLineEnds(node.getModifiers());
             collectSeparatedList(node, pos.getStartPosition(cu, node), node.getParameters());
             collect(node, node.getTypeParameters(), false);
             collect(node, node.getThrows(), false);
@@ -352,6 +369,26 @@ final class CommentAttacher {
         protected void visitInvocation(final MethodInvocationTree node, final Void p) {
             collectSeparatedList(node, pos.getEndPosition(cu, node.getMethodSelect()), node.getArguments());
             collectChainJoint(node);
+        }
+
+        private void collectAnnotationLineEnds(final ModifiersTree modifiers) {
+            modifiers.getAnnotations().forEach(this::collectLineEnd);
+        }
+
+        private void collectLineEnd(final AnnotationTree annotation) {
+            final var end = pos.getEndPosition(cu, annotation);
+            if (end < 0) {
+                return;
+            }
+            final var newline = source.indexOf('\n', (int) end);
+            final var lineEnd = newline < 0 ? source.length() : newline;
+            if (source.substring((int) end, lineEnd).stripLeading().startsWith("//")) {
+                slots.add(new Slot(annotation, null, end, lineEnd, Kind.LEADING, Reach.SAME_LINE));
+            }
+        }
+
+        private boolean isEnumConstant(final VariableTree variable) {
+            return variable.getType() != null && pos.getEndPosition(cu, variable.getType()) < 0;
         }
 
         /**
@@ -375,13 +412,21 @@ final class CommentAttacher {
 
         @Override
         public Void visitNewClass(final NewClassTree node, final Void p) {
-            collectAfter(node, node.getIdentifier(), node.getArguments());
+            final var lo = pos.getEndPosition(cu, node.getIdentifier());
+            if (enumConstantCreations.contains(node)) {
+                collectWithLo(node, lo, node.getArguments(), false);
+            } else {
+                collectSeparatedList(node, lo, node.getArguments());
+            }
             return super.visitNewClass(node, null);
         }
 
         @Override
         public Void visitVariable(final VariableTree node, final Void p) {
             final var initializer = node.getInitializer();
+            if (isEnumConstant(node) && initializer instanceof NewClassTree creation) {
+                enumConstantCreations.add(creation);
+            }
             if (initializer == null) {
                 return super.visitVariable(node, null);
             }
@@ -534,13 +579,6 @@ final class CommentAttacher {
                 return;
             }
             collectWithLo(container, pos.getStartPosition(cu, container), children, emitTail, crossesSeparator);
-        }
-
-        private void collectAfter(final Tree container, final Tree headEnd, final List<? extends Tree> children) {
-            if (children.isEmpty()) {
-                return;
-            }
-            collectWithLo(container, pos.getEndPosition(cu, headEnd), children, false);
         }
 
         /**
