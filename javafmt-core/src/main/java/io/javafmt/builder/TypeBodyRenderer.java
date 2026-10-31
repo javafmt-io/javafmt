@@ -34,11 +34,12 @@ final class TypeBodyRenderer {
         }
         return ModifierRenderer.prependOwnLineAnnotations(
                 modifiers,
-                Doc.concatOf(
-                        Stream.of(
-                                Stream.of(header, new Doc.Text(" {")), separated(members, recursor),
-                                tail.stream().map(CommentDocs::renderComment).map(Doc::indentedLine), Doc.closeBrace())),
+                Doc.concatOf(Stream.of(Stream.of(header, new Doc.Text(" {")), separated(members, recursor), tailLines(tail), Doc.closeBrace())),
                 recursor);
+    }
+
+    Stream<Doc> tailLines(final List<CommentToken> tail) {
+        return tail.stream().map(CommentDocs::renderComment).map(Doc::indentedLine);
     }
 
     /**

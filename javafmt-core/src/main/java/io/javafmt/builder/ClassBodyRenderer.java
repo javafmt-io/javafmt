@@ -22,6 +22,7 @@ final class ClassBodyRenderer {
         final var indentedMembers = members.isEmpty()
                 ? Stream.<Doc>empty()
                 : Stream.<Doc>of(new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Concat(Doc.intersperse(Doc.BLANK_LINE, members.stream())))));
-        return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text(" {")), indentedMembers, Doc.closeBrace()));
+        final var tailLines = TypeBodyRenderer.tailLines(recursor.trailingInside(body));
+        return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text(" {")), indentedMembers, tailLines, Doc.closeBrace()));
     }
 }
