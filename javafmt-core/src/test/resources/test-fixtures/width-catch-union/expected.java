@@ -3,7 +3,7 @@ class Fixture {
     void run() {
         try {
             System.out.println("x");
-        } catch (RuntimeException
+        } catch (final RuntimeException
                 | ClassNotFoundException
                 | NoSuchMethodException
                 | IllegalAccessException

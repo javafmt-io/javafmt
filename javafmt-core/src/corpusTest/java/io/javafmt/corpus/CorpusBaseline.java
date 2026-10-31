@@ -30,7 +30,7 @@ record CorpusBaseline(String os, Set<String> perOsKeys, int files, int unparseab
         final var properties = new Properties();
         try (var in = CorpusBaseline.class.getResourceAsStream(RESOURCE)) {
             properties.load(Objects.requireNonNull(in, RESOURCE + " is missing from the corpusTest resources"));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("cannot read " + RESOURCE, e);
         }
         final var os = os(System.getProperty("os.name", ""));

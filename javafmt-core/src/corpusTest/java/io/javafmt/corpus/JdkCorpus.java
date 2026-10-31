@@ -30,7 +30,7 @@ final class JdkCorpus {
                     .map(JdkCorpus::read)
                     .sorted((a, b) -> a.name().compareTo(b.name()))
                     .toList();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("cannot read the JDK source corpus at " + srcZip, e);
         }
     }
@@ -38,7 +38,7 @@ final class JdkCorpus {
     private static Stream<Path> javaFilesUnder(final Path dir) {
         try (var walk = Files.walk(dir)) {
             return walk.filter(p -> p.toString().endsWith(".java")).toList().stream();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("cannot walk " + dir, e);
         }
     }
@@ -46,7 +46,7 @@ final class JdkCorpus {
     private static Entry read(final Path file) {
         try {
             return new Entry(file.toString(), new String(Files.readAllBytes(file), StandardCharsets.UTF_8));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("cannot read " + file, e);
         }
     }

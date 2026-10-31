@@ -18,6 +18,7 @@ public final class LintRules {
             new UnusedVariableShouldBeUnnamed(),
             new FinalLocalVariable(),
             new FinalParameters(),
+            new FinalCatchParameter(),
             new ArrayTrailingComma(),
             new EnumTrailingComma(),
             new ExplodeStarImports(),

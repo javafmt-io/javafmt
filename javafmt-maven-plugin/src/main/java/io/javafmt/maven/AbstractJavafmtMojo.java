@@ -83,7 +83,7 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
             failOnUnreadable(results);
             handle(logErrorsAndKeepCleanFiles(results), formatCache);
             formatCache.save();
-        } catch (UncheckedIOException e) {
+        } catch (final UncheckedIOException e) {
             throw new MojoExecutionException("javafmt: I/O error: " + e.getMessage(), e.getCause());
         }
     }

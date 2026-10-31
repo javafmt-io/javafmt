@@ -66,7 +66,7 @@ public final class CompileCheck {
                     null,
                     List.of(new InMemorySource(name, source)));
             task.call();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new IllegalStateException("compile check failed to close its file manager", e);
         }
         final var errors = collector.getDiagnostics()
@@ -96,7 +96,7 @@ public final class CompileCheck {
         final com.sun.source.tree.CompilationUnitTree tree;
         try {
             tree = io.javafmt.parser.JavaParser.parse(source);
-        } catch (RuntimeException _) {
+        } catch (final RuntimeException _) {
             return null;
         }
         if (tree.getModule() != null) {

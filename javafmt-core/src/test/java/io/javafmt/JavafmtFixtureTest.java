@@ -57,7 +57,7 @@ class JavafmtFixtureTest {
             })
                     .sorted()
                     .toList();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -93,7 +93,7 @@ class JavafmtFixtureTest {
     private static String read(final Path path) {
         try {
             return Files.readString(path).stripTrailing();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }

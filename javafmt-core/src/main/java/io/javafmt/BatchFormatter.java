@@ -140,7 +140,7 @@ final class BatchFormatter {
         try {
             final var source = Files.readString(path, StandardCharsets.UTF_8);
             return cache.isUpToDate(path, source) ? new FileRead.Done(new FileResult.UpToDate(path)) : new FileRead.Pending(path, source);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             return new FileRead.Done(new FileResult.Unreadable(path, e));
         }
     }
@@ -222,7 +222,7 @@ final class BatchFormatter {
             return IntStream.range(0, rendered.size())
                     .mapToObj(k -> FormatStages.withDiagnostics(rendered.get(k), parsed.get(k).warnings()))
                     .toList();
-        } catch (RuntimeException | AssertionError | StackOverflowError batchFailure) {
+        } catch (final RuntimeException | AssertionError | StackOverflowError batchFailure) {
             if (sources.size() == 1) {
                 return List.of(FormatStages.internalErrorResult(sources.getFirst(), batchFailure));
             }
@@ -270,10 +270,10 @@ final class BatchFormatter {
     private <T> T await(final Future<T> future, final Function<Throwable, T> onFailure) {
         try {
             return future.get();
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             return onFailure.apply(e);
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             return onFailure.apply(Optional.ofNullable(e.getCause()).orElse(e));
         }
     }
@@ -294,7 +294,7 @@ final class BatchFormatter {
     List<Prepared> attributedContexts(final List<String> chunk, final AttributionSession session) {
         try {
             return fromAttributed(chunk, session.attribute(chunk));
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             return parseOnly(chunk, List.of(FormatStages.attributionWarning(e)));
         }
     }

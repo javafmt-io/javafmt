@@ -51,7 +51,7 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
         try {
             JavaParser.parseUnit(output);
             return true;
-        } catch (RuntimeException _) {
+        } catch (final RuntimeException _) {
             return false;
         }
     }

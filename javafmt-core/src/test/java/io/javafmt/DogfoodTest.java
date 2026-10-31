@@ -167,7 +167,7 @@ class DogfoodTest {
     private static String readString(final Path p) {
         try {
             return Files.readString(p);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
