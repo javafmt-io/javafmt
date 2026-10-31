@@ -100,15 +100,14 @@ class MethodRendererTest {
         }
 
         @Test
-        void longClauseForcesSignatureBreak() {
+        void longClauseWrapsAloneWhenParametersFit() {
             final var source = "class Foo { void someMethod(int a, int b) throws "
                 + "ExceptionAlpha, ExceptionBeta, ExceptionGamma, ExceptionDelta, "
                 + "ExceptionEpsilon, ExceptionZeta, ExceptionEta, ExceptionTheta {} }";
             assertThat(format(source))
                     .isEqualTo("""
                                class Foo {
-                                   void someMethod(int a,
-                                                   int b)
+                                   void someMethod(int a, int b)
                                            throws ExceptionAlpha, ExceptionBeta, ExceptionGamma, ExceptionDelta, ExceptionEpsilon, ExceptionZeta, ExceptionEta, ExceptionTheta {}
                                }""");
         }
@@ -122,8 +121,7 @@ class MethodRendererTest {
             assertThat(format(source))
                     .isEqualTo("""
                                class Foo {
-                                   void someMethod(int a,
-                                                   int b)
+                                   void someMethod(int a, int b)
                                            throws ExceptionAlpha,
                                                ExceptionBeta,
                                                ExceptionGamma,

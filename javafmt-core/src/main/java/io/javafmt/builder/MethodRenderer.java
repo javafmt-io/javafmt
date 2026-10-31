@@ -78,10 +78,11 @@ final class MethodRenderer {
             return Doc.concat(leading, new Doc.Text("()"));
         }
         final var paramsPart = params.isEmpty() ? Doc.concat(leading, new Doc.Text("()")) : buildParamsPart(leading, params, recursor);
+        final var groupedParamsPart = new Doc.Group(paramsPart);
         if (throwsList.isEmpty()) {
-            return new Doc.Group(paramsPart);
+            return groupedParamsPart;
         }
-        return new Doc.Group(Doc.concat(paramsPart, ClassLikeRenderer.buildTypeList("throws ", throwsList, recursor)));
+        return new Doc.Group(Doc.concat(groupedParamsPart, ClassLikeRenderer.buildTypeList("throws ", throwsList, recursor)));
     }
 
     private Doc buildParamsPart(final Doc leading, final List<? extends VariableTree> params, final Recursor recursor) {
