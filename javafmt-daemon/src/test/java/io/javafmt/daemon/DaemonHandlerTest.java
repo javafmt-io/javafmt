@@ -1,14 +1,14 @@
 package io.javafmt.daemon;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
-
 import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class DaemonHandlerTest {
 

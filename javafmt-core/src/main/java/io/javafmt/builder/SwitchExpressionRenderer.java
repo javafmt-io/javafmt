@@ -8,10 +8,11 @@ import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class SwitchExpressionRenderer {

@@ -1,10 +1,11 @@
 package io.javafmt.lint;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.JavaModifiers;
-import javax.lang.model.element.Modifier;
 import org.junit.jupiter.api.Test;
+
+import javax.lang.model.element.Modifier;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifiersTest {
 

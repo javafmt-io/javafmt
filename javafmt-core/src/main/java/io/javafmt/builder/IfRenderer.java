@@ -6,11 +6,12 @@ import com.sun.source.tree.StatementTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class IfRenderer {

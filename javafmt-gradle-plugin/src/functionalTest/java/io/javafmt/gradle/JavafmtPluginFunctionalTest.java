@@ -1,17 +1,18 @@
 package io.javafmt.gradle;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.Fixtures;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Objects;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Objects;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class JavafmtPluginFunctionalTest {
 

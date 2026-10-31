@@ -2,6 +2,7 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.MethodTree;
 import io.javafmt.Diagnostic;
+
 import java.util.List;
 
 /**

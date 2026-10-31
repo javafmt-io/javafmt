@@ -5,6 +5,7 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.Optional;
 import java.util.stream.Collectors;
 

@@ -1,9 +1,9 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.daemon.DaemonFixtures;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class FakeDaemonTest {
 

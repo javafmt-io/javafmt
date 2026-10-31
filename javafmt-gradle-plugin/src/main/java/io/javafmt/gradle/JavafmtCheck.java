@@ -1,8 +1,5 @@
 package io.javafmt.gradle;
 
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.gradle.api.file.FileType;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.CacheableTask;
@@ -11,6 +8,10 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.work.ChangeType;
 import org.gradle.work.FileChange;
 import org.gradle.work.InputChanges;
+
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @CacheableTask
 public abstract class JavafmtCheck extends JavafmtTask {

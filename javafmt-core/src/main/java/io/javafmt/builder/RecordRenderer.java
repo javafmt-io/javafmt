@@ -4,10 +4,11 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class RecordRenderer {

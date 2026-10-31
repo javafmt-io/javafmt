@@ -3,6 +3,7 @@ package io.javafmt.lint;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import io.javafmt.Diagnostic;
+
 import java.util.List;
 import java.util.Optional;
 

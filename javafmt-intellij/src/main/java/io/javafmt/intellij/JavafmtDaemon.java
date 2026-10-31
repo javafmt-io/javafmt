@@ -7,6 +7,7 @@ import com.intellij.execution.process.ProcessIOExecutorService;
 import com.intellij.openapi.diagnostic.Logger;
 import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;

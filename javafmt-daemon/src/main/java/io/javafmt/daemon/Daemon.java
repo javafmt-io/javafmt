@@ -3,6 +3,9 @@ package io.javafmt.daemon;
 import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
 import io.javafmt.daemon.protocol.Kind;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -14,8 +17,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @UtilityClass

@@ -1,8 +1,8 @@
 package io.javafmt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Annotations render from their own source text rather than javac's pretty-printer. The printer

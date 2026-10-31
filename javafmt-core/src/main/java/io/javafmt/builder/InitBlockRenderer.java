@@ -2,8 +2,9 @@ package io.javafmt.builder;
 
 import com.sun.source.tree.BlockTree;
 import io.javafmt.doc.Doc;
-import java.util.Optional;
 import lombok.experimental.UtilityClass;
+
+import java.util.Optional;
 
 @UtilityClass
 final class InitBlockRenderer {

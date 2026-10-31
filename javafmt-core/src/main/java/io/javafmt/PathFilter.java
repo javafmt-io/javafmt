@@ -1,5 +1,9 @@
 package io.javafmt;
 
+import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.nio.file.FileSystems;
@@ -8,9 +12,6 @@ import java.nio.file.PathMatcher;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import lombok.AccessLevel;
-import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Exclude-glob filtering shared by every integration. A path is excluded when its full path OR

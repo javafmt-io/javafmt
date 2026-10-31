@@ -1,14 +1,15 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class OutcomeTest {
 

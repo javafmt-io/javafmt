@@ -1,10 +1,11 @@
 package io.javafmt;
 
 import io.javafmt.cache.FormatCache;
+import lombok.experimental.UtilityClass;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
-import lombok.experimental.UtilityClass;
 
 /**
  * The entry point for formatting Java source with javafmt. {@link #format} and

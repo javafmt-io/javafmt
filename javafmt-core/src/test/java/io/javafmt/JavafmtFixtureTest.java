@@ -1,9 +1,10 @@
 package io.javafmt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-
 import io.javafmt.parser.JavaParser;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
@@ -13,9 +14,9 @@ import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 class JavafmtFixtureTest {
 

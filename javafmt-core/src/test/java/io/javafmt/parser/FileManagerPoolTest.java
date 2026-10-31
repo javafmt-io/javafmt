@@ -1,14 +1,15 @@
 package io.javafmt.parser;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
 import javax.tools.StandardJavaFileManager;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FileManagerPoolTest {
 

@@ -1,13 +1,14 @@
 package io.javafmt.corpus;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.corpus.CorpusRun.FileOutcome;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
 import java.nio.file.Path;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Formats the JDK's {@code java.base} sources and holds the result against

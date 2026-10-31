@@ -1,12 +1,12 @@
 package io.javafmt.lint.oracle;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.CompileCheck;
 import io.javafmt.Diagnostic;
 import io.javafmt.FormatResult;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
+import org.junit.jupiter.params.provider.Arguments;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
@@ -18,7 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
-import org.junit.jupiter.params.provider.Arguments;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Helpers for lint-rule oracle tests. Each rule has a corpus directory under

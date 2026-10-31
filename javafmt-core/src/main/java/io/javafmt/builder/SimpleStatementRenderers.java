@@ -8,8 +8,9 @@ import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.ThrowTree;
 import com.sun.source.tree.YieldTree;
 import io.javafmt.doc.Doc;
-import java.util.List;
 import lombok.experimental.UtilityClass;
+
+import java.util.List;
 
 @UtilityClass
 final class SimpleStatementRenderers {

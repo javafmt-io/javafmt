@@ -1,6 +1,6 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -8,7 +8,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Guards the boundary this module depends on to load in JBR 21: no dependency on javafmt-core,

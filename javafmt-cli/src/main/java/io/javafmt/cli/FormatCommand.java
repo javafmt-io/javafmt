@@ -3,14 +3,6 @@ package io.javafmt.cli;
 import io.javafmt.JavafmtVersion;
 import io.javafmt.daemon.Daemon;
 import io.javafmt.daemon.Wire;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.concurrent.Callable;
 import org.jspecify.annotations.Nullable;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -20,6 +12,15 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.ParameterException;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.Spec;
+
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.concurrent.Callable;
 
 @Command( name = "javafmt", mixinStandardHelpOptions = true, versionProvider = FormatCommand.Version.class, showAtFileInUsageHelp = true, showEndOfOptionsDelimiterInUsageHelp = true, description = { "Formats Java source in place. With no paths, or with '-', reads from stdin and writes the result to stdout.", "Directories are searched recursively for .java files.", }, exitCodeListHeading = "%nExit Codes:%n", exitCodeList = { "0:nothing to do", "1:a file would be reformatted, or could not be formatted", "2:bad usage, or a file could not be read or written", })
 final class FormatCommand implements Callable<Integer> {

@@ -6,6 +6,8 @@ import com.sun.source.util.SourcePositions;
 import com.sun.source.util.Trees;
 import io.javafmt.Diagnostic;
 import io.javafmt.Position;
+import lombok.experimental.UtilityClass;
+
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -28,7 +30,6 @@ import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
-import lombok.experimental.UtilityClass;
 
 /**
  * Parses Java source via the JDK's {@code javax.tools} compiler API.

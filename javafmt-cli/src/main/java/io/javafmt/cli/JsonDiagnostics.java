@@ -1,8 +1,9 @@
 package io.javafmt.cli;
 
 import io.javafmt.Diagnostic;
-import java.util.Objects;
 import lombok.experimental.UtilityClass;
+
+import java.util.Objects;
 
 /** Renders a {@link Diagnostic} as one line of NDJSON for {@code --diagnostics=json}. */
 @UtilityClass

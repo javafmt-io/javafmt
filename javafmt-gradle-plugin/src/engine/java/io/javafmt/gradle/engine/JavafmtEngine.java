@@ -6,6 +6,7 @@ import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.SourceFiles;
 import io.javafmt.cache.FormatCache;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;

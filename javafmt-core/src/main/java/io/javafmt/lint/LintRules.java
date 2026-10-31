@@ -1,7 +1,8 @@
 package io.javafmt.lint;
 
-import java.util.List;
 import lombok.experimental.UtilityClass;
+
+import java.util.List;
 
 @UtilityClass
 public final class LintRules {

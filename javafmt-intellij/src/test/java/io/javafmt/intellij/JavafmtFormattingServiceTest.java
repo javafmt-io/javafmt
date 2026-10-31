@@ -1,7 +1,5 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.intellij.formatting.service.AsyncDocumentFormattingService;
 import com.intellij.formatting.service.FormattingServiceUtil;
 import com.intellij.notification.Notification;
@@ -16,6 +14,12 @@ import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.ServiceContainerUtil;
 import io.javafmt.Fixtures;
+import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,11 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 // Formatting happens by spawning a fake javafmt binary (a /bin/sh script, following the pattern
 // established by JavafmtBinaryTest), so this class shares that test's OS restriction.

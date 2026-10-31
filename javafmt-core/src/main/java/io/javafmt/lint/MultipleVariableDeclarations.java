@@ -10,6 +10,7 @@ import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;

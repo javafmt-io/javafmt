@@ -1,10 +1,13 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.UIUtil;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,10 +15,8 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
 

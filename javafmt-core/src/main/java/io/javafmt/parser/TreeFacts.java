@@ -5,6 +5,7 @@ import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+
 import java.util.Objects;
 
 /** javac-shape predicates that need source positions to answer questions the tree alone cannot. */

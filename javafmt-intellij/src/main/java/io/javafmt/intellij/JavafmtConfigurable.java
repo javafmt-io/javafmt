@@ -12,6 +12,8 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.UIUtil;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,7 +21,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
-import org.jetbrains.annotations.Nullable;
 
 /** The <em>Settings | Tools | javafmt</em> page backing {@link JavafmtSettings}. */
 public final class JavafmtConfigurable implements Configurable {

@@ -2,9 +2,10 @@ package io.javafmt.builder;
 
 import com.sun.source.tree.ClassTree;
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+
 import java.util.Optional;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 /**
  * Renders the {@code { ... }} body that a class can carry without being a type declaration: the

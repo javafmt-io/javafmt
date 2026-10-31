@@ -3,11 +3,12 @@ package io.javafmt.parser;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
+import org.jspecify.annotations.Nullable;
+
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
-import org.jspecify.annotations.Nullable;
 
 /**
  * {@link TreePathScanner} on top of {@link ChainScanner}: {@link #getCurrentPath()} is the path to

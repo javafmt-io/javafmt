@@ -16,6 +16,7 @@ import io.javafmt.parser.Attribution;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

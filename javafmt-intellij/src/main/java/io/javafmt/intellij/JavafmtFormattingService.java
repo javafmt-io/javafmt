@@ -9,11 +9,12 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import io.javafmt.daemon.protocol.Diagnostic;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Drives the {@code javafmt} binary from <em>Reformat Code</em>.

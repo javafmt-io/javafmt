@@ -1,9 +1,9 @@
 package io.javafmt.cache;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.JavafmtConfig;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class CacheKeyTest {
 

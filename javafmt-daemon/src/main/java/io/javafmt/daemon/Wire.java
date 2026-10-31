@@ -4,6 +4,8 @@ import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.util.JsonFormat;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -13,7 +15,6 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.stream.Stream;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public enum Wire {

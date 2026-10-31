@@ -1,5 +1,8 @@
 package io.javafmt.gradle;
 
+import org.gradle.testkit.runner.BuildResult;
+import org.gradle.testkit.runner.GradleRunner;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
@@ -13,8 +16,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.gradle.testkit.runner.BuildResult;
-import org.gradle.testkit.runner.GradleRunner;
 
 record TestBuild(Path dir) {
 

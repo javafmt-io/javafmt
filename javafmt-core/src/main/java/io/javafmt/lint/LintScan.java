@@ -1,10 +1,11 @@
 package io.javafmt.lint;
 
 import io.javafmt.parser.ChainScanner;
+import lombok.experimental.UtilityClass;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import lombok.experimental.UtilityClass;
 
 /** The scan-from-root template shared by rules whose apply() is one visitor over the unit. */
 @UtilityClass

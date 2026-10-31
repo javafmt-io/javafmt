@@ -1,6 +1,9 @@
 package io.javafmt;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -14,10 +17,8 @@ import java.util.stream.IntStream;
 import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DeepExpressionTest {
 

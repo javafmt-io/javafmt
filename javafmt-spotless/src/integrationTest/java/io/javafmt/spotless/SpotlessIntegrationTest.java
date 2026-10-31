@@ -1,19 +1,20 @@
 package io.javafmt.spotless;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.Fixtures;
+import org.gradle.testkit.runner.BuildResult;
+import org.gradle.testkit.runner.GradleRunner;
+import org.gradle.testkit.runner.TaskOutcome;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Collectors;
-import org.gradle.testkit.runner.BuildResult;
-import org.gradle.testkit.runner.GradleRunner;
-import org.gradle.testkit.runner.TaskOutcome;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Runs a real Gradle build that wires javafmt into Spotless the way {@code docs/intro.md} tells

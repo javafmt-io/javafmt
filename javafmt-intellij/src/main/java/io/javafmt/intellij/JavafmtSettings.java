@@ -5,8 +5,9 @@ import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
-import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Objects;
 
 /**
  * Per-project javafmt settings, persisted to {@code .idea/javafmt.xml}.
