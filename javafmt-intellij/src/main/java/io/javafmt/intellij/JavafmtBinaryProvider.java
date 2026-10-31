@@ -18,7 +18,6 @@ import java.util.function.Supplier;
 
 @Service(Service.Level.APP)
 public final class JavafmtBinaryProvider {
-
     private final BinaryInstaller installer;
 
     private final Consumer<Task.Backgroundable> runner;
@@ -70,7 +69,6 @@ public final class JavafmtBinaryProvider {
         inFlight = Optional.of(result);
         runner.accept(
                 new Task.Backgroundable(project, "Downloading javafmt", true) {
-
                     @Override
                     public void run(@NotNull final ProgressIndicator indicator) {
                         result.complete(installer.install(indicator));

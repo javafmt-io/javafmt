@@ -15,7 +15,6 @@ import java.util.Optional;
  * behavior when type information is available.
  */
 public record LintContext(ParsedUnit unit, Optional<Attribution> attribution, int release) {
-
     public LintContext {
         Objects.requireNonNull(unit, "unit");
         Objects.requireNonNull(attribution, "attribution");

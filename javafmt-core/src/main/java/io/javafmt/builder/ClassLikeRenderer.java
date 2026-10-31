@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class ClassLikeRenderer {
-
     Doc render(final ClassTree node, final String keyword, final Recursor recursor) {
         final var prefix = ModifierRenderer.modifiersText(node.getModifiers()) + keyword + " " + node.getSimpleName();
         final var isInterface = node.getKind() == Tree.Kind.INTERFACE;

@@ -1,5 +1,4 @@
 class MarkdownDocs {
-
     /// Gets the current value.
     ///
     /// @return the value

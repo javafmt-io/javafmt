@@ -14,7 +14,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PathFilterTest {
-
     @Test
     void aFilterSurvivesSerializationAndComparesByItsGlobs() throws Exception {
         final var filter = PathFilter.ofGlobs(List.of("**/generated/**", "Legacy*.java"));

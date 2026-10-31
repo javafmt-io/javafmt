@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModuleRendererTest {
-
     @Test
     void emptyModule_rendersOnOneLine() {
         assertThat(Javafmt.format("module foo.bar {}").stripTrailing()).isEqualTo("module foo.bar {}");

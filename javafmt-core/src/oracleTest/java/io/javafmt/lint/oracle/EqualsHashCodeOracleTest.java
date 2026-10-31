@@ -16,7 +16,6 @@ import java.util.stream.Stream;
  * <p>The substring covers both directions of the message — the missing half is named in each.
  */
 class EqualsHashCodeOracleTest {
-
     EqualsHashCodeOracleTest() {}
 
     private static final String CORPUS = "equals-hash-code";

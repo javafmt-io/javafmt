@@ -1,5 +1,4 @@
 final class Fixture {
-
     static int first = 1;
 
     static void run() {

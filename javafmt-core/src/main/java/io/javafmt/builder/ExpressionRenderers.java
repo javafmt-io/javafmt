@@ -34,7 +34,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class ExpressionRenderers {
-
     /**
      * A non-logical binary expression breaks before the operator when the line does not fit.
      * Unlike a logical chain this does not collect

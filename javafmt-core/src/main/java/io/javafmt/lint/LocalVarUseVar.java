@@ -68,7 +68,6 @@ import javax.lang.model.type.TypeMirror;
  * {@code var}.
  */
 public final class LocalVarUseVar implements LintRule {
-
     private static final Map<String, Integer> DIAMOND_TARGET_ARITY = Map.ofEntries(
             Map.entry("Iterable", 1), Map.entry("Collection", 1), Map.entry("SequencedCollection", 1), Map.entry("List", 1), Map.entry("Set", 1),
             Map.entry("SequencedSet", 1), Map.entry("SortedSet", 1), Map.entry("NavigableSet", 1), Map.entry("Queue", 1), Map.entry("Deque", 1),
@@ -92,7 +91,6 @@ public final class LocalVarUseVar implements LintRule {
         final var proposals = LintScan.<Proposal>collect(
                 context,
                 sink -> new ChainPathScanner<>() {
-
                     @Override
                     public Void visitVariable(final VariableTree node, final Void p) {
                         proposalFor(getCurrentPath(), context, reassignments).ifPresent(sink::add);
@@ -324,7 +322,6 @@ public final class LocalVarUseVar implements LintRule {
     private static boolean carriesTypeWitness(final ExpressionTree initializer) {
         final var found = new AtomicBoolean();
         new ChainScanner<Void, Void>() {
-
             @Override
             protected void visitInvocation(final MethodInvocationTree node, final Void p) {
                 if (!node.getTypeArguments().isEmpty()) {
@@ -467,7 +464,6 @@ public final class LocalVarUseVar implements LintRule {
     }
 
     record Proposal(TreePath path, List<LintEdit> edits, boolean proven, boolean keepsItsTypeWithoutTarget) {
-
         Proposal {
             edits = List.copyOf(edits);
         }

@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MethodChainRendererTest {
-
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -19,7 +18,6 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { result.stream().toList(); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    result.stream().toList();
                                }
@@ -31,7 +29,6 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { doSomething(42); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    doSomething(42);
                                }
@@ -50,7 +47,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    result.stream()
                                            .filter(element -> element.isActive())
@@ -67,7 +63,6 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { someMethod(alpha, beta, gamma); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    someMethod(alpha, beta, gamma);
                                }
@@ -82,7 +77,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    someMethod(
                                            arg1111111111, arg2222222222, arg3333333333, arg4444444444, arg5555555555, arg6666666666, arg7777777777, arg8888888888,
@@ -100,7 +94,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    result.stream()
                                            .filter(x -> x > 0)
@@ -117,7 +110,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    runner.forEach(x -> {
                                        doIt(x);
@@ -135,7 +127,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    Stream.<java.util.Map<String, Integer>>of();
                                }
@@ -154,7 +145,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                List<String> test() {
                                    return result.stream()
                                            .filter(element -> element.isActive())
@@ -172,7 +162,6 @@ class MethodChainRendererTest {
         // the chain would fit on a single line.
         final var input = """
             class Foo {
-
                 void test() {
                     result.stream()
                         .filter(x -> x.ok())
@@ -182,7 +171,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    result.stream()
                                            .filter(x -> x.ok())
@@ -197,7 +185,6 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { result.stream().filter(x -> x.ok()).toList(); } }"))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    result.stream().filter(x -> x.ok()).toList();
                                }
@@ -215,7 +202,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    stmts.stream().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s))));
                                }
@@ -229,7 +215,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    var foo = SomeServiceBuilder.builder().withThing1(thing1).withThing2(thing2).withThing3(thing3).build();
                                }
@@ -243,7 +228,6 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-
                                void test() {
                                    var foo = SomeServiceBuilder.builder()
                                            .withThing1(thing1)

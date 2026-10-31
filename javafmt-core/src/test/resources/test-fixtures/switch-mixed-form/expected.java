@@ -1,5 +1,4 @@
 class Fixture {
-
     int test(final int x) {
         switch (x) {
             case 1 -> doArrow();

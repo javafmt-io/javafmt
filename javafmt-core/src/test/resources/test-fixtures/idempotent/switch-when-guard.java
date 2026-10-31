@@ -1,5 +1,4 @@
 class Fixture {
-
     String test(final Object o) {
         return switch (o) {
             case Integer i when i > 0 -> "positive";

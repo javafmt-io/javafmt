@@ -21,7 +21,6 @@ import java.util.function.Consumer;
 @Slf4j
 @UtilityClass
 public final class Daemon {
-
     public final int DEFAULT_THREADS = Math.clamp(Runtime.getRuntime().availableProcessors(), 1, 4);
 
     private final long STACK_SIZE = 64L * 1024 * 1024;
@@ -109,7 +108,6 @@ public final class Daemon {
     }
 
     private record Replies(OutputStream out, Lock lock) {
-
         void write(final byte[] reply) {
             lock.lock();
             try {

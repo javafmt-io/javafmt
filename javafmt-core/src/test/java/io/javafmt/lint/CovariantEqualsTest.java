@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CovariantEqualsTest {
-
     @Test
     void covariantEqualsWithSpecificTypeProducesWarning() {
         final var unit = JavaParser.parseUnit("""

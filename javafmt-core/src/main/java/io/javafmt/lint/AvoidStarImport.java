@@ -10,7 +10,6 @@ import java.util.List;
  * handled by {@link ExplodeStarImports}.
  */
 public final class AvoidStarImport implements WarningRule {
-
     private static final String MESSAGE = "avoid star import; use explicit imports instead";
 
     @Override

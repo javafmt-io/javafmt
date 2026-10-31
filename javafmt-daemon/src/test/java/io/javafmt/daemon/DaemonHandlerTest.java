@@ -11,7 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 class DaemonHandlerTest {
-
     @Test
     void echoesTheRequestId() {
         assertThat(DaemonHandler.handle(42, "class Foo {}").getId()).isEqualTo(42);

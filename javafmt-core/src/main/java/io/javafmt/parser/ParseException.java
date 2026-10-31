@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 
 public final class ParseException extends RuntimeException {
-
     @Serial private static final long serialVersionUID = 1L;
 
     @Getter private final transient List<Diagnostic> diagnostics;

@@ -28,7 +28,6 @@ public record ParsedUnit(CompilationUnitTree tree,
                          Map<Tree, List<CommentToken>> trailing,
                          Map<Tree, List<CommentToken>> interior,
                          Map<Tree, List<CommentToken>> tail) {
-
     public ParsedUnit {
         Objects.requireNonNull(tree, "tree");
         Objects.requireNonNull(source, "source");

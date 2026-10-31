@@ -13,7 +13,6 @@ import java.util.Optional;
 
 @UtilityClass
 public final class Cli {
-
     private final int INTERNAL_ERROR = 2;
 
     public int run(final String[] arguments, final InputStream in, final PrintStream out, final PrintStream err) {

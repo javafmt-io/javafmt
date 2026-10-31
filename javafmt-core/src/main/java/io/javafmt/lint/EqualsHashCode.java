@@ -13,7 +13,6 @@ import java.util.Optional;
  * {@link Object#hashCode}.
  */
 public final class EqualsHashCode implements WarningRule {
-
     @Override
     public List<Diagnostic> warnings(final LintContext context) {
         return WarningRule.onNode(context, ClassTree.class, EqualsHashCode::warningFor);

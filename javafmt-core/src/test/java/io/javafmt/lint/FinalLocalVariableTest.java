@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FinalLocalVariableTest {
-
     @Test
     void unreassignedLocalGetsFinalModifier() {
         final var unit = JavaParser.parseUnit("""

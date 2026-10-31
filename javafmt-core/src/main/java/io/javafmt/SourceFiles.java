@@ -23,7 +23,6 @@ import java.util.Objects;
  */
 @UtilityClass
 public final class SourceFiles {
-
     private final String TEMP_SUFFIX = ".javafmt";
 
     /**
@@ -128,7 +127,6 @@ public final class SourceFiles {
 
     /** What a walk found, alongside the entries it could not read and skipped. */
     public record Discovery(List<Path> files, List<Unreadable> unreadable) {
-
         public Discovery {
             files = List.copyOf(files);
             unreadable = List.copyOf(unreadable);
@@ -154,7 +152,6 @@ public final class SourceFiles {
      * cannot read must not hide the siblings they can.
      */
     private static final class Collector extends SimpleFileVisitor<Path> {
-
         private final Path root;
 
         private final boolean applyDefaultExcludes;

@@ -1,5 +1,4 @@
 class Fixture {
-
     void submit(final OrderService orders, final InvoiceLedger invoices) {
         orders.callWithManyArguments(
                 firstOrderIdentifier, secondOrderIdentifier, shippingAddressLine, billingAddressLine, invoiceTotalAmount, customerAccountNumber,

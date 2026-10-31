@@ -1,5 +1,4 @@
 class Fixture {
-
     static <T> Fixture make(final T seed) {
         return Fixture.<T>build(seed);
     }
@@ -13,7 +12,6 @@ class Fixture {
     }
 
     class Inner {
-
         Inner(final int n) {}
     }
 }

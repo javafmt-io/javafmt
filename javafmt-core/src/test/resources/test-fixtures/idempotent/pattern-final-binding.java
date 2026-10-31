@@ -1,5 +1,4 @@
 class Fixture {
-
     void check(final Object message) {
         if (message instanceof final String text) {
             use(text);

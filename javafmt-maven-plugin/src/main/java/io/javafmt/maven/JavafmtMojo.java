@@ -13,7 +13,6 @@ import java.util.Optional;
 
 @Mojo(name = "format", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
 public final class JavafmtMojo extends AbstractJavafmtMojo {
-
     public JavafmtMojo() {}
 
     JavafmtMojo(final MavenProject project, final List<String> excludes, final Optional<Path> cacheFile) {

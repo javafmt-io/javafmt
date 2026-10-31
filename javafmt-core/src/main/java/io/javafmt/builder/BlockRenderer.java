@@ -14,7 +14,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class BlockRenderer {
-
     List<Doc> blockStatements(final StatementTree statement, final Recursor recursor) {
         if (statement instanceof BlockTree block) {
             final var statementDocs = statementDocs(block.getStatements(), recursor);

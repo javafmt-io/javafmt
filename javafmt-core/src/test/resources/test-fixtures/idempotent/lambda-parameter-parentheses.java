@@ -2,7 +2,6 @@ import java.util.List;
 import java.util.function.Predicate;
 
 class Fixture {
-
     Predicate<String> parenthesised() {
         return (t) -> t.isEmpty();
     }

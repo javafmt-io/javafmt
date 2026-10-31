@@ -20,7 +20,6 @@ import javax.tools.JavaFileObject;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FormatResultTest {
-
     @Test
     void formatOnInvalidSourceReturnsInputUnchanged() {
         final var garbage = "class {";
@@ -46,7 +45,7 @@ class FormatResultTest {
     @Test
     void formatWithResultOnValidSourceHasNoDiagnostics() {
         final var result = Javafmt.formatWithResult("class Foo { int x; }");
-        assertThat(result.output().stripTrailing()).isEqualTo("class Foo {\n\n    int x;\n}");
+        assertThat(result.output().stripTrailing()).isEqualTo("class Foo {\n    int x;\n}");
         assertThat(result.diagnostics()).isEmpty();
         assertThat(result.hasErrors()).isFalse();
     }
@@ -79,7 +78,6 @@ class FormatResultTest {
         final var src = "class Foo {}\n";
         final var realUnit = JavaParser.parseUnit(src);
         final var synthetic = new Tree() {
-
             @Override
             public Kind getKind() {
                 return Kind.OTHER;
@@ -109,7 +107,6 @@ class FormatResultTest {
     }
 
     private record SyntheticCompilationUnit(CompilationUnitTree real, Tree declaration) implements CompilationUnitTree {
-
         @Override
         public List<? extends AnnotationTree> getPackageAnnotations() {
             return List.of();

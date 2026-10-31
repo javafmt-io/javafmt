@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public final class DaemonFixtures {
-
     public static final List<String> REQUESTS_HEX = lines("requests.hex");
 
     public static final List<String> REQUESTS_JSON = lines("requests.jsonl");

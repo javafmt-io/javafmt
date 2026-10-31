@@ -3,7 +3,6 @@ import java.lang.annotation.Target;
 import java.util.List;
 
 class Fixture {
-
     void loops(final List<String> xs) {
         for (final String x : xs) {
             use(x);

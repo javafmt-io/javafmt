@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  * rather than the integer zero the rule looks for, so javafmt keeps the initializer.
  */
 class ExplicitInitializationOracleTest {
-
     ExplicitInitializationOracleTest() {}
 
     private static final String CORPUS = "explicit-initialization";

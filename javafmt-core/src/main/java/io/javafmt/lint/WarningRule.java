@@ -13,7 +13,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 interface WarningRule extends LintRule {
-
     List<Diagnostic> warnings(LintContext context);
 
     @Override
@@ -35,7 +34,6 @@ interface WarningRule extends LintRule {
         return LintScan.collect(
                 context,
                 diagnostics -> new ChainScanner<>() {
-
                     @Override
                     @Nullable
                     public Void scan(@Nullable final Tree tree, @Nullable final Void p) {

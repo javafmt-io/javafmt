@@ -29,14 +29,12 @@ import java.util.Optional;
  * left the source without a comma and the renderer printed one.
  */
 public final class ArrayTrailingComma implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainScanner<>() {
-
                     @Override
                     public Void visitAnnotation(final AnnotationTree node, final Void p) {
                         return null;

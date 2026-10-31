@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VersionGateTest {
-
     @Test
     void aConclusiveProbeIsAskedOnce(@TempDir final Path dir) throws IOException {
         final var probes = new AtomicInteger();

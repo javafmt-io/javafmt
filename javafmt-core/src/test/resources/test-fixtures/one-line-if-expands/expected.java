@@ -1,5 +1,4 @@
 class Fixture {
-
     void spacedBraces(final int x) {
         if (x > 0) {
             report();

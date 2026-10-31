@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 final class VersionGate {
-
     /**
      * Version probes are cached per binary identity (path, size, and last-modified time), not just
      * per path. A stale cached {@code false} (the binary was old, then upgraded) only costs one

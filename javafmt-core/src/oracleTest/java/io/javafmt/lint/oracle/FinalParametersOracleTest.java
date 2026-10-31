@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  * are configured here, with a comment explaining why.
  */
 class FinalParametersOracleTest {
-
     FinalParametersOracleTest() {}
 
     private static final String CORPUS = "final-parameters";

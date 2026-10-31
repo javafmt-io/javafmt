@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
  * request is one it can honour.
  */
 public final class JavafmtFormattingService extends AsyncDocumentFormattingService {
-
     private static final Logger LOG = Logger.getInstance(JavafmtFormattingService.class);
 
     /** Must match the {@code notificationGroup} id registered in {@code plugin.xml}. */
@@ -111,7 +110,6 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
      * the document already has" rather than by returning silently.
      */
     private static final class JavafmtFormattingTask implements FormattingTask {
-
         private final AsyncFormattingRequest request;
 
         /**

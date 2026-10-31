@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  * of scope for v1.
  */
 class NeedBracesOracleTest {
-
     NeedBracesOracleTest() {}
 
     private static final String CORPUS = "need-braces";

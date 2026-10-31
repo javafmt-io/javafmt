@@ -7,7 +7,6 @@ import java.nio.file.Path;
 
 /** Shared test scaffolding for the format and check mojo tests. */
 final class MojoTestSupport {
-
     static final String UNFORMATTED = "class   Foo{\n\nvoid bar()  { }\n}\n";
 
     static MavenProject buildProject(final Path srcDir) {

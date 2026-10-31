@@ -26,7 +26,6 @@ import java.util.stream.StreamSupport;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ChainScannerTest {
-
     private static final String MIXED = """
             class Mixed {
 
@@ -42,14 +41,14 @@ class ChainScannerTest {
             """;
 
     @ParameterizedTest
-    @ValueSource(strings = {MIXED, CALLS, "class Single {\n\n    int value = a + b;\n}\n", "class None {\n\n    int value = a;\n}\n"})
+    @ValueSource(strings = {MIXED, CALLS, "class Single {\n    int value = a + b;\n}\n", "class None {\n    int value = a;\n}\n"})
     void visitsOperatorsAndOperandsInTheSameOrderAsTreeScanner(final String source) {
         final var unit = JavaParser.parseUnit(source).tree();
         assertThat(chainVisits(unit)).isEqualTo(javacVisits(unit));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {MIXED, CALLS, "class Single {\n\n    int value = a + b;\n}\n"})
+    @ValueSource(strings = {MIXED, CALLS, "class Single {\n    int value = a + b;\n}\n"})
     void reportsTheSamePathAsTreePathScanner(final String source) {
         final var unit = JavaParser.parseUnit(source).tree();
         assertThat(chainPaths(unit)).isEqualTo(javacPaths(unit));
@@ -63,9 +62,8 @@ class ChainScannerTest {
     @ParameterizedTest
     @MethodSource("reductions")
     void reducesInTheSameOrderAsTreeScanner(final String field, final boolean concatenating) {
-        final var unit = JavaParser.parseUnit("class Sum {\n\n    " + field + "\n}\n").tree();
+        final var unit = JavaParser.parseUnit("class Sum {\n    " + field + "\n}\n").tree();
         final var javac = new TreeScanner<String, Void>() {
-
             @Override
             public String visitLiteral(final LiteralTree node, final Void unused) {
                 return String.valueOf(node.getValue());
@@ -77,7 +75,6 @@ class ChainScannerTest {
             }
         };
         final var chain = new ChainScanner<String, Void>() {
-
             @Override
             public String visitLiteral(final LiteralTree node, final Void unused) {
                 return String.valueOf(node.getValue());
@@ -102,7 +99,7 @@ class ChainScannerTest {
     @MethodSource("deepChains")
     void walksAChainOnAStackTooSmallForTreeScannerToRecurseThrough(final String field, final Class<?> literalParent) throws InterruptedException {
         final var terms = 5_000;
-        final var source = "class Deep {\n\n    " + field + "\n}\n";
+        final var source = "class Deep {\n    " + field + "\n}\n";
         final var unit = JavaParser.parseUnit(source).tree();
         final var literals = new AtomicInteger();
         assertThat(
@@ -113,7 +110,6 @@ class ChainScannerTest {
         assertThat(
                 onASmallStack(
                         () -> new ChainPathScanner<Void, Void>() {
-
                             @Override
                             public Void visitLiteral(final LiteralTree node, final Void unused) {
                                 assertThat(getCurrentPath().getParentPath().getLeaf()).isInstanceOf(literalParent);
@@ -146,7 +142,6 @@ class ChainScannerTest {
     private static List<String> javacVisits(final Tree unit) {
         final var visits = new ArrayList<String>();
         new TreeScanner<Void, Void>() {
-
             @Override
             public Void visitBinary(final BinaryTree node, final Void unused) {
                 visits.add("binary " + node.getKind());
@@ -171,7 +166,6 @@ class ChainScannerTest {
     private static List<String> chainVisits(final Tree unit) {
         final var visits = new ArrayList<String>();
         new ChainScanner<Void, Void>() {
-
             @Override
             protected void visitBinaryOperator(final BinaryTree node, final Void unused) {
                 visits.add("binary " + node.getKind());
@@ -194,7 +188,6 @@ class ChainScannerTest {
     private static List<String> javacPaths(final Tree unit) {
         final var paths = new ArrayList<String>();
         new TreePathScanner<Void, Void>() {
-
             @Override
             public Void visitBinary(final BinaryTree node, final Void unused) {
                 paths.add(describe(getCurrentPath()));
@@ -220,7 +213,6 @@ class ChainScannerTest {
         final var paths = new ArrayList<String>();
         final Consumer<TreePath> record = path -> paths.add(describe(path));
         new ChainPathScanner<Void, Void>() {
-
             @Override
             protected void visitBinaryOperator(final BinaryTree node, final Void unused) {
                 record.accept(getCurrentPath());

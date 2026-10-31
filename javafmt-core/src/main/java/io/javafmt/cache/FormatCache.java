@@ -11,7 +11,6 @@ import java.nio.file.Path;
  * nothing and treats every file as needing formatting.</p>
  */
 public interface FormatCache {
-
     /**
      * Returns {@code true} if {@code currentContent} matches the cached post-format hash for
      * {@code file}. When this returns true, the caller may safely skip formatting.

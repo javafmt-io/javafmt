@@ -24,7 +24,6 @@ import javax.lang.model.util.Types;
  * source it came from.
  */
 public record Attribution(Trees trees, Types types, Elements elements, AttributionSession session, Map<URI, List<AttributionError>> errors) {
-
     public Attribution {
         Objects.requireNonNull(trees, "trees");
         Objects.requireNonNull(types, "types");

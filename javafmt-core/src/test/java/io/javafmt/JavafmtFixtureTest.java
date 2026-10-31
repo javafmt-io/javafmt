@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 class JavafmtFixtureTest {
-
     static Stream<Arguments> fixtures() throws URISyntaxException, IOException {
         final var fixturesRoot = JavafmtFixtureTest.class.getClassLoader().getResource("test-fixtures");
         if (fixturesRoot == null) {

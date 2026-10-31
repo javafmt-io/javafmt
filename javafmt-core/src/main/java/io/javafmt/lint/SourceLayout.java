@@ -15,7 +15,6 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 final class SourceLayout {
-
     final int LINE_WIDTH = 150;
 
     /** The source with its comments removed and every run of whitespace collapsed to one space. */

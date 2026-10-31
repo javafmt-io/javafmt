@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class NeedBracesTest {
-
     @Test
     void emitsTwoEditsForSingleLineIfWithoutBraces() {
         final var unit = JavaParser.parseUnit("""

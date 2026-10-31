@@ -5,6 +5,5 @@ package com.example;
 import java.util.List;
 
 class Fixture {
-
     List<String> names;
 }

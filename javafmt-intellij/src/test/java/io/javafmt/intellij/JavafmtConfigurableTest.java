@@ -19,7 +19,6 @@ import javax.swing.JComponent;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
-
     private JavafmtConfigurable configurable;
 
     private JComponent form;

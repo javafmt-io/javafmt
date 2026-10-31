@@ -40,11 +40,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 // does with a service that declines, is exactly the part that decides whether Reformat Code works.
 @EnabledOnOs({OS.MAC, OS.LINUX})
 public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
-
     /** Source the fake binary answers with a formatted body plus one warning-only diagnostic. */
     private static final String UNFORMATTED_WARNED = "class Warned { int x; }";
 
-    private static final String FORMATTED_WARNED = "class Warned {\n\n    int x;\n}\n";
+    private static final String FORMATTED_WARNED = "class Warned {\n    int x;\n}\n";
 
     private static final String DOWNLOADED = "javafmt-" + FakeRelease.VERSION + "-linux-x64";
 
@@ -62,7 +61,6 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                 .subscribe(
                         Notifications.TOPIC,
                         new Notifications() {
-
                             @Override
                             public void notify(@NotNull final Notification notification) {
                                 notifications.add(notification);

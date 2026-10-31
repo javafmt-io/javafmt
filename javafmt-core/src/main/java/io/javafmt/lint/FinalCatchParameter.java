@@ -6,7 +6,6 @@ import io.javafmt.parser.ChainScanner;
 import java.util.Optional;
 
 public final class FinalCatchParameter implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -14,7 +13,6 @@ public final class FinalCatchParameter implements LintRule {
         final var catches = LintScan.<CatchTree>collect(
                 context,
                 sink -> new ChainScanner<>() {
-
                     @Override
                     public Void visitCatch(final CatchTree node, final Void p) {
                         sink.add(node);

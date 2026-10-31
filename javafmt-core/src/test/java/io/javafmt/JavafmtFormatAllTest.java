@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * rather than asserting formatted text directly.
  */
 class JavafmtFormatAllTest {
-
     private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     private static List<String> dirtyCorpus(final int n) {
@@ -123,7 +122,7 @@ class JavafmtFormatAllTest {
 
     @Test
     void aFileJavacCannotAttributeIsFormattedParseOnlyWithAWarning() {
-        final var source = "class A {\n\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
+        final var source = "class A {\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
         final var results = BatchFormatter.formatChunk(
                 List.of(source), ANALYZE, BatchFormatter.Renderer.INLINE,
                 chunk -> BatchFormatter.fromAttributed(chunk, List.of(new Staged.Failed<>(new IllegalStateException("javac crashed")))));
@@ -138,7 +137,7 @@ class JavafmtFormatAllTest {
     @Test
     void aFileThatCrashesJavacAttributionDoesNotCostItsNeighbourItsAttribution() {
         final var neighbour = analyzeSensitiveSources().getLast();
-        final var pathological = "class Deep {\n\n    int value = " + "1 + ".repeat(100_000) + "1;\n}\n";
+        final var pathological = "class Deep {\n    int value = " + "1 + ".repeat(100_000) + "1;\n}\n";
         final var results = Javafmt.formatAll(List.of(neighbour, pathological), ANALYZE, 1);
         assertThat(results.getFirst()).isEqualTo(Javafmt.formatWithResult(neighbour, ANALYZE));
         assertThat(results.get(1).diagnostics()).isNotEmpty();
@@ -259,7 +258,7 @@ class JavafmtFormatAllTest {
         // at the shallower depths. All this test pins is the contract that holds in every case —
         // every file still gets a result, the neighbours are formatted, and the deep file either
         // formats or round-trips unchanged with a diagnostic. What it may never do is end the run.
-        final var deep = "class Deep {\n\n    int value = " + Stream.generate(() -> "1").limit(terms).collect(Collectors.joining(" + ")) + ";\n}\n";
+        final var deep = "class Deep {\n    int value = " + Stream.generate(() -> "1").limit(terms).collect(Collectors.joining(" + ")) + ";\n}\n";
         final var sources = List.of("class Good {}\n", deep, "class AlsoGood {}\n");
         final var results = Javafmt.formatAll(sources, JavafmtConfig.defaults(), 2);
         assertThat(results).hasSize(3);
@@ -273,7 +272,7 @@ class JavafmtFormatAllTest {
 
     @Test
     void aFileTooDeepToParseOnASmallStackComesBackUnchangedWithAnInternalError() throws InterruptedException {
-        final var deep = "class Deep {\n\n    int value = " + Stream.generate(() -> "1").limit(100_000).collect(Collectors.joining(" + ")) + ";\n}\n";
+        final var deep = "class Deep {\n    int value = " + Stream.generate(() -> "1").limit(100_000).collect(Collectors.joining(" + ")) + ";\n}\n";
         final var sources = List.of("class Good {}\n", deep);
         final var results = new AtomicReference<List<FormatResult>>();
         final var failure = new AtomicReference<Throwable>();
@@ -303,7 +302,7 @@ class JavafmtFormatAllTest {
 
     @Test
     void configReachesTheAttributedPath() {
-        final var source = "class A {\n\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
+        final var source = "class A {\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
         assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).contains("final var x");
         assertThat(Javafmt.formatWithResult(source, ANALYZE.withLint(false)).output()).doesNotContain("final var x");
     }

@@ -19,7 +19,6 @@ package io.javafmt.lint;
  * heuristic or skip the deeper check entirely.
  */
 public interface LintRule {
-
     default String name() {
         return getClass().getSimpleName();
     }

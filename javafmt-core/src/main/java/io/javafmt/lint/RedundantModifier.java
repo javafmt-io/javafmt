@@ -29,14 +29,12 @@ import javax.lang.model.element.Modifier;
  * in place emitted the same deletion once per declarator, and {@link LintEngine} cannot apply that.
  */
 public final class RedundantModifier implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainPathScanner<>() {
-
                     @Override
                     public Void visitClass(final ClassTree node, final Void p) {
                         final var path = getCurrentPath();

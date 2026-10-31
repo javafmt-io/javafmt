@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UnusedVariableShouldBeUnnamedTest {
-
     static Stream<Arguments> renamed() {
         return Stream.of(
                 Arguments.of(

@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
  * holder) and re-run javafmt, after which the safe edit applies.
  */
 public final class FinalParameters implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -61,7 +60,6 @@ public final class FinalParameters implements LintRule {
         return LintScan.collect(
                 context,
                 methods -> new ChainScanner<>() {
-
                     @Override
                     public Void visitMethod(final MethodTree node, final Void p) {
                         if (node.getBody() != null && !facts.isCompactConstructor(node)) {

@@ -38,14 +38,12 @@ import javax.lang.model.element.Modifier;
  * reordered.
  */
 public final class ModifierOrder implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainPathScanner<>() {
-
                     @Override
                     public Void visitClass(final ClassTree node, final Void p) {
                         checkModifiers(node.getModifiers(), unit).ifPresent(edits::add);

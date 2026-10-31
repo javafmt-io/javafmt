@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class TypeRenderers {
-
     Doc renderIdentifier(final IdentifierTree node) {
         return new Doc.Text(node.getName().toString());
     }

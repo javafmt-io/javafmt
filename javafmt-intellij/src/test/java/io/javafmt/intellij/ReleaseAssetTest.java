@@ -13,7 +13,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReleaseAssetTest {
-
     private static final String HASH = "a".repeat(64);
 
     @ParameterizedTest

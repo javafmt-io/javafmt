@@ -10,7 +10,6 @@ import java.util.Objects;
 
 /** javac-shape predicates that need source positions to answer questions the tree alone cannot. */
 public final class TreeFacts {
-
     private final ParsedUnit unit;
 
     public TreeFacts(final ParsedUnit unit) {

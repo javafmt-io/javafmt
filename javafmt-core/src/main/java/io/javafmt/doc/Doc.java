@@ -21,7 +21,6 @@ public sealed interface Doc
             Doc.IfBreak,
             Doc.Choice,
             Doc.Fill {
-
     /** The sole {@link Line}. The record holds no state, so every instance is interchangeable. */
     Line LINE = new Line();
 
@@ -179,7 +178,6 @@ public sealed interface Doc
     }
 
     record Text(String value) implements Doc {
-
         public Text {
             Objects.requireNonNull(value, "value");
             if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
@@ -202,14 +200,12 @@ public sealed interface Doc
      * emits as-is).
      */
     record Verbatim(String value, int sourceColumn) implements Doc {
-
         public Verbatim {
             Objects.requireNonNull(value, "value");
         }
     }
 
     record BlockComment(List<String> lines, int sourceColumn) implements Doc {
-
         public BlockComment {
             Objects.requireNonNull(lines, "lines");
             lines = List.copyOf(lines);
@@ -226,14 +222,12 @@ public sealed interface Doc
     record HardLine() implements Doc {}
 
     record Indent(Doc contents) implements Doc {
-
         public Indent {
             Objects.requireNonNull(contents, "contents");
         }
     }
 
     record Align(Doc contents) implements Doc {
-
         public Align {
             Objects.requireNonNull(contents, "contents");
         }
@@ -247,7 +241,6 @@ public sealed interface Doc
      * compounds even when they'd technically fit on one line.
      */
     record Group(Doc contents, boolean preferBreakOnAuthor) implements Doc {
-
         public Group {
             Objects.requireNonNull(contents, "contents");
         }
@@ -258,7 +251,6 @@ public sealed interface Doc
     }
 
     record Concat(List<Doc> parts) implements Doc {
-
         public Concat {
             Objects.requireNonNull(parts, "parts");
             parts = List.copyOf(parts);
@@ -270,7 +262,6 @@ public sealed interface Doc
     }
 
     record IfBreak(Doc breakContents, Doc flatContents) implements Doc {
-
         public IfBreak {
             Objects.requireNonNull(breakContents, "breakContents");
             Objects.requireNonNull(flatContents, "flatContents");
@@ -278,7 +269,6 @@ public sealed interface Doc
     }
 
     record Choice(Doc preferred, Doc fallback) implements Doc {
-
         public Choice {
             Objects.requireNonNull(preferred, "preferred");
             Objects.requireNonNull(fallback, "fallback");
@@ -286,7 +276,6 @@ public sealed interface Doc
     }
 
     record Fill(List<Doc> parts) implements Doc {
-
         public Fill {
             Objects.requireNonNull(parts, "parts");
             parts = List.copyOf(parts);

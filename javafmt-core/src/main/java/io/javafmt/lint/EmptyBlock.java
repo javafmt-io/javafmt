@@ -22,14 +22,12 @@ import java.util.List;
  * addition, and running javafmt over its own source produced six, every one deliberate.
  */
 public final class EmptyBlock implements WarningRule {
-
     @Override
     public List<Diagnostic> warnings(final LintContext context) {
         final var unit = context.unit();
         return LintScan.collect(
                 context,
                 diagnostics -> new ChainScanner<>() {
-
                     @Override
                     public Void visitTry(final TryTree node, final Void p) {
                         final var fin = node.getFinallyBlock();
