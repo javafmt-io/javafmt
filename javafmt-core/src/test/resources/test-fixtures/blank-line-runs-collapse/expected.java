@@ -7,8 +7,8 @@ class Fixture {
     int second = 2;
 
     void method() {
-        final var a = 1;
+        final var _ = 1;
 
-        final var b = 2;
+        final var _ = 2;
     }
 }

@@ -48,10 +48,10 @@ object JavafmtFormatter {
      * instead of [APPLY_METHOD], enabling attribution-dependent lint rules such as
      * [RedundantTypeArguments]'s witness-drop and [LocalVarUseVar]'s widening-assignment path.
      */
-    fun step(jars: Collection<File>, analysisClasspath: Collection<File> = emptyList()): FormatterStep {
+    fun step(jars: Collection<File>, analysisClasspath: Collection<File>, release: () -> Int): FormatterStep {
         val classpathStr = analysisClasspath.joinToString(File.pathSeparator) { it.absolutePath }
         val paths = ArrayList(jars.map { it.absolutePath })
-        return FormatterStep.create("javafmt", ClasspathState(paths, classpathStr), FormatterFactory)
+        return FormatterStep.createLazy("javafmt", { ClasspathState(paths, classpathStr, release()) }, FormatterFactory)
     }
 
     /**
@@ -60,7 +60,7 @@ object JavafmtFormatter {
      */
     private data class JarEntry(val path: String, val sha256: String) : Serializable
 
-    private data class ClasspathState(val jars: ArrayList<String>, val analysisClasspath: String?) : Serializable
+    private data class ClasspathState(val jars: ArrayList<String>, val analysisClasspath: String?, val release: Int) : Serializable
 
     /**
      * Top-level serializable function that materializes the [ClasspathState]
@@ -80,21 +80,21 @@ object JavafmtFormatter {
             }
             val clazz = Class.forName(FORMATTER_CLASS, true, loader)
             if (!state.analysisClasspath.isNullOrEmpty()) {
-                val method = clazz.getMethod(APPLY_WITH_ANALYZE_METHOD, String::class.java, String::class.java)
+                val method = clazz.getMethod(APPLY_WITH_ANALYZE_METHOD, String::class.java, String::class.java, Int::class.javaPrimitiveType)
                 val classpath = state.analysisClasspath
                 return FormatterFunc { input ->
                     try {
-                        method.invoke(null, input, classpath) as String
+                        method.invoke(null, input, classpath, state.release) as String
                     } catch (t: ReflectiveOperationException) {
                         val cause = t.cause ?: t
                         throw RuntimeException("javafmt formatter invocation failed: ${cause.message}", cause)
                     }
                 }
             }
-            val method = clazz.getMethod(APPLY_METHOD, String::class.java)
+            val method = clazz.getMethod(APPLY_METHOD, String::class.java, Int::class.javaPrimitiveType)
             return FormatterFunc { input ->
                 try {
-                    method.invoke(null, input) as String
+                    method.invoke(null, input, state.release) as String
                 } catch (t: ReflectiveOperationException) {
                     val cause = t.cause ?: t
                     throw RuntimeException("javafmt formatter invocation failed: ${cause.message}", cause)

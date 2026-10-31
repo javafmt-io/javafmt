@@ -21,6 +21,7 @@ class LocalVarUseVarAnalyzeTest {
 
                     void test() {
                         List<String> xs = Stream.of("a", "b").toList();
+                        System.out.println(xs);
                     }
                 }
                 """;
@@ -41,6 +42,7 @@ class LocalVarUseVarAnalyzeTest {
 
                     void test(final List<String> input) {
                         List<String> xs = Collections.unmodifiableList(input);
+                        System.out.println(xs);
                     }
                 }
                 """;
@@ -64,6 +66,7 @@ class LocalVarUseVarAnalyzeTest {
 
                     void test() {
                         List<String> xs = new ArrayList<String>();
+                        System.out.println(xs);
                     }
                 }
                 """;
@@ -194,6 +197,7 @@ class LocalVarUseVarAnalyzeTest {
 
                     void test() {
                         List<String> xs = Stream.of("a", "b").toList();
+                        System.out.println(xs);
                     }
                 }
                 """;
@@ -211,6 +215,7 @@ class LocalVarUseVarAnalyzeTest {
 
                     void test() {
                         ArrayList<String> xs = new ArrayList<String>();
+                        System.out.println(xs);
                     }
                 }
                 """;

@@ -103,6 +103,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                     void test() {
                         var dropMe = Stream.<Integer>of(1, 2);
                         var keepMe = Stream.<Number>of(1, 2);
+                        System.out.println(dropMe.count() + keepMe.count());
                     }
                 }
                 """;
@@ -141,11 +142,11 @@ class RedundantTypeArgumentsAnalyzeTest {
 
                     Stream<Integer> a() { return Stream.<Integer>of(1, 2); }
 
-                    void b() { var x = Stream.<Number>of(1, 2); }
+                    void b() { var x = Stream.<Number>of(1, 2); System.out.println(x); }
 
                     Stream<Integer> c() { return Stream.<Integer>of(3, 4); }
 
-                    void d() { var y = Stream.<Number>of(3, 4); }
+                    void d() { var y = Stream.<Number>of(3, 4); System.out.println(y); }
 
                     Stream<Integer> e() { return Stream.<Integer>of(5); }
                 }

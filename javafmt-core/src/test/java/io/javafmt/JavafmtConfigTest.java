@@ -17,6 +17,18 @@ class JavafmtConfigTest {
     }
 
     @Test
+    void defaults_targetTheLatestSupportedRelease() {
+        assertThat(JavafmtConfig.defaults().release()).isEqualTo(25);
+    }
+
+    @Test
+    void release_isKeptByTheOtherWithers() {
+        final var config = JavafmtConfig.defaults().withRelease(21);
+        assertThat(config.release()).isEqualTo(21);
+        assertThat(config.withLint(false).withVerifyOutput(false).withAnalysis(new JavafmtConfig.Analysis.ParseOnly()).release()).isEqualTo(21);
+    }
+
+    @Test
     void analysis_carriesTheClasspath() {
         final var config = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/lib/a.jar"));
         assertThat(config.analysis()).isEqualTo(new JavafmtConfig.Analysis.Attributed("/lib/a.jar"));

@@ -69,7 +69,8 @@ configure<SpotlessExtension> {
         } catch (_: Exception) {
             emptySet()
         }
-        addStep(JavafmtFormatter.step(javafmtFormatterRuntime.resolve(), analysisClasspath))
+        val release = tasks.named<JavaCompile>("compileJava").flatMap { it.options.release }
+        addStep(JavafmtFormatter.step(javafmtFormatterRuntime.resolve(), analysisClasspath) { release.getOrElse(25) })
     }
 }
 

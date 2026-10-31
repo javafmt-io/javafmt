@@ -3,7 +3,7 @@ class Fixture {
     void run() {
         try {
             // try note
-        } catch (Exception e) {
+        } catch (Exception _) {
             // catch note
         } finally {
             // finally note

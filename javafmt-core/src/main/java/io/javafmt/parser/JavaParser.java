@@ -306,7 +306,7 @@ public final class JavaParser {
     private Map<URI, CompilationUnitTree> treeByUri(final Iterable<? extends CompilationUnitTree> trees) {
         return StreamSupport.stream(trees.spliterator(), false)
                 .map(CompilationUnitTree.class::cast)
-                .collect(Collectors.toMap(t -> t.getSourceFile().toUri(), Function.identity(), (a, b) -> b, LinkedHashMap::new));
+                .collect(Collectors.toMap(t -> t.getSourceFile().toUri(), Function.identity(), (_, b) -> b, LinkedHashMap::new));
     }
 
     private String stripBom(final String source) {

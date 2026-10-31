@@ -167,7 +167,7 @@ final class FormatRun {
 
     private FileOutcome outcomeFor(final FileResult file, final boolean check, final FormatCache cache, final boolean json) {
         return switch (file) {
-            case FileResult.UpToDate ignored -> new FileOutcome(0, List.of());
+            case FileResult.UpToDate _ -> new FileOutcome(0, List.of());
             case FileResult.Unreadable(var path, var error) -> new FileOutcome(2, List.of(cliMessage(path, "read failed: " + describe(error), json)));
             case FileResult.Formatted(var path, var source, var result) -> finalizeFormatOutcome(path, source, result, check, cache, json);
         };
@@ -211,9 +211,9 @@ final class FormatRun {
      */
     private String describe(final IOException e) {
         return switch (e) {
-            case CharacterCodingException ignored -> "not valid UTF-8";
-            case AccessDeniedException ignored -> "permission denied";
-            case NoSuchFileException ignored -> "no such file";
+            case CharacterCodingException _ -> "not valid UTF-8";
+            case AccessDeniedException _ -> "permission denied";
+            case NoSuchFileException _ -> "no such file";
             default -> e.getMessage() != null ? e.getMessage() : e.toString();
         };
     }

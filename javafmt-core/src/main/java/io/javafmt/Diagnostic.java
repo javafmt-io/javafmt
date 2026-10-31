@@ -23,10 +23,10 @@ public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.Lin
 
     default String kind() {
         return switch (this) {
-            case ParseError ignored -> "parse";
-            case LintError ignored -> "lint";
-            case InternalError ignored -> "internal";
-            case Warning ignored -> "warning";
+            case ParseError _ -> "parse";
+            case LintError _ -> "lint";
+            case InternalError _ -> "internal";
+            case Warning _ -> "warning";
         };
     }
 

@@ -82,7 +82,7 @@ public final class FileFormatCache implements FormatCache {
             final var lines = Files.readAllLines(cacheFile, StandardCharsets.UTF_8);
             final var parsed = parseLines(lines, header);
             return new FileFormatCache(cacheFile, header, parsed);
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException | RuntimeException _) {
             return new FileFormatCache(cacheFile, header, Map.of());
         }
     }
@@ -106,7 +106,7 @@ public final class FileFormatCache implements FormatCache {
                     }
                     return Map.entry(path, hash);
                 })
-                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b));
+                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue, (_, b) -> b));
     }
 
     @Override
@@ -145,7 +145,7 @@ public final class FileFormatCache implements FormatCache {
             Files.writeString(tmp, body, StandardCharsets.UTF_8);
             try {
                 Files.move(tmp, cacheFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException e) {
+            } catch (AtomicMoveNotSupportedException _) {
                 Files.move(tmp, cacheFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {

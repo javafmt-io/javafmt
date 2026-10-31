@@ -5,7 +5,7 @@ class Fixture {
     int total = 2; /* and a block trailing */
 
     void run(final int x) {
-        final int a = 1; // trailing on a statement
-        final int b = 2;
+        final int _ = 1; // trailing on a statement
+        final int _ = 2;
     }
 }

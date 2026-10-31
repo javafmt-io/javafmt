@@ -329,11 +329,7 @@ public final class RedundantTypeArguments implements LintRule {
             }
         }.scan(new TreePath(unit.tree()), null);
         return calls.stream()
-                .collect(
-                        Collectors.toMap(
-                                path -> methodNameStart((MethodInvocationTree) path.getLeaf(), unit),
-                                path -> path,
-                                (first, later) -> first));
+                .collect(Collectors.toMap(path -> methodNameStart((MethodInvocationTree) path.getLeaf(), unit), path -> path, (first, _) -> first));
     }
 
     /**

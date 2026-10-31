@@ -109,7 +109,7 @@ public final class SourceFiles {
     private void move(final Path temp, final Path target) throws IOException {
         try {
             Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-        } catch (AtomicMoveNotSupportedException e) {
+        } catch (AtomicMoveNotSupportedException _) {
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
@@ -117,7 +117,7 @@ public final class SourceFiles {
     private void deleteQuietly(final Path temp) {
         try {
             Files.deleteIfExists(temp);
-        } catch (IOException ignored) {
+        } catch (IOException _) {
             // The write already failed; the caller is told about that, not about the leftover.
         }
     }
