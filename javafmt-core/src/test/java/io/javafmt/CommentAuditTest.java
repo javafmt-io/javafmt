@@ -3,6 +3,7 @@ package io.javafmt;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -93,10 +94,10 @@ class CommentAuditTest {
      * cost a file of {@code java.base} — the formatter refused it rather than writing the comment
      * away, but a refusal is still a file javafmt cannot format.
      */
-    @ParameterizedTest(name = "{0}")
+    @ParameterizedTest(name = "{argumentSetName}")
     @MethodSource("tailCommentContainers")
-    void aCommentAtTheTailOfItsContainerSurvives(final String name, final String source) {
-        assertFormattedKeepingEveryComment(name, source);
+    void aCommentAtTheTailOfItsContainerSurvives(final String source, final TestInfo testInfo) {
+        assertFormattedKeepingEveryComment(testInfo.getDisplayName(), source);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -194,24 +195,21 @@ class CommentAuditTest {
 
     static Stream<Arguments> tailCommentContainers() {
         return Stream.of(
-                // java/util/concurrent/locks/StampedLock.java
-                Arguments.of("empty class body", """
+                Arguments.argumentSet("an empty class body, as in java.util.concurrent.locks.StampedLock", """
                     class Outer {
 
                         static final class Inner extends Outer { // node for writers
                         }
                     }
                     """),
-                // java/lang/StackStreamFactory.java
-                Arguments.of("enum with no body declarations", """
+                Arguments.argumentSet("an enum with no body declarations, as in java.lang.StackStreamFactory", """
                     enum State {
                         NEW,    // the stream is new
                         OPEN,   // the stream is open
                         CLOSED; // the stream is closed
                     }
                     """),
-                // java/time/format/DateTimeFormatterBuilder.java
-                Arguments.of("static initializer block", """
+                Arguments.argumentSet("a static initializer block, as in java.time.format.DateTimeFormatterBuilder", """
                     class Outer {
 
                         static final java.util.Map<Character, String> M = new java.util.HashMap<>();
@@ -223,7 +221,7 @@ class CommentAuditTest {
                         }
                     }
                     """),
-                Arguments.of("instance initializer block", """
+                Arguments.argumentSet("an instance initializer block", """
                     class Outer {
 
                         int n;
@@ -234,7 +232,7 @@ class CommentAuditTest {
                         }
                     }
                     """),
-                Arguments.of("empty interface body", """
+                Arguments.argumentSet("an empty interface body", """
                     interface Marker { // nothing to declare
                     }
                     """));
