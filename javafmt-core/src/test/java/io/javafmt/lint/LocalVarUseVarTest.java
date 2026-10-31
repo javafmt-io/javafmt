@@ -14,6 +14,7 @@ class LocalVarUseVarTest {
         final var unit = JavaParser.parseUnit("""
                 import java.util.ArrayList;
                 import java.util.Collection;
+                import java.util.Collections;
                 import java.util.Comparator;
                 import java.util.HashMap;
                 import java.util.List;
@@ -37,7 +38,7 @@ class LocalVarUseVarTest {
     }
 
     @ParameterizedTest
-    @ValueSource( strings = { "Runnable task = () -> {};", "Function<String, Integer> length = String::length;", "String note = null;", "int[] slots = {1};", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } };", "long cents = 1;", "float rate = 1;", "char grade = 65;", "Integer count = 5;", "List<String> lines = new ArrayList<String>();", "List<String> lines = new ArrayList<>();", "Map<String, List<Integer>> totals = new HashMap<>();", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1);", "Object total = new StringBuilder();", "String label = switch (others.size()) { case 1 -> \"one\"; default -> \"many\"; };", "List<? extends Number> amounts = new ArrayList<>();", "List<String> lines = new ArrayList();", "List lines = new ArrayList<String>();", "Map<String, Integer> totals = new LedgerMap<>();", "Object total = (String) amount;", "@Deprecated List<String> lines = new ArrayList<String>();", "List<String> lines = new ArrayList<String>(); lines = others;", "String currency = \"EUR\"; currency = \"USD\";", "int count = 1; count++;", "Object total = (Object) amount; total = others;", })
+    @ValueSource( strings = { "Runnable task = () -> {};", "Function<String, Integer> length = String::length;", "String note = null;", "int[] slots = {1};", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } };", "long cents = 1;", "float rate = 1;", "char grade = 65;", "Integer count = 5;", "Collection<String> lines = List.<String>of();", "List<String> lines = Collections.<String>emptyList();", "Object label = amount == null ? \"a\" : \"b\";", "List<String> lines = amount == null ? new ArrayList<>() : new ArrayList<>();", "List<String> lines = new ArrayList<String>();", "List<String> lines = new ArrayList<>();", "Map<String, List<Integer>> totals = new HashMap<>();", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1);", "Object total = new StringBuilder();", "String label = switch (others.size()) { case 1 -> \"one\"; default -> \"many\"; };", "List<? extends Number> amounts = new ArrayList<>();", "List<String> lines = new ArrayList();", "List lines = new ArrayList<String>();", "Map<String, Integer> totals = new LedgerMap<>();", "Object total = (String) amount;", "@Deprecated List<String> lines = new ArrayList<String>();", "List<String> lines = new ArrayList<String>(); lines = others;", "String currency = \"EUR\"; currency = \"USD\";", "int count = 1; count++;", "Object total = (Object) amount; total = others;", })
     void aLocalWhoseTypeCannotBeProvenKeepsIt(final String declaration) {
         assertThat(rewritten(declaration)).contains(declaration).doesNotContain("var ");
     }
@@ -144,9 +145,6 @@ class LocalVarUseVarTest {
 
     @Test
     void staticFactoryWithMatchingExistingWitnessReplacesLhs() {
-        // The call already carries the type — dropping the LHS for `var` is trivial.
-        // This also picks up Collections.<T>emptyList()-style calls that the synthesis
-        // path's receiver heuristic would otherwise reject.
         final var unit = JavaParser.parseUnit("""
                                               import java.util.Collections;
                                               import java.util.List;
@@ -154,13 +152,13 @@ class LocalVarUseVarTest {
                                               class Fixture {
 
                                                   void test() {
-                                                      List<Path> files = Collections.<Path>emptyList();
+                                                      List<Path> files = List.<Path>of();
                                                   }
                                               }
                                               """);
         final var result = new LocalVarUseVar().apply(LintContext.parseOnly(unit));
         final var rewritten = LintEngine.applyEdits(unit.source(), result.edits());
-        assertThat(rewritten).contains("var files = Collections.<Path>emptyList();");
+        assertThat(rewritten).contains("var files = List.<Path>of();");
         assertThat(result.diagnostics()).isEmpty();
     }
 
