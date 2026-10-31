@@ -321,6 +321,25 @@ class LocalVarUseVarAnalyzeTest {
                         return new Refund();
                     }
 
+                    static class Box<T> {
+
+                        static <T> Box<T> plain() {
+                            return new Box<>();
+                        }
+
+                        static <T> SealedBox<T> sealed() {
+                            return new SealedBox<>();
+                        }
+                    }
+
+                    static class SealedBox<T> extends Box<T> {}
+
+                    void show(final Object value) {}
+
+                    void show(final Box<?> box) {}
+
+                    void show(final SealedBox<?> box) {}
+
                     void show(final CharSequence text) {}
 
                     void show(final String text) {}
@@ -335,13 +354,13 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @ParameterizedTest
-    @CsvSource( delimiter = '|', value = { "List<String> xs = Stream.of(\"a\").toList(); record(xs);    | var xs = Stream.of(\"a\").toList();", "CharSequence text = describe(); record(text.length());      | var text = describe();", "String name = describe(); show(name);                       | var name = describe();", "long total = size(); record(total);                         | var total = size();", "List<String> lines = new ArrayList<>(); record(lines);      | var lines = new ArrayList<String>();", "List<String> lines = new ArrayList<String>(); record(lines.size()); | var lines = new ArrayList<String>();", "Collection<String> all = new ArrayList<String>(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = new ArrayList<String>(); var rows = Stream.of(all).toList();", "Collection<String> all = names(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = names(); var rows = Stream.of(all).toList();", "List<Object> xs = List.of(\"a\"); record(xs);               | var xs = List.<Object>of(\"a\");", })
+    @CsvSource( delimiter = '|', value = { "List<String> xs = Stream.of(\"a\").toList(); record(xs);    | var xs = Stream.of(\"a\").toList();", "CharSequence text = describe(); record(text.length());      | var text = describe();", "String name = describe(); show(name);                       | var name = describe();", "long total = size(); record(total);                         | var total = size();", "List<String> lines = new ArrayList<>(); record(lines);      | var lines = new ArrayList<String>();", "Box<String> box = Box.plain(); show(box);                  | var box = Box.<String>plain();", "Box<String> box = Box.sealed(); record(box);               | var box = Box.<String>sealed();", "List<String> lines = new ArrayList<String>(); record(lines.size()); | var lines = new ArrayList<String>();", "Collection<String> all = new ArrayList<String>(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = new ArrayList<String>(); var rows = Stream.of(all).toList();", "Collection<String> all = names(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = names(); var rows = Stream.of(all).toList();", "List<Object> xs = List.of(\"a\"); record(xs);               | var xs = List.<Object>of(\"a\");", })
     void aLocalWhoseUsesStayTheSameBecomesVar(final String body, final String expected) {
         assertThat(rewrittenWithAttribution(ledger(body))).contains(expected);
     }
 
     @ParameterizedTest
-    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);", "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", })
+    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);", "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);", "Object label = flag ? \"a\" : \"b\"; show(label);", "List<String> lines = flag ? new ArrayList<>() : new ArrayList<>(); record(lines.get(0).length());", "Box<String> box = Box.sealed(); show(box);", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", })
     void aLocalWhoseUsesWouldChangeKeepsItsType(final String body) {
         assertThat(rewrittenWithAttribution(ledger(body))).contains(body).doesNotContain("var ");
     }
@@ -359,7 +378,7 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @ParameterizedTest
-    @CsvSource( delimiter = '|', value = { "List<Object> xs = List.<Object>of(\"a\");                   | final var xs = List.<Object>of(\"a\");", "List<Object> xs = List.of(\"a\");                           | final var xs = List.<Object>of(\"a\");", "List<Object> xs = Collections.<Object>singletonList(\"a\"); | final var xs = Collections.<Object>singletonList(\"a\");", })
+    @CsvSource( delimiter = '|', value = { "List<Object> xs = List.<Object>of(\"a\");                   | final var xs = List.<Object>of(\"a\");", "List<Object> xs = List.of(\"a\");                           | final var xs = List.<Object>of(\"a\");", "List<Object> xs = Collections.<Object>singletonList(\"a\"); | final List<Object> xs = Collections.singletonList(\"a\");", })
     void aWitnessTheVarRewriteNeedsIsNeverDropped(final String declaration, final String expected) {
         final var source = """
                 import java.util.Collections;
