@@ -10,7 +10,6 @@ import java.util.stream.Stream;
  * A bracketed, separator-joined list that breaks one element per line at the continuation indent
  * when it does not fit, and stays on one line when it does. {@link #alignedOf} lines the elements
  * up under the first one instead, falling back to the continuation indent when that is too wide.
- * {@link #packedOf} puts as many elements on each continuation line as fit.
  *
  * <p>Factored out because seven constructs were built as a flat {@code Concat} with no break
  * point anywhere in them. A list with no break point cannot obey the line width at all: it prints
@@ -44,11 +43,6 @@ final class WrappableList {
      */
     Doc joined(final List<Doc> between, final Stream<Doc> elements) {
         return new Doc.Group(Doc.continuationIndent(new Doc.Concat(Doc.intersperse(between, elements))));
-    }
-
-    Doc packedOf(final String open, final String separator, final String close, final Stream<Doc> elements) {
-        final var packed = new Doc.Fill(Doc.intersperse(Doc.concat(new Doc.Text(separator), Doc.LINE), elements).toList());
-        return new Doc.Group(Doc.concat(new Doc.Text(open), Doc.continuationIndent(Doc.concat(Doc.SOFT_LINE, packed)), new Doc.Text(close)));
     }
 
     Doc alignedOf(final String open, final List<Doc> interior, final String close) {
