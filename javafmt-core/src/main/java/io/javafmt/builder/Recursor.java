@@ -11,7 +11,8 @@ interface Recursor extends LeadingCommentAttacher {
 
     Doc scan(Tree node);
 
-    @Nullable Doc scanNullable(Tree node);
+    @Nullable
+    Doc scanNullable(Tree node);
 
     /**
      * Scans {@code node} with compact context active for the subtree. While compact, nested
