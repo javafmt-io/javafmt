@@ -9,234 +9,206 @@ javafmt is opinionated and non-configurable on principle. The rules below are th
 
 ## Philosophy
 
-javafmt takes inspiration from the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html), `prettier`, and `ruff`: formatting is a contract, and nobody should be arguing about whitespace in code review. But a contract isn't worth much if humans have to fix violations by hand the way Checkstyle forces us to. So javafmt (usually) rewrites the code instead of reporting on it.
+Formatting is a contract. A reviewer never argues about whitespace. The formatter rewrites code instead of reporting on it.
 
-Our specific defaults differ from Google's. Each section below notes where and why.
-
-**No opt-out directives.** javafmt doesn't honor `// @formatter:off` / `// @formatter:on` (or `// spotless:off`, `// CHECKSTYLE:OFF`, etc.) as skip markers. The comments themselves are preserved verbatim (see "Directive safelist" under Javadoc and comments), but the code between them is reformatted like any other. This is deliberate, and is the same stance [google-java-format](https://github.com/google/google-java-format/issues/137) takes: an opinionated formatter loses its value if any contributor can carve out an exception. If a region truly shouldn't be touched, exclude the whole file via your build's path-exclusion mechanism — `<excludes>` in the Maven plugin, `--exclude` on the CLI, or `targetExclude` in Spotless.
+**No opt-out directives.** `// @formatter:off`, `// spotless:off`, and `// CHECKSTYLE:OFF` do not suspend formatting. The comments stay verbatim. A file that must stay untouched is excluded by path.
 
 ## Line width
 
 **150 characters.**
 
-*Google uses 100. We use 150 so line-level diffs reflect actual changes instead of arbitrary wrap shuffles. Modern monitors and side-by-side diff views handle 150 comfortably.*
+The formatter never splits a string literal or an annotation argument list to meet the width. Those may run past 150.
 
 ## Indentation
 
 - 4 spaces, no tabs.
-- Continuation indent: 8 spaces (2× block). Wrapped continuations of a single logical line — method/constructor parameter lists, call-site argument lists, record components, `extends`/`implements`/`permits` and `throws` clauses, and method chains — indent +8 so wrapped content never shares a column with the block body beneath it.
-- Logical `&&`/`||` operator wrapping: 4 spaces (matches block indent; these operators sit within a condition expression, not a declaration-level continuation).
+- Continuation indent for call-site argument lists, method chains, `extends`/`implements`/`permits`, and `throws`: 8 spaces.
+- A wrapped method or constructor parameter list aligns under the first parameter, one parameter per line:
 
-*Google uses 2/4. We use 4/8 because 2-space nesting visually collapses in wide diffs — you can't see the level you're at without counting.*
+```java
+Invoice buildInvoice(final Customer customer,
+                     final List<OrderLine> lines,
+                     final TaxPolicy taxPolicy) {
+```
+
+- When aligning under the first parameter would push a line past 150 characters, the list wraps at +8 instead, still one parameter per line.
+- A wrapped list that already fits on one line stays on one line.
+- Filled argument lists wrap at +8 and pack as many arguments per line as fit.
+- `&&`/`||` wrapping indents +4.
 
 ## Braces
 
-- K&R style (opening brace on the same line).
-- Always required, even for single-statement `if`/`else`/`for`/`while`/`do-while`. Missing braces are auto-added by the `NeedBraces` lint rule.
-- An `if` the author wrote on one line in the compact form — `if (cond) {foo();}`, spaced exactly like that, no space inside the braces, exactly one statement per branch, no comment, the whole chain including every `else` on that line — stays as written, provided it still fits in 150 characters. `if(cond)` or `}else{` is not that form and expands. `if (cond) { foo(); }` with spaces, an `else` on its own line, two statements, or anything `NeedBraces` just rewrote, all expand to the block form.
-- Loop bodies always expand, even when the author wrote `for (...) {i++;}` on one line. A loop hides work that deserves its own lines.
-
-*Google requires braces but doesn't fail the build on missing ones. We auto-fix to kill the bug class where someone adds a second statement under a braceless `if` and the next reviewer has to verify scope by eye. The compact one-line `if` is kept because a guard clause is easier to read as one line than as three, and only in that exact shape, because every looser shape is a formatting accident rather than a decision.*
+- K&R: opening brace on the same line.
+- Braces are always present on `if`, `else`, `for`, `while`, and `do-while`.
+- Loop bodies always expand.
+- The compact guard `if (cond) {stmt;}` is kept when it is written that way and fits in 150 characters: no space inside the braces, one statement per branch, no comment, the whole chain on one line. Every other `if` shape expands.
+- A multi-line lambda argument may close with `)` or `);` on its own line, at the chain's indent.
 
 ## Imports
 
-- **Module imports** (Java 25 `import module M;`) first (ASCII sort), blank line.
-- **Static imports** next (ASCII sort), blank line.
-- **Non-static imports** last (ASCII sort). One flat group — `java.*`, `javax.*`, and third-party all sort together.
-- No wildcards. If `import foo.*` appears, the formatter leaves it but emits a warning.
-- Module imports are never removed as unused — they implicitly bring in many types.
+Three groups, in this order, separated by one blank line:
 
-*Static + non-static ordering same as Google. Module imports extend the convention for Java 25.*
+1. Non-static imports of everything except `java.*` and `javax.*`: `com`, `jakarta`, `lombok`, `org`, and the rest, in one flat ASCII-sorted group.
+2. `java.*` and `javax.*`, ASCII-sorted.
+3. Static imports, ASCII-sorted, last.
+
+```java
+import com.example.billing.Invoice;
+import jakarta.annotation.Nullable;
+import lombok.Builder;
+import org.slf4j.Logger;
+
+import java.time.LocalDate;
+import java.util.List;
+import javax.crypto.Cipher;
+
+import static com.example.billing.Rates.standardRate;
+import static java.util.Objects.requireNonNull;
+```
+
+- Module imports (`import module M;`) come first, in their own group before the other groups.
+- Wildcard imports are left in place with a warning (`AvoidStarImport`), and expanded only by `ExplodeStarImports` under `--analyze`.
+- When a file has no `java.*` import, the blank line between groups 1 and 3 stays single.
+- Unused imports are removed. Module imports are never removed as unused, because they implicitly bring in many types.
 
 ## Line endings and byte-order marks
 
-javafmt writes a file back the way it found it: a CRLF file stays CRLF, a BOM is preserved, and a file with mixed endings is normalised to whichever ending it used most. Nothing else about the file's bytes is preserved — indentation, trailing whitespace and the final newline are all javafmt's.
-
-*Rewriting a CRLF file to LF makes every line of it a diff, and whatever javafmt actually changed disappears inside that.*
+A file is written back the way it was found: a CRLF file stays CRLF, a BOM is preserved, and a file with mixed line endings is normalised to the ending it uses most. The file ends with exactly one line ending, in the file's own style. Nothing else about the file's bytes is preserved: indentation and trailing whitespace are javafmt's.
 
 ## Module declarations
 
 Nothing in a `module-info.java` is reordered: directives stay in the author's order, and so do the target lists of `exports ... to`, `opens ... to` and `provides ... with`. A blank line separates runs of different directive kinds.
 
-*Same as google-java-format, and for `provides ... with` it is a correctness requirement: `ServiceLoader` honours declaration order for module-declared providers, so sorting the list changes what `findFirst()` returns.*
-
 ## Compact source files
 
-Java 25 compact source files (top-level fields and methods without an enclosing class declaration) are formatted with members at column 0, blank lines between members, in declaration order. The implicit class wrapper is never emitted.
+A compact source file (top-level fields and methods without an enclosing class declaration) is formatted with members at column 0, a blank line between members, in declaration order. The implicit class wrapper is never emitted.
 
 ## Member ordering
 
-javafmt makes two moves and no others:
+Two moves, no others:
 
-- **Nested types go to the bottom** of the body that declares them — `class`, `interface`, `enum`, `record` and `@interface` alike — keeping their order relative to each other.
-- **In a utility class** — a `final` class with no instance state whose only constructor is a `private` no-arg one — that constructor goes last of all, below the nested types.
+- Nested types (`record`, `class`, `interface`, `enum`, `@interface`) go to the bottom of their enclosing body, in their original order.
+- In a utility class, the private no-arg constructor goes last, below the nested types.
 
-Everything else stays exactly where the author put it: fields, methods, initializer blocks and enum constants are never reordered, and neither are the members of an anonymous class body or a local class. A moved member takes its Javadoc, its leading comments and its trailing comment with it.
-
-*Both moves are safe in a way general reordering is not: a nested type executes no code and can be referenced from anywhere in the enclosing body, and a constructor whose only job is to prevent instantiation carries nothing a reader needs early. What they buy is a body that opens with what the class does rather than with a page of helper records.*
+Fields, methods, initializer blocks, and enum constants keep the author's order. A moved member takes its Javadoc and comments with it.
 
 ## Single-line constructs
 
-- `if (cond) {stmt;}` stays on one line if the author wrote it that way and it fits — see Braces above.
+- `if (cond) {stmt;}`: see Braces.
 - A record whose components fit on one line stays on one line.
-- Short lambdas can inline: `list.stream().map(x -> x.name())`.
+- An empty body folds: `) {}` and `private X() {}`.
+- Short lambdas inline.
 
 ## Lambdas
 
-Multi-line lambdas get their own lines:
+A multi-line lambda gets its own lines. The body indents 4 past the line that opens it:
 
 ```java
-list.stream()
-    .filter(item -> {
-        return item.isValid();
-    })
-    .map(item -> item.name())
-    .toList();
+orders.stream()
+        .filter(order -> {
+            final var age = Period.between(order.placedOn(), today);
+            return age.getDays() < 30;
+        })
+        .map(Order::total)
+        .forEach(totals::add);
 ```
 
-The body indents against the enclosing chain, not the lambda arrow.
+Lambda parameters are never `final`.
 
 ## Method chains
 
-- Break before each `.` only when the chain does not fit in the 150-character line. A chain that contains a multi-line text block always breaks.
-- Continuation indent is 8 spaces past the surrounding context (matching Palantir; not dot-aligned).
-- If the author wrote any `.` on its own line in the source, the chain stays multi-line even when it would fit on one.
-
-The same holds for `&&`/`||` chains: they break before every operator only when they do not fit in 150 characters, or when the author already broke them.
+- Break before each `.` when the chain does not fit in 150 characters, or when the author already put a `.` on its own line. A chain that contains a multi-line text block always breaks.
+- Continuation indent is 8 spaces past the statement. Not dot-aligned.
+- The first call of a chain stays on the line of its receiver (`orders.stream()`, `return Shipments.builder()`).
+- `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters or when the author already broke them.
 
 ## Enums
 
-- Constants kept in declaration order.
-- Trailing comma after the last constant.
-- All constants on one line if they fit in 150 chars; otherwise one per line.
-
-*Google has no sort requirement and treats the trailing comma as optional. We require the trailing comma so adding a constant produces a clean one-line diff — no comma juggling on the previous line. We do **not** sort constants: `Enum.ordinal()` is a public API, and serialization layers, persistence formats, and switch statements may rely on declaration order. Reordering enum constants is a breaking change for callers, so the formatter leaves them alone.*
+- Constants keep declaration order.
+- Constants fit on one line, or one per line.
+- When the constants do not fit on one line they go one per line, with a trailing comma after the last constant.
+- An enum with body declarations keeps its `;`. A `,` written directly before the `;` is removed.
 
 ## Records
 
-If the declaration fits on one line, keep it there:
+Fit on one line, keep it there. Otherwise one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line.
 
-```java
-public record Point(int x, int y) {}
-```
-
-Otherwise, one component per line:
-
-```java
-public record VeryDetailedRecord(
-    String firstName,
-    String lastName,
-    LocalDate dateOfBirth,
-    Optional<String> middleName) {}
-```
+Single-component and small records stay inline: `private record Money(long cents, Currency currency) {}`.
 
 ## Switch expressions
 
-Arrow-style, cases aligned:
-
-```java
-return switch (status) {
-    case ACTIVE -> handleActive();
-    case INACTIVE -> handleInactive();
-    case PENDING -> {
-        log.info("pending");
-        yield handlePending();
-    }
-};
-```
+Arrow-style, cases aligned. Pattern-matching switches use type patterns, `when` guards, and `case null, default`.
 
 ## Annotations
 
-Follows Google's annotation placement:
+- **Methods and constructors:** every annotation on its own line above the signature, including a lone `@Override`.
 
-- **Fields**: inline before the modifiers, space-separated; parameterized annotations are fine:
-  ```java
-  @Getter @Setter private int age = 10;
-  @SuppressWarnings("unchecked") private List<?> items;
-  ```
-- **Methods**: each annotation on its own line above the signature, except a single parameterless annotation may share the signature line:
-  ```java
-  @Override public String toString() { ... }   // single + no args: inline
+```java
+@Override
+public final Money total() {
+```
 
-  @SuppressWarnings("all")
-  void process() { ... }                       // parameterized: own line
-
-  @Deprecated
-  @Override
-  void old() { ... }                           // multiple: each own line
-  ```
+- **Classes:** every annotation on its own line, in the order the author wrote.
+- **Parameters:** annotations inline before `final`: `@Named("primary") final Account account`, `@NonNull final String orderId`, `@Nullable final LocalDate dueDate`.
+- **Fields:** annotations stay inline with the field declaration.
 
 ## Javadoc and comments
 
-The standard to beat is google-java-format. Its comment handling is the gold standard: token-precise attachment, layout-time reindentation, and disciplined handling of IDE and tooling directives. javafmt targets parity.
-
-- **Preserved verbatim.** Every `//`, `/* */`, and `/** */` lands in the output with its original text intact. No re-wrapping, no `*`-alignment edits, no stripped content. (Javadoc reflow is a v2 candidate, out of scope for v1.)
-- **Token-precise attachment.** Comments attach to source *tokens*, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` — they all land in the right place.
-- **All positions covered.** File headers above `package`, leading comments on declarations, comments on imports, comments between statements, trailing same-line comments (`int x = 1; // note`), comments inside argument and parameter lists, comments inside empty blocks, comments between the last statement and its closing brace.
-- **A comment stays on the line it was written on.** A `//` comment after an argument's comma, on a chain link, or on the `{` that opens an `if` branch keeps that line; a `/* */` comment written beside an argument or parameter stays beside it rather than taking a line of its own and breaking the list.
-- **Layout-time reindentation.** Continuation lines of multi-line block comments are reindented to the comment's *final* output column, not its source column. Move the enclosing declaration and the comment's alignment stays correct.
-- **Directive safelist.** IDE and tooling directives stay byte-for-byte and aren't reindented: `// noinspection …`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE …`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-…$`, and the block-comment equivalents.
-- **String / text-block safety.** The scanner only recognises `//` and `/*` outside string literals, character literals, and text blocks.
+- Preserved verbatim: every `//`, `/* */` and `/** */` keeps its text. No re-wrapping, no `*` realignment, nothing stripped.
+- Comments attach to source tokens, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` lands in the right place.
+- Every position is covered: file headers above `package`, leading comments on declarations, comments on imports, comments between statements, trailing same-line comments, comments inside argument and parameter lists, comments inside empty blocks, and comments between the last statement and its closing brace.
+- A comment stays on the line it was written on. A `//` comment after an argument's comma, on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it.
+- Continuation lines of a block comment reindent to the comment's final output column, not its source column.
+- IDE and tooling directives stay byte-for-byte and are not reindented: `// noinspection ...`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE ...`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-...$`, and the block-comment equivalents.
+- `//` and `/*` are recognised only outside string literals, character literals and text blocks.
 
 ## Blank lines
 
-- One blank line around every method, constructor, nested type and initializer block.
-- Between consecutive fields, the author's grouping is kept: zero or one blank line, as written. A field carrying Javadoc is separated like a method.
-- Inside a method body, the author's blank lines are kept — they are the paragraph breaks that say which statements belong together.
-- One blank line after the opening brace of a class, before the first member.
-- No blank line after the opening brace of a method, and none before any closing brace.
-- One blank line after the `package` declaration.
-- Never more than one consecutive blank line anywhere — extras collapse.
-
-*Member separation is google-java-format's rule (`JavaInputAstVisitor.addBodyDeclarations`): javafmt decides where a reader needs air, and leaves the author to decide which fields are a group.*
+- One blank line around every method, constructor, nested type, and initializer block.
+- Between consecutive fields, the author's grouping stands: zero or one blank line. A field carrying Javadoc is separated like a method.
+- No blank line after the opening brace of any type, whatever the first member.
+- No blank line after a method's opening brace, or before any closing brace.
+- Method-body blank lines stay as written.
+- One blank line after `package`, and one between import groups.
+- Never more than one consecutive blank line.
 
 ## Lint pass (safe rewrites)
 
-javafmt enforces [Checkstyle](https://checkstyle.org/)'s rule catalogue the same way [ruff](https://docs.astral.sh/ruff/) enforces pylint and flake8. For each check the question is *"can this be auto-fixed safely?"* — if yes, it's a lint edit; if no, the rule emits a `Diagnostic.Warning` and leaves the source alone.
-
-Lint rules run *before* the formatter, in a fixed-point loop, and produce textual edits.
-
-- **The formatter never breaks code.** A rule emits an edit only when the rewrite is guaranteed to preserve compilation and behavior. If applying it would produce code that doesn't compile (e.g. adding `final` to a parameter the body reassigns), the rule warns instead and the source is left untouched.
-- **Edits are unconditional within their safety envelope.** No opt-in fixes — if the rule fires, the edit happens.
-- **Convergence is required.** Re-running a rule on its own output must produce zero edits.
+Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit only when the edit preserves compilation and behavior. Re-running a rule on its own output produces no edits.
 
 ### Auto-fix rules
 
-| Rule                          | Checkstyle check                | What javafmt does                                                                                                                                                                                                                                                                                                                                                                                |
-|-------------------------------|---------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **NeedBraces**                | `NeedBraces`                    | Wraps braceless `if`/`else`/`for`/`while`/`do-while` bodies in `{}`.                                                                                                                                                                                                                                                                                                                              |
-| **FinalLocalVariable**        | `FinalLocalVariable`            | Adds `final` to locals that are never reassigned. Reassigned locals are skipped silently.                                                                                                                                                                                                                                                                                                         |
-| **FinalParameters**           | `FinalParameters`               | Adds `final` to method and constructor parameters. Reassigned parameters trigger a warning — javafmt won't break compilation.                                                                                                                                                                                                                                                                     |
-| **ArrayTrailingComma**        | `ArrayTrailingComma`            | Adds a trailing comma to non-empty array initializers. Empty `{}` initializers are skipped.                                                                                                                                                                                                                                                                                                       |
-| **LocalVarUseVar**            | —                               | Replaces a local's declared type with `var` when the initializer already says the same thing: a `new` expression of exactly that type, or a static-factory call that already carries a matching type witness. A widening declaration (`List<X> xs = new ArrayList<X>()`) keeps its declared type — `var` would narrow the static type the author chose. Under `--analyze` it also rewrites any initializer javac infers as exactly the declared type, and lifts the declared type arguments onto a same-named static factory (`Optional<Path> x = Optional.empty()` → `var x = Optional.<Path>empty()`) once attribution confirms the method takes that many type parameters.                                                                                       |
-| **DefaultComesLast**          | `DefaultComesLast`              | Moves `default` to last position in arrow-form switches. Colon-form is only rewritten when `default` has its own terminating body and isn't part of a label group; otherwise it warns.                                                                                                                                                                                                            |
-| **ModifierOrder**             | `ModifierOrder`                 | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`.                                                                                                                                                                                                                                                        |
-| **RedundantModifier**         | `RedundantModifier`             | Strips modifiers the JLS already implies: `public abstract` on interface methods, `public static final` on interface fields, `static` on nested enum/record/interface declarations, `final` on private methods.                                                                                                                                                                                  |
-| **ArrayTypeStyle**            | `ArrayTypeStyle`                | Rewrites C-style array declarations: `String args[]` becomes `String[] args`.                                                                                                                                                                                                                                                                                                                     |
-| **UpperEll**                  | `UpperEll`                      | Rewrites lowercase-ell long literals: `1l` becomes `1L`.                                                                                                                                                                                                                                                                                                                                          |
-| **MultipleVariableDeclarations** | `MultipleVariableDeclarations` | Splits `int a, b = 0;` into one declaration per line.                                                                                                                                                                                                                                                                                                                                              |
-| **UnusedImports**             | `UnusedImports`                 | Removes imports nothing in the file references.                                                                                                                                                                                                                                                                                                                                                   |
-| **EmptyStatement**            | `EmptyStatement`                | Drops lone `;` statements.                                                                                                                                                                                                                                                                                                                                                                        |
-| **OneStatementPerLine**       | `OneStatementPerLine`           | Splits multiple statements on a single line into separate lines.                                                                                                                                                                                                                                                                                                                                  |
-| **NewlineAtEndOfFile**        | `NewlineAtEndOfFile`            | Ensures the file ends with exactly one `\n`.                                                                                                                                                                                                                                                                                                                                                      |
-| **ExplicitInitialization**    | `ExplicitInitialization`        | Strips redundant default initialization from a field: `int x = 0;` -> `int x;`, `Object o = null;` -> `Object o;`, `boolean b = false;` -> `boolean b;`. Skipped when the class has a superclass — field initializers run after the superclass constructor, so if that constructor calls an override which assigns the field, `= 0` is a real write — and when a comment sits inside the text being deleted.                                                                                                                                                                                                                                                          |
-| **UnusedVariableShouldBeUnnamed** | `UnusedCatchParameterShouldBeUnnamed`, `UnusedLambdaParameterShouldBeUnnamed`, `UnusedLocalVariable` | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Only fires when the source targets Java 22 or later; the integrations read the target release from the build. |
+| Rule | What it does |
+| ---- | ------------ |
+| **NeedBraces** | Wraps braceless `if`/`else`/`for`/`while`/`do-while` bodies in `{}`. |
+| **FinalLocalVariable** | Adds `final` to every local never reassigned. Reassigned locals are skipped silently. |
+| **FinalParameters** | Adds `final` to every method and constructor parameter, abstract methods included (`void ship(final Order order)` in an interface). Lambda parameters stay bare. Reassigned parameters trigger a warning. |
+| **FinalCatchParameter** | Adds `final` to every `catch` parameter, after any annotations: `catch (final RuntimeException e)`. Never when the body reassigns it. |
+| **FinalForEachVariable** | Adds `final` to the for-each variable: `for (final var x : xs)`. Never when the loop body reassigns it. |
+| **LocalVarUseVar** | Replaces the declared type of a local that is never reassigned with `var` when the initializer's type is evident from the source: `new` of any type, including a widening declaration; a diamond, which gains the declared type arguments; a cast; or a literal of the declared type. With `--analyze` it also rewrites a local when javac confirms the inferred type keeps every use unchanged. Lambdas, method references, `null`, array initializers and reassigned locals keep their declared type. With FinalLocalVariable the result is `final var`. |
+| **ArrayTrailingComma** | Adds a trailing comma to non-empty array initializers. Empty `{}` initializers are skipped. |
+| **DefaultComesLast** | Moves `default` last in arrow switches. A colon-form switch is rewritten only when `default` has its own terminating body and is not part of a label group; otherwise it warns. |
+| **ModifierOrder** | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. |
+| **RedundantModifier** | Strips modifiers the JLS implies. |
+| **ArrayTypeStyle** | `String[] args`, not `String args[]`. |
+| **UpperEll** | `1L`, not `1l`. |
+| **MultipleVariableDeclarations** | One declaration per statement. |
+| **UnusedImports** | Removes unreferenced imports. |
+| **EmptyStatement** | Drops lone `;`. |
+| **OneStatementPerLine** | Splits multiple statements on one line. |
+| **NewlineAtEndOfFile** | Ends the file with exactly one line ending, in the file's own style. |
+| **ExplicitInitialization** | Strips redundant default field initializers: `int x = 0;` becomes `int x;`, `Object o = null;` becomes `Object o;`, `boolean b = false;` becomes `boolean b;`. Skipped when the class has a superclass, because the superclass constructor may call an override that assigns the field and `= 0` is then a real write, and when a comment sits inside the text being deleted. |
+| **EnumTrailingComma** | Adds a trailing comma after the last constant when the constants do not fit on one line and go one per line. Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
+| **ExplodeStarImports** | Replaces a wildcard import with explicit imports for the members the file references. Only runs with `--analyze`, and leaves every wildcard alone if any name in the file fails to resolve. |
+| **RedundantTypeArguments** | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically. With `--analyze` it also drops type witnesses on generic method calls when javac infers the same type without them. |
+| **RedundantSuperCall** | Removes a no-arg `super()` as the first statement of a constructor body. |
+| **MemberOrder** | Moves nested types to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
+| **UnusedVariableShouldBeUnnamed** | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Only fires when the source targets Java 22 or later; the integrations read the target release from the build. |
 
 ### Warning-only rules
 
-These Checkstyle checks find real problems but can't be auto-fixed without risking compilation or a behavior change. javafmt warns and leaves the source alone.
-
-| Rule                            | Checkstyle check              | Why no auto-fix                                                                                                                                                  |
-|---------------------------------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **FallThrough**                 | `FallThrough`                 | Adding `break;` would change the meaning of intentional fall-through. Mark it as intentional with a `// fallthrough` comment between cases.                      |
-| **EqualsHashCode**              | `EqualsHashCode`              | Override both `equals` and `hashCode` or neither. A correct `hashCode` requires knowing which fields identify the value, which is a semantic call.               |
-| **MissingSwitchDefault**        | `MissingSwitchDefault`        | What belongs in the default block is up to the author.                                                                                                           |
-| **EmptyBlock**                  | `EmptyBlock`                  | Empty `catch`/`finally`/`else` blocks. Filling them needs intent; deleting them might change semantics.                                                          |
-| **AvoidStarImport**             | `AvoidStarImport`             | A wildcard import can resolve to more than one candidate. Expanding it safely needs a full symbol resolver.                                                       |
-| **HideUtilityClassConstructor** | `HideUtilityClassConstructor` | Adding the private constructor is mechanically safe, but reliably detecting "utility class" without false positives needs type-level analysis.                    |
-| **CovariantEquals**             | `CovariantEquals`             | Defining `equals(MyType)` without overriding `equals(Object)` is a bug, but fixing it changes the method signature and may break callers.                         |
-| **StringLiteralEquality**       | `StringLiteralEquality`       | `==` used to compare strings. Rewriting to `str.equals(other)` requires confirming the operand type is `String`, which needs a type resolver.                     |
+`FallThrough`, `EqualsHashCode`, `MissingSwitchDefault`, `EmptyBlock`, `AvoidStarImport`, `HideUtilityClassConstructor`, `CovariantEquals`, `StringLiteralEquality`.
 
 ### Out of scope
 
-Detection-only checks with no plausible safe auto-fix — complexity metrics (`CyclomaticComplexity`, `NPathComplexity`), naming conventions (`MethodName`, `TypeName`), magic-number detection, API restriction checks — aren't in the lint pass. Run Checkstyle separately alongside javafmt if you want them.
+Detection-only checks with no safe auto-fix: complexity metrics (`CyclomaticComplexity`, `NPathComplexity`), naming conventions (`MethodName`, `TypeName`), magic-number detection, and API-restriction checks. Run Checkstyle beside the formatter.
