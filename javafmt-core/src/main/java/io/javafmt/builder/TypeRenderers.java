@@ -52,8 +52,8 @@ final class TypeRenderers {
     private int sourceColumnOf(final LiteralTree node, final ParsedUnit unit) {
         final var start = unit.startOf(node);
         final var source = unit.source();
-        final var prevNewline = source.lastIndexOf('\n', start - 1);
-        return start - prevNewline - 1;
+        final var previousNewline = source.lastIndexOf('\n', start - 1);
+        return start - previousNewline - 1;
     }
 
     Doc renderEmptyStatement(final EmptyStatementTree node) {
@@ -82,8 +82,8 @@ final class TypeRenderers {
     }
 
     Doc renderParameterizedType(final ParameterizedTypeTree node, final Recursor recursor) {
-        final var args = node.getTypeArguments();
-        if (args.isEmpty()) {
+        final var arguments = node.getTypeArguments();
+        if (arguments.isEmpty()) {
             return Doc.concat(recursor.scan(node.getType()), new Doc.Text("<>"));
         }
         // Deliberately not a WrappableList. A type-argument list sits to the left of whatever the
@@ -91,11 +91,11 @@ final class TypeRenderers {
         // has chosen to break; the fit check sees the whole statement and breaks here instead,
         // giving `List<\n Map.Entry<\n String,`. Type arguments wide enough to matter on their own
         // are rare, and this cure is worse.
-        final var argDocs = Doc.intersperse(new Doc.Text(", "), args.stream().map(recursor::scan));
+        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), arguments.stream().map(recursor::scan));
         return new Doc.Concat(
                 Stream.concat(
                         Stream.of(recursor.scan(node.getType()), new Doc.Text("<")),
-                        Stream.concat(argDocs, Stream.<Doc>of(new Doc.Text(">")))));
+                        Stream.concat(argumentDocs, Stream.<Doc>of(new Doc.Text(">")))));
     }
 
     /**

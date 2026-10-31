@@ -9,8 +9,8 @@ import java.util.List;
 public final class NewlineAtEndOfFile implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         final var src = unit.source();
         if (src.isEmpty()) {
             return LintResult.EMPTY;

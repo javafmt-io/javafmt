@@ -65,14 +65,14 @@ final class MethodChainRenderer {
             final var head = new Doc.Concat(
                     Stream.concat(
                             Stream.of(new Doc.Text(".")),
-                            Stream.concat(typeArgs(call, recursor), Stream.of(new Doc.Text(ms.getIdentifier().toString())))));
+                            Stream.concat(typeArguments(call, recursor), Stream.of(new Doc.Text(ms.getIdentifier().toString())))));
             final var callSuffix = buildCallSuffix(head, call.getArguments(), recursor);
             if (ms.getExpression() instanceof MethodInvocationTree) {
                 return new Link(callSuffix);
             }
             return new Link(Doc.concat(recursor.scan(ms.getExpression()), callSuffix));
         }
-        final var head = new Doc.Concat(Stream.concat(typeArgs(call, recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
+        final var head = new Doc.Concat(Stream.concat(typeArguments(call, recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
         return new Link(buildCallSuffix(head, call.getArguments(), recursor));
     }
 
@@ -91,26 +91,26 @@ final class MethodChainRenderer {
                 comments.stream().anyMatch(c -> c.text().startsWith("//")));
     }
 
-    private Stream<Doc> typeArgs(final MethodInvocationTree mit, final Recursor recursor) {
-        final var args = mit.getTypeArguments();
-        if (args.isEmpty()) {
+    private Stream<Doc> typeArguments(final MethodInvocationTree mit, final Recursor recursor) {
+        final var arguments = mit.getTypeArguments();
+        if (arguments.isEmpty()) {
             return Stream.empty();
         }
         return Stream.concat(
                 Stream.of(new Doc.Text("<")),
-                Stream.concat(Doc.intersperse(new Doc.Text(", "), args.stream().map(recursor::scan)), Stream.of(new Doc.Text(">"))));
+                Stream.concat(Doc.intersperse(new Doc.Text(", "), arguments.stream().map(recursor::scan)), Stream.of(new Doc.Text(">"))));
     }
 
-    private Doc buildCallSuffix(final Doc head, final List<? extends ExpressionTree> args, final Recursor recursor) {
-        if (args.isEmpty()) {
+    private Doc buildCallSuffix(final Doc head, final List<? extends ExpressionTree> arguments, final Recursor recursor) {
+        if (arguments.isEmpty()) {
             return Doc.concat(head, new Doc.Text("()"));
         }
-        if (args.size() == 1
-            && args.getFirst() instanceof LambdaExpressionTree lam
+        if (arguments.size() == 1
+            && arguments.getFirst() instanceof LambdaExpressionTree lam
             && lam.getBodyKind() == LambdaExpressionTree.BodyKind.STATEMENT) {
             return Doc.concat(head, new Doc.Text("("), recursor.scan(lam), new Doc.Text(")"));
         }
-        final var interior = new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE), CommentDocs.commaList(args, recursor, recursor::scan)));
+        final var interior = new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE), CommentDocs.commaList(arguments, recursor, recursor::scan)));
         return new Doc.Group(Doc.concat(head, new Doc.Text("("), Doc.continuationIndent(interior), new Doc.Text(")")));
     }
 

@@ -15,7 +15,7 @@ public final class CovariantEquals implements WarningRule {
     private static final String MESSAGE = "covariant equals(SpecificType) overload; use equals(Object) to override correctly";
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        return WarningRule.onNode(ctx, MethodTree.class, m -> Declarations.isOneArgumentEquals(m) && !Declarations.isEqualsObject(m), MESSAGE);
+    public List<Diagnostic> warnings(final LintContext context) {
+        return WarningRule.onNode(context, MethodTree.class, m -> Declarations.isOneArgumentEquals(m) && !Declarations.isEqualsObject(m), MESSAGE);
     }
 }

@@ -22,8 +22,8 @@ public final class StringLiteralEquality implements WarningRule {
     private static final String MESSAGE = "string comparison using == or != (use .equals() instead)";
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        return WarningRule.onNode(ctx, BinaryTree.class, StringLiteralEquality::comparesStringLiteral, MESSAGE);
+    public List<Diagnostic> warnings(final LintContext context) {
+        return WarningRule.onNode(context, BinaryTree.class, StringLiteralEquality::comparesStringLiteral, MESSAGE);
     }
 
     private static boolean comparesStringLiteral(final BinaryTree node) {
@@ -32,7 +32,7 @@ public final class StringLiteralEquality implements WarningRule {
             && (isStringLiteral(node.getLeftOperand()) || isStringLiteral(node.getRightOperand()));
     }
 
-    private static boolean isStringLiteral(final ExpressionTree expr) {
-        return expr instanceof LiteralTree lit && lit.getKind() == Tree.Kind.STRING_LITERAL;
+    private static boolean isStringLiteral(final ExpressionTree expression) {
+        return expression instanceof LiteralTree literal && literal.getKind() == Tree.Kind.STRING_LITERAL;
     }
 }

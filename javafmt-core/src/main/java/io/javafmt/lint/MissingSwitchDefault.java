@@ -23,8 +23,8 @@ public final class MissingSwitchDefault implements WarningRule {
     private static final String MESSAGE = "switch statement does not have a 'default' case";
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        return WarningRule.onNode(ctx, SwitchTree.class, node -> !hasDefault(node) && !allLabelsArePatterns(node), MESSAGE);
+    public List<Diagnostic> warnings(final LintContext context) {
+        return WarningRule.onNode(context, SwitchTree.class, node -> !hasDefault(node) && !allLabelsArePatterns(node), MESSAGE);
     }
 
     private static boolean hasDefault(final SwitchTree node) {

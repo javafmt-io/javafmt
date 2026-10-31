@@ -9,7 +9,7 @@ type PendingRequest = {
     reject: (err: Error) => void;
 };
 
-let ctx: vscode.ExtensionContext;
+let extensionContext: vscode.ExtensionContext;
 let daemon: child_process.ChildProcess | null = null;
 const pending = new Map<number, PendingRequest>();
 let lastId = 0;
@@ -20,26 +20,26 @@ let reportedMissingBinary = false;
 const REQUEST_TIMEOUT_MS = 10_000;
 
 export function activate(context: vscode.ExtensionContext): void {
-    ctx = context;
+    extensionContext = context;
     reportedMissingBinary = false;
 
     diagnosticCollection = vscode.languages.createDiagnosticCollection('javafmt');
-    ctx.subscriptions.push(diagnosticCollection);
+    extensionContext.subscriptions.push(diagnosticCollection);
 
     statusItem = vscode.languages.createLanguageStatusItem('javafmt', { language: 'java' });
     statusItem.name = 'javafmt';
     statusItem.text = 'javafmt';
     statusItem.command = { title: 'Restart daemon', command: 'javafmt.restartDaemon' };
-    ctx.subscriptions.push(statusItem);
+    extensionContext.subscriptions.push(statusItem);
 
-    ctx.subscriptions.push(
+    extensionContext.subscriptions.push(
         vscode.commands.registerCommand('javafmt.restartDaemon', () => {
             restartDaemon();
             void vscode.window.showInformationMessage('javafmt daemon restarted.');
         })
     );
 
-    ctx.subscriptions.push(
+    extensionContext.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration('javafmt')) {
                 restartDaemon();
@@ -47,7 +47,7 @@ export function activate(context: vscode.ExtensionContext): void {
         })
     );
 
-    ctx.subscriptions.push(
+    extensionContext.subscriptions.push(
         vscode.languages.registerDocumentFormattingEditProvider('java', {
             provideDocumentFormattingEdits(doc: vscode.TextDocument): Promise<vscode.TextEdit[]> {
                 return getFormattingEdits(doc);
@@ -56,7 +56,7 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     // javafmt is a whole-file formatter; range formatting formats the full document.
-    ctx.subscriptions.push(
+    extensionContext.subscriptions.push(
         vscode.languages.registerDocumentRangeFormattingEditProvider('java', {
             provideDocumentRangeFormattingEdits(doc: vscode.TextDocument, _range: vscode.Range): Promise<vscode.TextEdit[]> {
                 return getFormattingEdits(doc);
@@ -116,9 +116,9 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
     try {
         reply = await sendRequest(source);
     } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        setStatus('error', msg);
-        void vscode.window.showErrorMessage(`javafmt: ${msg}`);
+        const message = err instanceof Error ? err.message : String(err);
+        setStatus('error', message);
+        void vscode.window.showErrorMessage(`javafmt: ${message}`);
         return [];
     }
     setStatus('ready');
@@ -134,23 +134,23 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
 function startDaemon(): void {
     const binaryPath = vscode.workspace.getConfiguration('javafmt').get<string>('binaryPath', '');
 
-    makeBundledBinaryExecutable(ctx.extensionPath, process.platform, process.arch);
+    makeBundledBinaryExecutable(extensionContext.extensionPath, process.platform, process.arch);
 
     let daemonCommand: DaemonCommand;
     try {
         daemonCommand = resolveDaemonCommand(binaryPath, {
-            extensionPath: ctx.extensionPath,
+            extensionPath: extensionContext.extensionPath,
             searchPath: process.env.PATH,
             platform: process.platform,
             arch: process.arch,
             isExecutable: isExecutableFile,
         });
     } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        setStatus('error', msg);
+        const message = err instanceof Error ? err.message : String(err);
+        setStatus('error', message);
         if (!reportedMissingBinary) {
             reportedMissingBinary = true;
-            void vscode.window.showErrorMessage(`javafmt: ${msg}`);
+            void vscode.window.showErrorMessage(`javafmt: ${message}`);
         }
         return;
     }
@@ -168,8 +168,8 @@ function startDaemon(): void {
         proc.kill();
         setStatus('error', reason);
         const err = new Error(`javafmt ${reason}`);
-        for (const req of pending.values()) {
-            req.reject(err);
+        for (const request of pending.values()) {
+            request.reject(err);
         }
         pending.clear();
     };
@@ -177,10 +177,10 @@ function startDaemon(): void {
     void (async () => {
         try {
             for await (const reply of decodeReplies(proc.stdout!)) {
-                const req = pending.get(reply.id);
-                if (req) {
+                const request = pending.get(reply.id);
+                if (request) {
                     pending.delete(reply.id);
-                    req.resolve(reply);
+                    request.resolve(reply);
                 }
             }
         } catch {
@@ -208,8 +208,8 @@ function stopDaemon(): void {
         daemon = null;
     }
     const err = new Error('javafmt daemon stopped');
-    for (const req of pending.values()) {
-        req.reject(err);
+    for (const request of pending.values()) {
+        request.reject(err);
     }
     pending.clear();
 }

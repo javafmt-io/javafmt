@@ -24,10 +24,10 @@ import java.util.List;
 public final class EmptyBlock implements WarningRule {
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public List<Diagnostic> warnings(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.collect(
-                ctx,
+                context,
                 diagnostics -> new ChainScanner<>() {
 
                     @Override

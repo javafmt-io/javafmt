@@ -33,7 +33,7 @@ public final class JavafmtFormatterStep {
      * A step that formats with semantic analysis, so the lint rules that need resolved types are
      * live — {@code RedundantTypeArguments}' type witnesses, {@code ExplodeStarImports} and the
      * rest. {@code analysisClasspath} is the compile classpath of the sources being formatted, as
-     * {@code javac -cp} would take it; an empty string leaves {@code config.analysis()} as given,
+     * {@code javac -classpath} would take it; an empty string leaves {@code config.analysis()} as given,
      * which is what {@link #create(JavafmtConfig)} uses.
      *
      * <p>Without this overload, the only way to reach analysis was javafmt's own build, so javafmt

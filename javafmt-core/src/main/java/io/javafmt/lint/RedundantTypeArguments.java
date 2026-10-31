@@ -55,22 +55,22 @@ import javax.lang.model.type.TypeKind;
 public final class RedundantTypeArguments implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
-        final var attribution = ctx.attribution();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
+        final var attribution = context.attribution();
         final var edits = new ArrayList<LintEdit>();
         final var witnessCalls = new ArrayList<WitnessCall>();
         new ChainPathScanner<Void, Void>() {
 
             @Override
             public Void visitNewClass(final NewClassTree node, final Void p) {
-                tryDiamondify(node, getCurrentPath(), ctx).ifPresent(edits::add);
+                tryDiamondify(node, getCurrentPath(), context).ifPresent(edits::add);
                 return super.visitNewClass(node, null);
             }
 
             @Override
             protected void visitInvocation(final MethodInvocationTree node, final Void p) {
-                if (!isInitializerOfALocalBecomingVar(node, getCurrentPath(), ctx)) {
+                if (!isInitializerOfALocalBecomingVar(node, getCurrentPath(), context)) {
                     witnessOf(node, getCurrentPath(), unit).ifPresent(witnessCalls::add);
                 }
             }
@@ -79,27 +79,27 @@ public final class RedundantTypeArguments implements LintRule {
         return LintResult.ofEdits(edits);
     }
 
-    private static Optional<LintEdit> tryDiamondify(final NewClassTree node, final TreePath path, final LintContext ctx) {
-        final var unit = ctx.unit();
+    private static Optional<LintEdit> tryDiamondify(final NewClassTree node, final TreePath path, final LintContext context) {
+        final var unit = context.unit();
         if (!(node.getIdentifier() instanceof ParameterizedTypeTree pt) || pt.getTypeArguments().isEmpty()) {
             return Optional.empty();
         }
-        final var target = findTargetTypeArgs(path, node, ctx);
-        if (target.isEmpty() || !typeArgsMatch(pt.getTypeArguments(), target.get(), unit)) {
+        final var target = findTargetTypeArguments(path, node, context);
+        if (target.isEmpty() || !typeArgumentsMatch(pt.getTypeArguments(), target.get(), unit)) {
             return Optional.empty();
         }
         return diamondEdit(pt, unit);
     }
 
-    private static boolean isInitializerOfALocalBecomingVar(final MethodInvocationTree call, final TreePath path, final LintContext ctx) {
+    private static boolean isInitializerOfALocalBecomingVar(final MethodInvocationTree call, final TreePath path, final LintContext context) {
         final var parent = path.getParentPath();
         return parent != null
             && parent.getLeaf() instanceof VariableTree variable
             && variable.getInitializer() == call
-            && LocalVarUseVar.rewritesInitializer(parent, ctx);
+            && LocalVarUseVar.rewritesInitializer(parent, context);
     }
 
-    private static Optional<List<? extends Tree>> findTargetTypeArgs(final TreePath path, final NewClassTree node, final LintContext ctx) {
+    private static Optional<List<? extends Tree>> findTargetTypeArguments(final TreePath path, final NewClassTree node, final LintContext context) {
         final var parent = path.getParentPath();
         if (parent == null) {
             return Optional.empty();
@@ -107,13 +107,13 @@ public final class RedundantTypeArguments implements LintRule {
         if (parent.getLeaf() instanceof VariableTree var
             && var.getInitializer() == node
             && var.getType() instanceof ParameterizedTypeTree targetPt) {
-            if (LocalVarUseVar.rewritesInitializer(parent, ctx)) {
+            if (LocalVarUseVar.rewritesInitializer(parent, context)) {
                 return Optional.empty();
             }
             return Optional.of(targetPt.getTypeArguments());
         }
-        if (parent.getLeaf() instanceof ReturnTree ret && ret.getExpression() == node) {
-            return enclosingMethodReturnTypeArgs(parent);
+        if (parent.getLeaf() instanceof ReturnTree returnTree && returnTree.getExpression() == node) {
+            return enclosingMethodReturnTypeArguments(parent);
         }
         return Optional.empty();
     }
@@ -123,7 +123,7 @@ public final class RedundantTypeArguments implements LintRule {
      * stopping at a {@link LambdaExpressionTree} since a lambda's return type can't be
      * read syntactically without attribution.
      */
-    private static Optional<List<? extends Tree>> enclosingMethodReturnTypeArgs(final TreePath returnPath) {
+    private static Optional<List<? extends Tree>> enclosingMethodReturnTypeArguments(final TreePath returnPath) {
         var path = returnPath.getParentPath();
         while (path != null) {
             final var leaf = path.getLeaf();
@@ -138,10 +138,13 @@ public final class RedundantTypeArguments implements LintRule {
         return Optional.empty();
     }
 
-    private static boolean typeArgsMatch(final List<? extends Tree> ctorArgs, final List<? extends Tree> targetArgs, final ParsedUnit unit) {
-        return ctorArgs.size() == targetArgs.size()
-            && IntStream.range(0, ctorArgs.size())
-                    .allMatch(i -> unit.sourceOf(ctorArgs.get(i)).trim().equals(unit.sourceOf(targetArgs.get(i)).trim()));
+    private static boolean typeArgumentsMatch(
+            final List<? extends Tree> constructorArguments,
+            final List<? extends Tree> targetArguments,
+            final ParsedUnit unit) {
+        return constructorArguments.size() == targetArguments.size()
+            && IntStream.range(0, constructorArguments.size())
+                    .allMatch(i -> unit.sourceOf(constructorArguments.get(i)).trim().equals(unit.sourceOf(targetArguments.get(i)).trim()));
     }
 
     private static Optional<LintEdit> diamondEdit(final ParameterizedTypeTree pt, final ParsedUnit unit) {
@@ -162,24 +165,24 @@ public final class RedundantTypeArguments implements LintRule {
     }
 
     private static Optional<WitnessCall> witnessOf(final MethodInvocationTree node, final TreePath path, final ParsedUnit unit) {
-        final var typeArgs = node.getTypeArguments();
-        if (typeArgs.isEmpty()) {
+        final var typeArguments = node.getTypeArguments();
+        if (typeArguments.isEmpty()) {
             return Optional.empty();
         }
         final var src = unit.source();
-        final var firstArgStart = unit.startOf(typeArgs.getFirst());
-        final var lastArgEnd = unit.endOf(typeArgs.getLast());
-        if (firstArgStart < 0 || lastArgEnd < 0 || lastArgEnd > src.length()) {
+        final var firstArgumentStart = unit.startOf(typeArguments.getFirst());
+        final var lastArgumentEnd = unit.endOf(typeArguments.getLast());
+        if (firstArgumentStart < 0 || lastArgumentEnd < 0 || lastArgumentEnd > src.length()) {
             return Optional.empty();
         }
-        var lt = firstArgStart - 1;
+        var lt = firstArgumentStart - 1;
         while (lt >= 0 && Character.isWhitespace(src.charAt(lt))) {
             lt--;
         }
         if (lt < 0 || src.charAt(lt) != '<') {
             return Optional.empty();
         }
-        var gt = lastArgEnd;
+        var gt = lastArgumentEnd;
         while (gt < src.length() && Character.isWhitespace(src.charAt(gt))) {
             gt++;
         }

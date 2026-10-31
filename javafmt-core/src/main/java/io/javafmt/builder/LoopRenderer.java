@@ -18,7 +18,7 @@ final class LoopRenderer {
 
     Doc renderFor(final ForLoopTree node, final Recursor recursor) {
         final var header = buildForHeader(node, recursor);
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
     }
 
     private Doc buildForHeader(final ForLoopTree node, final Recursor recursor) {
@@ -37,7 +37,7 @@ final class LoopRenderer {
      * The variables of a {@code for} header. Java declares them all under one type — there is no
      * way to write two types in a single {@code for} initializer — but javac hands back a complete
      * {@link VariableTree} for each, so rendering every one in full writes
-     * {@code for (int i = 0, int len = n; …)}. Only the first carries the modifiers and the type;
+     * {@code for (int i = 0, int length = n; …)}. Only the first carries the modifiers and the type;
      * the rest are name and initializer.
      *
      * <p>The C-style form {@code for (int i = 0, a[] = null; …)} is the exception: there the
@@ -87,19 +87,19 @@ final class LoopRenderer {
                 new Doc.Text(" " + Names.of(variable) + " : "),
                 recursor.scan(node.getExpression()),
                 new Doc.Text(")"));
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
     }
 
     Doc renderWhile(final WhileLoopTree node, final Recursor recursor) {
         final var header = Doc.concat(new Doc.Text("while "), recursor.scan(node.getCondition()));
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStmts(node.getStatement(), recursor), List.of());
+        return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
     }
 
     Doc renderDoWhile(final DoWhileLoopTree node, final Recursor recursor) {
-        final var stmts = BlockRenderer.blockStmts(node.getStatement(), recursor);
+        final var statements = BlockRenderer.blockStatements(node.getStatement(), recursor);
         return new Doc.Concat(
                 Stream.concat(
-                        BlockRenderer.blockParts("do", stmts),
+                        BlockRenderer.blockParts("do", statements),
                         Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} while "), recursor.scan(node.getCondition()), new Doc.Text(";"))));
     }
 }

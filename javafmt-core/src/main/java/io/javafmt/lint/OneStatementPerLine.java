@@ -13,16 +13,16 @@ import java.util.List;
  * pairs by comparing start-line numbers of consecutive statements in a {@link BlockTree}.
  *
  * <p>For loop headers are excluded by design: this rule only visits {@link BlockTree}
- * statement lists, which are block bodies — not the init/condition/update clauses of a
+ * statement lists, which are block bodies — not the initializer/condition/update clauses of a
  * {@code for} loop header.
  */
 public final class OneStatementPerLine implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainScanner<>() {
 
                     @Override
@@ -33,30 +33,30 @@ public final class OneStatementPerLine implements LintRule {
                 });
     }
 
-    private static void checkBlock(final List<? extends StatementTree> stmts, final ParsedUnit unit, final List<LintEdit> edits) {
-        for (var i = 0; i < stmts.size() - 1; i++) {
-            final var curr = stmts.get(i);
-            final var next = stmts.get(i + 1);
-            if (!(unit.positionOf(curr) instanceof Position.At currAt) || !(unit.positionOf(next) instanceof Position.At nextAt)) {
+    private static void checkBlock(final List<? extends StatementTree> statements, final ParsedUnit unit, final List<LintEdit> edits) {
+        for (var i = 0; i < statements.size() - 1; i++) {
+            final var current = statements.get(i);
+            final var next = statements.get(i + 1);
+            if (!(unit.positionOf(current) instanceof Position.At currentAt) || !(unit.positionOf(next) instanceof Position.At nextAt)) {
                 continue;
             }
-            if (currAt.line() != nextAt.line()) {
+            if (currentAt.line() != nextAt.line()) {
                 continue;
             }
-            final var currEnd = unit.endOf(curr);
+            final var currentEnd = unit.endOf(current);
             final var nextStart = unit.startOf(next);
-            if (currEnd < 0 || nextStart < 0 || nextStart <= currEnd) {
+            if (currentEnd < 0 || nextStart < 0 || nextStart <= currentEnd) {
                 continue;
             }
             final var src = unit.source();
-            var splitPoint = currEnd;
+            var splitPoint = currentEnd;
             while (splitPoint < nextStart && src.charAt(splitPoint) != ';') {
                 splitPoint++;
             }
             if (splitPoint < nextStart && src.charAt(splitPoint) == ';') {
                 splitPoint++;
             }
-            final var indent = MultipleVariableDeclarations.extractIndent(src, currAt.offset());
+            final var indent = MultipleVariableDeclarations.extractIndent(src, currentAt.offset());
             edits.add(new LintEdit(splitPoint, nextStart, "\n" + indent));
         }
     }

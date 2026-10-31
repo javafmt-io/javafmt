@@ -39,8 +39,8 @@ public final class RemoveUnusedImports implements LintRule {
     private static final Pattern IDENTIFIER = Pattern.compile("\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*");
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         final var imports = unit.tree().getImports();
         if (imports.isEmpty()) {
             return LintResult.EMPTY;

@@ -221,59 +221,61 @@ class ClassLikeRendererTest {
     }
 
     @Nested
-    class InitBlocks {
+    class InitializerBlocks {
 
         @Test
-        void class_withStaticInitBlock_rendersWithStaticKeyword() {
+        void class_withStaticInitializerBlock_rendersWithStaticKeyword() {
             assertThat(format("class Foo { static { x = 1; } }")).isEqualTo("class Foo {\n\n    static {\n        x = 1;\n    }\n}");
         }
 
         @Test
-        void class_withEmptyStaticInitBlock_rendersOnOneLine() {
+        void class_withEmptyStaticInitializerBlock_rendersOnOneLine() {
             assertThat(format("class Foo { static {} }")).isEqualTo("class Foo {\n\n    static {}\n}");
         }
 
         @Test
-        void class_withInstanceInitBlock_rendersWithoutKeyword() {
+        void class_withInstanceInitializerBlock_rendersWithoutKeyword() {
             assertThat(format("class Foo { { x = 1; } }")).isEqualTo("class Foo {\n\n    {\n        x = 1;\n    }\n}");
         }
 
         @Test
-        void class_withEmptyInstanceInitBlock_rendersOnOneLine() {
+        void class_withEmptyInstanceInitializerBlock_rendersOnOneLine() {
             assertThat(format("class Foo { {} }")).isEqualTo("class Foo {\n\n    {}\n}");
         }
 
         @Test
-        void class_withMultiStatementStaticInit_eachStmtOnOwnLine() {
+        void class_withMultiStatementStaticInitializer_eachStatementOnOwnLine() {
             assertThat(format("class Foo { static { a(); b(); c(); } }"))
                     .isEqualTo("class Foo {\n\n    static {\n        a();\n        b();\n        c();\n    }\n}");
         }
 
         @Test
-        void record_withStaticInitBlock_rendersInBody() {
-            assertThat(format("record R(int x) { static { init(); } }")).isEqualTo("record R(int x) {\n\n    static {\n        init();\n    }\n}");
+        void record_withStaticInitializerBlock_rendersInBody() {
+            assertThat(format("record R(int x) { static { initialize(); } }"))
+                    .isEqualTo("record R(int x) {\n\n    static {\n        initialize();\n    }\n}");
         }
 
         @Test
-        void enum_withStaticInitBlock_rendersAfterConstants() {
-            assertThat(format("enum E { A; static { init(); } }")).isEqualTo("enum E {\n\n    A;\n\n    static {\n        init();\n    }\n}");
+        void enum_withStaticInitializerBlock_rendersAfterConstants() {
+            assertThat(format("enum E { A; static { initialize(); } }"))
+                    .isEqualTo("enum E {\n\n    A;\n\n    static {\n        initialize();\n    }\n}");
         }
 
         @Test
-        void enum_withInstanceInitBlock_rendersInBody() {
-            assertThat(format("enum E { A; { init(); } }")).isEqualTo("enum E {\n\n    A;\n\n    {\n        init();\n    }\n}");
+        void enum_withInstanceInitializerBlock_rendersInBody() {
+            assertThat(format("enum E { A; { initialize(); } }")).isEqualTo("enum E {\n\n    A;\n\n    {\n        initialize();\n    }\n}");
         }
 
         @Test
-        void class_withDeeplyNestedStaticInit_rendersCorrectIndent() {
-            final var source = "class Outer { class Inner { static { init(); } } }";
+        void class_withDeeplyNestedStaticInitializer_rendersCorrectIndent() {
+            final var source = "class Outer { class Inner { static { initialize(); } } }";
             final var expected = """
                 class Outer {
 
                     class Inner {
 
                         static {
-                            init();
+                            initialize();
                         }
                     }
                 }""";

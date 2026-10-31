@@ -12,17 +12,17 @@ final class TryRenderer {
 
     Doc render(final TryTree node, final Recursor recursor) {
         final var header = buildHeader(node, recursor);
-        final var tryStmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
+        final var tryStatements = BlockRenderer.blockStatements(node.getBlock(), recursor);
         final var catchStream = node.getCatches().stream().flatMap(c -> catchParts(c, recursor));
         final var finallyBlock = node.getFinallyBlock();
         final var finallyStream = finallyBlock == null
                 ? Stream.<Doc>empty()
                 : Stream.concat(
                         Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} finally {")),
-                        BlockRenderer.blockStmts(finallyBlock, recursor)
+                        BlockRenderer.blockStatements(finallyBlock, recursor)
                                 .stream()
                                 .map(Doc::indentedLine));
-        return Doc.concatOf(Stream.of(BlockRenderer.blockParts(header, tryStmts), catchStream, finallyStream, Doc.closeBrace()));
+        return Doc.concatOf(Stream.of(BlockRenderer.blockParts(header, tryStatements), catchStream, finallyStream, Doc.closeBrace()));
     }
 
     private Doc buildHeader(final TryTree node, final Recursor recursor) {
@@ -52,6 +52,6 @@ final class TryRenderer {
 
     private Stream<Doc> catchParts(final CatchTree c, final Recursor recursor) {
         final var header = Doc.concat(new Doc.Text("} "), catchClause(c, recursor));
-        return Stream.concat(Stream.of(Doc.HARD_LINE), BlockRenderer.blockParts(header, BlockRenderer.blockStmts(c.getBlock(), recursor)));
+        return Stream.concat(Stream.of(Doc.HARD_LINE), BlockRenderer.blockParts(header, BlockRenderer.blockStatements(c.getBlock(), recursor)));
     }
 }

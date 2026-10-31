@@ -35,10 +35,10 @@ import java.util.stream.Stream;
 public final class MultipleVariableDeclarations implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainScanner<>() {
 
                     @Override
@@ -55,22 +55,22 @@ public final class MultipleVariableDeclarations implements LintRule {
                 });
     }
 
-    private static void splitGroups(final List<? extends Tree> stmts, final ParsedUnit unit, final List<LintEdit> edits) {
+    private static void splitGroups(final List<? extends Tree> statements, final ParsedUnit unit, final List<LintEdit> edits) {
         var i = 0;
-        while (i < stmts.size()) {
-            if (!(stmts.get(i) instanceof VariableTree firstVar)) {
+        while (i < statements.size()) {
+            if (!(statements.get(i) instanceof VariableTree firstVar)) {
                 i++;
                 continue;
             }
             final var typeStart = unit.startOf(firstVar.getType());
             var j = i + 1;
-            while (j < stmts.size()
-                && stmts.get(j) instanceof VariableTree nextVar
+            while (j < statements.size()
+                && statements.get(j) instanceof VariableTree nextVar
                 && unit.startOf(nextVar.getType()) == typeStart) {
                 j++;
             }
             if (j - i >= 2) {
-                edits.addAll(buildEdits(stmts.subList(i, j).stream().map(t -> (VariableTree) t).toList(), unit));
+                edits.addAll(buildEdits(statements.subList(i, j).stream().map(t -> (VariableTree) t).toList(), unit));
             }
             i = j;
         }

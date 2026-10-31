@@ -21,15 +21,15 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 final class StatementFlow {
 
-    boolean terminates(final StatementTree stmt) {
-        return switch (stmt) {
+    boolean terminates(final StatementTree statement) {
+        return switch (statement) {
             case BlockTree block -> !block.getStatements().isEmpty() && transfersControl(block.getStatements().getLast());
-            default -> transfersControl(stmt);
+            default -> transfersControl(statement);
         };
     }
 
-    private boolean transfersControl(final StatementTree stmt) {
-        return switch (stmt) {
+    private boolean transfersControl(final StatementTree statement) {
+        return switch (statement) {
             case BreakTree _, ReturnTree _, ThrowTree _, ContinueTree _, YieldTree _ -> true;
             default -> false;
         };

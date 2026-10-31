@@ -29,14 +29,14 @@ public final class UnusedVariableShouldBeUnnamed implements LintRule {
     private static final int FIRST_RELEASE_WITH_UNNAMED_VARIABLES = 22;
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        if (ctx.release() < FIRST_RELEASE_WITH_UNNAMED_VARIABLES) {
+    public LintResult apply(final LintContext context) {
+        if (context.release() < FIRST_RELEASE_WITH_UNNAMED_VARIABLES) {
             return LintResult.EMPTY;
         }
-        final var unit = ctx.unit();
+        final var unit = context.unit();
         final var namesByScope = new IdentityHashMap<Tree, Set<String>>();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainPathScanner<>() {
 
                     @Override

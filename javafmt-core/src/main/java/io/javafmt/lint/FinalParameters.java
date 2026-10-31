@@ -33,11 +33,11 @@ import java.util.stream.Collectors;
 public final class FinalParameters implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         final var facts = new TreeFacts(unit);
         final var reassignments = new ReassignmentDetector();
-        return methodsWithBodies(ctx, facts)
+        return methodsWithBodies(context, facts)
                 .stream()
                 .flatMap(
                         m -> m.getParameters()
@@ -58,9 +58,9 @@ public final class FinalParameters implements LintRule {
      * the record's header components, and the JLS forbids modifiers there, so adding {@code
      * final} would break the re-parse.
      */
-    private static List<MethodTree> methodsWithBodies(final LintContext ctx, final TreeFacts facts) {
+    private static List<MethodTree> methodsWithBodies(final LintContext context, final TreeFacts facts) {
         return LintScan.collect(
-                ctx,
+                context,
                 methods -> new ChainScanner<>() {
 
                     @Override

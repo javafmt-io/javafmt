@@ -26,14 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CliTest {
 
     @Test
-    void stdinNoArgs_formatsAndWritesToStdout() {
+    void stdinNoArguments_formatsAndWritesToStdout() {
         final var run = runStdin(Fixtures.UNFORMATTED_FOO);
         assertThat(run.exit()).isZero();
         assertThat(run.out()).isEqualTo(Fixtures.FORMATTED_FOO);
     }
 
     @Test
-    void fileArgs_formatsInPlaceAndReturnsZero(@TempDir final Path dir) throws Exception {
+    void fileArguments_formatsInPlaceAndReturnsZero(@TempDir final Path dir) throws Exception {
         final var a = dir.resolve("A.java");
         final var b = dir.resolve("B.java");
         Files.writeString(a, Fixtures.UNFORMATTED_A);
@@ -193,11 +193,11 @@ class CliTest {
             Files.createDirectories(target.getParent() == null ? dir : target.getParent());
             Files.writeString(target, unformatted);
         }
-        final var args = Stream.<String>concat(
+        final var arguments = Stream.<String>concat(
                 excludes.stream().flatMap(g -> Stream.of("--exclude", g)),
                 filenames.stream().map(n -> dir.resolve(n).toString()))
                 .toArray(String[]::new);
-        final var run = run(args);
+        final var run = run(arguments);
         assertThat(run.exit()).isZero();
         for (final var name : filenames) {
             final var actual = Files.readString(dir.resolve(name));
@@ -347,7 +347,7 @@ class CliTest {
             }
 
             @Override
-            public int read(final byte[] b, final int off, final int len) throws IOException {
+            public int read(final byte[] b, final int off, final int length) throws IOException {
                 throw new IOException("pipe burst");
             }
         };
@@ -409,7 +409,7 @@ class CliTest {
             }
 
             @Override
-            public int read(final byte[] b, final int off, final int len) throws IOException {
+            public int read(final byte[] b, final int off, final int length) throws IOException {
                 throw new IOException("pipe burst");
             }
         };
@@ -669,18 +669,22 @@ class CliTest {
         assertThat(run.err()).contains("--json only applies to --daemon");
     }
 
-    private static Run run(final String... args) {
-        return runStdin("", args);
+    private static Run run(final String... arguments) {
+        return runStdin("", arguments);
     }
 
-    private static Run runStdin(final String stdin, final String... args) {
-        return runStdin(new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)), args);
+    private static Run runStdin(final String stdin, final String... arguments) {
+        return runStdin(new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)), arguments);
     }
 
-    private static Run runStdin(final InputStream in, final String... args) {
+    private static Run runStdin(final InputStream in, final String... arguments) {
         final var out = new ByteArrayOutputStream();
         final var err = new ByteArrayOutputStream();
-        final var exit = Cli.run(args, in, new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
+        final var exit = Cli.run(
+                arguments,
+                in,
+                new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Run(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 

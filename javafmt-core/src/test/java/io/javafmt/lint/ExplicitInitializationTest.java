@@ -63,7 +63,7 @@ class ExplicitInitializationTest {
     }
 
     @Test
-    void localVariableDefaultInitNotRemoved() {
+    void localVariableDefaultInitializerNotRemoved() {
         // Rule only applies to fields, not locals
         final var unit = JavaParser.parseUnit("""
             class Fixture {
@@ -78,14 +78,14 @@ class ExplicitInitializationTest {
     }
 
     @Test
-    void staticFieldWithDefaultInitIsRemoved() {
+    void staticFieldWithDefaultInitializerIsRemoved() {
         final var unit = JavaParser.parseUnit("class Fixture { static int count = 0; }");
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
     }
 
     @Test
-    void arrayFieldWithNullInitIsRemoved() {
+    void arrayFieldWithNullInitializerIsRemoved() {
         final var unit = JavaParser.parseUnit("class Fixture { int[] data = null; }");
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);

@@ -12,7 +12,7 @@ class RedundantSuperCallTest {
     }
 
     @Test
-    void regularConstructor_removesNoArgSuperCall() {
+    void regularConstructor_removesNoArgumentSuperCall() {
         assertThat(format("class Foo { Foo() { super(); } }"))
                 .isEqualTo("class Foo {\n\n    Foo() {}\n}\n");
     }
@@ -30,7 +30,7 @@ class RedundantSuperCallTest {
     }
 
     @Test
-    void superWithArgs_isPreserved() {
+    void superWithArguments_isPreserved() {
         assertThat(format("class Foo extends Bar { Foo(int x) { super(x); } }"))
                 .isEqualTo("class Foo extends Bar {\n\n    Foo(final int x) {\n        super(x);\n    }\n}\n");
     }

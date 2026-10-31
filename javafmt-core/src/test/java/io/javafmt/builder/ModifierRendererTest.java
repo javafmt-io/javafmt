@@ -35,8 +35,8 @@ class ModifierRendererTest {
         // SEALED (ordinal 6) precedes FINAL (ordinal 8) in the Modifier enum, but JLS mandates FINAL first.
         // This combination is invalid Java, but tests the ordering logic directly without a parser round-trip.
         final var flags = EnumSet.of(Modifier.PUBLIC, Modifier.FINAL, Modifier.SEALED);
-        final var mods = stubModifiers(flags, List.of());
-        assertThat(ModifierRenderer.modifiersText(mods)).isEqualTo("public final sealed ");
+        final var modifiers = stubModifiers(flags, List.of());
+        assertThat(ModifierRenderer.modifiersText(modifiers)).isEqualTo("public final sealed ");
     }
 
     @Test
@@ -45,8 +45,8 @@ class ModifierRendererTest {
         // and the enclosing Indent adds more every pass. Collapsing keeps every token — an
         // author-written trailing comma included — while staying stable across passes.
         final var source = "@Foo({\n    \"a\",\n    \"b\",\n})";
-        final var mods = stubModifiers(Set.of(), List.of(stubAnnotation(source)));
-        final var doc = ModifierRenderer.prependOwnLineAnnotations(mods, new Doc.Text("class Bar"), stubRecursor(source));
+        final var modifiers = stubModifiers(Set.of(), List.of(stubAnnotation(source)));
+        final var doc = ModifierRenderer.prependOwnLineAnnotations(modifiers, new Doc.Text("class Bar"), stubRecursor(source));
         assertThat(new Printer(WIDTH).print(doc)).isEqualTo("@Foo({ \"a\", \"b\", })\nclass Bar");
     }
 

@@ -8,11 +8,11 @@ import java.util.Optional;
 public final class FinalCatchParameter implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         final var reassignments = new ReassignmentDetector();
         final var catches = LintScan.<CatchTree>collect(
-                ctx,
+                context,
                 sink -> new ChainScanner<>() {
 
                     @Override

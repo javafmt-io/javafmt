@@ -15,8 +15,8 @@ import java.util.Optional;
 public final class EqualsHashCode implements WarningRule {
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        return WarningRule.onNode(ctx, ClassTree.class, EqualsHashCode::warningFor);
+    public List<Diagnostic> warnings(final LintContext context) {
+        return WarningRule.onNode(context, ClassTree.class, EqualsHashCode::warningFor);
     }
 
     private static Optional<String> warningFor(final ClassTree node) {

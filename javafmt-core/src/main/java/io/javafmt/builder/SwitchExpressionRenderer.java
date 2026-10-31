@@ -40,11 +40,11 @@ final class SwitchExpressionRenderer {
             return Doc.concat(prefixDoc, new Doc.Text(" ->"));
         }
         if (body instanceof BlockTree blockBody) {
-            final var stmts = blockBody.getStatements()
+            final var statements = blockBody.getStatements()
                     .stream()
                     .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
                     .toList();
-            return BlockRenderer.buildBlock(Doc.concat(prefixDoc, new Doc.Text(" ->")), stmts, recursor.interior(blockBody));
+            return BlockRenderer.buildBlock(Doc.concat(prefixDoc, new Doc.Text(" ->")), statements, recursor.interior(blockBody));
         }
         final var bodyDoc = body instanceof StatementTree ? recursor.scan(body) : Doc.concat(recursor.scan(body), new Doc.Text(";"));
         if (mustHugArrow(bodyDoc)) {
@@ -100,18 +100,18 @@ final class SwitchExpressionRenderer {
 
     private Doc renderColonForm(final Doc prefixDoc, final CaseTree node, final Recursor recursor) {
         final var prefix = Doc.concat(prefixDoc, new Doc.Text(":"));
-        final var stmts = node.getStatements()
+        final var statements = node.getStatements()
                 .stream()
                 .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
                 .toList();
-        if (stmts.isEmpty()) {
+        if (statements.isEmpty()) {
             return prefix;
         }
         if (node.getStatements().size() == 1 && node.getStatements().getFirst() instanceof BlockTree) {
             // K&R: a braced colon-form arm opens on the label's line, the same as every other block
             // in the file. Indenting the brace onto its own line is the one place javafmt did not.
-            return Doc.concat(prefix, new Doc.Text(" "), stmts.getFirst());
+            return Doc.concat(prefix, new Doc.Text(" "), statements.getFirst());
         }
-        return new Doc.Concat(Stream.concat(Stream.of(prefix), stmts.stream().map(Doc::indentedLine)));
+        return new Doc.Concat(Stream.concat(Stream.of(prefix), statements.stream().map(Doc::indentedLine)));
     }
 }

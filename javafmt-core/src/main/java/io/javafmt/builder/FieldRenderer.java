@@ -16,8 +16,8 @@ final class FieldRenderer {
      * longest of them 198 characters.
      */
     Doc render(final VariableTree node, final Recursor recursor) {
-        final var mods = node.getModifiers();
-        final var preamble = ModifierRenderer.preambleOf(mods, recursor, ModifierRenderer.rendersFieldAnnotationsInline(mods, recursor));
+        final var modifiers = node.getModifiers();
+        final var preamble = ModifierRenderer.preambleOf(modifiers, recursor, ModifierRenderer.rendersFieldAnnotationsInline(modifiers, recursor));
         final var typeDoc = node.getType() == null ? new Doc.Text("var") : recursor.scan(node.getType());
         final var head = Doc.concat(new Doc.Text(preamble.prefix()), typeDoc, new Doc.Text(" " + Names.of(node)));
         final var declaration = node.getInitializer() == null

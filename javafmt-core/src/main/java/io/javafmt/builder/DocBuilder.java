@@ -261,11 +261,11 @@ public final class DocBuilder {
                 : Stream.<Doc>empty();
         final var module = node.getModule();
         final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.<Doc>ofNullable(scan(module)).stream();
-        final var typeDeclsStream = Doc.intersperse(
+        final var typeDeclarationsStream = Doc.intersperse(
                 Doc.BLANK_LINE,
                 node.getTypeDecls()
                         .stream()
-                        .<Doc>flatMap(decl -> Optional.<Doc>ofNullable(scan(decl)).stream()));
+                        .<Doc>flatMap(declaration -> Optional.<Doc>ofNullable(scan(declaration)).stream()));
         return Doc.concatOf(
                 Stream.of(
                         CommentDocs.fileHeaderStream(unit.fileHeader()),
@@ -273,7 +273,7 @@ public final class DocBuilder {
                         pkgStream,
                         ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit),
                         moduleStream,
-                        typeDeclsStream,
+                        typeDeclarationsStream,
                         CommentDocs.fileFooterStream(unit.fileFooter())));
     }
 
@@ -301,11 +301,11 @@ public final class DocBuilder {
     }
 
     private Doc visitBlock(final BlockTree node) {
-        final var stmts = node.getStatements()
+        final var statements = node.getStatements()
                 .stream()
                 .<Doc>flatMap(s -> Optional.ofNullable(scan(s)).stream())
                 .toList();
-        return BlockRenderer.buildBlock(stmts, attacher.trailingInside(node));
+        return BlockRenderer.buildBlock(statements, attacher.trailingInside(node));
     }
 
     /**
@@ -316,8 +316,8 @@ public final class DocBuilder {
      * cannot drift apart.
      */
     private Doc visitCatch(final CatchTree node) {
-        final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
-        return BlockRenderer.buildBlock(TryRenderer.catchClause(node, recursor), stmts, List.of());
+        final var statements = BlockRenderer.blockStatements(node.getBlock(), recursor);
+        return BlockRenderer.buildBlock(TryRenderer.catchClause(node, recursor), statements, List.of());
     }
 
     private Doc visitModifiers(final ModifiersTree node) {

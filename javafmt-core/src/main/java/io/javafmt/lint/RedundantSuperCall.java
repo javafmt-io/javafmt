@@ -8,26 +8,26 @@ import io.javafmt.parser.ParsedUnit;
 import java.util.Optional;
 
 /**
- * Removes a no-arg {@code super()} as the first statement of a constructor body.
+ * Removes a no-argument {@code super()} as the first statement of a constructor body.
  *
- * <p>Java implicitly calls the no-arg superclass constructor when a constructor does not start
- * with an explicit {@code this(...)} or {@code super(...)}. An explicit no-arg {@code super()}
+ * <p>Java implicitly calls the no-argument superclass constructor when a constructor does not start
+ * with an explicit {@code this(...)} or {@code super(...)}. An explicit no-argument {@code super()}
  * is therefore always redundant and should be removed.
  *
  * <p>This also cleans up {@code super()} injected into record compact constructors by tools
  * (including, historically, javafmt's own formatter when run in attributed mode), where the
  * call is not merely redundant but a compile error.
  *
- * <p>Only a no-arg call at the first statement is removed. Calls with arguments ({@code super(x)})
+ * <p>Only a no-argument call at the first statement is removed. Calls with arguments ({@code super(x)})
  * and {@code this(...)} delegations are left untouched.
  */
 public final class RedundantSuperCall implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainScanner<>() {
 
                     @Override

@@ -234,7 +234,7 @@ class PrinterTest {
         @Test
         void verbatim_shiftedLeftBeyondSafeLimit_clampsToMinLeadingWhitespace() {
             // sourceCol = 4, outputCol = 0, requested shift = -4. The block's content lines and
-            // closing """ each have only 2 leading spaces, so minLeadingWs = 2. The printer must
+            // closing """ each have only 2 leading spaces, so minimumLeadingWhitespace = 2. The printer must
             // clamp the shift to -2 (otherwise the text-block content would lose more whitespace
             // than the minimum line has, changing the parsed string).
             final var rawBlock = "\"\"\"\n  hello\n  world\n  \"\"\"";
