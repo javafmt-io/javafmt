@@ -27,7 +27,7 @@ final class BodyMemberRenderer {
                             : ConstructorRenderer.render(mt, className, recursor));
         }
         if (member instanceof BlockTree bt) {
-            return recursor.attach(bt, InitBlockRenderer.render(bt, recursor));
+            return recursor.attach(bt, InitializerBlockRenderer.render(bt, recursor));
         }
         return recursor.scan(member);
     }

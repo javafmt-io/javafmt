@@ -164,7 +164,7 @@ class LocalVarUseVarTest {
 
     @Test
     void staticFactoryWithMismatchedExistingWitnessNotTouched() {
-        // Declared args differ from the witness args (widening to a wildcard).
+        // Declared arguments differ from the witness arguments (widening to a wildcard).
         // `var` would infer the narrower call type, changing the variable's apparent type.
         final var unit = JavaParser.parseUnit("""
                                               import java.util.Optional;

@@ -10,7 +10,7 @@ dependencies {
     compileOnly(libs.spotless.lib)
     testImplementation(libs.spotless.lib)
     testImplementation(testFixtures(project(":javafmt-core")))
-    // FormatterFunc.NeedsFile reaches into com.diffplug.spotless.Formatter which static-inits slf4j.
+    // FormatterFunc.NeedsFile reaches into com.diffplug.spotless.Formatter which statically initializes slf4j.
     testRuntimeOnly(libs.slf4j.simple)
 }
 

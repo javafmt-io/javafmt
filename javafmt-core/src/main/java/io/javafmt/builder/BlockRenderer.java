@@ -15,14 +15,14 @@ import java.util.stream.Stream;
 @UtilityClass
 final class BlockRenderer {
 
-    List<Doc> blockStmts(final StatementTree stmt, final Recursor recursor) {
-        if (stmt instanceof BlockTree block) {
-            final var stmtDocs = statementDocs(block.getStatements(), recursor);
+    List<Doc> blockStatements(final StatementTree statement, final Recursor recursor) {
+        if (statement instanceof BlockTree block) {
+            final var statementDocs = statementDocs(block.getStatements(), recursor);
             final var tailDocs = recursor.trailingInside(block).stream().<Doc>map(CommentDocs::renderComment);
-            return Stream.concat(stmtDocs, tailDocs).toList();
+            return Stream.concat(statementDocs, tailDocs).toList();
         }
-        recursor.emitWarning("added braces around single-statement body", stmt);
-        return Optional.ofNullable(recursor.scan(stmt)).map(List::of).orElse(List.of());
+        recursor.emitWarning("added braces around single-statement body", statement);
+        return Optional.ofNullable(recursor.scan(statement)).map(List::of).orElse(List.of());
     }
 
     /**
@@ -44,8 +44,8 @@ final class BlockRenderer {
                 .flatMap(Optional::stream);
     }
 
-    Doc buildBlock(final String header, final List<Doc> stmts, final List<CommentToken> trailing) {
-        return buildBlock(new Doc.Text(header), stmts, trailing);
+    Doc buildBlock(final String header, final List<Doc> statements, final List<CommentToken> trailing) {
+        return buildBlock(new Doc.Text(header), statements, trailing);
     }
 
     /**
@@ -54,32 +54,32 @@ final class BlockRenderer {
      * not show there, but a static initializer ending in a block of notes had them hoisted above
      * its first statement, which is not where the author left them.
      */
-    Doc buildBlock(final Doc header, final List<Doc> stmts, final List<CommentToken> trailing) {
-        if (stmts.isEmpty() && trailing.isEmpty()) {
+    Doc buildBlock(final Doc header, final List<Doc> statements, final List<CommentToken> trailing) {
+        if (statements.isEmpty() && trailing.isEmpty()) {
             return Doc.concat(header, new Doc.Text(" {}"));
         }
-        final var all = Stream.concat(stmts.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment));
+        final var all = Stream.concat(statements.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment));
         return Doc.concatOf(Stream.of(blockParts(header, all), Doc.closeBrace()));
     }
 
-    Doc buildBlock(final List<Doc> stmts, final List<CommentToken> trailing) {
-        if (stmts.isEmpty() && trailing.isEmpty()) {
+    Doc buildBlock(final List<Doc> statements, final List<CommentToken> trailing) {
+        if (statements.isEmpty() && trailing.isEmpty()) {
             return new Doc.Text("{}");
         }
-        final var all = Stream.concat(stmts.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment));
+        final var all = Stream.concat(statements.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment));
         return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text("{")), all.map(Doc::indentedLine), Doc.closeBrace()));
     }
 
-    Stream<Doc> blockParts(final String header, final List<Doc> stmts) {
-        return blockParts(new Doc.Text(header), stmts);
+    Stream<Doc> blockParts(final String header, final List<Doc> statements) {
+        return blockParts(new Doc.Text(header), statements);
     }
 
-    Stream<Doc> blockParts(final Doc header, final List<Doc> stmts) {
-        return blockParts(header, stmts.stream());
+    Stream<Doc> blockParts(final Doc header, final List<Doc> statements) {
+        return blockParts(header, statements.stream());
     }
 
-    Stream<Doc> blockParts(final Doc header, final Stream<Doc> stmts) {
-        return Stream.concat(Stream.of(header, new Doc.Text(" {")), stmts.map(Doc::indentedLine));
+    Stream<Doc> blockParts(final Doc header, final Stream<Doc> statements) {
+        return Stream.concat(Stream.of(header, new Doc.Text(" {")), statements.map(Doc::indentedLine));
     }
 
     Doc stripTrailingSemicolonDoc(final Doc doc) {

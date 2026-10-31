@@ -20,8 +20,8 @@ final class ModifierRenderer {
      * space so a type can be concatenated directly after it. Empty when the declaration has
      * neither.
      */
-    String prefixOf(final ModifiersTree mods, final Recursor recursor) {
-        return annotationsText(mods, recursor) + modifiersText(mods);
+    String prefixOf(final ModifiersTree modifiers, final Recursor recursor) {
+        return annotationsText(modifiers, recursor) + modifiersText(modifiers);
     }
 
     /**
@@ -32,8 +32,8 @@ final class ModifierRenderer {
      * — {@code ArrayTrailingComma}'s trailing comma in particular, which made the lint pass and
      * the renderer permanently disagree about the output.
      */
-    String annotationsText(final ModifiersTree mods, final Recursor recursor) {
-        return mods.getAnnotations()
+    String annotationsText(final ModifiersTree modifiers, final Recursor recursor) {
+        return modifiers.getAnnotations()
                 .stream()
                 .map(a -> annotationText(a, recursor) + " ")
                 .collect(Collectors.joining());
@@ -79,8 +79,8 @@ final class ModifierRenderer {
      * The modifiers of a declaration (in JLS order), each followed by a space so a keyword or
      * type can be concatenated directly after it. Empty when the declaration has none.
      */
-    String modifiersText(final ModifiersTree mods) {
-        final var flags = mods.getFlags();
+    String modifiersText(final ModifiersTree modifiers) {
+        final var flags = modifiers.getFlags();
         if (flags.isEmpty()) {
             return "";
         }
@@ -101,8 +101,8 @@ final class ModifierRenderer {
      * declaration past the line width, and being rendered from source text it has no break point
      * inside it to give way at.
      */
-    boolean rendersFieldAnnotationsInline(final ModifiersTree mods, final Recursor recursor) {
-        final var annotations = mods.getAnnotations();
+    boolean rendersFieldAnnotationsInline(final ModifiersTree modifiers, final Recursor recursor) {
+        final var annotations = modifiers.getAnnotations();
         return !annotations.isEmpty()
             && annotations.stream().allMatch(a -> a.getArguments().isEmpty() && !recursor.isFollowedByNewline(a));
     }
@@ -112,22 +112,22 @@ final class ModifierRenderer {
      * annotations always go on their own lines above the signature (via {@link #finish}), so the
      * prefix to lead with is the modifiers alone.
      */
-    Preamble preambleOf(final ModifiersTree mods, final Recursor recursor) {
-        return preambleOf(mods, recursor, false);
+    Preamble preambleOf(final ModifiersTree modifiers, final Recursor recursor) {
+        return preambleOf(modifiers, recursor, false);
     }
 
     /** {@link #preambleOf} with the caller's own answer to "do these render inline". */
-    Preamble preambleOf(final ModifiersTree mods, final Recursor recursor, final boolean inline) {
-        return new Preamble(inline ? prefixOf(mods, recursor) : modifiersText(mods), inline);
+    Preamble preambleOf(final ModifiersTree modifiers, final Recursor recursor, final boolean inline) {
+        return new Preamble(inline ? prefixOf(modifiers, recursor) : modifiersText(modifiers), inline);
     }
 
     /** Closes out a {@link Preamble}: own-line annotations prepended, unless already rendered inline. */
-    Doc finish(final Preamble preamble, final ModifiersTree mods, final Doc doc, final Recursor recursor) {
-        return preamble.inline() ? doc : prependOwnLineAnnotations(mods, doc, recursor);
+    Doc finish(final Preamble preamble, final ModifiersTree modifiers, final Doc doc, final Recursor recursor) {
+        return preamble.inline() ? doc : prependOwnLineAnnotations(modifiers, doc, recursor);
     }
 
-    Doc prependOwnLineAnnotations(final ModifiersTree mods, final Doc doc, final Recursor recursor) {
-        return prependOwnLineAnnotations(mods.getAnnotations(), doc, recursor);
+    Doc prependOwnLineAnnotations(final ModifiersTree modifiers, final Doc doc, final Recursor recursor) {
+        return prependOwnLineAnnotations(modifiers.getAnnotations(), doc, recursor);
     }
 
     /**

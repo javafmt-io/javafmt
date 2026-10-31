@@ -31,7 +31,7 @@ final class RecordRenderer {
                         Stream.of(new Doc.Text(prefix)),
                         MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
                         Stream.of(componentListDoc)));
-        final var fullHeader = ClassLikeRenderer.buildTypeDeclHeader(
+        final var fullHeader = ClassLikeRenderer.buildTypeDeclarationHeader(
                 prefixAndComponents,
                 null,
                 node.getImplementsClause(),

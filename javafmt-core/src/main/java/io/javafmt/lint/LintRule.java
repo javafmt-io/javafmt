@@ -24,5 +24,5 @@ public interface LintRule {
         return getClass().getSimpleName();
     }
 
-    LintResult apply(LintContext ctx);
+    LintResult apply(LintContext context);
 }

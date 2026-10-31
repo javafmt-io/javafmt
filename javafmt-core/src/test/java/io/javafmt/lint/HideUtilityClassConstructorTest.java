@@ -117,7 +117,7 @@ class HideUtilityClassConstructorTest {
 
     @Test
     void anyPrivateConstructorHidesTheClass() {
-        // The rule asked for a private *no-arg* constructor. A private constructor taking arguments
+        // The rule asked for a private *no-argument* constructor. A private constructor taking arguments
         // hides the class just as well — nothing outside can call either one.
         final var unit = JavaParser.parseUnit("""
             class Fixture {

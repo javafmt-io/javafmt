@@ -24,7 +24,7 @@ final class ClassLikeRenderer {
         final var permits = node.getPermitsClause();
         final var namePart = Doc.concatOf(
                 Stream.of(Stream.of(new Doc.Text(prefix)), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor)));
-        final var headerDoc = buildTypeDeclHeader(namePart, superclass, interfaces, isInterface, permits, recursor);
+        final var headerDoc = buildTypeDeclarationHeader(namePart, superclass, interfaces, isInterface, permits, recursor);
         final var className = node.getSimpleName().toString();
         // Members render in source order. The utility-class constructor used to be pinned to the
         // bottom here; that is now the MemberOrder lint rule, so the reorder lands in the source
@@ -33,7 +33,7 @@ final class ClassLikeRenderer {
         return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, members, recursor.trailingInside(node), recursor);
     }
 
-    Doc buildTypeDeclHeader(
+    Doc buildTypeDeclarationHeader(
             final Doc prefix,
             @Nullable final Tree superclass,
             final List<? extends Tree> interfaces,

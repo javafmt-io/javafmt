@@ -16,7 +16,7 @@ import javax.lang.model.element.Modifier;
 
 /**
  * Moves nested types to the bottom of the body that declares them, and in a utility class moves the
- * private no-arg constructor below those. Nothing else is reordered.
+ * private no-argument constructor below those. Nothing else is reordered.
  *
  * <p>Both moves are safe in a way general member reordering is not: a nested type executes no code
  * and can be referenced from anywhere in the enclosing body, and a constructor whose only job is to
@@ -37,10 +37,10 @@ public final class MemberOrder implements LintRule {
     private static final String CONSTRUCTOR_NAME = "<init>";
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainPathScanner<>() {
 
                     @Override

@@ -27,7 +27,7 @@ import javax.lang.model.element.Modifier;
  *   <li>Only a <em>non-private</em> static member counts. The question is whether the class offers
  *       an API reachable without an instance; a private static helper offers nothing, which is why
  *       a test class holding one private helper and a {@code @Nested} class was flagged.</li>
- *   <li>Any private constructor hides the class, not only a no-arg one. Nothing outside can call
+ *   <li>Any private constructor hides the class, not only a no-argument one. Nothing outside can call
  *       either.</li>
  * </ul>
  */
@@ -36,8 +36,8 @@ public final class HideUtilityClassConstructor implements WarningRule {
     private static final String MESSAGE = "utility class should have a private constructor to prevent instantiation";
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        return WarningRule.onNode(ctx, ClassTree.class, node -> isUtilityCandidate(node) && !hasPrivateConstructor(node), MESSAGE);
+    public List<Diagnostic> warnings(final LintContext context) {
+        return WarningRule.onNode(context, ClassTree.class, node -> isUtilityCandidate(node) && !hasPrivateConstructor(node), MESSAGE);
     }
 
     private static boolean isUtilityCandidate(final ClassTree node) {

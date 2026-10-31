@@ -53,7 +53,7 @@ public final class FakeDaemon {
                 .build();
     }
 
-    public static void main(final String[] args) {
+    public static void main(final String[] arguments) {
         final var in = new BufferedInputStream(System.in);
         Stream.generate(() -> read(in))
                 .takeWhile(Optional::isPresent)

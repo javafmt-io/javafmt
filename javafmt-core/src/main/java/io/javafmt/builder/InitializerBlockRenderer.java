@@ -7,17 +7,17 @@ import lombok.experimental.UtilityClass;
 import java.util.Optional;
 
 @UtilityClass
-final class InitBlockRenderer {
+final class InitializerBlockRenderer {
 
     Doc render(final BlockTree block, final Recursor recursor) {
-        final var stmts = block.getStatements()
+        final var statements = block.getStatements()
                 .stream()
                 .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
                 .toList();
         final var trailing = recursor.trailingInside(block);
         if (block.isStatic()) {
-            return BlockRenderer.buildBlock("static", stmts, trailing);
+            return BlockRenderer.buildBlock("static", statements, trailing);
         }
-        return BlockRenderer.buildBlock(stmts, trailing);
+        return BlockRenderer.buildBlock(statements, trailing);
     }
 }

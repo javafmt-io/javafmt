@@ -30,9 +30,9 @@ class NativeDaemonRoundTripTest {
         assertThat(new String(out, StandardCharsets.UTF_8).lines().toList()).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_JSON);
     }
 
-    private static byte[] serve(final byte[] requests, final String... args) throws IOException, InterruptedException {
+    private static byte[] serve(final byte[] requests, final String... arguments) throws IOException, InterruptedException {
         final var binary = locateBinary().orElseThrow(() -> new AssertionError("no native javafmt binary in " + BINARY_DIR.toAbsolutePath()));
-        final var command = Stream.concat(Stream.of(binary.toString()), Stream.of(args)).toList();
+        final var command = Stream.concat(Stream.of(binary.toString()), Stream.of(arguments)).toList();
         final var process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
         try (final var stdin = process.getOutputStream()) {
             stdin.write(requests);

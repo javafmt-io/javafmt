@@ -16,8 +16,8 @@ public final class Cli {
 
     private final int INTERNAL_ERROR = 2;
 
-    public int run(final String[] args, final InputStream in, final PrintStream out, final PrintStream err) {
-        return run(args, in, out, err, stdinIsATerminal());
+    public int run(final String[] arguments, final InputStream in, final PrintStream out, final PrintStream err) {
+        return run(arguments, in, out, err, stdinIsATerminal());
     }
 
     /**
@@ -25,7 +25,7 @@ public final class Cli {
      *     back to stdin would hang with no prompt; the tests pass it explicitly because a test
      *     harness never has a terminal.
      */
-    int run(final String[] args, final InputStream in, final PrintStream out, final PrintStream err, final boolean stdinIsATerminal) {
+    int run(final String[] arguments, final InputStream in, final PrintStream out, final PrintStream err, final boolean stdinIsATerminal) {
         final var outWriter = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8), true);
         final var errWriter = new PrintWriter(new OutputStreamWriter(err, StandardCharsets.UTF_8), true);
         try {
@@ -33,7 +33,7 @@ public final class Cli {
                     .setOut(outWriter)
                     .setErr(errWriter)
                     .setExecutionExceptionHandler(Cli::reportInternalError)
-                    .execute(args);
+                    .execute(arguments);
         } finally {
             outWriter.flush();
             errWriter.flush();

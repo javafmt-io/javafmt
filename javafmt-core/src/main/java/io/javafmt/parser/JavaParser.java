@@ -62,7 +62,7 @@ import javax.tools.ToolProvider;
  * staying inside the public API.
  *
  * <p>{@link #HAS_JAVAC_INTERNAL_ACCESS} probes {@code jdk.compiler}'s exports at class
- * init; a future opt-in fast path can branch on it before attempting an internal-API
+ * initialization; a future opt-in fast path can branch on it before attempting an internal-API
  * shortcut.
  */
 @UtilityClass

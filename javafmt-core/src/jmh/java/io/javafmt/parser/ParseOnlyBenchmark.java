@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * cycles inside javac task initialization (boot classpath scan, JarFile inflate,
  * ServiceLoader walk). If parse-only time tracks within a few percent of full-format
  * time, the profile is correct and reusing the file manager / skipping processor
- * init is the right next step. If parse-only is much smaller than full-format,
+ * initialization is the right next step. If parse-only is much smaller than full-format,
  * the profile is misleading and the optimization plan needs a rethink.
  */
 @State(Scope.Benchmark)

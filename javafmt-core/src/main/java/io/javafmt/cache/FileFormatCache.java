@@ -142,12 +142,12 @@ public final class FileFormatCache implements FormatCache {
                     .map(e -> e.getValue() + " " + e.getKey())
                     .collect(Collectors.joining("\n", header + "\n", "\n"));
             final var directory = parent != null ? parent : Path.of(".");
-            final var tmp = Files.createTempFile(directory, cacheFile.getFileName().toString() + ".", ".tmp");
-            Files.writeString(tmp, body, StandardCharsets.UTF_8);
+            final var temporary = Files.createTempFile(directory, cacheFile.getFileName().toString() + ".", ".tmp");
+            Files.writeString(temporary, body, StandardCharsets.UTF_8);
             try {
-                Files.move(tmp, cacheFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(temporary, cacheFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
             } catch (final AtomicMoveNotSupportedException _) {
-                Files.move(tmp, cacheFile, StandardCopyOption.REPLACE_EXISTING);
+                Files.move(temporary, cacheFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (final IOException e) {
             throw new UncheckedIOException("failed to save javafmt cache to " + cacheFile, e);

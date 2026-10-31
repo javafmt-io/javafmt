@@ -155,7 +155,7 @@ class FileFormatCacheTest {
         plainRun.save();
         final var analyzeRun = FileFormatCache.load(
                 cacheFile,
-                CacheKey.of(JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/some/cp.jar"))));
+                CacheKey.of(JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/some/classpath.jar"))));
         assertThat(analyzeRun.isUpToDate(path, content)).isFalse();
     }
 

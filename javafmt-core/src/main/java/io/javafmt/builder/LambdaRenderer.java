@@ -25,9 +25,9 @@ final class LambdaRenderer {
 
     private Doc renderBlockBody(final LambdaExpressionTree node, final Doc paramList, final Recursor recursor) {
         final var block = (BlockTree) node.getBody();
-        final var stmts = BlockRenderer.blockStmts(block, recursor);
+        final var statements = BlockRenderer.blockStatements(block, recursor);
         final var header = Doc.concat(paramList, new Doc.Text(" ->"));
-        return BlockRenderer.buildBlock(header, stmts, List.of());
+        return BlockRenderer.buildBlock(header, statements, List.of());
     }
 
     /**

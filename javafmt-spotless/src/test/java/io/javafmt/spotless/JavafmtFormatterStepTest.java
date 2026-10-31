@@ -197,7 +197,7 @@ class JavafmtFormatterStepTest {
 
     @Test
     void applyWithAnalyze_removesRedundantTypeWitness() {
-        // Stream.<String>of() with string args — <String> is inferrable; attribution drops it.
+        // Stream.<String>of() with string arguments — <String> is inferrable; attribution drops it.
         final var source = "import java.util.stream.Stream; class Foo { void m() { Stream.<String>of(\"a\", \"b\"); } }";
         assertThat(JavafmtFormatterStep.applyWithAnalyze(source, System.getProperty("java.class.path")))
                 .doesNotContain("<String>");

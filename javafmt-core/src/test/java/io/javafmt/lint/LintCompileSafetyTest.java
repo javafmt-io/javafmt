@@ -49,9 +49,9 @@ class LintCompileSafetyTest {
                 Arguments.of("widening-reassign", """
                                                   import java.util.ArrayList;
                                                   import java.util.List;
-                          
+
                                                   class Fixture {
-                          
+
                                                       void test(final List<String> other) {
                                                           List<String> xs = new ArrayList<String>();
                                                           xs = other;
@@ -76,7 +76,7 @@ class LintCompileSafetyTest {
                                 "java.util.stream.Stream"),
                         true),
                 Arguments.of(
-                        "anon-class",
+                        "anonymous-class",
                         wrap(
                                 "Object o = new Object() {\n@Override public String toString() { return \"x\"; }\n};\no = \"y\";\nSystem.out.println(o);"),
                         false),
@@ -130,17 +130,17 @@ class LintCompileSafetyTest {
                 // (JLS 15.9.1). RedundantTypeArguments only fires where the target type's arguments
                 // are textually identical to the constructor's, so the inferred type is a type the
                 // author already wrote down — these pin that the guard holds for the awkward shapes.
-                Arguments.of("anon-diamond-field", ANON_FIELD, false),
-                Arguments.of("anon-diamond-field-analyze", ANON_FIELD, true),
-                Arguments.of("anon-diamond-return-nested-generic", ANON_RETURN, false),
-                Arguments.of("anon-diamond-generic-superclass-with-args", ANON_SUPERCLASS, false),
-                Arguments.of("anon-diamond-type-variable-target", ANON_TYPE_VARIABLE, false),
-                Arguments.of("anon-diamond-bounded-target", ANON_BOUNDED, false),
+                Arguments.of("anonymous-diamond-field", ANONYMOUS_FIELD, false),
+                Arguments.of("anonymous-diamond-field-analyze", ANONYMOUS_FIELD, true),
+                Arguments.of("anonymous-diamond-return-nested-generic", ANONYMOUS_RETURN, false),
+                Arguments.of("anonymous-diamond-generic-superclass-with-arguments", ANONYMOUS_SUPERCLASS, false),
+                Arguments.of("anonymous-diamond-type-variable-target", ANONYMOUS_TYPE_VARIABLE, false),
+                Arguments.of("anonymous-diamond-bounded-target", ANONYMOUS_BOUNDED, false),
                 Arguments.of("diamond-wildcard-target", WILDCARD_TARGET, false),
                 Arguments.of("diamond-wildcard-target-analyze", WILDCARD_TARGET, true));
     }
 
-    private static final String ANON_FIELD = """
+    private static final String ANONYMOUS_FIELD = """
             import java.util.Comparator;
 
             class Fixture {
@@ -155,7 +155,7 @@ class LintCompileSafetyTest {
             }
             """;
 
-    private static final String ANON_RETURN = """
+    private static final String ANONYMOUS_RETURN = """
             import java.util.List;
             import java.util.concurrent.Callable;
 
@@ -173,7 +173,7 @@ class LintCompileSafetyTest {
             }
             """;
 
-    private static final String ANON_SUPERCLASS = """
+    private static final String ANONYMOUS_SUPERCLASS = """
             class Fixture {
 
                 abstract static class Box<T> {
@@ -195,7 +195,7 @@ class LintCompileSafetyTest {
             }
             """;
 
-    private static final String ANON_BOUNDED = """
+    private static final String ANONYMOUS_BOUNDED = """
             class Fixture {
 
                 interface Holder<T extends Comparable<T>> {
@@ -215,7 +215,7 @@ class LintCompileSafetyTest {
             }
             """;
 
-    private static final String ANON_TYPE_VARIABLE = """
+    private static final String ANONYMOUS_TYPE_VARIABLE = """
             import java.util.function.Supplier;
 
             class Fixture {

@@ -35,7 +35,7 @@ class CommentAuditTest {
 
             int x = 1 /* suffix */;
 
-            int y = /* init expr */ 2 + 3;
+            int y = /* initializer expression */ 2 + 3;
 
             record Point(int a, /* between comps */ int b) {}
 
@@ -53,7 +53,7 @@ class CommentAuditTest {
 
             enum E {
 
-                A(/* arg */ 1),
+                A(/* argument */ 1),
                 B(/* arg2 */ 2);
 
                 final int v;
@@ -136,9 +136,9 @@ class CommentAuditTest {
                                                        enum State {
                                                            NEW(1),  // the stream is new
                                                            OPEN(2); // the stream is open
-                               
+
                                                            final int code;
-                               
+
                                                            State(final int code) {
                                                                this.code = code;
                                                            }
@@ -312,7 +312,7 @@ class CommentAuditTest {
     }
 
     @Test
-    void leadingJavadocStaysLeading_doesNotBecomeTrailingOnPrev() {
+    void leadingJavadocStaysLeading_doesNotBecomeTrailingOnPrevious() {
         final var source = """
             class C {
 
@@ -324,18 +324,18 @@ class CommentAuditTest {
             """;
         final var formatted = Javafmt.format(source);
         final var lines = formatted.split("\n", -1);
-        final var docLineIdx = indexOfLineContaining(lines, "/** doc on y */");
-        final var yLineIdx = indexOfLineContaining(lines, "int y;");
-        assertThat(docLineIdx)
+        final var docLineIndex = indexOfLineContaining(lines, "/** doc on y */");
+        final var yLineIndex = indexOfLineContaining(lines, "int y;");
+        assertThat(docLineIndex)
                 .as("javadoc must appear in:%n%s", formatted)
                 .isNotNegative();
-        assertThat(yLineIdx)
+        assertThat(yLineIndex)
                 .as("`int y;` must appear in:%n%s", formatted)
                 .isNotNegative();
-        assertThat(docLineIdx)
+        assertThat(docLineIndex)
                 .as("javadoc must remain on a line before `int y;` in:%n%s", formatted)
-                .isLessThan(yLineIdx);
-        assertThat(lines[docLineIdx])
+                .isLessThan(yLineIndex);
+        assertThat(lines[docLineIndex])
                 .as("javadoc must not piggyback onto `int x;` in:%n%s", formatted)
                 .doesNotContain("int x;");
     }
@@ -352,19 +352,19 @@ class CommentAuditTest {
             """;
         final var formatted = Javafmt.format(source);
         final var lines = formatted.split("\n", -1);
-        final var openIdx = indexOfLineContaining(lines, "void m() {");
-        final var commentIdx = indexOfLineContaining(lines, "// pure interior");
-        assertThat(openIdx)
+        final var openIndex = indexOfLineContaining(lines, "void m() {");
+        final var commentIndex = indexOfLineContaining(lines, "// pure interior");
+        assertThat(openIndex)
                 .as("opening brace of `m` must appear in:%n%s", formatted)
                 .isNotNegative();
-        assertThat(commentIdx)
+        assertThat(commentIndex)
                 .as("interior comment must appear in:%n%s", formatted)
                 .isNotNegative();
-        assertThat(commentIdx)
+        assertThat(commentIndex)
                 .as("interior comment must stay inside the method body in:%n%s", formatted)
-                .isGreaterThan(openIdx);
-        final var closeIdx = indexOfFirstLineEqualingFrom(lines, commentIdx, "    }");
-        assertThat(closeIdx)
+                .isGreaterThan(openIndex);
+        final var closeIndex = indexOfFirstLineEqualingFrom(lines, commentIndex, "    }");
+        assertThat(closeIndex)
                 .as("closing brace of `m` must follow the interior comment in:%n%s", formatted)
                 .isNotNegative();
     }

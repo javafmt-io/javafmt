@@ -31,18 +31,18 @@ import java.util.List;
 public final class NeedBraces implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainScanner<>() {
 
                     @Override
                     public Void visitIf(final IfTree node, final Void p) {
                         addEditsFor(node.getThenStatement(), edits, unit);
-                        final var elseStmt = node.getElseStatement();
-                        if (elseStmt != null && !(elseStmt instanceof IfTree)) {
-                            addEditsFor(elseStmt, edits, unit);
+                        final var elseStatement = node.getElseStatement();
+                        if (elseStatement != null && !(elseStatement instanceof IfTree)) {
+                            addEditsFor(elseStatement, edits, unit);
                         }
                         return super.visitIf(node, null);
                     }

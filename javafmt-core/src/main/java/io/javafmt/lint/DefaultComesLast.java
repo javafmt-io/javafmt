@@ -36,8 +36,8 @@ public final class DefaultComesLast implements LintRule {
     private static final String UNSAFE_MESSAGE = "default case should be last in switch (auto-fix skipped: shared label or fall-through grouping)";
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         final var edits = new ArrayList<LintEdit>();
         final var diagnostics = new ArrayList<Diagnostic>();
         final var scanner = new ChainScanner<Void, Void>() {
@@ -90,22 +90,22 @@ public final class DefaultComesLast implements LintRule {
         if (defaultCase.getLabels().size() != 1) {
             return false;
         }
-        final var defaultStmts = defaultCase.getStatements();
-        if (defaultStmts.isEmpty()) {
+        final var defaultStatements = defaultCase.getStatements();
+        if (defaultStatements.isEmpty()) {
             return false;
         }
-        if (!StatementFlow.terminates(defaultStmts.getLast())) {
+        if (!StatementFlow.terminates(defaultStatements.getLast())) {
             return false;
         }
         if (defaultIndex == 0) {
             return true;
         }
         final var predecessor = cases.get(defaultIndex - 1);
-        final var predStmts = predecessor.getStatements();
-        if (predStmts.isEmpty()) {
+        final var predecessorStatements = predecessor.getStatements();
+        if (predecessorStatements.isEmpty()) {
             return false;
         }
-        return StatementFlow.terminates(predStmts.getLast());
+        return StatementFlow.terminates(predecessorStatements.getLast());
     }
 
     private static List<LintEdit> buildMoveEdits(final Tree switchNode, final CaseTree defaultCase, final ParsedUnit unit) {

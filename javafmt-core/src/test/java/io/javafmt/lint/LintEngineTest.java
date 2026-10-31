@@ -24,7 +24,7 @@ class LintEngineTest {
 
     private static final int NAME_START = SOURCE.indexOf("aaaabbbb");
 
-    private static final int DECL_START = SOURCE.indexOf("int aaaabbbb");
+    private static final int DECLARATION_START = SOURCE.indexOf("int aaaabbbb");
 
     static LintContext contextOf(final String source) {
         return LintContext.parseOnly(JavaParser.parseUnit(source));
@@ -60,7 +60,7 @@ class LintEngineTest {
         // The loser of an overlap round must still get its chance once the winner's edit landed.
         final var earlier = new ReplaceOnce("Earlier", NAME_START, NAME_START + 8, "xxxxxxxx");
         final var later = new ReplaceOnce("Later", NAME_START + 4, NAME_START + 8, "cccc");
-        final var appendsAfterWinner = new InsertUnless("Follower", DECL_START, "static ", "static");
+        final var appendsAfterWinner = new InsertUnless("Follower", DECLARATION_START, "static ", "static");
         final var outcome = new LintEngine(List.of(earlier, later, appendsAfterWinner)).lint(contextOf(SOURCE));
         assertThat(outcome.unit().source()).contains("static int xxxxxxxx = 1;");
     }
@@ -77,8 +77,8 @@ class LintEngineTest {
 
     @Test
     void insertionsAtTheSameOffsetKeepRegistrationOrder() {
-        final var first = new InsertUnless("First", DECL_START, "static ", "static");
-        final var second = new InsertUnless("Second", DECL_START, "final ", "final");
+        final var first = new InsertUnless("First", DECLARATION_START, "static ", "static");
+        final var second = new InsertUnless("Second", DECLARATION_START, "final ", "final");
         final var outcome = new LintEngine(List.of(first, second)).lint(contextOf(SOURCE));
         assertThat(outcome.unit().source()).contains("static final int aaaabbbb = 1;");
     }
@@ -168,8 +168,8 @@ class LintEngineTest {
     private record RecordsSource(List<String> seen) implements WarningRule {
 
         @Override
-        public List<Diagnostic> warnings(final LintContext ctx) {
-            seen.add(ctx.unit().source());
+        public List<Diagnostic> warnings(final LintContext context) {
+            seen.add(context.unit().source());
             return List.of(new Diagnostic.Warning("seen", new Position.Unknown()));
         }
     }
@@ -178,8 +178,8 @@ class LintEngineTest {
     private record AlwaysEdits(String name) implements LintRule {
 
         @Override
-        public LintResult apply(final LintContext ctx) {
-            return LintResult.ofEdits(List.of(LintEdit.insert(ctx.unit().source().indexOf('\n') + 1, " ")));
+        public LintResult apply(final LintContext context) {
+            return LintResult.ofEdits(List.of(LintEdit.insert(context.unit().source().indexOf('\n') + 1, " ")));
         }
     }
 
@@ -187,8 +187,10 @@ class LintEngineTest {
     private record ReplaceOnce(String name, int start, int end, String replacement) implements LintRule {
 
         @Override
-        public LintResult apply(final LintContext ctx) {
-            return ctx.unit().source().contains("aaaabbbb") ? LintResult.ofEdits(List.of(new LintEdit(start, end, replacement))) : LintResult.EMPTY;
+        public LintResult apply(final LintContext context) {
+            return context.unit().source().contains("aaaabbbb")
+                    ? LintResult.ofEdits(List.of(new LintEdit(start, end, replacement)))
+                    : LintResult.EMPTY;
         }
     }
 
@@ -196,8 +198,8 @@ class LintEngineTest {
     private record InsertUnless(String name, int offset, String text, String guard) implements LintRule {
 
         @Override
-        public LintResult apply(final LintContext ctx) {
-            return ctx.unit().source().contains(guard) ? LintResult.EMPTY : LintResult.ofEdits(List.of(LintEdit.insert(offset, text)));
+        public LintResult apply(final LintContext context) {
+            return context.unit().source().contains(guard) ? LintResult.EMPTY : LintResult.ofEdits(List.of(LintEdit.insert(offset, text)));
         }
     }
 
@@ -205,8 +207,8 @@ class LintEngineTest {
     private record SelfOverlapping(String name, int start) implements LintRule {
 
         @Override
-        public LintResult apply(final LintContext ctx) {
-            return ctx.unit().source().contains("aaaabbbb")
+        public LintResult apply(final LintContext context) {
+            return context.unit().source().contains("aaaabbbb")
                     ? LintResult.ofEdits(List.of(new LintEdit(start, start + 8, "yyyyyyyy"), new LintEdit(start + 4, start + 8, "zzzz")))
                     : LintResult.EMPTY;
         }
@@ -216,7 +218,7 @@ class LintEngineTest {
     private record AlwaysConverged(String name) implements LintRule {
 
         @Override
-        public LintResult apply(final LintContext ctx) {
+        public LintResult apply(final LintContext context) {
             return LintResult.EMPTY;
         }
     }

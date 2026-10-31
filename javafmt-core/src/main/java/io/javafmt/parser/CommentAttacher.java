@@ -55,19 +55,19 @@ final class CommentAttacher {
         final var trailing = new IdentityHashMap<Tree, List<CommentToken>>();
         final var interior = new IdentityHashMap<Tree, List<CommentToken>>();
         final var tail = new IdentityHashMap<Tree, List<CommentToken>>();
-        var idx = 0;
+        var index = 0;
         for (final var c : comments) {
-            idx = advancePast(slots, idx, c);
+            index = advancePast(slots, index, c);
             if (opaque.stream().anyMatch(span -> span[0] <= c.start() && c.end() <= span[1])) {
                 continue;
             }
-            final var slot = firstEnclosing(slots, idx, c, source);
+            final var slot = firstEnclosing(slots, index, c, source);
             if (slot == null) {
                 continue;
             }
-            final var prev = slot.prev();
-            if (prev != null && sameLine(source, (int) slot.lo(), c.start())) {
-                trailing.computeIfAbsent(prev, _ -> new ArrayList<>()).add(c);
+            final var previous = slot.previous();
+            if (previous != null && sameLine(source, (int) slot.lo(), c.start())) {
+                trailing.computeIfAbsent(previous, _ -> new ArrayList<>()).add(c);
                 continue;
             }
             if (trailsPastTheSeparator(slot, c, source, tree, positions) && slot.owner() != null) {
@@ -103,11 +103,11 @@ final class CommentAttacher {
      * and the cursor this returns only ever moves forward.
      */
     private int advancePast(final List<Slot> slots, final int from, final CommentToken c) {
-        var idx = from;
-        while (idx < slots.size() && slots.get(idx).hi() < c.end()) {
-            idx++;
+        var index = from;
+        while (index < slots.size() && slots.get(index).hi() < c.end()) {
+            index++;
         }
-        return idx;
+        return index;
     }
 
     /**
@@ -155,7 +155,7 @@ final class CommentAttacher {
             final String source,
             final CompilationUnitTree cu,
             final SourcePositions pos) {
-        if (!slot.crossesSeparator() || slot.prev() == null || !c.text().startsWith("//")) {
+        if (!slot.crossesSeparator() || slot.previous() == null || !c.text().startsWith("//")) {
             return false;
         }
         final var gap = source.substring((int) slot.lo(), c.start());
@@ -183,7 +183,7 @@ final class CommentAttacher {
     private boolean isTheEnumTerminator(final int ch, final Slot slot, final CompilationUnitTree cu, final SourcePositions pos) {
         return ch == ';'
             && slot.kind() == Kind.TAIL
-            && slot.prev() instanceof VariableTree v
+            && slot.previous() instanceof VariableTree v
             && v.getType() != null
             && pos.getEndPosition(cu, v.getType()) < 0;
     }
@@ -212,18 +212,18 @@ final class CommentAttacher {
             return;
         }
         slots.add(new Slot(null, null, 0L, pos.getStartPosition(cu, ordered.getFirst()), Kind.FILE_HEADER));
-        Tree prev = null;
-        var prevEnd = 0L;
-        for (final var curr : ordered) {
-            final var currStart = pos.getStartPosition(cu, curr);
-            if (prev != null) {
-                final var kind = curr != cu.getPackage() ? Kind.LEADING : Kind.TAIL;
-                slots.add(new Slot(prev, curr, prevEnd, currStart, kind));
+        Tree previous = null;
+        var previousEnd = 0L;
+        for (final var current : ordered) {
+            final var currentStart = pos.getStartPosition(cu, current);
+            if (previous != null) {
+                final var kind = current != cu.getPackage() ? Kind.LEADING : Kind.TAIL;
+                slots.add(new Slot(previous, current, previousEnd, currentStart, kind));
             }
-            prev = curr;
-            prevEnd = pos.getEndPosition(cu, curr);
+            previous = current;
+            previousEnd = pos.getEndPosition(cu, current);
         }
-        slots.add(new Slot(prev, null, prevEnd, source.length(), Kind.FILE_FOOTER));
+        slots.add(new Slot(previous, null, previousEnd, source.length(), Kind.FILE_FOOTER));
         new Collector(cu, pos, source, slots, opaque).scan(cu, null);
     }
 
@@ -265,14 +265,14 @@ final class CommentAttacher {
      * marks a slot in a comma-separated list whose renderer knows how to place a comment the author
      * left after the comma.
      */
-    private record Slot(@Nullable Tree prev, @Nullable Tree owner, long lo, long hi, Kind kind, Reach reach, boolean crossesSeparator) {
+    private record Slot(@Nullable Tree previous, @Nullable Tree owner, long lo, long hi, Kind kind, Reach reach, boolean crossesSeparator) {
 
-        Slot(@Nullable final Tree prev, @Nullable final Tree owner, final long lo, final long hi, final Kind kind) {
-            this(prev, owner, lo, hi, kind, Reach.PRECISE, false);
+        Slot(@Nullable final Tree previous, @Nullable final Tree owner, final long lo, final long hi, final Kind kind) {
+            this(previous, owner, lo, hi, kind, Reach.PRECISE, false);
         }
 
-        Slot(@Nullable final Tree prev, @Nullable final Tree owner, final long lo, final long hi, final Kind kind, final Reach reach) {
-            this(prev, owner, lo, hi, kind, reach, false);
+        Slot(@Nullable final Tree previous, @Nullable final Tree owner, final long lo, final long hi, final Kind kind, final Reach reach) {
+            this(previous, owner, lo, hi, kind, reach, false);
         }
     }
 
@@ -386,20 +386,20 @@ final class CommentAttacher {
 
         @Override
         public Void visitVariable(final VariableTree node, final Void p) {
-            final var init = node.getInitializer();
-            if (init == null) {
+            final var initializer = node.getInitializer();
+            if (initializer == null) {
                 return super.visitVariable(node, null);
             }
-            final var initStart = pos.getStartPosition(cu, init);
-            final var initEnd = pos.getEndPosition(cu, init);
+            final var initializerStart = pos.getStartPosition(cu, initializer);
+            final var initializerEnd = pos.getEndPosition(cu, initializer);
             final var varStart = pos.getStartPosition(cu, node);
             final var varEnd = pos.getEndPosition(cu, node);
             final var afterName = positionAfterTheDeclaredName(node, varStart);
-            if (initStart >= 0 && afterName >= 0 && initStart > afterName) {
-                slots.add(new Slot(null, init, afterName, initStart, Kind.LEADING));
+            if (initializerStart >= 0 && afterName >= 0 && initializerStart > afterName) {
+                slots.add(new Slot(null, initializer, afterName, initializerStart, Kind.LEADING));
             }
-            if (initEnd >= 0 && varEnd > initEnd) {
-                slots.add(new Slot(init, null, initEnd, varEnd, Kind.TAIL));
+            if (initializerEnd >= 0 && varEnd > initializerEnd) {
+                slots.add(new Slot(initializer, null, initializerEnd, varEnd, Kind.TAIL));
             }
             return super.visitVariable(node, null);
         }
@@ -466,8 +466,8 @@ final class CommentAttacher {
         }
 
         private void collectColonFormBody(final CaseTree node) {
-            final var stmts = node.getStatements();
-            if (stmts.isEmpty()) {
+            final var statements = node.getStatements();
+            if (statements.isEmpty()) {
                 return;
             }
             final var labels = node.getLabels();
@@ -478,7 +478,7 @@ final class CommentAttacher {
             if (lastLabelEnd < 0) {
                 return;
             }
-            collectWithLo(node, lastLabelEnd, stmts, false);
+            collectWithLo(node, lastLabelEnd, statements, false);
         }
 
         /**
@@ -583,21 +583,21 @@ final class CommentAttacher {
                 }
                 return;
             }
-            Tree prev = null;
-            var prevEnd = containerLo;
+            Tree previous = null;
+            var previousEnd = containerLo;
             for (final var child : real) {
                 final var childStart = pos.getStartPosition(cu, child);
-                slots.add(new Slot(prev, child, prevEnd, childStart, Kind.LEADING, Reach.PRECISE, crossesSeparator));
+                slots.add(new Slot(previous, child, previousEnd, childStart, Kind.LEADING, Reach.PRECISE, crossesSeparator));
                 final var childEnd = pos.getEndPosition(cu, child);
                 addCatchAllSlot(child, childStart, childEnd);
-                prev = child;
-                prevEnd = childEnd;
+                previous = child;
+                previousEnd = childEnd;
             }
-            if (emitTail && containerHi > prevEnd) {
+            if (emitTail && containerHi > previousEnd) {
                 // Separator-aware too: the last element's own comma is inside this slot, so a
                 // comment past it — `CLOSED, // the stream is closed` — belongs to that element
                 // exactly as it would between two of them.
-                slots.add(new Slot(prev, container, prevEnd, containerHi, Kind.TAIL, Reach.PRECISE, crossesSeparator));
+                slots.add(new Slot(previous, container, previousEnd, containerHi, Kind.TAIL, Reach.PRECISE, crossesSeparator));
             }
         }
 

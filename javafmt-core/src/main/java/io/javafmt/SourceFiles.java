@@ -169,7 +169,7 @@ public final class SourceFiles {
         }
 
         @Override
-        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs) {
+        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attributes) {
             final var pruned = applyDefaultExcludes
                 && !dir.equals(root)
                 && PathFilter.isDefaultExcludedDirectory(dir);
@@ -177,7 +177,7 @@ public final class SourceFiles {
         }
 
         @Override
-        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
+        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attributes) {
             if (file.toString().endsWith(".java") && Files.isRegularFile(file)) {
                 files.add(file);
             }

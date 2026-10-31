@@ -91,7 +91,7 @@ final class FormatCommand implements Callable<Integer> {
         if (json) {
             throw new ParameterException(spec.commandLine(), "--json only applies to --daemon");
         }
-        final var args = new FormatRun.Args(
+        final var formatArguments = new FormatRun.Arguments(
                 paths,
                 check,
                 threads.orElse(Runtime.getRuntime().availableProcessors()),
@@ -104,15 +104,15 @@ final class FormatCommand implements Callable<Integer> {
             if (paths.size() > 1) {
                 throw new ParameterException(spec.commandLine(), "'-' reads stdin and cannot be combined with file arguments");
             }
-            return FormatRun.runStdin(args, in, out, err);
+            return FormatRun.runStdin(formatArguments, in, out, err);
         }
         if (paths.isEmpty()) {
             if (stdinIsATerminal) {
                 throw new ParameterException(spec.commandLine(), "No input: pass files or directories, or pipe source on stdin.");
             }
-            return FormatRun.runStdin(args, in, out, err);
+            return FormatRun.runStdin(formatArguments, in, out, err);
         }
-        return FormatRun.runPaths(args, err);
+        return FormatRun.runPaths(formatArguments, err);
     }
 
     private int serveDaemon() {

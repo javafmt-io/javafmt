@@ -34,12 +34,12 @@ final class JsonDiagnostics {
 
     private String escape(final String raw) {
         final var sb = new StringBuilder(raw.length() + 16);
-        raw.codePoints().forEach(cp -> sb.append(escapeCodePoint(cp)));
+        raw.codePoints().forEach(codePoint -> sb.append(escapeCodePoint(codePoint)));
         return sb.toString();
     }
 
-    private String escapeCodePoint(final int cp) {
-        return switch (cp) {
+    private String escapeCodePoint(final int codePoint) {
+        return switch (codePoint) {
             case '"' -> "\\\"";
             case '\\' -> "\\\\";
             case '\n' -> "\\n";
@@ -47,7 +47,7 @@ final class JsonDiagnostics {
             case '\t' -> "\\t";
             case '\b' -> "\\b";
             case '\f' -> "\\f";
-            default -> cp < 0x20 ? String.format("\\u%04x", cp) : new String(Character.toChars(cp));
+            default -> codePoint < 0x20 ? String.format("\\u%04x", codePoint) : new String(Character.toChars(codePoint));
         };
     }
 }

@@ -12,7 +12,7 @@ import lombok.experimental.UtilityClass;
  *   <li>First line: emitted unchanged. Its width pushes {@code col} forward.</li>
  *   <li>Subsequent lines: shifted by {@code outputCol - sourceColumn}. Positive shift prepends
  *       spaces; negative shift strips leading spaces.</li>
- *   <li>The negative shift is clamped to {@code col - minLeadingWs} where {@code minLeadingWs} is
+ *   <li>The negative shift is clamped to {@code col - minimumLeadingWhitespace} where {@code minimumLeadingWhitespace} is
  *       the smallest leading-space count across content lines and the closing line. This bound
  *       keeps every content line landing at or right of the output {@code """} column (so the
  *       block stays visually attached to its opener) while preserving the parsed string content
@@ -47,15 +47,15 @@ final class VerbatimEmitter {
         int lastLineStart = sb.length();
         int i = firstNewline + 1;
         while (i < value.length()) {
-            final int nl = value.indexOf('\n', i);
-            final int lineEnd = nl < 0 ? value.length() : nl;
+            final int newline = value.indexOf('\n', i);
+            final int lineEnd = newline < 0 ? value.length() : newline;
             appendShiftedLine(sb, value, i, lineEnd, actualShift);
-            if (nl < 0) {
+            if (newline < 0) {
                 break;
             }
             sb.append('\n');
             lastLineStart = sb.length();
-            i = nl + 1;
+            i = newline + 1;
         }
         return sb.length() - lastLineStart;
     }
@@ -81,20 +81,20 @@ final class VerbatimEmitter {
         int min = Integer.MAX_VALUE;
         int i = firstNewline + 1;
         while (i <= value.length()) {
-            final int nl = value.indexOf('\n', i);
-            final int lineEnd = nl < 0 ? value.length() : nl;
-            int ws = 0;
-            while (i + ws < lineEnd && value.charAt(i + ws) == ' ') {
-                ws++;
+            final int newline = value.indexOf('\n', i);
+            final int lineEnd = newline < 0 ? value.length() : newline;
+            int whitespace = 0;
+            while (i + whitespace < lineEnd && value.charAt(i + whitespace) == ' ') {
+                whitespace++;
             }
-            final boolean isBlank = i + ws == lineEnd;
+            final boolean isBlank = i + whitespace == lineEnd;
             if (!isBlank) {
-                min = Math.min(min, ws);
+                min = Math.min(min, whitespace);
             }
-            if (nl < 0) {
+            if (newline < 0) {
                 break;
             }
-            i = nl + 1;
+            i = newline + 1;
         }
         return min == Integer.MAX_VALUE ? 0 : min;
     }
@@ -102,7 +102,7 @@ final class VerbatimEmitter {
     /**
      * Applies {@code shift} to one line: prepends spaces for a positive shift, or strips up to
      * {@code -shift} leading spaces for a negative one. The caller's clamp guarantees
-     * {@code -shift <= minLeadingWs}, but a blank line may have fewer than {@code -shift} spaces,
+     * {@code -shift <= minimumLeadingWhitespace}, but a blank line may have fewer than {@code -shift} spaces,
      * so stripping stops at the first non-space character rather than assuming the full count
      * is there to remove.
      */

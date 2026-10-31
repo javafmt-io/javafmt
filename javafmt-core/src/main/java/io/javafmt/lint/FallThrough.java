@@ -26,10 +26,10 @@ public final class FallThrough implements WarningRule {
     private static final String MESSAGE = "case falls through to next case; add 'break;' or a // fallthrough comment if intentional";
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public List<Diagnostic> warnings(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.collect(
-                ctx,
+                context,
                 diagnostics -> new ChainScanner<>() {
 
                     @Override
@@ -52,11 +52,11 @@ public final class FallThrough implements WarningRule {
             if (current.getCaseKind() != CaseTree.CaseKind.STATEMENT) {
                 continue;
             }
-            final var stmts = current.getStatements();
-            if (stmts.isEmpty()) {
+            final var statements = current.getStatements();
+            if (statements.isEmpty()) {
                 continue;
             }
-            final var last = stmts.getLast();
+            final var last = statements.getLast();
             if (StatementFlow.terminates(last)) {
                 continue;
             }
