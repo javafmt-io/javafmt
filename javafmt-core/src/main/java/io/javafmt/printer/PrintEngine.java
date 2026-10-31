@@ -169,7 +169,8 @@ final class PrintEngine {
                 case Doc.Align(var d) -> work.push(new Frame(f.indent(), f.mode(), d));
                 case Doc.Group(var d, var _) -> work.push(new Frame(f.indent(), Mode.FLAT, d));
                 case Doc.IfBreak(var bc, var fc) -> work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? bc : fc));
-                case Doc.Choice(var preferred, var _) -> work.push(new Frame(f.indent(), f.mode(), preferred));
+                case Doc.Choice(var preferred, var fallback) ->
+                    work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? fallback : preferred));
                 case Doc.Concat(var parts) -> {
                     for (var i = parts.size() - 1; i >= 0; i--) {
                         work.push(new Frame(f.indent(), f.mode(), parts.get(i)));
@@ -219,7 +220,8 @@ final class PrintEngine {
                 case Doc.Align(var d) -> work.push(new Frame(column, f.mode(), d));
                 case Doc.Group(var d, var _) -> work.push(new Frame(f.indent(), Mode.FLAT, d));
                 case Doc.IfBreak(var bc, var fc) -> work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? bc : fc));
-                case Doc.Choice(var preferred, var _) -> work.push(new Frame(f.indent(), f.mode(), preferred));
+                case Doc.Choice(var preferred, var fallback) ->
+                    work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? fallback : preferred));
                 case Doc.Concat(var parts) -> {
                     for (var i = parts.size() - 1; i >= 0; i--) {
                         work.push(new Frame(f.indent(), f.mode(), parts.get(i)));
