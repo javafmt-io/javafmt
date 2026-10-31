@@ -47,7 +47,7 @@ public final class HideUtilityClassConstructor implements WarningRule {
             return false;
         }
         var hasStaticApi = false;
-        for (var member : node.getMembers()) {
+        for (final var member : node.getMembers()) {
             final var modifiers = modifiersOf(member);
             if (modifiers == null || isConstructor(member)) {
                 continue;

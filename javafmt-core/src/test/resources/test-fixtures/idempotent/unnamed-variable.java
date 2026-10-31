@@ -12,7 +12,7 @@ class UnnamedVariables {
     }
 
     void forEachExample() {
-        for (var _ : List.of(1, 2, 3)) {
+        for (final var _ : List.of(1, 2, 3)) {
             count();
         }
     }

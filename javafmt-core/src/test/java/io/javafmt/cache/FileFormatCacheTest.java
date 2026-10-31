@@ -106,7 +106,7 @@ class FileFormatCacheTest {
                                 return null;
                             }))
                     .toList();
-            for (var f : futures) {
+            for (final var f : futures) {
                 f.get();
             }
         } finally {
