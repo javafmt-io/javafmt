@@ -6,6 +6,7 @@ import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.parser.TreeFacts;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

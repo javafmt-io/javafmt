@@ -6,12 +6,13 @@ import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParseException;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.parser.Staged;
+import org.jspecify.annotations.Nullable;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Runs {@link LintRule}s against a {@link LintContext}, applying their edits to the source

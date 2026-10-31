@@ -10,6 +10,8 @@ import io.javafmt.SourceFiles;
 import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
 import io.javafmt.cache.FormatCache;
+import lombok.experimental.UtilityClass;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -26,7 +28,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class FormatRun {

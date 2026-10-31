@@ -1,11 +1,11 @@
 package io.javafmt.parser;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class TreeFactsTest {
 

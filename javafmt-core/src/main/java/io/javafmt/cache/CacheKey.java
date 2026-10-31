@@ -1,6 +1,7 @@
 package io.javafmt.cache;
 
 import io.javafmt.JavafmtConfig;
+
 import java.util.Objects;
 
 /**

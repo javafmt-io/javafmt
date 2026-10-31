@@ -1,11 +1,12 @@
 package io.javafmt.printer;
 
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
-import lombok.experimental.UtilityClass;
 
 /**
  * The stack-machine printer. Each Group renders flat when {@link #fitsForward} says the rest of

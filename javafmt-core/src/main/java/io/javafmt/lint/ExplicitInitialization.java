@@ -8,6 +8,7 @@ import com.sun.source.tree.VariableTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;

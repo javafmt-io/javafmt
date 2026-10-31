@@ -3,9 +3,10 @@ package io.javafmt.lint;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.JavaModifiers;
 import io.javafmt.parser.CommentScanner;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import javax.lang.model.element.Modifier;
-import lombok.experimental.UtilityClass;
 
 /**
  * Modifier helpers shared across lint rules: the canonical JLS order, whether a declaration is

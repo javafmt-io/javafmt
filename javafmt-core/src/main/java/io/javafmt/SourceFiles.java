@@ -1,5 +1,7 @@
 package io.javafmt;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +16,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import lombok.experimental.UtilityClass;
 
 /**
  * Discovery of {@code .java} regular files, sorted for deterministic output order, and the

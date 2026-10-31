@@ -1,6 +1,7 @@
 package io.javafmt;
 
 import com.sun.source.tree.ClassTree;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;

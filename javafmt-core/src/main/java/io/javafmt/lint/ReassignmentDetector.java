@@ -8,6 +8,7 @@ import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.UnaryTree;
 import io.javafmt.parser.ChainScanner;
+
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;

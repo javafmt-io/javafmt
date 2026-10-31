@@ -3,16 +3,18 @@ package io.javafmt.builder;
 import com.sun.source.tree.ImportTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.ParsedUnit;
+import lombok.experimental.UtilityClass;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class ImportSectionRenderer {
 
-    /** Java 25 module imports ({@code import module M;}) come first, then statics, then non-statics. */
+    /** Java 25 module imports ({@code import module M;}) come first, then third-party, then {@code java.*}/{@code javax.*}, then statics. */
     Stream<Doc> buildImportSection(final boolean hasPackage, final List<? extends ImportTree> imports, final ParsedUnit unit) {
         if (imports.isEmpty()) {
             return Stream.empty();
@@ -21,8 +23,8 @@ final class ImportSectionRenderer {
                 .map(NamedImport::of)
                 .sorted(Comparator.comparing(NamedImport::name))
                 .toList();
-        final var groups = Stream.of("import module ", "import static ", "import ")
-                .map(prefix -> sorted.stream().filter(i -> i.prefix().equals(prefix)).toList())
+        final var groups = IntStream.rangeClosed(0, 3)
+                .mapToObj(key -> sorted.stream().filter(i -> i.groupKey() == key).toList())
                 .filter(group -> !group.isEmpty())
                 .flatMap(group -> Stream.concat(Stream.of(Doc.HARD_LINE), group.stream().flatMap(i -> renderImport(i, unit))))
                 .skip(1);
@@ -44,6 +46,16 @@ final class ImportSectionRenderer {
         static NamedImport of(final ImportTree tree) {
             final var prefix = tree.isModule() ? "import module " : tree.isStatic() ? "import static " : "import ";
             return new NamedImport(tree, tree.getQualifiedIdentifier().toString(), prefix);
+        }
+
+        int groupKey() {
+            if (tree.isModule()) {
+                return 0;
+            }
+            if (tree.isStatic()) {
+                return 3;
+            }
+            return name.startsWith("java.") || name.startsWith("javax.") ? 2 : 1;
         }
     }
 }

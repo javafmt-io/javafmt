@@ -6,12 +6,13 @@ import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.CommentToken;
+import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
-import org.jspecify.annotations.Nullable;
 
 @UtilityClass
 final class MethodChainRenderer {

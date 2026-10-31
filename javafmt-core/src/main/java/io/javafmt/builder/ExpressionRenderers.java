@@ -22,14 +22,15 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
-import org.jspecify.annotations.Nullable;
 
 @UtilityClass
 final class ExpressionRenderers {

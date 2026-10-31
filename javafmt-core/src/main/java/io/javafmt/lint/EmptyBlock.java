@@ -8,6 +8,7 @@ import com.sun.source.tree.TryTree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.List;
 
 /**

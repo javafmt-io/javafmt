@@ -1,8 +1,5 @@
 package io.javafmt.builder;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ExpressionTree;
@@ -16,11 +13,15 @@ import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.printer.Printer;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import java.util.IdentityHashMap;
 import java.util.List;
 import javax.tools.JavaFileObject;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration smoke tests — one per DocBuilder dispatch path.

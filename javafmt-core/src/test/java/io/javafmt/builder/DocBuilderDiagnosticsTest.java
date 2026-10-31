@@ -1,13 +1,13 @@
 package io.javafmt.builder;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.Diagnostic;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.Position;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DocBuilderDiagnosticsTest {
 

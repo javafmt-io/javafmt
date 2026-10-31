@@ -9,10 +9,11 @@ import com.sun.source.tree.ProvidesTree;
 import com.sun.source.tree.RequiresTree;
 import com.sun.source.tree.UsesTree;
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 /**
  * Renders a module declaration. Nothing here reorders anything: the directives and every

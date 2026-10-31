@@ -2,6 +2,7 @@ package io.javafmt.doc;
 
 import com.sun.source.tree.Tree;
 import io.javafmt.parser.CommentToken;
+
 import java.util.List;
 import java.util.stream.Stream;
 

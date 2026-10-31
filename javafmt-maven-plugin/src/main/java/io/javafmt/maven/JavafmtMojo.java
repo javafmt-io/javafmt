@@ -3,12 +3,13 @@ package io.javafmt.maven;
 import io.javafmt.FileResult;
 import io.javafmt.SourceFiles;
 import io.javafmt.cache.FormatCache;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.project.MavenProject;
+
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
 
 @Mojo(name = "format", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
 public final class JavafmtMojo extends AbstractJavafmtMojo {

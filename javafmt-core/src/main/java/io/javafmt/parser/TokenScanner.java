@@ -1,9 +1,10 @@
 package io.javafmt.parser;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import lombok.experimental.UtilityClass;
 
 /**
  * Lexes Java source into the token stream that must survive formatting: identifiers,

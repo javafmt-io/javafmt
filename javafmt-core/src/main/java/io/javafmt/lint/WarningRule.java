@@ -5,11 +5,12 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.jspecify.annotations.Nullable;
 
 interface WarningRule extends LintRule {
 

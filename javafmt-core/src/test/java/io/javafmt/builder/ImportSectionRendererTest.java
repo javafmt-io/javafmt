@@ -1,10 +1,10 @@
 package io.javafmt.builder;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.parser.JavaParser;
 import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ImportSectionRendererTest {
 
@@ -24,12 +24,12 @@ class ImportSectionRendererTest {
     }
 
     @Test
-    void mixedImports_staticFirstThenBlankLineThenNonStatic() {
+    void mixedImports_nonStaticThenBlankLineThenStatic() {
         assertThat(format("""
                 import java.util.List;
                 import static java.util.Collections.emptyList;
                 class Foo {}"""))
-                .isEqualTo("import static java.util.Collections.emptyList;\n\nimport java.util.List;\n\nclass Foo {}");
+                .isEqualTo("import java.util.List;\n\nimport static java.util.Collections.emptyList;\n\nclass Foo {}");
     }
 
     @Test
@@ -57,13 +57,13 @@ class ImportSectionRendererTest {
     }
 
     @Test
-    void moduleImports_placedBeforeStaticAndNonStatic() {
+    void moduleImports_placedBeforeNonStaticAndStatic() {
         assertThat(format("""
                 import java.util.List;
                 import static java.util.Collections.emptyList;
                 import module java.base;
                 class Foo {}"""))
-                .isEqualTo("import module java.base;\n\nimport static java.util.Collections.emptyList;\n\nimport java.util.List;\n\nclass Foo {}");
+                .isEqualTo("import module java.base;\n\nimport java.util.List;\n\nimport static java.util.Collections.emptyList;\n\nclass Foo {}");
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.javafmt.cache;
 
 import io.javafmt.JavafmtVersion;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;

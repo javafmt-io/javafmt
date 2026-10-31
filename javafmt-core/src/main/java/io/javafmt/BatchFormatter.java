@@ -9,6 +9,8 @@ import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParseException;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.parser.Staged;
+import lombok.experimental.UtilityClass;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,7 +29,6 @@ import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import lombok.experimental.UtilityClass;
 
 /**
  * The format pipeline behind {@link Javafmt#formatWithResult(String, JavafmtConfig)} and

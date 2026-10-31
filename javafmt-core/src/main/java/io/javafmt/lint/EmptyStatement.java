@@ -7,6 +7,7 @@ import com.sun.source.tree.Tree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.IntStream;

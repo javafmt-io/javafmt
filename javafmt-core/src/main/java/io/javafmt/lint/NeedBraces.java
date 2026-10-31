@@ -9,8 +9,9 @@ import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.WhileLoopTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
-import java.util.List;
 import org.jspecify.annotations.Nullable;
+
+import java.util.List;
 
 /**
  * Wraps single-statement bodies of {@code if}/{@code else}/{@code while}/{@code do-while}/

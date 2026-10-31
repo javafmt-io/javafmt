@@ -8,17 +8,18 @@ import io.javafmt.SourceFiles;
 import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
 import io.javafmt.cache.FormatCache;
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+import org.jspecify.annotations.Nullable;
+
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
-import org.jspecify.annotations.Nullable;
 
 /** Template contract: {@link #execute()} is final; subclasses supply {@link #handle}. */
 abstract class AbstractJavafmtMojo extends AbstractMojo {

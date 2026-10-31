@@ -1,6 +1,7 @@
 package io.javafmt.parser;
 
 import com.sun.source.util.Trees;
+
 import java.util.Objects;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;

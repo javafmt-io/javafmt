@@ -1,7 +1,5 @@
 package io.javafmt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ExpressionTree;
@@ -13,10 +11,13 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
+import org.junit.jupiter.api.Test;
+
 import java.util.IdentityHashMap;
 import java.util.List;
 import javax.tools.JavaFileObject;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class FormatResultTest {
 

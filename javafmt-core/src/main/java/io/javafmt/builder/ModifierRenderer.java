@@ -4,12 +4,13 @@ import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ModifiersTree;
 import io.javafmt.JavaModifiers;
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class ModifierRenderer {

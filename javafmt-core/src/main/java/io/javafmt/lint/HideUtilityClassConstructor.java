@@ -6,9 +6,10 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.Diagnostic;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import javax.lang.model.element.Modifier;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Warns if a class appears to be a utility class — a plain class whose whole API is static — but

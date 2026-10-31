@@ -1,6 +1,7 @@
 package io.javafmt.lint;
 
 import io.javafmt.Diagnostic;
+
 import java.util.List;
 import java.util.Objects;
 

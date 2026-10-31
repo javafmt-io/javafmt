@@ -2,14 +2,15 @@ package io.javafmt.maven;
 
 import io.javafmt.FileResult;
 import io.javafmt.cache.FormatCache;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.project.MavenProject;
+
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Mojo(name = "check", defaultPhase = LifecyclePhase.VERIFY, threadSafe = true)
 public final class JavafmtCheckMojo extends AbstractJavafmtMojo {

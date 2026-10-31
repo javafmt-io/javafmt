@@ -3,8 +3,9 @@ package io.javafmt.builder;
 import com.sun.source.tree.CatchTree;
 import com.sun.source.tree.TryTree;
 import io.javafmt.doc.Doc;
-import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
+
+import java.util.stream.Stream;
 
 @UtilityClass
 final class TryRenderer {

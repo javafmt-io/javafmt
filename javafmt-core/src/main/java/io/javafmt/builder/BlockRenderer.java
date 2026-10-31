@@ -4,12 +4,13 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.StatementTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.CommentToken;
+import lombok.experimental.UtilityClass;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class BlockRenderer {

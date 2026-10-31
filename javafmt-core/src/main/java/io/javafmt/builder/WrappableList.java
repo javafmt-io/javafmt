@@ -1,9 +1,10 @@
 package io.javafmt.builder;
 
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 /**
  * A bracketed, separator-joined list that breaks one element per line at the continuation indent

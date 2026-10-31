@@ -1,15 +1,16 @@
 package io.javafmt.lint;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.CompileCheck;
 import io.javafmt.Diagnostic;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
-import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * End-to-end compile safety for the lint pass: every case here is a shape a lint auto-fix once

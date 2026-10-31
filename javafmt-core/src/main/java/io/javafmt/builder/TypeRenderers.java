@@ -18,10 +18,11 @@ import com.sun.source.tree.UnionTypeTree;
 import com.sun.source.tree.WildcardTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.ParsedUnit;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class TypeRenderers {

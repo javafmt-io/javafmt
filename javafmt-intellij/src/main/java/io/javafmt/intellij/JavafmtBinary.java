@@ -8,6 +8,7 @@ import com.intellij.execution.process.ProcessIOExecutorService;
 import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;

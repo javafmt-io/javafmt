@@ -1,10 +1,10 @@
 import module java.base;
 import module java.sql;
 
-import static java.util.Collections.emptyList;
-
 import java.io.File;
 import java.util.List;
+
+import static java.util.Collections.emptyList;
 
 class Foo {
 

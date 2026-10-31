@@ -13,6 +13,7 @@ import com.sun.source.util.TreePath;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Objects;

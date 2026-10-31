@@ -1,9 +1,5 @@
 package io.javafmt.gradle;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.Optional;
-import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
@@ -20,6 +16,11 @@ import org.gradle.api.tasks.SkipWhenEmpty;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.work.DisableCachingByDefault;
 import org.gradle.workers.WorkerExecutor;
+
+import java.io.File;
+import java.util.Collection;
+import java.util.Optional;
+import javax.inject.Inject;
 
 @DisableCachingByDefault(because = "Each concrete javafmt task declares its own caching.")
 public abstract class JavafmtTask extends DefaultTask {

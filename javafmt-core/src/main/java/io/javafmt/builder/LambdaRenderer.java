@@ -4,8 +4,9 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
-import java.util.List;
 import lombok.experimental.UtilityClass;
+
+import java.util.List;
 
 @UtilityClass
 final class LambdaRenderer {
