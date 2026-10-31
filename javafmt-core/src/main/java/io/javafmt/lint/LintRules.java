@@ -14,6 +14,7 @@ public final class LintRules {
             // diamond / witness cleanup after var inference (otherwise diamond-ified ctors
             // become un-var-convertible)
             new RedundantTypeArguments(),
+            new UnusedVariableShouldBeUnnamed(),
             new FinalLocalVariable(),
             new FinalParameters(),
             new ArrayTrailingComma(),

@@ -141,7 +141,7 @@ final class PrintEngine {
             }
             switch (f.doc()) {
                 case Doc.Text(var s) -> b -= s.length();
-                case Doc.Verbatim(var s, var ignored) -> {
+                case Doc.Verbatim(var s, var _) -> {
                     final var firstNewline = s.indexOf('\n');
                     b -= firstNewline >= 0 ? firstNewline : s.length();
                 }
@@ -153,14 +153,14 @@ final class PrintEngine {
                 case Doc.HardLine _ -> {
                     return consumedCandidate;
                 }
-                case Doc.BlockComment(var lines, var ignored) -> {
+                case Doc.BlockComment(var lines, var _) -> {
                     b -= lines.getFirst().length();
                     if (b >= 0) {
                         return consumedCandidate;
                     }
                 }
                 case Doc.Indent(var d) -> work.push(new Frame(f.indent() + INDENT_SIZE, f.mode(), d));
-                case Doc.Group(var d, var ignored) -> work.push(new Frame(f.indent(), Mode.FLAT, d));
+                case Doc.Group(var d, var _) -> work.push(new Frame(f.indent(), Mode.FLAT, d));
                 case Doc.IfBreak(var bc, var fc) -> work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? bc : fc));
                 case Doc.Concat(var parts) -> {
                     for (var i = parts.size() - 1; i >= 0; i--) {

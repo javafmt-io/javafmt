@@ -63,6 +63,15 @@ class JavafmtTest {
         assertThat(Javafmt.formatWithResult(source).diagnostics()).isEmpty();
     }
 
+    @Test
+    void unusedVariablesAreUnnamedOnlyWhenTheTargetReleaseAllowsIt() {
+        final var source = "class C {\n    void m(boolean b) {\n        if (b) run();\n        try { run(); } catch (IllegalStateException unused) { run(); }\n    }\n}\n";
+        assertThat(Javafmt.formatWithResult(source, JavafmtConfig.defaults()).output()).contains("catch (IllegalStateException _)");
+        assertThat(Javafmt.formatWithResult(source, JavafmtConfig.defaults().withRelease(21)).output())
+                .contains("if (b) {")
+                .contains("catch (IllegalStateException unused)");
+    }
+
     @Nested
     class EdgeCasesTest {
 

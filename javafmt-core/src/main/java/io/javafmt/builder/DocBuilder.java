@@ -240,7 +240,7 @@ public final class DocBuilder {
     }
 
     private static <T> T innermost(final T start, final Function<T, @Nullable T> next) {
-        return walk(start, next).reduce((outer, inner) -> inner).orElse(start);
+        return walk(start, next).reduce((_, inner) -> inner).orElse(start);
     }
 
     private static <T> Stream<T> walk(final T start, final Function<T, @Nullable T> next) {

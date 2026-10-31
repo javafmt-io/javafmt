@@ -1,7 +1,7 @@
 class Fixture {
 
     void run() {
-        final Runnable r = () -> {
+        final Runnable _ = () -> {
             // lambda note
         };
     }

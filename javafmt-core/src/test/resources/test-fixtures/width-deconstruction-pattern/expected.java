@@ -5,7 +5,7 @@ class Fixture {
             case Rectangle(
                     Point(int aVeryLongCoordinateNameOne, int aVeryLongCoordinateNameTwo),
                     Point(int aVeryLongCoordinateNameThree, int four)) ->
-                "r";
+                describe(aVeryLongCoordinateNameOne, aVeryLongCoordinateNameTwo, aVeryLongCoordinateNameThree, four);
             default -> "other";
         };
     }

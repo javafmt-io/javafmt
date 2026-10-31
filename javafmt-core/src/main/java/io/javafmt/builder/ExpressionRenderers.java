@@ -330,7 +330,7 @@ final class ExpressionRenderers {
                             final var selected = Doc.concat(receiver, new Doc.Text("." + select.getIdentifier()));
                             return select == node ? selected : recursor.attach(select, selected);
                         },
-                        (left, right) -> right);
+                        (_, right) -> right);
     }
 
     Doc renderArrayAccess(final ArrayAccessTree node, final Recursor recursor) {

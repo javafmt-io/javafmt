@@ -129,7 +129,7 @@ final class FakeRelease implements AutoCloseable {
     private static void await(final CountDownLatch latch) {
         try {
             latch.await(20, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
         }
     }

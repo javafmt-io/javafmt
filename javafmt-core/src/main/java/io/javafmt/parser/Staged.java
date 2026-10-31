@@ -24,7 +24,7 @@ public sealed interface Staged<T> {
     default Stream<T> stream() {
         return switch (this) {
             case Ok<T>(var value) -> Stream.of(value);
-            case Failed<T> ignored -> Stream.empty();
+            case Failed<T> _ -> Stream.empty();
         };
     }
 
@@ -38,7 +38,7 @@ public sealed interface Staged<T> {
         return items.stream()
                 .<Staged<R>>map(
                         item -> switch (item) {
-                            case Ok<T> ignored -> results.next();
+                            case Ok<T> _ -> results.next();
                             case Failed<T>(var failure) -> new Failed<>(failure);
                         })
                 .toList();

@@ -1,6 +1,6 @@
 class Fixture {
 
     void test() {
-        final var x = new Wrapper<String>();
+        final var _ = new Wrapper<String>();
     }
 }

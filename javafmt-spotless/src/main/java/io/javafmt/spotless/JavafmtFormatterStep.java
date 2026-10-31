@@ -76,6 +76,14 @@ public final class JavafmtFormatterStep {
         return throwOnError(Javafmt.formatWithResult(source, config));
     }
 
+    public String apply(final String source, final int release) {
+        return apply(source, JavafmtConfig.defaults().withRelease(release));
+    }
+
+    public String applyWithAnalyze(final String source, final String classpath, final int release) {
+        return applyWithAnalyze(source, classpath, JavafmtConfig.defaults().withRelease(release));
+    }
+
     /** Package-private seam so tests can assert on the thrown message directly. */
     String throwOnError(final FormatResult result) {
         if (result.hasErrors()) {
@@ -102,7 +110,7 @@ public final class JavafmtFormatterStep {
      */
     private Lint toLint(final Diagnostic warning) {
         return switch (warning.position()) {
-            case Position.At(var line, var ignoredColumn, var ignoredOffset) -> Lint.atLine(line, NAME, warning.message());
+            case Position.At(var line, var _, var _) -> Lint.atLine(line, NAME, warning.message());
             case Position.Unknown() -> Lint.atUndefinedLine(NAME, warning.message());
         };
     }

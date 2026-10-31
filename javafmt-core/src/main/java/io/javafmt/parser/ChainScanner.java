@@ -85,7 +85,7 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
                     .reduce(
                             at(innermost, () -> scan(leafOf(innermost), p)),
                             (inner, i) -> scanArguments(spine.get(i), typeArguments.get(i), inner, p),
-                            (left, right) -> right);
+                            (_, right) -> right);
         } finally {
             exitChain(spine);
         }

@@ -10,7 +10,7 @@ import java.util.Objects;
  * run followed by an {@code --analyze} run finds every file up to date, skips it, and the
  * analyze-only rewrites never happen — which looks from the outside like javafmt doing nothing.
  */
-public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, String classpath) {
+public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, String classpath, int release) {
 
     public CacheKey {
         Objects.requireNonNull(classpath, "classpath");
@@ -20,14 +20,15 @@ public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, Stri
     public static CacheKey of(final JavafmtConfig config) {
         Objects.requireNonNull(config, "config");
         return switch (config.analysis()) {
-            case JavafmtConfig.Analysis.ParseOnly() -> new CacheKey(config.lint(), config.verifyOutput(), false, "");
-            case JavafmtConfig.Analysis.Attributed(var classpath) -> new CacheKey(config.lint(), config.verifyOutput(), true, classpath);
+            case JavafmtConfig.Analysis.ParseOnly() -> new CacheKey(config.lint(), config.verifyOutput(), false, "", config.release());
+            case JavafmtConfig.Analysis.Attributed(var classpath) ->
+                new CacheKey(config.lint(), config.verifyOutput(), true, classpath, config.release());
         };
     }
 
     /** A short stable digest of this key, for the cache file's header line. */
     public String fingerprint() {
-        final var material = "lint=" + lint + " verify=" + verifyOutput + " analyze=" + analyze + " classpath=" + classpath;
+        final var material = "lint=" + lint + " verify=" + verifyOutput + " analyze=" + analyze + " classpath=" + classpath + " release=" + release;
         return FileFormatCache.sha256(material).substring(0, 16);
     }
 }

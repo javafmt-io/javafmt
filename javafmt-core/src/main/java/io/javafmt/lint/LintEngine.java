@@ -272,7 +272,7 @@ public final class LintEngine {
                         awaitingParseOnlyUnit = false;
                         result = new Staged.Ok<>(new Outcome(unit, diagnostics));
                     } else {
-                        context = LintContext.parseOnly(unit);
+                        context = context.reparsed(unit);
                         pendingSource = null;
                     }
                 }

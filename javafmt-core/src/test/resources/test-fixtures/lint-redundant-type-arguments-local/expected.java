@@ -1,6 +1,6 @@
 class Fixture {
 
     void test() {
-        final Wrapper<String> w = new SubWrapper<>();
+        final Wrapper<String> _ = new SubWrapper<>();
     }
 }

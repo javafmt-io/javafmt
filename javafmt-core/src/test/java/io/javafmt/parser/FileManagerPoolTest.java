@@ -46,7 +46,7 @@ class FileManagerPoolTest {
         manager[0] = (StandardJavaFileManager) Proxy.newProxyInstance(
                 StandardJavaFileManager.class.getClassLoader(),
                 new Class<?>[] {StandardJavaFileManager.class,},
-                (proxy, method, args) -> {
+                (_, method, _) -> {
                     if (method.getName().equals("close")) {
                         closed.add(manager[0]);
                     }

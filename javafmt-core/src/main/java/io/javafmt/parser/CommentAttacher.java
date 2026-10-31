@@ -66,11 +66,11 @@ final class CommentAttacher {
             }
             final var prev = slot.prev();
             if (prev != null && sameLine(source, (int) slot.lo(), c.start())) {
-                trailing.computeIfAbsent(prev, k -> new ArrayList<>()).add(c);
+                trailing.computeIfAbsent(prev, _ -> new ArrayList<>()).add(c);
                 continue;
             }
             if (trailsPastTheSeparator(slot, c, source, tree, positions) && slot.owner() != null) {
-                interior.computeIfAbsent(slot.owner(), k -> new ArrayList<>()).add(c);
+                interior.computeIfAbsent(slot.owner(), _ -> new ArrayList<>()).add(c);
                 continue;
             }
             switch (slot.kind()) {
@@ -78,17 +78,17 @@ final class CommentAttacher {
                 case FILE_FOOTER -> fileFooter.add(c);
                 case LEADING -> {
                     if (slot.owner() != null) {
-                        leading.computeIfAbsent(slot.owner(), k -> new ArrayList<>()).add(c);
+                        leading.computeIfAbsent(slot.owner(), _ -> new ArrayList<>()).add(c);
                     }
                 }
                 case INTERIOR -> {
                     if (slot.owner() != null) {
-                        interior.computeIfAbsent(slot.owner(), k -> new ArrayList<>()).add(c);
+                        interior.computeIfAbsent(slot.owner(), _ -> new ArrayList<>()).add(c);
                     }
                 }
                 case TAIL -> {
                     if (slot.owner() != null) {
-                        tail.computeIfAbsent(slot.owner(), k -> new ArrayList<>()).add(c);
+                        tail.computeIfAbsent(slot.owner(), _ -> new ArrayList<>()).add(c);
                     }
                 }
             }

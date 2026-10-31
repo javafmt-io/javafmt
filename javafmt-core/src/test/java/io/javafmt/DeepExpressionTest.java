@@ -68,8 +68,8 @@ class DeepExpressionTest {
             }
         };
         try {
-            return compiler.getTask(null, null, diagnostic -> {}, List.of("-proc:none", "-d", classes.toString()), null, List.of(file)).call();
-        } catch (final RuntimeException | StackOverflowError e) {
+            return compiler.getTask(null, null, _ -> {}, List.of("-proc:none", "-d", classes.toString()), null, List.of(file)).call();
+        } catch (final RuntimeException | StackOverflowError _) {
             return false;
         }
     }
