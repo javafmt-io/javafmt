@@ -91,7 +91,8 @@ public final class CompileCheck {
      * source rather than fixed. Returns {@code null} for sources this check skips: anything
      * that doesn't parse, and module declarations (which can't compile standalone).
      */
-    @org.jspecify.annotations.Nullable private static String topLevelName(final String source) {
+    @org.jspecify.annotations.Nullable
+    private static String topLevelName(final String source) {
         final com.sun.source.tree.CompilationUnitTree tree;
         try {
             tree = io.javafmt.parser.JavaParser.parse(source);

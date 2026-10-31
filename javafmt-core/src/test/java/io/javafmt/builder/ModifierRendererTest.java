@@ -50,35 +50,6 @@ class ModifierRendererTest {
         assertThat(new Printer(WIDTH).print(doc)).isEqualTo("@Foo({ \"a\", \"b\", })\nclass Bar");
     }
 
-    @Test
-    void rendersAnnotationsInline_singleArgumentlessAnnotationTheAuthorLeftInline() {
-        final var mods = stubModifiers(Set.of(), List.of(stubAnnotation("@Override")));
-        assertThat(ModifierRenderer.rendersAnnotationsInline(mods, stubRecursor("@Override", false))).isTrue();
-    }
-
-    @Test
-    void rendersAnnotationsInline_noAnnotations() {
-        assertThat(ModifierRenderer.rendersAnnotationsInline(stubModifiers(Set.of(), List.of()), stubRecursor("", false))).isFalse();
-    }
-
-    @Test
-    void rendersAnnotationsInline_annotationTheAuthorPutOnItsOwnLine() {
-        final var mods = stubModifiers(Set.of(), List.of(stubAnnotation("@Override")));
-        assertThat(ModifierRenderer.rendersAnnotationsInline(mods, stubRecursor("@Override", true))).isFalse();
-    }
-
-    @Test
-    void rendersAnnotationsInline_annotationWithArguments() {
-        final var mods = stubModifiers(Set.of(), List.of(stubAnnotation("@SuppressWarnings(\"x\")", List.of(stubExpression()))));
-        assertThat(ModifierRenderer.rendersAnnotationsInline(mods, stubRecursor("@SuppressWarnings(\"x\")", false))).isFalse();
-    }
-
-    @Test
-    void rendersAnnotationsInline_moreThanOneAnnotation() {
-        final var mods = stubModifiers(Set.of(), List.of(stubAnnotation("@A"), stubAnnotation("@B")));
-        assertThat(ModifierRenderer.rendersAnnotationsInline(mods, stubRecursor("@A", false))).isFalse();
-    }
-
     /** Only {@link Recursor#sourceOf} is exercised here; everything else is out of scope. */
     private static Recursor stubRecursor(final String source) {
         return stubRecursor(source, false);
@@ -220,22 +191,6 @@ class ModifierRendererTest {
             @Override
             public String toString() {
                 return prettyPrinted;
-            }
-        };
-    }
-
-    /** Stands in for an annotation argument; only its presence in the list matters here. */
-    private static ExpressionTree stubExpression() {
-        return new ExpressionTree() {
-
-            @Override
-            public Tree.Kind getKind() {
-                return Tree.Kind.STRING_LITERAL;
-            }
-
-            @Override
-            public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
-                return null;
             }
         };
     }

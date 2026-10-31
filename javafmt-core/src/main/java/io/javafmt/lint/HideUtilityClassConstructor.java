@@ -61,7 +61,8 @@ public final class HideUtilityClassConstructor implements WarningRule {
     }
 
     /** The modifiers of a method or field member, or {@code null} for anything else. */
-    @Nullable private static ModifiersTree modifiersOf(final Tree member) {
+    @Nullable
+    private static ModifiersTree modifiersOf(final Tree member) {
         return switch (member) {
             case MethodTree method -> method.getModifiers();
             case VariableTree field -> field.getModifiers();

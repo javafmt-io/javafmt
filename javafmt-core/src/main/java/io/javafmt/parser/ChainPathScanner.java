@@ -20,7 +20,8 @@ public abstract class ChainPathScanner<R extends @Nullable Object, P extends @Nu
 
     private final IdentityHashMap<Tree, TreePath> chainPaths = new IdentityHashMap<>();
 
-    @Nullable public R scan(final TreePath path, @Nullable final P p) {
+    @Nullable
+    public R scan(final TreePath path, @Nullable final P p) {
         this.path = path;
         try {
             return path.getLeaf().accept(this, p);
