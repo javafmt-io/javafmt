@@ -9,7 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 
 class NoopFormatCacheTest {
-
     @Test
     void isUpToDate_alwaysReturnsFalse(@TempDir final Path dir) {
         final var cache = FormatCache.noop();

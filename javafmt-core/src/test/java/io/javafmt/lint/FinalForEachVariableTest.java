@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FinalForEachVariableTest {
-
     static Stream<Arguments> rewritten() {
         return Stream.of(
                 Arguments.of("explicit type", "for (String s : xs) { use(s); }", "for (final String s : xs) { use(s); }"),

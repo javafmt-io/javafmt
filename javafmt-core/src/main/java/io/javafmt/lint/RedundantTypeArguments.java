@@ -53,7 +53,6 @@ import javax.lang.model.type.TypeKind;
  * holds that argument to account.
  */
 public final class RedundantTypeArguments implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -61,7 +60,6 @@ public final class RedundantTypeArguments implements LintRule {
         final var edits = new ArrayList<LintEdit>();
         final var witnessCalls = new ArrayList<WitnessCall>();
         new ChainPathScanner<Void, Void>() {
-
             @Override
             public Void visitNewClass(final NewClassTree node, final Void p) {
                 tryDiamondify(node, getCurrentPath(), context).ifPresent(edits::add);
@@ -298,7 +296,6 @@ public final class RedundantTypeArguments implements LintRule {
     private static Map<Integer, TreePath> callsByMethodNameStart(final ParsedUnit unit) {
         final var calls = new ArrayList<TreePath>();
         new ChainPathScanner<Void, Void>() {
-
             @Override
             protected void visitInvocation(final MethodInvocationTree node, final Void p) {
                 calls.add(getCurrentPath());

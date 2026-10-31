@@ -10,7 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * there — a trailing comma the lint pass just added, or a comment inside the argument list.
  */
 class AnnotationRenderingTest {
-
     @Test
     void annotationArrayKeepsTheAuthorsPunctuation() {
         // ArrayTrailingComma deliberately skips annotation arrays. Were it to fire, the comma would

@@ -30,7 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledOnOs({OS.MAC, OS.LINUX})
 class JavafmtDaemonTest {
-
     static final String READ_REQUEST = "n=$(($(dd bs=1 count=1 2>/dev/null | od -An -tu1)))\ndd bs=1 count=$n of=/dev/null 2>/dev/null\n";
 
     static final String ECHO_REQUESTS = "exec cat\n";

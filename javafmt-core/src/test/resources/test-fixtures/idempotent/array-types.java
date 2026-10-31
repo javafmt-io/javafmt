@@ -1,5 +1,4 @@
 class Fixture {
-
     int[] flat = {1, 2, 3,};
 
     int[][] grid;

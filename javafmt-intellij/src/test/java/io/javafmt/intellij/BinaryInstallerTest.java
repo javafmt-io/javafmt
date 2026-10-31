@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Timeout(30)
 class BinaryInstallerTest {
-
     @BeforeAll
     static void startTheApplication() {
         TestApplicationManager.getInstance();

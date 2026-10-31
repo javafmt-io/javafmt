@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
  * {@code processJavadoc=true} on Checkstyle's equivalent check to match this scope.
  */
 public final class RemoveUnusedImports implements LintRule {
-
     private static final Pattern IDENTIFIER = Pattern.compile("\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*");
 
     @Override
@@ -63,7 +62,6 @@ public final class RemoveUnusedImports implements LintRule {
     private static Set<String> collectUsedNames(final ParsedUnit unit) {
         final var names = new HashSet<String>();
         new ChainScanner<Void, Void>() {
-
             @Override
             public Void visitImport(final ImportTree node, final Void p) {
                 return null;

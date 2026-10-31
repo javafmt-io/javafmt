@@ -12,7 +12,6 @@ import java.util.Objects;
  * analyze-only rewrites never happen — which looks from the outside like javafmt doing nothing.
  */
 public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, String classpath, int release) {
-
     public CacheKey {
         Objects.requireNonNull(classpath, "classpath");
     }

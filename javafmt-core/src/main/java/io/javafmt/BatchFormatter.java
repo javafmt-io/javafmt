@@ -37,7 +37,6 @@ import java.util.stream.IntStream;
  */
 @UtilityClass
 final class BatchFormatter {
-
     /**
      * Most files per javac task. Measured per-file parse cost falls from 0.53 ms at a batch of one to
      * 0.016 ms at 32 and 0.008 ms at 128, so returns are already flat here; the remaining reason
@@ -319,7 +318,6 @@ final class BatchFormatter {
     record Prepared(Staged<LintContext> context, List<Diagnostic> warnings) {}
 
     private sealed interface FileRead {
-
         record Pending(Path path, String source) implements FileRead {}
 
         record Done(FileResult result) implements FileRead {}
@@ -327,7 +325,6 @@ final class BatchFormatter {
 
     @FunctionalInterface
     interface Renderer {
-
         Renderer INLINE = (_, tasks) -> tasks.stream().map(Supplier::get).toList();
 
         List<FormatResult> renderAll(List<String> sources, List<Supplier<FormatResult>> tasks);

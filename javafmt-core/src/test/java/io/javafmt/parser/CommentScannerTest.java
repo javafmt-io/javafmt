@@ -12,14 +12,12 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CommentScannerTest {
-
     private static List<String> texts(final String source) {
         return CommentScanner.scan(source).stream().map(CommentToken::text).toList();
     }
 
     @Nested
     class StringAndCharLiterals {
-
         @ParameterizedTest(name = "{1}")
         @MethodSource("literalsHidingSlashes")
         void scannerIgnoresCommentSyntaxInsideLiterals(final String source, final String label) {
@@ -41,7 +39,6 @@ class CommentScannerTest {
 
     @Nested
     class EofEdgeCases {
-
         @Test
         void lineCommentAtEofWithoutTrailingNewlineIsCaptured() {
             assertThat(texts("class C {} // trailing"))
@@ -64,7 +61,6 @@ class CommentScannerTest {
 
     @Nested
     class AdjacentSequences {
-
         @Test
         void lineCommentImmediatelyFollowedByJavadocAreScannedAsTwoTokens() {
             final var source = """

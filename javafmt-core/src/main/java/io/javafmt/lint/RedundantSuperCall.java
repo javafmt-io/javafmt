@@ -22,14 +22,12 @@ import java.util.Optional;
  * and {@code this(...)} delegations are left untouched.
  */
 public final class RedundantSuperCall implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainScanner<>() {
-
                     @Override
                     public Void visitMethod(final MethodTree node, final Void p) {
                         tryRemove(node, unit).ifPresent(edits::add);

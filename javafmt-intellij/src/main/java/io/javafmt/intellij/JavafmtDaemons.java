@@ -10,7 +10,6 @@ import java.util.Optional;
 
 @Service(Service.Level.PROJECT)
 public final class JavafmtDaemons implements Disposable {
-
     private Optional<Running> current = Optional.empty();
 
     private boolean disposed;

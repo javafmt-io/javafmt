@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CacheKeyTest {
-
     @Test
     void aParseOnlyConfigKeysWithoutAClasspath() {
         assertThat(CacheKey.of(JavafmtConfig.defaults())).isEqualTo(new CacheKey(true, true, false, "", 25));

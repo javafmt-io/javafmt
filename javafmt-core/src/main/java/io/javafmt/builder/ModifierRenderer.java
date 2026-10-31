@@ -14,7 +14,6 @@ import javax.lang.model.element.Modifier;
 
 @UtilityClass
 final class ModifierRenderer {
-
     /**
      * The annotations and modifiers of a declaration as one prefix, each token followed by a
      * space so a type can be concatenated directly after it. Empty when the declaration has

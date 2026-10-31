@@ -11,7 +11,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FinalCatchParameterTest {
-
     static Stream<Arguments> rewritten() {
         return Stream.of(
                 Arguments.of("single type", "catch (IOException e) { log(e); }", "catch (final IOException e) { log(e); }"),

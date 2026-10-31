@@ -12,7 +12,6 @@ import javax.lang.model.element.Modifier;
 
 @UtilityClass
 final class RecordRenderer {
-
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = ModifierRenderer.modifiersText(node.getModifiers()) + "record " + node.getSimpleName();
         final var components = node.getMembers()

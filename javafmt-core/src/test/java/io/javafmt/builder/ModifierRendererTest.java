@@ -18,7 +18,6 @@ import javax.lang.model.element.Modifier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifierRendererTest {
-
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -27,7 +26,7 @@ class ModifierRendererTest {
 
     @Test
     void modifiersEmittedInJlsOrder() {
-        assertThat(format("class Foo { static private final int X = 1; }")).isEqualTo("class Foo {\n\n    private static final int X = 1;\n}");
+        assertThat(format("class Foo { static private final int X = 1; }")).isEqualTo("class Foo {\n    private static final int X = 1;\n}");
     }
 
     @Test
@@ -58,7 +57,6 @@ class ModifierRendererTest {
     /** Adds a canned {@link Recursor#isFollowedByNewline} answer for the inline-annotation predicate. */
     private static Recursor stubRecursor(final String source, final boolean followedByNewline) {
         return new Recursor() {
-
             @Override
             public String sourceOf(final com.sun.source.tree.Tree node) {
                 return source;
@@ -138,7 +136,6 @@ class ModifierRendererTest {
 
     private static ModifiersTree stubModifiers(final Set<Modifier> flags, final List<? extends AnnotationTree> annotations) {
         return new ModifiersTree() {
-
             @Override
             public Set<Modifier> getFlags() {
                 return flags;
@@ -167,7 +164,6 @@ class ModifierRendererTest {
 
     private static AnnotationTree stubAnnotation(final String prettyPrinted, final List<? extends ExpressionTree> arguments) {
         return new AnnotationTree() {
-
             @Override
             public Tree getAnnotationType() {
                 throw new UnsupportedOperationException();

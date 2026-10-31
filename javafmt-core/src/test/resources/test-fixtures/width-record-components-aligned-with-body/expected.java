@@ -5,7 +5,6 @@ record PaymentReceipt(String receiptNumber,
                       String currencyCode,
                       long settledEpochDay,
                       String remittanceReference) {
-
     long amountInWholeUnits() {
         return amountCents / 100;
     }

@@ -8,7 +8,6 @@ import java.util.Objects;
 
 @UtilityClass
 public final class CommentScanner {
-
     public List<CommentToken> scan(final String source) {
         Objects.requireNonNull(source, "source");
         final var comments = new ArrayList<CommentToken>();

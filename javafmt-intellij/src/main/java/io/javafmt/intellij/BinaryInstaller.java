@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 final class BinaryInstaller {
-
     private static final URI RELEASES = URI.create("https://github.com/javafmt-io/javafmt/releases/download/");
 
     private final URI releaseBase;

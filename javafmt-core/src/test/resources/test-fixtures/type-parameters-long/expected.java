@@ -1,5 +1,4 @@
 class Fixture {
-
     <
         TypeParameterAlpha extends Comparable<TypeParameterAlpha>,
         TypeParameterBeta extends Comparable<TypeParameterBeta>,

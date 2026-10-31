@@ -1,5 +1,4 @@
 class Foo {
-
     static int sx;
 
     static {

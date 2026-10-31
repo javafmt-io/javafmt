@@ -38,7 +38,6 @@ import javax.lang.model.util.ElementFilter;
 
 @UtilityClass
 class VarRetypingCheck {
-
     private final Pattern CAPTURE_NUMBER = Pattern.compile("capture#\\d+");
 
     List<LocalVarUseVar.Proposal> verified(final ParsedUnit unit,
@@ -188,7 +187,6 @@ class VarRetypingCheck {
     private List<TreePath> expressionsOf(final ParsedUnit unit, final Set<Tree> retypedDeclarations) {
         final var found = new ArrayList<TreePath>();
         new ChainPathScanner<Void, Void>() {
-
             @Override
             public Void scan(@Nullable final Tree tree, @Nullable final Void p) {
                 if (tree instanceof ExpressionTree) {
@@ -238,7 +236,6 @@ class VarRetypingCheck {
     private record Key(Tree.Kind kind, long start, long end) {}
 
     private record Shift(List<LintEdit> edits) {
-
         int start(final int offset) {
             return offset
                     + edits.stream()

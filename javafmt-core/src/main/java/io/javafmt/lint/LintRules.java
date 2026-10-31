@@ -6,7 +6,6 @@ import java.util.List;
 
 @UtilityClass
 public final class LintRules {
-
     private final List<LintRule> DEFAULTS = List.of(
             // split multi-variable declarations before FinalLocalVariable/LocalVarUseVar
             new MultipleVariableDeclarations(),

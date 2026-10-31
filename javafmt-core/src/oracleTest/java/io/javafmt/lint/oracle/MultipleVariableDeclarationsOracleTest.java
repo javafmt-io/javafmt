@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  * {@link io.javafmt.lint.OneStatementPerLine} plus the printer's one-statement-per-line layout.
  */
 class MultipleVariableDeclarationsOracleTest {
-
     MultipleVariableDeclarationsOracleTest() {}
 
     private static final String CORPUS = "multiple-variable-declarations";

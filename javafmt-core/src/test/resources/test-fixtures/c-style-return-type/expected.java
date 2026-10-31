@@ -1,5 +1,4 @@
 class Fixture {
-
     int[] first() {
         return null;
     }

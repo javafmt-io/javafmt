@@ -15,7 +15,6 @@ import java.util.stream.StreamSupport;
 
 @CacheableTask
 public abstract class JavafmtCheck extends JavafmtTask {
-
     @OutputFile
     public abstract RegularFileProperty getMarker();
 

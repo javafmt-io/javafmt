@@ -1,5 +1,4 @@
 class Fixture {
-
     void run(final boolean flag) {
         while (flag) {
             // while note

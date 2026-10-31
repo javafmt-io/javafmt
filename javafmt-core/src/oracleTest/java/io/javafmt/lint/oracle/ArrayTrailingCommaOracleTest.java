@@ -20,7 +20,6 @@ import java.util.stream.Stream;
  * noise on later edits and is uniform across single- and multi-line forms.
  */
 class ArrayTrailingCommaOracleTest {
-
     ArrayTrailingCommaOracleTest() {}
 
     private static final String CORPUS = "array-trailing-comma";

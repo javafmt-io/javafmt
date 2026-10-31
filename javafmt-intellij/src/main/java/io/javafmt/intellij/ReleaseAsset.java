@@ -10,7 +10,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 sealed interface ReleaseAsset {
-
     String CHECKSUMS_RESOURCE = "/io/javafmt/intellij/native-checksums.txt";
 
     static ReleaseAsset forThisIde() {
@@ -67,7 +66,6 @@ sealed interface ReleaseAsset {
     }
 
     record Published(String name, String sha256) implements ReleaseAsset {
-
         public Published {
             Objects.requireNonNull(name, "name");
             Objects.requireNonNull(sha256, "sha256");
@@ -75,7 +73,6 @@ sealed interface ReleaseAsset {
     }
 
     record Unpublished(String reason) implements ReleaseAsset {
-
         public Unpublished {
             Objects.requireNonNull(reason, "reason");
         }

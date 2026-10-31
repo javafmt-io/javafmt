@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class LoopRenderer {
-
     Doc renderFor(final ForLoopTree node, final Recursor recursor) {
         final var header = buildForHeader(node, recursor);
         return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());

@@ -36,7 +36,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * </ul>
  */
 public final class OracleCorpus {
-
     private static final JavafmtConfig VERIFYING = JavafmtConfig.defaults().withVerifyOutput(true);
 
     public static Stream<Arguments> load(final String corpusSubdir) {

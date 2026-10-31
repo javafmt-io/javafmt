@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FakeDaemonTest {
-
     @Test
     void everyCannedReplyKeepsTheProtocolRules() {
         assertThat(FakeDaemon.CANNED.values())

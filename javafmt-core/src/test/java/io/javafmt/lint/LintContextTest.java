@@ -7,7 +7,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LintContextTest {
-
     @Test
     void parseOnly_factory_hasEmptyAttribution() {
         final var unit = JavaParser.parseUnit("class Foo {}");

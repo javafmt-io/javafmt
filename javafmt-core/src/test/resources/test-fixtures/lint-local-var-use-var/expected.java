@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 class Fixture {
-
     void build() {
         final var _ = new Object();
     }

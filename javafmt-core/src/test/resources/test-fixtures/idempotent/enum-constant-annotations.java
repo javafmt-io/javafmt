@@ -1,5 +1,4 @@
 enum E {
-
     @Deprecated A,
     B;
 

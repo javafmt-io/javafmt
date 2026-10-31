@@ -26,12 +26,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FakeDaemon {
-
     static final Map<String, FormatReply> CANNED = Map.of(
-            "class Foo { int x; }", reply("class Foo {\n\n    int x;\n}\n"), "class A { int x; }", reply("class A {\n\n    int x;\n}\n"),
-            "class B { int x; }", reply("class B {\n\n    int x;\n}\n"), "class Warned { int x; }",
+            "class Foo { int x; }", reply("class Foo {\n    int x;\n}\n"), "class A { int x; }", reply("class A {\n    int x;\n}\n"),
+            "class B { int x; }", reply("class B {\n    int x;\n}\n"), "class Warned { int x; }",
             reply(
-                    "class Warned {\n\n    int x;\n}\n",
+                    "class Warned {\n    int x;\n}\n",
                     diagnostic(Severity.SEVERITY_WARNING, Kind.KIND_WARNING, "utility class has no private constructor", 1, 1)),
             "class Broken { int x = ; }",
             reply("class Broken { int x = ; }", diagnostic(Severity.SEVERITY_ERROR, Kind.KIND_PARSE, "expected an expression", 1, 24)),

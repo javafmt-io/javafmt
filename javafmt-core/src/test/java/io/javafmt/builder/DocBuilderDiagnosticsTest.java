@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DocBuilderDiagnosticsTest {
-
     @Test
     void cleanSourceProducesNoWarnings() {
         final var result = Javafmt.formatWithResult("class Foo { int x; }");

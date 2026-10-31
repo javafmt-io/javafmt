@@ -18,7 +18,6 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtCheckMojoTest {
-
     private static final String FORMATTED = Javafmt.format(UNFORMATTED);
 
     @Test

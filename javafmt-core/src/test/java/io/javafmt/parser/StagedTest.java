@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class StagedTest {
-
     private static final IllegalStateException FAILURE = new IllegalStateException("stage failed");
 
     @Test

@@ -36,7 +36,6 @@ import javax.lang.model.type.TypeKind;
  * account for is exactly the unsafe direction.
  */
 public final class ExplodeStarImports implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var attribution = context.attribution();
@@ -69,7 +68,6 @@ public final class ExplodeStarImports implements LintRule {
     private static Optional<List<Element>> resolveUses(final ParsedUnit unit, final Attribution attribution) {
         final var identifierPaths = new ArrayList<TreePath>();
         new ChainPathScanner<Void, Void>() {
-
             @Override
             public Void visitImport(final ImportTree node, final Void p) {
                 return null;

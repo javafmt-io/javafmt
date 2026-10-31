@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  * hoisted ahead of them, so the end-to-end output satisfies both halves.
  */
 class ModifierOrderOracleTest {
-
     ModifierOrderOracleTest() {}
 
     private static final String CORPUS = "modifier-order";

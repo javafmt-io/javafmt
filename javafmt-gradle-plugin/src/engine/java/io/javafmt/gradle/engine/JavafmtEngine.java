@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class JavafmtEngine {
-
     public static Outcome run(final Request request) {
         Objects.requireNonNull(request, "request");
         final var paths = request.files().stream().map(File::toPath).sorted().toList();

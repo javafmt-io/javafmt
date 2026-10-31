@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.util.List;
 
 public record ProjectRelativeExcludes(List<String> sourceDirectory, List<String> patterns) implements Spec<FileTreeElement> {
-
     public ProjectRelativeExcludes {
         sourceDirectory = List.copyOf(sourceDirectory);
         patterns = List.copyOf(patterns);
@@ -27,7 +26,6 @@ public record ProjectRelativeExcludes(List<String> sourceDirectory, List<String>
     }
 
     private record ProjectRelativeElement(FileTreeElement element, RelativePath relativePath) implements FileTreeElement {
-
         @Override
         public File getFile() {
             return element.getFile();

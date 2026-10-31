@@ -8,7 +8,6 @@ import javax.lang.model.element.Modifier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifiersTest {
-
     @Test
     void canonicalOrderIncludesSealedModifiers() {
         assertThat(JavaModifiers.JLS_ORDER).contains(Modifier.SEALED, Modifier.NON_SEALED);

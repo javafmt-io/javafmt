@@ -3,7 +3,6 @@ package io.javafmt.cache;
 import java.nio.file.Path;
 
 final class NoopFormatCache implements FormatCache {
-
     static final NoopFormatCache INSTANCE = new NoopFormatCache();
 
     @Override

@@ -20,7 +20,6 @@ import java.util.stream.Stream;
  * editor ever adds one back.
  */
 class NewlineAtEndOfFileOracleTest {
-
     NewlineAtEndOfFileOracleTest() {}
 
     private static final String CORPUS = "newline-at-end-of-file";

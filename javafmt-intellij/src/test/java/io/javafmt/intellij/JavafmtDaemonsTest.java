@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnabledOnOs({OS.MAC, OS.LINUX})
 @Timeout(20)
 class JavafmtDaemonsTest {
-
     private final JavafmtDaemons daemons = new JavafmtDaemons();
 
     @Test

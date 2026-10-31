@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
  * mutation — call it after all formatting threads have finished.</p>
  */
 public final class FileFormatCache implements FormatCache {
-
     /**
      * Carries the formatter version and a fingerprint of the run's configuration, because a
      * javafmt upgrade and a configuration change both legitimately change what {@code format(x)}

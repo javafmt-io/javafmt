@@ -19,7 +19,6 @@ import java.util.stream.Stream;
  * production Java that nobody wrote to suit javafmt.
  */
 final class JdkCorpus {
-
     private static final String MODULE = "java.base";
 
     static List<Entry> load(final Path srcZip) {

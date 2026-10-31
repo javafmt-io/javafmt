@@ -2,7 +2,6 @@ import java.util.List;
 import java.util.Map;
 
 class Fixture {
-
     void unbounded(final List<?> items) {}
 
     void upper(final List<? extends Number> items) {}

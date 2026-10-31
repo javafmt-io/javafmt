@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FileFormatCacheTest {
-
     private static final CacheKey KEY = CacheKey.of(JavafmtConfig.defaults());
 
     @Test

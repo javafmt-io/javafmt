@@ -2,7 +2,6 @@ import java.util.List;
 import java.util.function.Function;
 
 class UnnamedVariables {
-
     void catchExample() {
         try {
             risky();

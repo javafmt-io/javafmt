@@ -21,14 +21,12 @@ import java.util.stream.Collectors;
  * normalizes the resulting single declarations on a later iteration.
  */
 public final class ArrayTypeStyle implements LintRule {
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
                 edits -> new ChainPathScanner<>() {
-
                     @Override
                     public Void visitVariable(final VariableTree node, final Void p) {
                         if (!MultipleVariableDeclarations.isPartOfDeclarationGroup(getCurrentPath(), unit)) {

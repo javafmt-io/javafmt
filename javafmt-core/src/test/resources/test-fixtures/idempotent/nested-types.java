@@ -1,5 +1,4 @@
 class Outer {
-
     int count;
 
     void run() {}

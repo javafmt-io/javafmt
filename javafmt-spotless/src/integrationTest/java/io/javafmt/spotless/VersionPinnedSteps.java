@@ -14,7 +14,6 @@ import io.javafmt.JavafmtConfig;
  * formatter is not.
  */
 public final class VersionPinnedSteps {
-
     public static FormatterStep create(final String formatterVersion) {
         return JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), "", formatterVersion);
     }

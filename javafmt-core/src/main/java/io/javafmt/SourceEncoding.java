@@ -13,7 +13,6 @@ import java.util.Objects;
  * the majority is the smaller diff.
  */
 public record SourceEncoding(boolean byteOrderMark, String lineEnding) {
-
     private static final char BOM = '﻿';
 
     public SourceEncoding {

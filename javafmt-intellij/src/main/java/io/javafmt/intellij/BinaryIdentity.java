@@ -8,7 +8,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 record BinaryIdentity(Path path, FileTime lastModified, long size) {
-
     BinaryIdentity {
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(lastModified, "lastModified");

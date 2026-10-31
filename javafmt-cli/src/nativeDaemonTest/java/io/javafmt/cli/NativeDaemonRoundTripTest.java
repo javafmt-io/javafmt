@@ -15,7 +15,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class NativeDaemonRoundTripTest {
-
     private static final Path BINARY_DIR = Path.of(System.getProperty("javafmt.test.nativeBinaryDir", "build/native/nativeCompile"));
 
     @Test

@@ -13,7 +13,6 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class ImportSectionRenderer {
-
     /** Java 25 module imports ({@code import module M;}) come first, then third-party, then {@code java.*}/{@code javax.*}, then statics. */
     Stream<Doc> buildImportSection(final boolean hasPackage, final List<? extends ImportTree> imports, final ParsedUnit unit) {
         if (imports.isEmpty()) {
@@ -42,7 +41,6 @@ final class ImportSectionRenderer {
     }
 
     private record NamedImport(ImportTree tree, String name, String prefix) {
-
         static NamedImport of(final ImportTree tree) {
             final var prefix = tree.isModule() ? "import module " : tree.isStatic() ? "import static " : "import ";
             return new NamedImport(tree, tree.getQualifiedIdentifier().toString(), prefix);

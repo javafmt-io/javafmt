@@ -20,12 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtFormatterStepTest {
-
     /** Formats cleanly, but trips the warning-only {@code AvoidStarImport} rule. */
-    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Foo {\n\n    List<String> xs;\n}\n";
+    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Foo {\n    List<String> xs;\n}\n";
 
     /** The type witness on {@code of} is redundant, but only a rule with resolved types can tell. */
-    private static final String TYPE_WITNESS_SOURCE = "import java.util.stream.Stream;\n\nclass Foo {\n\n    Stream<String> xs = Stream.<String>of(\"a\");\n}\n";
+    private static final String TYPE_WITNESS_SOURCE = "import java.util.stream.Stream;\n\nclass Foo {\n    Stream<String> xs = Stream.<String>of(\"a\");\n}\n";
 
     @Test
     void applyOnValidSourceReturnsFormattedOutput() {
@@ -184,7 +183,7 @@ class JavafmtFormatterStepTest {
     void applyWithAnalyze_withRealClasspath_producesValidOutput() {
         final var source = "class Foo { int x; String y; }";
         assertThat(JavafmtFormatterStep.applyWithAnalyze(source, System.getProperty("java.class.path")))
-                .isEqualTo("class Foo {\n\n    int x;\n    String y;\n}\n");
+                .isEqualTo("class Foo {\n    int x;\n    String y;\n}\n");
     }
 
     @Test

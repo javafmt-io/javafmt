@@ -8,7 +8,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UpperEllTest {
-
     @ParameterizedTest
     @ValueSource(strings = {"class Fixture { long x = 1l; }", "class Fixture { long x = 0l; }", "class Fixture { long x = 100_000l; }", "class Fixture { long x = 0xDEADl; }"})
     void lowercaseLSuffixGetsReplacedWithUppercase(final String src) {

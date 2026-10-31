@@ -6,7 +6,6 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class FieldRenderer {
-
     /**
      * A field or local declaration. An annotation the author wrote inline stays inline only while
      * it carries no arguments; one that does takes its own line above, as it already would on a

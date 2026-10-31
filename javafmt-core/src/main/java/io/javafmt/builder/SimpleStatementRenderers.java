@@ -14,7 +14,6 @@ import java.util.List;
 
 @UtilityClass
 final class SimpleStatementRenderers {
-
     Doc renderAssert(final AssertTree node, final Recursor recursor) {
         final var cond = recursor.scan(node.getCondition());
         if (node.getDetail() == null) {

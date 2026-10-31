@@ -6,7 +6,6 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class ConstructorRenderer {
-
     Doc render(final MethodTree node, final String className, final Recursor recursor) {
         final var preamble = ModifierRenderer.preambleOf(node.getModifiers(), recursor);
         final var leading = MethodRenderer.buildLeading(preamble.prefix(), node.getTypeParameters(), className, recursor);

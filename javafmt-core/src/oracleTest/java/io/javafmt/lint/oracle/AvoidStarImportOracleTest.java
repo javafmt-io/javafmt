@@ -20,7 +20,6 @@ import java.util.stream.Stream;
  * means enumerating static members and belongs to {@code ExplodeStarImports}.
  */
 class AvoidStarImportOracleTest {
-
     AvoidStarImportOracleTest() {}
 
     private static final String CORPUS = "avoid-star-import";

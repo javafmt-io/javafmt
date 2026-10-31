@@ -8,7 +8,6 @@ import java.util.Optional;
 
 @UtilityClass
 final class InitializerBlockRenderer {
-
     Doc render(final BlockTree block, final Recursor recursor) {
         final var statements = block.getStatements()
                 .stream()

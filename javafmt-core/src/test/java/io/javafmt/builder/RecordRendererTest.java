@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RecordRendererTest {
-
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -26,7 +25,7 @@ class RecordRendererTest {
 
     @Test
     void recordWithComponentsAndBodyMember_componentListStaysOnOneLine() {
-        assertThat(format("record R(int x) { void go() {} }")).isEqualTo("record R(int x) {\n\n    void go() {}\n}");
+        assertThat(format("record R(int x) { void go() {} }")).isEqualTo("record R(int x) {\n    void go() {}\n}");
     }
 
     @Test
@@ -36,7 +35,7 @@ class RecordRendererTest {
 
     @Test
     void record_withNestedClass_stillRenders() {
-        assertThat(format("record R(int x) { class Helper {} }")).isEqualTo("record R(int x) {\n\n    class Helper {}\n}");
+        assertThat(format("record R(int x) { class Helper {} }")).isEqualTo("record R(int x) {\n    class Helper {}\n}");
     }
 
     @Test

@@ -1,5 +1,4 @@
 class Fixture {
-
     void run(final int a) {
         final int b = a + 1;
         // between statements

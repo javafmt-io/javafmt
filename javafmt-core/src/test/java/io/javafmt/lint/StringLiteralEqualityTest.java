@@ -9,7 +9,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class StringLiteralEqualityTest {
-
     @Test
     void stringLiteralEqualityProducesWarning() {
         final var unit = JavaParser.parseUnit("""

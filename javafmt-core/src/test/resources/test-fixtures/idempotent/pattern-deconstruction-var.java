@@ -1,5 +1,4 @@
 class Fixture {
-
     int test(final Object o) {
         return switch (o) {
             case Point(var x, var y) -> x + y;

@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 
 @UtilityClass
 final class CompactConstructorRenderer {
-
     Doc render(final MethodTree node, final String className, final Recursor recursor) {
         final var preamble = ModifierRenderer.preambleOf(node.getModifiers(), recursor);
         final var throwsText = node.getThrows().isEmpty()

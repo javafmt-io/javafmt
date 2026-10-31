@@ -8,7 +8,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifierOrderTest {
-
     @Test
     void staticPublicReorderedToPublicStatic() {
         final var unit = JavaParser.parseUnit("""

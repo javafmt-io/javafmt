@@ -12,7 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * would look exactly like corruption and every wide enum without one came back refused.
  */
 class EnumTrailingCommaTest {
-
     private static final String WIDE = "enum Big { ALPHA, BRAVO, CHARLIE, DELTA, ECHO, FOXTROT, GOLF, HOTEL, INDIA, JULIET, KILO, LIMA, "
             + "MIKE, NOVEMBER, OSCAR, PAPA, QUEBEC, ROMEO, SIERRA, TANGO, UNIFORM }\n";
 

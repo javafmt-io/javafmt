@@ -32,7 +32,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 class DaemonTest {
-
     @Test
     void theBinaryFixtureRequestsGetTheBinaryFixtureReplies() {
         final var out = new ByteArrayOutputStream();
@@ -116,7 +115,7 @@ class DaemonTest {
     @Test
     void deeplyNestedCodeFormatsOnTheDaemonsThreadsWhateverTheDefaultStackSize() {
         final var nested = IntStream.range(0, 600).boxed().reduce("a", (inner, level) -> "f" + level + "(" + inner + ")", (_, right) -> right);
-        final var source = "class Deep {\n\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
+        final var source = "class Deep {\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request(1, source))), out, DaemonHandler::handle, _ -> {});
         assertThat(replies(out)).singleElement().satisfies(reply -> assertThat(reply.getDiagnosticsList()).isEmpty());
@@ -208,7 +207,6 @@ class DaemonTest {
         final var repliedBeforeReadingOn = new AtomicBoolean(false);
         final var first = new ByteArrayInputStream(wire.encode(request(1, "class A {}")));
         final var in = new InputStream() {
-
             @Override
             public int read() {
                 final var next = first.read();
@@ -229,7 +227,6 @@ class DaemonTest {
         };
         final var received = new ByteArrayOutputStream();
         final var out = new OutputStream() {
-
             @Override
             public void write(final int b) {
                 write(new byte[] {(byte) b,}, 0, 1);

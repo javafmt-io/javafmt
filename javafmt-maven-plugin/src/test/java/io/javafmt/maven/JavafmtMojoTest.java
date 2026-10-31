@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtMojoTest {
-
     @Test
     void formatGoalRewritesUnformattedFile(@TempDir final Path srcDir) throws Exception {
         final var file = srcDir.resolve("Foo.java");
