@@ -11,9 +11,9 @@ class LintContextTest {
     @Test
     void parseOnly_factory_hasEmptyAttribution() {
         final var unit = JavaParser.parseUnit("class Foo {}");
-        final var ctx = LintContext.parseOnly(unit);
-        assertThat(ctx.unit()).isSameAs(unit);
-        assertThat(ctx.attribution()).isEmpty();
+        final var context = LintContext.parseOnly(unit);
+        assertThat(context.unit()).isSameAs(unit);
+        assertThat(context.attribution()).isEmpty();
     }
 
     @Test
@@ -22,10 +22,10 @@ class LintContextTest {
                 "",
                 session -> {
                     final var attributed = session.attribute("class Foo {}");
-                    final var ctx = LintContext.attributed(attributed);
-                    assertThat(ctx.unit()).isSameAs(attributed.unit());
-                    assertThat(ctx.attribution()).contains(attributed.attribution());
-                    return ctx;
+                    final var context = LintContext.attributed(attributed);
+                    assertThat(context.unit()).isSameAs(attributed.unit());
+                    assertThat(context.attribution()).contains(attributed.attribution());
+                    return context;
                 });
     }
 

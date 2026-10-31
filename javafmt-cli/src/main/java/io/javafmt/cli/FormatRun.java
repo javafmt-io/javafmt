@@ -32,13 +32,13 @@ import java.util.stream.Stream;
 @UtilityClass
 final class FormatRun {
 
-    int runPaths(final Args parsed, final PrintStream err) {
+    int runPaths(final Arguments parsed, final PrintStream err) {
         final var expansion = expandDirectories(parsed, err);
-        final var exit = runFiles(dropExcludedFiles(expansion.args()), err);
+        final var exit = runFiles(dropExcludedFiles(expansion.arguments()), err);
         return Math.max(exit, expansion.unreadable() ? 2 : 0);
     }
 
-    private Args dropExcludedFiles(final Args parsed) {
+    private Arguments dropExcludedFiles(final Arguments parsed) {
         if (parsed.excludes.isEmpty()) {
             return parsed;
         }
@@ -54,7 +54,7 @@ final class FormatRun {
      * formatted source — printing it there would corrupt a {@code javafmt --check < F.java > out}
      * pipeline, so silence plus the exit code is the whole contract.
      */
-    int runStdin(final Args parsed, final InputStream in, final PrintStream out, final PrintStream err) {
+    int runStdin(final Arguments parsed, final InputStream in, final PrintStream out, final PrintStream err) {
         try {
             final var source = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             final var result = Javafmt.formatWithResult(source, parsed.config());
@@ -77,7 +77,7 @@ final class FormatRun {
         }
     }
 
-    private int checkStdinAgainstSource(final Args parsed, final String source, final FormatResult result, final PrintStream err) {
+    private int checkStdinAgainstSource(final Arguments parsed, final String source, final FormatResult result, final PrintStream err) {
         if (result.output().equals(source)) {
             return 0;
         }
@@ -91,7 +91,7 @@ final class FormatRun {
      * that cannot be read is reported and its readable siblings are still formatted, but the run
      * fails: a CI gate that checked nothing must not look like a pass.
      */
-    private Expansion expandDirectories(final Args parsed, final PrintStream err) {
+    private Expansion expandDirectories(final Arguments parsed, final PrintStream err) {
         if (parsed.files.stream().noneMatch(Files::isDirectory)) {
             return new Expansion(parsed, false);
         }
@@ -105,7 +105,7 @@ final class FormatRun {
         return new Expansion(parsed.withFiles(expanded), found.stream().anyMatch(d -> !d.unreadable().isEmpty()));
     }
 
-    private SourceFiles.Discovery javaFilesUnder(final Path dir, final Args parsed) {
+    private SourceFiles.Discovery javaFilesUnder(final Path dir, final Arguments parsed) {
         return parsed.defaultExcludes ? SourceFiles.discover(dir) : SourceFiles.discoverWithoutDefaultExcludes(dir);
     }
 
@@ -115,7 +115,7 @@ final class FormatRun {
         err.println(json ? JsonDiagnostics.cliLine(path, message) : "javafmt: " + path + ": " + message);
     }
 
-    private int runFiles(final Args parsed, final PrintStream err) {
+    private int runFiles(final Arguments parsed, final PrintStream err) {
         final var cache = parsed.cacheFile.<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed))).orElseGet(FormatCache::noop);
         final var outcomes = outcomesOf(Javafmt.formatFiles(parsed.files, parsed.config(), cache, parsed.threads), parsed, cache);
         outcomes.stream()
@@ -128,7 +128,7 @@ final class FormatRun {
         return worstExit;
     }
 
-    private List<FileOutcome> outcomesOf(final List<FileResult> files, final Args parsed, final FormatCache cache) {
+    private List<FileOutcome> outcomesOf(final List<FileResult> files, final Arguments parsed, final FormatCache cache) {
         try (
                 final var pool = Executors.newFixedThreadPool(
                         Math.max(1, parsed.threads),
@@ -146,7 +146,7 @@ final class FormatRun {
      * The configuration a cache entry was written under. {@code --analyze} and its classpath
      * change what a file formats to, so entries from a plain run must not be reused by one.
      */
-    private CacheKey cacheKey(final Args parsed) {
+    private CacheKey cacheKey(final Arguments parsed) {
         return CacheKey.of(parsed.config());
     }
 
@@ -228,18 +228,18 @@ final class FormatRun {
         return Stream.concat(lines.stream(), Stream.of(line)).toList();
     }
 
-    private void reportDiagnostics(final String name, final FormatResult result, final Args parsed, final PrintStream err) {
+    private void reportDiagnostics(final String name, final FormatResult result, final Arguments parsed, final PrintStream err) {
         result.diagnostics()
                 .forEach(d -> err.println(parsed.jsonDiagnostics() ? JsonDiagnostics.line(name, d) : d.describe(name)));
     }
 
     /** A directory argument replaced by its contents, and whether anything under it was unreadable. */
-    private record Expansion(Args args, boolean unreadable) {}
+    private record Expansion(Arguments arguments, boolean unreadable) {}
 
     /** One file's exit code and every line the run should print about it, in order. */
     private record FileOutcome(int exitCode, List<String> report) {}
 
-    record Args(
+    record Arguments(
             List<Path> files,
             boolean check,
             int threads,
@@ -249,7 +249,7 @@ final class FormatRun {
             Optional<String> classpath,
             boolean jsonDiagnostics) {
 
-        Args {
+        Arguments {
             files = List.copyOf(files);
             excludes = List.copyOf(excludes);
         }
@@ -261,8 +261,8 @@ final class FormatRun {
                                     .orElseGet(JavafmtConfig.Analysis.ParseOnly::new));
         }
 
-        Args withFiles(final List<Path> files) {
-            return new Args(files, check, threads, cacheFile, excludes, defaultExcludes, classpath, jsonDiagnostics);
+        Arguments withFiles(final List<Path> files) {
+            return new Arguments(files, check, threads, cacheFile, excludes, defaultExcludes, classpath, jsonDiagnostics);
         }
     }
 }

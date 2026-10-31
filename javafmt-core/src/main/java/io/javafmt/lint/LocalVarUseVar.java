@@ -117,16 +117,16 @@ public final class LocalVarUseVar implements LintRule {
             Map.entry("ConcurrentSkipListMap", 2));
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         final var reassignments = new ReassignmentDetector();
         final var proposals = LintScan.<Proposal>collect(
-                ctx,
+                context,
                 sink -> new ChainPathScanner<>() {
 
                     @Override
                     public Void visitVariable(final VariableTree node, final Void p) {
-                        proposalFor(getCurrentPath(), ctx, reassignments).ifPresent(sink::add);
+                        proposalFor(getCurrentPath(), context, reassignments).ifPresent(sink::add);
                         return super.visitVariable(node, null);
                     }
                 });
@@ -134,30 +134,30 @@ public final class LocalVarUseVar implements LintRule {
         final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
         final var verified = unproven.isEmpty()
                 ? List.<Proposal>of()
-                : ctx.attribution().map(attribution -> VarRetypingCheck.verified(unit, attribution, proven, unproven)).orElse(List.of());
+                : context.attribution().map(attribution -> VarRetypingCheck.verified(unit, attribution, proven, unproven)).orElse(List.of());
         return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream()).flatMap(proposal -> proposal.edits().stream()).toList());
     }
 
-    static boolean rewritesInitializer(final TreePath varPath, final LintContext ctx) {
-        return proposalFor(varPath, ctx, new ReassignmentDetector()).isPresent();
+    static boolean rewritesInitializer(final TreePath varPath, final LintContext context) {
+        return proposalFor(varPath, context, new ReassignmentDetector()).isPresent();
     }
 
-    private static Optional<Proposal> proposalFor(final TreePath path, final LintContext ctx, final ReassignmentDetector reassignments) {
-        final var unit = ctx.unit();
+    private static Optional<Proposal> proposalFor(final TreePath path, final LintContext context, final ReassignmentDetector reassignments) {
+        final var unit = context.unit();
         if (!isCandidate(path, unit) || !(path.getLeaf() instanceof VariableTree node)) {
             return Optional.empty();
         }
         final var reassigned = reassignments.reassigned(path.getParentPath().getLeaf(), node.getName().toString());
-        final var proven = provenEdits(node, path, ctx, reassigned);
+        final var proven = provenEdits(node, path, context, reassigned);
         if (!proven.isEmpty()) {
             return Optional.of(new Proposal(path, proven, true, true));
         }
         if (reassigned) {
             return Optional.empty();
         }
-        return ctx.attribution()
+        return context.attribution()
                 .flatMap(
-                        attribution -> unprovenEdits(node, path, attribution, ctx)
+                        attribution -> unprovenEdits(node, path, attribution, context)
                                 .map(edits -> new Proposal(path, edits, false, keepsItsTypeWithoutTarget(node, path, attribution))));
     }
 
@@ -165,11 +165,11 @@ public final class LocalVarUseVar implements LintRule {
             final VariableTree node,
             final TreePath path,
             final Attribution attribution,
-            final LintContext ctx) {
-        final var unit = ctx.unit();
+            final LintContext context) {
+        final var unit = context.unit();
         final var edits = switch (node.getInitializer()) {
             case NewClassTree newClass -> widenedNewEdits(node, newClass, unit);
-            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, ctx, false);
+            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, context, false);
             default -> List.<LintEdit>of();
         };
         if (!edits.isEmpty() || node.getInitializer() instanceof NewClassTree) {
@@ -208,11 +208,11 @@ public final class LocalVarUseVar implements LintRule {
             && !MultipleVariableDeclarations.isPartOfDeclarationGroup(path, unit);
     }
 
-    private static List<LintEdit> provenEdits(final VariableTree node, final TreePath path, final LintContext ctx, final boolean reassigned) {
-        final var unit = ctx.unit();
+    private static List<LintEdit> provenEdits(final VariableTree node, final TreePath path, final LintContext context, final boolean reassigned) {
+        final var unit = context.unit();
         return switch (node.getInitializer()) {
             case NewClassTree newClass -> newClassEdits(node, newClass, unit, reassigned);
-            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, ctx, true);
+            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, context, true);
             case TypeCastTree cast when !reassigned && sameText(cast.getType(), node.getType(), unit) ->
                 replaceTypeEdit(node, unit).stream().toList();
             case LiteralTree literal when !reassigned && literalMatches(literal, node.getType(), unit) ->
@@ -412,9 +412,9 @@ public final class LocalVarUseVar implements LintRule {
             final VariableTree node,
             final MethodInvocationTree call,
             final TreePath path,
-            final LintContext ctx,
+            final LintContext context,
             final boolean proven) {
-        final var unit = ctx.unit();
+        final var unit = context.unit();
         if (!(node.getType() instanceof ParameterizedTypeTree pt) || !(pt.getType() instanceof IdentifierTree rawTypeId)) {
             return List.of();
         }
@@ -430,12 +430,12 @@ public final class LocalVarUseVar implements LintRule {
             return List.of();
         }
         if (!call.getTypeArguments().isEmpty()) {
-            return typeArgsMatchTextually(pt.getTypeArguments(), call.getTypeArguments(), unit)
-                && (!proven || callHasTheDeclaredType(node, call, path, ctx))
+            return typeArgumentsMatchTextually(pt.getTypeArguments(), call.getTypeArguments(), unit)
+                && (!proven || callHasTheDeclaredType(node, call, path, context))
                     ? List.of(new LintEdit(typeStart, typeEnd, "var"))
                     : List.of();
         }
-        if (proven || !witnessFitsTheMethod(call, path, ctx, pt.getTypeArguments().size())) {
+        if (proven || !witnessFitsTheMethod(call, path, context, pt.getTypeArguments().size())) {
             return List.of();
         }
         final var selectEnd = unit.endOf(mst);
@@ -454,8 +454,8 @@ public final class LocalVarUseVar implements LintRule {
             final VariableTree node,
             final MethodInvocationTree call,
             final TreePath path,
-            final LintContext ctx) {
-        return ctx.attribution()
+            final LintContext context) {
+        return context.attribution()
                 .filter(attribution -> {
                     final var callType = attribution.trees().getTypeMirror(new TreePath(path, call));
                     final var declaredType = attribution.trees().getTypeMirror(new TreePath(path, node.getType()));
@@ -472,8 +472,12 @@ public final class LocalVarUseVar implements LintRule {
      * ("wrong number of type arguments; required 2"). Only attribution knows the method's arity,
      * so without it the lift does not happen at all and the declaration keeps its written type.
      */
-    private static boolean witnessFitsTheMethod(final MethodInvocationTree call, final TreePath path, final LintContext ctx, final int witnessCount) {
-        return ctx.attribution()
+    private static boolean witnessFitsTheMethod(
+            final MethodInvocationTree call,
+            final TreePath path,
+            final LintContext context,
+            final int witnessCount) {
+        return context.attribution()
                 .map(attribution -> attribution.trees().getElement(new TreePath(new TreePath(path, call), call.getMethodSelect())))
                 .filter(ExecutableElement.class::isInstance)
                 .map(ExecutableElement.class::cast)
@@ -491,7 +495,10 @@ public final class LocalVarUseVar implements LintRule {
         return selectEnd - mst.getIdentifier().length();
     }
 
-    private static boolean typeArgsMatchTextually(final List<? extends Tree> declared, final List<? extends Tree> witness, final ParsedUnit unit) {
+    private static boolean typeArgumentsMatchTextually(
+            final List<? extends Tree> declared,
+            final List<? extends Tree> witness,
+            final ParsedUnit unit) {
         return declared.size() == witness.size()
             && IntStream.range(0, declared.size()).allMatch(i -> unit.sourceOf(declared.get(i)).trim().equals(unit.sourceOf(witness.get(i)).trim()));
     }

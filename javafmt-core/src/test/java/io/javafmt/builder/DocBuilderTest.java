@@ -131,7 +131,7 @@ class DocBuilderTest {
                 .hasMessageContaining("<synthetic-OTHER-node>");
     }
 
-    private record SyntheticCompilationUnit(CompilationUnitTree real, Tree decl) implements CompilationUnitTree {
+    private record SyntheticCompilationUnit(CompilationUnitTree real, Tree declaration) implements CompilationUnitTree {
 
         @Override
         public List<? extends AnnotationTree> getPackageAnnotations() {
@@ -157,7 +157,7 @@ class DocBuilderTest {
 
         @Override
         public List<? extends Tree> getTypeDecls() {
-            return List.of(decl);
+            return List.of(declaration);
         }
 
         @Override

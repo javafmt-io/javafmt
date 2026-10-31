@@ -115,7 +115,7 @@ class FormatResultTest {
         assertThat(d.message()).contains("OTHER");
     }
 
-    private record SyntheticCompilationUnit(CompilationUnitTree real, Tree decl) implements CompilationUnitTree {
+    private record SyntheticCompilationUnit(CompilationUnitTree real, Tree declaration) implements CompilationUnitTree {
 
         @Override
         public List<? extends AnnotationTree> getPackageAnnotations() {
@@ -141,7 +141,7 @@ class FormatResultTest {
 
         @Override
         public List<? extends Tree> getTypeDecls() {
-            return List.of(decl);
+            return List.of(declaration);
         }
 
         @Override

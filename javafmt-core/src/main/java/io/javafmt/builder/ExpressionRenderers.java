@@ -96,12 +96,12 @@ final class ExpressionRenderers {
         final var pending = new ArrayDeque<ExpressionTree>(List.of(root));
         final var operands = Stream.<ExpressionTree>builder();
         while (!pending.isEmpty()) {
-            final var expr = pending.pop();
-            if (expr instanceof BinaryTree bin && bin.getKind() == kind) {
+            final var expression = pending.pop();
+            if (expression instanceof BinaryTree bin && bin.getKind() == kind) {
                 pending.push(bin.getRightOperand());
                 pending.push(bin.getLeftOperand());
             } else {
-                operands.add(expr);
+                operands.add(expression);
             }
         }
         return operands.build();
@@ -240,15 +240,17 @@ final class ExpressionRenderers {
     }
 
     Doc renderNewClass(final NewClassTree node, final Recursor recursor) {
-        final var args = node.getArguments();
-        final var argsDoc = args.isEmpty() ? (Doc) new Doc.Text("()") : WrappableList.of("(", ",", ")", args.stream().map(recursor::scan));
+        final var arguments = node.getArguments();
+        final var argumentsDoc = arguments.isEmpty()
+                ? (Doc) new Doc.Text("()")
+                : WrappableList.of("(", ",", ")", arguments.stream().map(recursor::scan));
         final var body = node.getClassBody();
         final var headParts = Doc.concatOf(
                 Stream.of(
                         qualifier(node, recursor),
                         Stream.of(new Doc.Text("new ")),
                         constructorTypeWitness(node, recursor),
-                        Stream.of(recursor.scan(node.getIdentifier()), argsDoc)));
+                        Stream.of(recursor.scan(node.getIdentifier()), argumentsDoc)));
         if (body == null) {
             return headParts;
         }
@@ -341,22 +343,22 @@ final class ExpressionRenderers {
     Doc renderMemberReference(final MemberReferenceTree node, final Recursor recursor) {
         final var qualifier = recursor.scan(node.getQualifierExpression());
         final var name = node.getMode() == MemberReferenceTree.ReferenceMode.NEW ? "new" : node.getName().toString();
-        final var typeArgs = node.getTypeArguments();
-        if (typeArgs == null || typeArgs.isEmpty()) {
+        final var typeArguments = node.getTypeArguments();
+        if (typeArguments == null || typeArguments.isEmpty()) {
             return Doc.concat(qualifier, new Doc.Text("::" + name));
         }
-        final var argDocs = Doc.intersperse(new Doc.Text(", "), typeArgs.stream().map(recursor::scan));
+        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), typeArguments.stream().map(recursor::scan));
         return new Doc.Concat(
-                Stream.concat(Stream.concat(Stream.of(qualifier, new Doc.Text("::<")), argDocs), Stream.<Doc>of(new Doc.Text(">" + name))));
+                Stream.concat(Stream.concat(Stream.of(qualifier, new Doc.Text("::<")), argumentDocs), Stream.<Doc>of(new Doc.Text(">" + name))));
     }
 
     Doc renderAnnotation(final AnnotationTree node, final Recursor recursor) {
         final var prefix = Doc.concat(new Doc.Text("@"), recursor.scan(node.getAnnotationType()));
-        final var args = node.getArguments();
-        if (args.isEmpty()) {
+        final var arguments = node.getArguments();
+        if (arguments.isEmpty()) {
             return prefix;
         }
-        return Doc.concat(prefix, WrappableList.of("(", ",", ")", args.stream().map(recursor::scan)));
+        return Doc.concat(prefix, WrappableList.of("(", ",", ")", arguments.stream().map(recursor::scan)));
     }
 
     private String binaryOperatorText(final BinaryTree node) {

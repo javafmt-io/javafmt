@@ -234,9 +234,9 @@ class DefaultComesLastTest {
     @Test
     void endToEndArrowFormAutoFixMovesDefaultLast() {
         final var output = Javafmt.format(ARROW_FORM_AUTO_FIX);
-        final var defaultIdx = output.indexOf("default ->");
-        assertThat(defaultIdx).isGreaterThan(output.indexOf("case 1"));
-        assertThat(defaultIdx).isGreaterThan(output.indexOf("case 2"));
+        final var defaultIndex = output.indexOf("default ->");
+        assertThat(defaultIndex).isGreaterThan(output.indexOf("case 1"));
+        assertThat(defaultIndex).isGreaterThan(output.indexOf("case 2"));
     }
 
     @Test
@@ -248,9 +248,9 @@ class DefaultComesLastTest {
     @Test
     void endToEndColonFormAutoFixMovesDefaultLast() {
         final var output = Javafmt.format(COLON_FORM_AUTO_FIX);
-        final var defaultIdx = output.indexOf("default:");
-        assertThat(defaultIdx).isGreaterThan(output.indexOf("case 1:"));
-        assertThat(defaultIdx).isGreaterThan(output.indexOf("case 2:"));
+        final var defaultIndex = output.indexOf("default:");
+        assertThat(defaultIndex).isGreaterThan(output.indexOf("case 1:"));
+        assertThat(defaultIndex).isGreaterThan(output.indexOf("case 2:"));
     }
 
     @ParameterizedTest(name = "{0}")

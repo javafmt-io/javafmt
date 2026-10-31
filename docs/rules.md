@@ -88,7 +88,7 @@ A compact source file (top-level fields and methods without an enclosing class d
 Two moves, no others:
 
 - Nested types (`record`, `class`, `interface`, `enum`, `@interface`) go to the bottom of their enclosing body, in their original order.
-- In a utility class, the private no-arg constructor goes last, below the nested types.
+- In a utility class, the private no-argument constructor goes last, below the nested types.
 
 Fields, methods, initializer blocks, and enum constants keep the author's order. A moved member takes its Javadoc and comments with it.
 
@@ -190,7 +190,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | **DefaultComesLast** | Moves `default` last in arrow switches. A colon-form switch is rewritten only when `default` has its own terminating body and is not part of a label group; otherwise it warns. |
 | **ModifierOrder** | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. |
 | **RedundantModifier** | Strips modifiers the JLS implies. |
-| **ArrayTypeStyle** | `String[] args`, not `String args[]`. |
+| **ArrayTypeStyle** | `String[] arguments`, not `String args[]`. |
 | **UpperEll** | `1L`, not `1l`. |
 | **MultipleVariableDeclarations** | One declaration per statement. |
 | **UnusedImports** | Removes unreferenced imports. |
@@ -201,7 +201,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | **EnumTrailingComma** | Adds a trailing comma after the last constant when the constants do not fit on one line and go one per line. Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
 | **ExplodeStarImports** | Replaces a wildcard import with explicit imports for the members the file references. Only runs with `--analyze`, and leaves every wildcard alone if any name in the file fails to resolve. |
 | **RedundantTypeArguments** | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically. With `--analyze` it also drops type witnesses on generic method calls when javac infers the same type without them. |
-| **RedundantSuperCall** | Removes a no-arg `super()` as the first statement of a constructor body. |
+| **RedundantSuperCall** | Removes a no-argument `super()` as the first statement of a constructor body. |
 | **MemberOrder** | Moves nested types to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
 | **UnusedVariableShouldBeUnnamed** | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Only fires when the source targets Java 22 or later; the integrations read the target release from the build. |
 

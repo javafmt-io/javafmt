@@ -23,11 +23,11 @@ import io.javafmt.parser.ChainPathScanner;
 public final class FinalLocalVariable implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         final var reassignments = new ReassignmentDetector();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainPathScanner<>() {
 
                     @Override

@@ -31,10 +31,10 @@ import javax.lang.model.element.Modifier;
 public final class RedundantModifier implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainPathScanner<>() {
 
                     @Override
@@ -91,17 +91,17 @@ public final class RedundantModifier implements LintRule {
         removeModifier(field.getModifiers(), Modifier.FINAL, unit).ifPresent(edits::add);
     }
 
-    private static Optional<LintEdit> removeModifier(final ModifiersTree modifiers, final Modifier mod, final ParsedUnit unit) {
-        if (!modifiers.getFlags().contains(mod)) {
+    private static Optional<LintEdit> removeModifier(final ModifiersTree modifiers, final Modifier modifier, final ParsedUnit unit) {
+        if (!modifiers.getFlags().contains(modifier)) {
             return Optional.empty();
         }
-        final var modStart = unit.startOf(modifiers);
-        if (modStart < 0) {
+        final var modifierStart = unit.startOf(modifiers);
+        if (modifierStart < 0) {
             return Optional.empty();
         }
-        final var kw = mod.toString();
+        final var kw = modifier.toString();
         final var src = unit.source();
-        var pos = modStart;
+        var pos = modifierStart;
         while (pos < src.length()) {
             while (pos < src.length() && Character.isWhitespace(src.charAt(pos))) {
                 pos++;

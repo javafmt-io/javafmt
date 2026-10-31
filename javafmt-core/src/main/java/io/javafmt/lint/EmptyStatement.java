@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 /**
  * Removes stray semicolons ({@code ;}): the ones javac models as {@link EmptyStatementTree} inside
  * a block body, and the ones it models as nothing at all between the members of a class body.
- * Does not touch {@code for(;;)} loops — their empty init/condition/update are not represented as
+ * Does not touch {@code for(;;)} loops — their empty initializer/condition/update are not represented as
  * {@link EmptyStatementTree} at all.
  *
  * <p>A class-body semicolon has to be found in the source, because javac's parser discards it
@@ -28,10 +28,10 @@ import java.util.stream.Stream;
 public final class EmptyStatement implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainScanner<>() {
 
                     @Override

@@ -14,25 +14,28 @@ import java.util.function.Predicate;
 
 interface WarningRule extends LintRule {
 
-    List<Diagnostic> warnings(LintContext ctx);
+    List<Diagnostic> warnings(LintContext context);
 
     @Override
-    default LintResult apply(final LintContext ctx) {
-        return new LintResult(List.of(), warnings(ctx));
+    default LintResult apply(final LintContext context) {
+        return new LintResult(List.of(), warnings(context));
     }
 
     static <T extends Tree> List<Diagnostic> onNode(
-            final LintContext ctx,
+            final LintContext context,
             final Class<T> type,
             final Predicate<? super T> test,
             final String message) {
-        return onNode(ctx, type, node -> test.test(node) ? Optional.of(message) : Optional.empty());
+        return onNode(context, type, node -> test.test(node) ? Optional.of(message) : Optional.empty());
     }
 
-    static <T extends Tree> List<Diagnostic> onNode(final LintContext ctx, final Class<T> type, final Function<? super T, Optional<String>> warning) {
-        final var unit = ctx.unit();
+    static <T extends Tree> List<Diagnostic> onNode(
+            final LintContext context,
+            final Class<T> type,
+            final Function<? super T, Optional<String>> warning) {
+        final var unit = context.unit();
         return LintScan.collect(
-                ctx,
+                context,
                 diagnostics -> new ChainScanner<>() {
 
                     @Override

@@ -10,8 +10,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Enforces Java-style array notation: {@code String[] args} instead of C-style
- * {@code String args[]}, for both variables and method return types ({@code int first()[]}).
+ * Enforces Java-style array notation: {@code String[] arguments} instead of C-style
+ * {@code String arguments[]}, for both variables and method return types ({@code int first()[]}).
  * Detects C-style by checking whether brackets appear after the declared name in the source text
  * (C-style) vs. after the element type (Java-style).
  *
@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
 public final class ArrayTypeStyle implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainPathScanner<>() {
 
                     @Override
@@ -56,16 +56,16 @@ public final class ArrayTypeStyle implements LintRule {
         }
         final var typeSrc = unit.source().substring(typeStart, typeEnd);
         final var name = node.getName().toString();
-        final var nameIdx = indexOfCStyleName(typeSrc, name);
-        if (nameIdx < 0) {
+        final var nameIndex = indexOfCStyleName(typeSrc, name);
+        if (nameIndex < 0) {
             return Optional.empty();
         }
-        final var afterNameInType = typeSrc.substring(nameIdx + name.length());
+        final var afterNameInType = typeSrc.substring(nameIndex + name.length());
         final var brackets = extractBracketSuffix(afterNameInType);
         if (brackets.isEmpty()) {
             return Optional.empty();
         }
-        final var typeBeforeName = typeSrc.substring(0, nameIdx).stripTrailing();
+        final var typeBeforeName = typeSrc.substring(0, nameIndex).stripTrailing();
         final var replacement = typeBeforeName + brackets + " " + name;
         return Optional.of(new LintEdit(typeStart, typeEnd, replacement));
     }
@@ -89,16 +89,16 @@ public final class ArrayTypeStyle implements LintRule {
             return Optional.empty();
         }
         final var typeSrc = unit.source().substring(typeStart, typeEnd);
-        final var nameIdx = indexOfCStyleName(typeSrc, node.getName().toString());
-        if (nameIdx < 0) {
+        final var nameIndex = indexOfCStyleName(typeSrc, node.getName().toString());
+        if (nameIndex < 0) {
             return Optional.empty();
         }
         final var brackets = trailingBracketSuffix(typeSrc);
         if (brackets.isEmpty()) {
             return Optional.empty();
         }
-        final var elementType = typeSrc.substring(0, nameIdx).stripTrailing();
-        final var signature = typeSrc.substring(nameIdx, typeSrc.length() - brackets.length()).stripTrailing();
+        final var elementType = typeSrc.substring(0, nameIndex).stripTrailing();
+        final var signature = typeSrc.substring(nameIndex, typeSrc.length() - brackets.length()).stripTrailing();
         return Optional.of(new LintEdit(typeStart, typeEnd, elementType + brackets + " " + signature));
     }
 
@@ -133,11 +133,11 @@ public final class ArrayTypeStyle implements LintRule {
      * (e.g. {@code int} inside {@code intx}) rather than as the declarator, so that's rejected too.
      */
     private static int indexOfCStyleName(final String typeSrc, final String name) {
-        final var nameIdx = typeSrc.lastIndexOf(name);
-        if (nameIdx < 0 || (nameIdx > 0 && Character.isJavaIdentifierPart(typeSrc.charAt(nameIdx - 1)))) {
+        final var nameIndex = typeSrc.lastIndexOf(name);
+        if (nameIndex < 0 || (nameIndex > 0 && Character.isJavaIdentifierPart(typeSrc.charAt(nameIndex - 1)))) {
             return -1;
         }
-        return nameIdx;
+        return nameIndex;
     }
 
     private static String extractBracketSuffix(final String afterName) {

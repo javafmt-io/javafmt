@@ -235,7 +235,7 @@ class MethodRendererTest {
         }
 
         @Test
-        void namedArg_rendersOnOwnLine() {
+        void namedArgument_rendersOnOwnLine() {
             assertThat(format("class Foo { @Getter(lazy = true) int bar() { return 42; } }"))
                     .isEqualTo("class Foo {\n\n    @Getter(lazy = true)\n    int bar() {\n        return 42;\n    }\n}");
         }
@@ -245,7 +245,7 @@ class MethodRendererTest {
     class Constructors {
 
         @Test
-        void noArgs_rendersWithClassName() {
+        void noArguments_rendersWithClassName() {
             assertThat(format("class Foo { Foo() {} }")).isEqualTo("class Foo {\n\n    Foo() {}\n}");
         }
 

@@ -158,8 +158,8 @@ final class FormatStages {
     private FormatResult parseExceptionToResult(final String source, final ParseException e) {
         final var diagnostics = e.getDiagnostics();
         if (diagnostics.isEmpty()) {
-            final var msg = e.getMessage();
-            return new FormatResult(source, List.of(new Diagnostic.ParseError(msg == null ? e.toString() : msg, new Position.Unknown())));
+            final var message = e.getMessage();
+            return new FormatResult(source, List.of(new Diagnostic.ParseError(message == null ? e.toString() : message, new Position.Unknown())));
         }
         return new FormatResult(source, diagnostics);
     }

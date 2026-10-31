@@ -387,7 +387,7 @@ class DocTest {
         }
 
         @Test
-        void concatOfWithNoArgsIsEmpty() {
+        void concatOfWithNoArgumentsIsEmpty() {
             assertThat(Doc.concatOf(Stream.of())).isEqualTo(new Doc.Concat(List.of()));
         }
 

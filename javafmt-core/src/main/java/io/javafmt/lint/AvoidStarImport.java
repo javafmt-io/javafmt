@@ -14,8 +14,8 @@ public final class AvoidStarImport implements WarningRule {
     private static final String MESSAGE = "avoid star import; use explicit imports instead";
 
     @Override
-    public List<Diagnostic> warnings(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public List<Diagnostic> warnings(final LintContext context) {
+        final var unit = context.unit();
         return unit.tree()
                 .getImports()
                 .stream()

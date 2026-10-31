@@ -38,12 +38,12 @@ import javax.lang.model.type.TypeKind;
 public final class ExplodeStarImports implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var attribution = ctx.attribution();
+    public LintResult apply(final LintContext context) {
+        final var attribution = context.attribution();
         if (attribution.isEmpty()) {
             return LintResult.EMPTY;
         }
-        final var unit = ctx.unit();
+        final var unit = context.unit();
         final var stars = unit.tree()
                 .getImports()
                 .stream()

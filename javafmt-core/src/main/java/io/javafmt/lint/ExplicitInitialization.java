@@ -16,7 +16,7 @@ import javax.lang.model.element.Modifier;
 
 /**
  * Removes explicit initialization to the type's default value for fields only (not locals).
- * Locals often use explicit init as documentation of intent, so they are left alone.
+ * Locals often use explicit initialization as documentation of intent, so they are left alone.
  *
  * <p>{@code final} fields and fields of an interface or annotation type keep their initializer:
  * those have no later opportunity to be assigned, so the rewrite would not compile.
@@ -24,10 +24,10 @@ import javax.lang.model.element.Modifier;
 public final class ExplicitInitialization implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainScanner<>() {
 
                     @Override
@@ -36,7 +36,7 @@ public final class ExplicitInitialization implements LintRule {
                                 .stream()
                                 .flatMap(
                                         m -> m instanceof VariableTree field && isRewritableField(field, node)
-                                                ? removeDefaultInit(field, unit).stream()
+                                                ? removeDefaultInitializer(field, unit).stream()
                                                 : Stream.empty())
                                 .forEach(edits::add);
                         return super.visitClass(node, null);
@@ -62,38 +62,38 @@ public final class ExplicitInitialization implements LintRule {
             && owner.getExtendsClause() == null;
     }
 
-    private static Optional<LintEdit> removeDefaultInit(final VariableTree field, final ParsedUnit unit) {
-        final var init = field.getInitializer();
-        if (!(init instanceof LiteralTree lit)) {
+    private static Optional<LintEdit> removeDefaultInitializer(final VariableTree field, final ParsedUnit unit) {
+        final var initializer = field.getInitializer();
+        if (!(initializer instanceof LiteralTree literal)) {
             return Optional.empty();
         }
-        if (!isDefaultForType(field.getType(), lit)) {
+        if (!isDefaultForType(field.getType(), literal)) {
             return Optional.empty();
         }
-        return buildDeleteEdit(field, lit, unit);
+        return buildDeleteEdit(field, literal, unit);
     }
 
-    private static boolean isDefaultForType(final Tree type, final LiteralTree lit) {
+    private static boolean isDefaultForType(final Tree type, final LiteralTree literal) {
         return switch (type.getKind()) {
-            case PRIMITIVE_TYPE -> isDefaultPrimitive((PrimitiveTypeTree) type, lit);
-            case IDENTIFIER, PARAMETERIZED_TYPE, ARRAY_TYPE -> lit.getKind() == Tree.Kind.NULL_LITERAL;
+            case PRIMITIVE_TYPE -> isDefaultPrimitive((PrimitiveTypeTree) type, literal);
+            case IDENTIFIER, PARAMETERIZED_TYPE, ARRAY_TYPE -> literal.getKind() == Tree.Kind.NULL_LITERAL;
             default -> false;
         };
     }
 
-    private static boolean isZeroInt(final LiteralTree lit) {
-        return lit.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(lit.getValue());
+    private static boolean isZeroInt(final LiteralTree literal) {
+        return literal.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(literal.getValue());
     }
 
-    private static boolean isDefaultPrimitive(final PrimitiveTypeTree type, final LiteralTree lit) {
+    private static boolean isDefaultPrimitive(final PrimitiveTypeTree type, final LiteralTree literal) {
         return switch (type.getPrimitiveTypeKind()) {
-            case INT, BYTE, SHORT -> lit.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(lit.getValue());
+            case INT, BYTE, SHORT -> literal.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(literal.getValue());
             // A char's default is written either way, and '\0' is the more common of the two.
-            case CHAR -> isZeroInt(lit) || (lit.getKind() == Tree.Kind.CHAR_LITERAL && Character.valueOf('\0').equals(lit.getValue()));
-            case LONG -> lit.getKind() == Tree.Kind.LONG_LITERAL && Long.valueOf(0L).equals(lit.getValue());
-            case FLOAT -> lit.getKind() == Tree.Kind.FLOAT_LITERAL && Float.valueOf(0.0F).equals(lit.getValue());
-            case DOUBLE -> lit.getKind() == Tree.Kind.DOUBLE_LITERAL && Double.valueOf(0.0).equals(lit.getValue());
-            case BOOLEAN -> lit.getKind() == Tree.Kind.BOOLEAN_LITERAL && Boolean.FALSE.equals(lit.getValue());
+            case CHAR -> isZeroInt(literal) || (literal.getKind() == Tree.Kind.CHAR_LITERAL && Character.valueOf('\0').equals(literal.getValue()));
+            case LONG -> literal.getKind() == Tree.Kind.LONG_LITERAL && Long.valueOf(0L).equals(literal.getValue());
+            case FLOAT -> literal.getKind() == Tree.Kind.FLOAT_LITERAL && Float.valueOf(0.0F).equals(literal.getValue());
+            case DOUBLE -> literal.getKind() == Tree.Kind.DOUBLE_LITERAL && Double.valueOf(0.0).equals(literal.getValue());
+            case BOOLEAN -> literal.getKind() == Tree.Kind.BOOLEAN_LITERAL && Boolean.FALSE.equals(literal.getValue());
             default -> false;
         };
     }
@@ -107,30 +107,30 @@ public final class ExplicitInitialization implements LintRule {
      * <p>No edit is produced when a comment falls inside the span being deleted: the author wrote
      * it and deleting the initializer would take it with it.
      */
-    private static Optional<LintEdit> buildDeleteEdit(final VariableTree field, final LiteralTree init, final ParsedUnit unit) {
-        final var declStart = unit.startOf(field);
-        final var initStart = unit.startOf(init);
-        final var initEnd = unit.endOf(init);
-        if (declStart < 0 || initStart < 0 || initEnd < 0) {
+    private static Optional<LintEdit> buildDeleteEdit(final VariableTree field, final LiteralTree initializer, final ParsedUnit unit) {
+        final var declarationStart = unit.startOf(field);
+        final var initializerStart = unit.startOf(initializer);
+        final var initializerEnd = unit.endOf(initializer);
+        if (declarationStart < 0 || initializerStart < 0 || initializerEnd < 0) {
             return Optional.empty();
         }
         final var src = unit.source();
-        final var comments = CommentScanner.scan(src.substring(declStart, initEnd))
+        final var comments = CommentScanner.scan(src.substring(declarationStart, initializerEnd))
                 .stream()
-                .map(c -> new Span(declStart + c.start(), declStart + c.end()))
+                .map(c -> new Span(declarationStart + c.start(), declarationStart + c.end()))
                 .toList();
-        var eqPos = initStart - 1;
-        while (eqPos > declStart && (src.charAt(eqPos) != '=' || covers(comments, eqPos))) {
+        var eqPos = initializerStart - 1;
+        while (eqPos > declarationStart && (src.charAt(eqPos) != '=' || covers(comments, eqPos))) {
             eqPos--;
         }
         if (src.charAt(eqPos) != '=' || covers(comments, eqPos)) {
             return Optional.empty();
         }
-        while (eqPos > declStart && src.charAt(eqPos - 1) == ' ') {
+        while (eqPos > declarationStart && src.charAt(eqPos - 1) == ' ') {
             eqPos--;
         }
-        final var deleted = new Span(eqPos, initEnd);
-        return comments.stream().anyMatch(deleted::overlaps) ? Optional.empty() : Optional.of(new LintEdit(eqPos, initEnd, ""));
+        final var deleted = new Span(eqPos, initializerEnd);
+        return comments.stream().anyMatch(deleted::overlaps) ? Optional.empty() : Optional.of(new LintEdit(eqPos, initializerEnd, ""));
     }
 
     private static boolean covers(final List<Span> spans, final int pos) {

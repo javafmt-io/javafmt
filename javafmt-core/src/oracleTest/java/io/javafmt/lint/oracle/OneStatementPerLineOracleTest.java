@@ -13,7 +13,7 @@ import java.util.stream.Stream;
  * javafmt's output for every corpus file must contain zero violations of Checkstyle's
  * {@code OneStatementPerLineCheck}.
  *
- * <p>Both javafmt and Checkstyle exempt {@code for} headers, whose comma-separated init and
+ * <p>Both javafmt and Checkstyle exempt {@code for} headers, whose comma-separated initializer and
  * update clauses are one statement each by the grammar.
  */
 class OneStatementPerLineOracleTest {

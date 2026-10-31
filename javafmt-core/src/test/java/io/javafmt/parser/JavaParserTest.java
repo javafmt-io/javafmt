@@ -122,8 +122,8 @@ class JavaParserTest {
     void parsesSimpleClass() {
         final var tree = JavaParser.parse("class Foo {}");
         assertThat(tree.getTypeDecls()).hasSize(1);
-        final var decl = (ClassTree) tree.getTypeDecls().getFirst();
-        assertThat(decl.getSimpleName().toString()).isEqualTo("Foo");
+        final var declaration = (ClassTree) tree.getTypeDecls().getFirst();
+        assertThat(declaration.getSimpleName().toString()).isEqualTo("Foo");
     }
 
     @Test
@@ -138,9 +138,9 @@ class JavaParserTest {
                 """;
         final var tree = JavaParser.parse(source);
         assertThat(tree.getTypeDecls()).hasSize(1);
-        final var decl = (ClassTree) tree.getTypeDecls().getFirst();
-        assertThat(decl.getSimpleName().toString()).isEqualTo("Bar");
-        assertThat(decl.getMembers()).hasSize(1);
+        final var declaration = (ClassTree) tree.getTypeDecls().getFirst();
+        assertThat(declaration.getSimpleName().toString()).isEqualTo("Bar");
+        assertThat(declaration.getMembers()).hasSize(1);
     }
 
     @ParameterizedTest
@@ -148,8 +148,8 @@ class JavaParserTest {
     void parsesVariousTopLevelDeclarations(final String source, final String expectedName) {
         final var tree = JavaParser.parse(source);
         assertThat(tree.getTypeDecls()).hasSize(1);
-        final var decl = (ClassTree) tree.getTypeDecls().getFirst();
-        assertThat(decl.getSimpleName().toString()).isEqualTo(expectedName);
+        final var declaration = (ClassTree) tree.getTypeDecls().getFirst();
+        assertThat(declaration.getSimpleName().toString()).isEqualTo(expectedName);
     }
 
     static Stream<Arguments> topLevelDeclarations() {
@@ -168,12 +168,12 @@ class JavaParserTest {
         // must allow annotated components through without throwing.
         final var source = """
                 import org.jspecify.annotations.Nullable;
-                record Slot(@Nullable Object prev, @Nullable Object owner, long lo) {}
+                record Slot(@Nullable Object previous, @Nullable Object owner, long lo) {}
                 """;
         final var tree = JavaParser.parse(source);
         assertThat(tree.getTypeDecls()).hasSize(1);
-        final var decl = (ClassTree) tree.getTypeDecls().getFirst();
-        assertThat(decl.getSimpleName().toString()).isEqualTo("Slot");
+        final var declaration = (ClassTree) tree.getTypeDecls().getFirst();
+        assertThat(declaration.getSimpleName().toString()).isEqualTo("Slot");
     }
 
     @Test
@@ -181,8 +181,8 @@ class JavaParserTest {
         final var bom = "﻿";
         final var tree = JavaParser.parse(bom + "class Foo {}");
         assertThat(tree.getTypeDecls()).hasSize(1);
-        final var decl = (ClassTree) tree.getTypeDecls().getFirst();
-        assertThat(decl.getSimpleName().toString()).isEqualTo("Foo");
+        final var declaration = (ClassTree) tree.getTypeDecls().getFirst();
+        assertThat(declaration.getSimpleName().toString()).isEqualTo("Foo");
     }
 
     @Test

@@ -63,7 +63,7 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void argList_fitsFlat_staysOnOneLine() {
+    void argumentList_fitsFlat_staysOnOneLine() {
         assertThat(format("class Foo { void test() { someMethod(alpha, beta, gamma); } }"))
                 .isEqualTo("""
                            class Foo {
@@ -75,7 +75,7 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void argList_doesNotFit_breaksAllArgs() {
+    void argumentList_doesNotFit_breaksAllArguments() {
         final var input = "class Foo { void test() { "
             + "someMethod(arg1111111111, arg2222222222, arg3333333333, arg4444444444, arg5555555555, "
             + "arg6666666666, arg7777777777, arg8888888888, arg9999999999); } }";
@@ -124,7 +124,7 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void blockBodyLambdaArg_staysInlineWithOpenParen() {
+    void blockBodyLambdaArgument_staysInlineWithOpenParen() {
         final var input = "class Foo { void test() { runner.forEach(x -> { doIt(x); }); } }";
         assertThat(format(input))
                 .isEqualTo("""
@@ -139,10 +139,10 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void invocationWithExplicitTypeArguments_rendersTypeArgsThroughDocIr() {
+    void invocationWithExplicitTypeArguments_rendersTypeArgumentsThroughDocIr() {
         // Explicit type arguments must travel through recursor.scan, not Tree.toString — the
         // latter bypasses the Doc IR and would crash Doc.Text on any \n a future pretty-printer
-        // emits. A nested generic in the type args exercises the recursive scan path.
+        // emits. A nested generic in the type arguments exercises the recursive scan path.
         final var input = "class Foo { void test() { Stream.<java.util.Map<String, Integer>>of(); } }";
         assertThat(format(input))
                 .isEqualTo("""
@@ -218,10 +218,10 @@ class MethodChainRendererTest {
 
     @Test
     void twoLinkChainOverEighty_staysFlat() {
-        // Two-link chains break down to "receiver.method(args)" — putting the call suffix on
+        // Two-link chains break down to "receiver.method(arguments)" — putting the call suffix on
         // a new line at +8 indent doesn't separate any structure, it just adds vertical
         // noise. So the chain-break rule requires >= 3 links; two-link chains rely on the
-        // surrounding 150-char line width and the inner arg-list break.
+        // surrounding 150-char line width and the inner argument-list break.
         final var input = "class Foo { void test() { "
             + "stmts.stream().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s)))); } }";
         assertThat(format(input))

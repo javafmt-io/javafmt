@@ -94,12 +94,12 @@ final class IfRenderer {
     private Doc renderExpanded(final IfTree node, final Recursor recursor) {
         final var condDoc = recursor.scan(node.getCondition());
         final var header = Doc.concat(new Doc.Text("if "), condDoc);
-        final var thenStmts = BlockRenderer.blockStmts(node.getThenStatement(), recursor);
+        final var thenStatements = BlockRenderer.blockStatements(node.getThenStatement(), recursor);
         final var braceLine = recursor.interior(node);
         if (node.getElseStatement() == null && braceLine.isEmpty()) {
-            return BlockRenderer.buildBlock(header, thenStmts, List.of());
+            return BlockRenderer.buildBlock(header, thenStatements, List.of());
         }
-        final var thenParts = thenParts(header, thenStmts, braceLine);
+        final var thenParts = thenParts(header, thenStatements, braceLine);
         if (node.getElseStatement() == null) {
             return Doc.concatOf(Stream.of(thenParts, Doc.closeBrace()));
         }
@@ -108,14 +108,14 @@ final class IfRenderer {
             final var elseIfDoc = Objects.requireNonNull(recursor.scan(elseIf));
             return Doc.concatOf(Stream.of(thenParts, Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")), elseJoint, Stream.of(elseIfDoc)));
         }
-        final var elseStmts = BlockRenderer.blockStmts(node.getElseStatement(), recursor);
+        final var elseStatements = BlockRenderer.blockStatements(node.getElseStatement(), recursor);
         return Doc.concatOf(
                 Stream.of(
                         thenParts,
                         Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")),
                         elseJoint,
                         Stream.<Doc>of(new Doc.Text("{")),
-                        elseStmts.stream().map(Doc::indentedLine),
+                        elseStatements.stream().map(Doc::indentedLine),
                         Doc.closeBrace()));
     }
 
@@ -125,11 +125,11 @@ final class IfRenderer {
      * down onto the first statement's line makes it read as annotating that statement rather
      * than the branch.
      */
-    private Stream<Doc> thenParts(final Doc header, final List<Doc> thenStmts, final List<CommentToken> braceLine) {
+    private Stream<Doc> thenParts(final Doc header, final List<Doc> thenStatements, final List<CommentToken> braceLine) {
         return Stream.of(
                 Stream.of(header, new Doc.Text(" {")),
                 braceLine.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
-                thenStmts.stream().map(Doc::indentedLine))
+                thenStatements.stream().map(Doc::indentedLine))
                 .flatMap(Function.identity());
     }
 

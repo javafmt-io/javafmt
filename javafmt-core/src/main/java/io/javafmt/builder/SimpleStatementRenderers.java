@@ -26,8 +26,8 @@ final class SimpleStatementRenderers {
     Doc renderSynchronized(final SynchronizedTree node, final Recursor recursor) {
         final var inner = node.getExpression() instanceof com.sun.source.tree.ParenthesizedTree pt ? pt.getExpression() : node.getExpression();
         final var header = Doc.concat(new Doc.Text("synchronized ("), recursor.scan(inner), new Doc.Text(")"));
-        final var stmts = BlockRenderer.blockStmts(node.getBlock(), recursor);
-        return BlockRenderer.buildBlock(header, stmts, List.of());
+        final var statements = BlockRenderer.blockStatements(node.getBlock(), recursor);
+        return BlockRenderer.buildBlock(header, statements, List.of());
     }
 
     Doc renderYield(final YieldTree node, final Recursor recursor) {

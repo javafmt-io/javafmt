@@ -40,10 +40,10 @@ import javax.lang.model.element.Modifier;
 public final class ModifierOrder implements LintRule {
 
     @Override
-    public LintResult apply(final LintContext ctx) {
-        final var unit = ctx.unit();
+    public LintResult apply(final LintContext context) {
+        final var unit = context.unit();
         return LintScan.edits(
-                ctx,
+                context,
                 edits -> new ChainPathScanner<>() {
 
                     @Override
@@ -70,11 +70,11 @@ public final class ModifierOrder implements LintRule {
 
     private static Optional<LintEdit> checkModifiers(final ModifiersTree modifiers, final ParsedUnit unit) {
         final var flags = modifiers.getFlags();
-        final var modStart = unit.startOf(modifiers);
-        if (modStart < 0) {
+        final var modifierStart = unit.startOf(modifiers);
+        if (modifierStart < 0) {
             return Optional.empty();
         }
-        final var scan = scanModifierList(unit.source(), modStart, flags);
+        final var scan = scanModifierList(unit.source(), modifierStart, flags);
         if (scan.keywords().isEmpty()) {
             return Optional.empty();
         }
@@ -85,7 +85,7 @@ public final class ModifierOrder implements LintRule {
         final var rewritten = Stream.concat(
                 Stream.concat(scan.annotations().stream(), scan.comments().stream()),
                 canonicalOrder.stream().map(Modifier::toString));
-        return Optional.of(new LintEdit(modStart, scan.lastItemEnd(), rewritten.collect(Collectors.joining(" "))));
+        return Optional.of(new LintEdit(modifierStart, scan.lastItemEnd(), rewritten.collect(Collectors.joining(" "))));
     }
 
     /**
@@ -97,13 +97,13 @@ public final class ModifierOrder implements LintRule {
      * span is written back, which is what keeps an annotation or a comment from being either
      * dropped or duplicated.
      */
-    private static Scan scanModifierList(final String src, final int modStart, final Set<Modifier> flags) {
+    private static Scan scanModifierList(final String src, final int modifierStart, final Set<Modifier> flags) {
         final var annotations = new ArrayList<String>();
         final var comments = new ArrayList<String>();
         final var keywords = new ArrayList<Modifier>();
         var annotationAfterAKeyword = false;
         var lastItemEnd = -1;
-        var pos = modStart;
+        var pos = modifierStart;
         while (pos < src.length()) {
             while (pos < src.length() && Character.isWhitespace(src.charAt(pos))) {
                 pos++;
@@ -160,9 +160,9 @@ public final class ModifierOrder implements LintRule {
 
     @Nullable
     private static Modifier matchModifier(final String src, final int pos, final Set<Modifier> flags) {
-        for (final var mod : Modifiers.canonicalOrder()) {
-            if (flags.contains(mod) && Modifiers.skipModifierKeyword(src, pos, mod.toString()) >= 0) {
-                return mod;
+        for (final var modifier : Modifiers.canonicalOrder()) {
+            if (flags.contains(modifier) && Modifiers.skipModifierKeyword(src, pos, modifier.toString()) >= 0) {
+                return modifier;
             }
         }
         return null;

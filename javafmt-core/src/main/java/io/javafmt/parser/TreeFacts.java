@@ -25,7 +25,7 @@ public final class TreeFacts {
      */
     public boolean isVarargs(final VariableTree param) {
         // A type-use annotation on the varargs array wraps the ArrayTypeTree, so testing the type
-        // directly reported `String @N ... args` as an ordinary array and the `...` was lost.
+        // directly reported `String @N ... arguments` as an ordinary array and the `...` was lost.
         final var type = param.getType() instanceof AnnotatedTypeTree annotated ? annotated.getUnderlyingType() : param.getType();
         if (!(type instanceof ArrayTypeTree)) {
             return false;

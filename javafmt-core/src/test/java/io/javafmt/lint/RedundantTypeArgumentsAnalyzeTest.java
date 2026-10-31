@@ -28,7 +28,7 @@ class RedundantTypeArgumentsAnalyzeTest {
     }
 
     @Test
-    void streamOfRedundantWitnessOverConcreteArgsIsDropped() {
+    void streamOfRedundantWitnessOverConcreteArgumentsIsDropped() {
         final var source = """
                 import java.util.stream.Stream;
                 class Fixture {
@@ -62,7 +62,7 @@ class RedundantTypeArgumentsAnalyzeTest {
     }
 
     @Test
-    void widerWitnessOverNarrowerArgsIsKept() {
+    void widerWitnessOverNarrowerArgumentsIsKept() {
         // No target type (var receiver), so dropping <Number> lets javac infer Stream<Integer>
         // from the int literals — different type, must keep witness.
         final var source = """
@@ -79,8 +79,8 @@ class RedundantTypeArgumentsAnalyzeTest {
     }
 
     @Test
-    void emptyArgsWitnessIsKept() {
-        // No target type and no args — javac would infer Stream<Object> without the witness.
+    void emptyArgumentsWitnessIsKept() {
+        // No target type and no arguments — javac would infer Stream<Object> without the witness.
         final var source = """
                 import java.util.stream.Stream;
                 class Fixture {
@@ -114,7 +114,7 @@ class RedundantTypeArgumentsAnalyzeTest {
     }
 
     @Test
-    void multiTypeArgWitnessIsDropped() {
+    void multiTypeArgumentWitnessIsDropped() {
         // Witness spans `<String, Integer>` — internal comma must not split the strip range.
         final var source = """
                 import java.util.Map;

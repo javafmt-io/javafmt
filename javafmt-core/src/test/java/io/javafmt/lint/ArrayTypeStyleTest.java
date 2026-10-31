@@ -12,12 +12,12 @@ class ArrayTypeStyleTest {
         final var unit = JavaParser.parseUnit("""
             class Fixture {
 
-                void test(final String args[]) {}
+                void test(final String arguments[]) {}
             }
             """);
         final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[] args");
+        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[] arguments");
         assertThat(result.diagnostics()).isEmpty();
     }
 
@@ -26,7 +26,7 @@ class ArrayTypeStyleTest {
         final var unit = JavaParser.parseUnit("""
             class Fixture {
 
-                void test(final String[] args) {}
+                void test(final String[] arguments) {}
             }
             """);
         final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
@@ -66,12 +66,12 @@ class ArrayTypeStyleTest {
         final var unit = JavaParser.parseUnit("""
             class Fixture {
 
-                void test(final String args[][]) {}
+                void test(final String arguments[][]) {}
             }
             """);
         final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[][] args");
+        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[][] arguments");
     }
 
     @Test
@@ -79,12 +79,12 @@ class ArrayTypeStyleTest {
         final var unit = JavaParser.parseUnit("""
             class Fixture {
 
-                public static void main(final String args[]) {}
+                public static void main(final String arguments[]) {}
             }
             """);
         final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[] args");
+        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[] arguments");
     }
 
     @Test

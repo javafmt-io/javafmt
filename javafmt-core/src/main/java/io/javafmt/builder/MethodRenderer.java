@@ -107,7 +107,7 @@ final class MethodRenderer {
     /**
      * Everything a varargs parameter writes before the {@code ...}: the element type, plus any
      * type-use annotation on the array the ellipsis creates, which belongs between the two —
-     * {@code String @N ... args}. javac reports the parameter's type as that array, wrapped in an
+     * {@code String @N ... arguments}. javac reports the parameter's type as that array, wrapped in an
      * {@link AnnotatedTypeTree} when it carries an annotation, and rendering the wrapper as an
      * ordinary type writes {@code String @N []} and loses the varargs outright.
      */
@@ -136,14 +136,14 @@ final class MethodRenderer {
                     .orElseGet(() -> Doc.concat(header, new Doc.Text(";")));
         }
         final var body = node.getBody();
-        final var stmts = body.getStatements();
+        final var statements = body.getStatements();
         final var tail = recursor.trailingInside(body);
-        if (stmts.isEmpty() && tail.isEmpty()) {
+        if (statements.isEmpty() && tail.isEmpty()) {
             return Doc.concat(header, new Doc.Text(" {}"));
         }
-        final var stmtDocs = BlockRenderer.statementDocs(stmts, recursor);
+        final var statementDocs = BlockRenderer.statementDocs(statements, recursor);
         final var tailDocs = tail.stream().<Doc>map(CommentDocs::renderComment);
-        final var all = Stream.concat(stmtDocs, tailDocs);
+        final var all = Stream.concat(statementDocs, tailDocs);
         return Doc.concatOf(Stream.of(Stream.of(header, new Doc.Text(" {")), all.map(Doc::indentedLine), Doc.closeBrace()));
     }
 }
