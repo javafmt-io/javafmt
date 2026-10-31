@@ -131,8 +131,7 @@ final class FormatRun {
     private List<FileOutcome> outcomesOf(final List<FileResult> files, final Arguments parsed, final FormatCache cache) {
         try (
                 final var pool = Executors.newFixedThreadPool(
-                        Math.max(1, parsed.threads),
-                        Thread.ofPlatform().name("javafmt-write-", 0).daemon(true).factory())) {
+                        Math.max(1, parsed.threads), Thread.ofPlatform().name("javafmt-write-", 0).daemon(true).factory())) {
             return files.stream()
                     .map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics()), pool))
                     .toList()

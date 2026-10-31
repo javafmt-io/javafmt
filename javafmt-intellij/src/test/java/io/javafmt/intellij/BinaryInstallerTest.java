@@ -72,9 +72,7 @@ class BinaryInstallerTest {
     void anUnpublishedAssetFailsWithoutTouchingTheNetwork(@TempDir final Path dir) throws Exception {
         try (final var release = FakeRelease.serving(Map.of(NAME, BINARY))) {
             final var installation = new BinaryInstaller(
-                    release.base(),
-                    dir,
-                    new ReleaseAsset.Unpublished("no binary for this platform")).install(new EmptyProgressIndicator());
+                    release.base(), dir, new ReleaseAsset.Unpublished("no binary for this platform")).install(new EmptyProgressIndicator());
             assertThat(installation).isEqualTo(new Installation.Failed("no binary for this platform"));
             assertThat(release.requests()).isZero();
         }

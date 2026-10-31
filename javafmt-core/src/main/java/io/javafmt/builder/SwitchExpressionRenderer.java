@@ -52,8 +52,7 @@ final class SwitchExpressionRenderer {
         }
         return new Doc.Group(
                 Doc.concat(
-                        prefixDoc,
-                        new Doc.Text(" ->"),
+                        prefixDoc, new Doc.Text(" ->"),
                         new Doc.IfBreak(new Doc.Indent(Doc.concat(Doc.HARD_LINE, bodyDoc)), Doc.concat(new Doc.Text(" "), bodyDoc))));
     }
 

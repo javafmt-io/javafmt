@@ -81,8 +81,7 @@ class ExplodeStarImportsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(
-                source,
-                JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))))
+                source, JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))))
                 .output();
         assertThat(formatted)
                 .contains("import java.util.List;")

@@ -26,8 +26,7 @@ class JavafmtDaemonsTest {
         try {
             assertThat(List.of(daemons.format(binary, "a"), daemons.format(binary, "b"), daemons.format(binary, "c")))
                     .containsExactly(
-                            new JavafmtBinary.Outcome.Formatted("a", List.of()),
-                            new JavafmtBinary.Outcome.Formatted("b", List.of()),
+                            new JavafmtBinary.Outcome.Formatted("a", List.of()), new JavafmtBinary.Outcome.Formatted("b", List.of()),
                             new JavafmtBinary.Outcome.Formatted("c", List.of()));
             assertThat(Files.readAllLines(starts)).hasSize(1);
         } finally {

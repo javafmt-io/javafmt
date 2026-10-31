@@ -26,10 +26,8 @@ public final class JavafmtEngine {
                 .map(
                         classpath -> withParseOnlyFallback(
                                 Javafmt.formatFiles(
-                                        paths,
-                                        JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)),
-                                        FormatCache.noop(),
-                                        threads),
+                                        paths, JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)),
+                                        FormatCache.noop(), threads),
                                 threads))
                 .orElseGet(() -> Javafmt.formatFiles(paths, JavafmtConfig.defaults(), FormatCache.noop(), threads));
         final var root = request.projectDirectory().toPath();
@@ -78,11 +76,7 @@ public final class JavafmtEngine {
 
     private static Outcome.Finding finding(final Outcome.Source source, final Diagnostic diagnostic) {
         return new Outcome.Finding(
-                source,
-                diagnostic.position().line(),
-                diagnostic.position().column(),
-                diagnostic.message(),
-                diagnostic.describe(source.display()));
+                source, diagnostic.position().line(), diagnostic.position().column(), diagnostic.message(), diagnostic.describe(source.display()));
     }
 
     private static Outcome.Source source(final Path root, final Path path) {

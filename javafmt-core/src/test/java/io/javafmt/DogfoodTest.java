@@ -73,9 +73,7 @@ class DogfoodTest {
         // that Doc build and print changed nothing but layout, for every file in the module.
         final var batch = loadJavafmtCoreSources();
         final var results = Javafmt.formatAll(
-                batch.sources,
-                JavafmtConfig.defaults().withVerifyOutput(true),
-                Runtime.getRuntime().availableProcessors());
+                batch.sources, JavafmtConfig.defaults().withVerifyOutput(true), Runtime.getRuntime().availableProcessors());
         final var report = new StringBuilder();
         var failures = 0;
         for (var i = 0; i < batch.paths.size(); i++) {

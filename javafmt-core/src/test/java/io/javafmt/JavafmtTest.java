@@ -44,9 +44,7 @@ class JavafmtTest {
 
     static Stream<Arguments> blankInputs() {
         return Stream.of(
-                Arguments.of("", "empty"),
-                Arguments.of(" ", "single space"),
-                Arguments.of("\t", "single tab"),
+                Arguments.of("", "empty"), Arguments.of(" ", "single space"), Arguments.of("\t", "single tab"),
                 Arguments.of("\n\n\n", "blank lines"));
     }
 

@@ -61,8 +61,7 @@ class JavaParserTest {
                 session -> {
                     final var original = session.attribute("class A { java.util.List<String> xs = java.util.List.of(); }");
                     final var reattributed = JavaParser.reattribute(
-                            "class A { java.util.List<String> ys = java.util.List.of(); }",
-                            original.attribution());
+                            "class A { java.util.List<String> ys = java.util.List.of(); }", original.attribution());
                     return List.of(session, original.attribution().session(), reattributed.attribution().session());
                 });
         assertThat(sessions).allSatisfy(s -> assertThat(s).isSameAs(sessions.getFirst()));

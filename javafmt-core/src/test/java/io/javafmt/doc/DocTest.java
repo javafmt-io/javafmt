@@ -18,14 +18,8 @@ class DocTest {
 
     static Stream<Doc> allVariants() {
         return Stream.of(
-                new Doc.Text("t"),
-                Doc.LINE,
-                Doc.SOFT_LINE,
-                Doc.HARD_LINE,
-                new Doc.Indent(new Doc.Text("i")),
-                new Doc.Group(new Doc.Text("g")),
-                new Doc.Concat(List.of()),
-                new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")));
+                new Doc.Text("t"), Doc.LINE, Doc.SOFT_LINE, Doc.HARD_LINE, new Doc.Indent(new Doc.Text("i")), new Doc.Group(new Doc.Text("g")),
+                new Doc.Concat(List.of()), new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")));
     }
 
     @ParameterizedTest
@@ -125,6 +119,20 @@ class DocTest {
     }
 
     @Nested
+    class FillTests {
+
+        @Test
+        void separatorWithoutAFollowingItemThrows() {
+            assertThatIllegalArgumentException().isThrownBy(() -> new Doc.Fill(List.of(new Doc.Text("a"), Doc.LINE)));
+        }
+
+        @Test
+        void emptyFillIsAllowed() {
+            assertThat(new Doc.Fill(List.of()).parts()).isEmpty();
+        }
+    }
+
+    @Nested
     class IndentTests {
 
         @Test
@@ -155,9 +163,7 @@ class DocTest {
 
         static Stream<Arguments> lineVariants() {
             return Stream.of(
-                    Arguments.of(Doc.LINE, Doc.LINE),
-                    Arguments.of(Doc.SOFT_LINE, Doc.SOFT_LINE),
-                    Arguments.of(Doc.HARD_LINE, Doc.HARD_LINE));
+                    Arguments.of(Doc.LINE, Doc.LINE), Arguments.of(Doc.SOFT_LINE, Doc.SOFT_LINE), Arguments.of(Doc.HARD_LINE, Doc.HARD_LINE));
         }
 
         @Test
@@ -311,11 +317,8 @@ class DocTest {
 
         static Stream<Arguments> widths() {
             return Stream.of(
-                    Arguments.of(new Doc.Text("abc"), 3),
-                    Arguments.of(Doc.LINE, 1),
-                    Arguments.of(Doc.SOFT_LINE, 0),
-                    Arguments.of(new Doc.Verbatim("abcd", 0), 4),
-                    Arguments.of(new Doc.Indent(new Doc.Text("ab")), 2),
+                    Arguments.of(new Doc.Text("abc"), 3), Arguments.of(Doc.LINE, 1), Arguments.of(Doc.SOFT_LINE, 0),
+                    Arguments.of(new Doc.Verbatim("abcd", 0), 4), Arguments.of(new Doc.Indent(new Doc.Text("ab")), 2),
                     Arguments.of(new Doc.Group(new Doc.Text("ab")), 2),
                     Arguments.of(new Doc.Concat(List.of(new Doc.Text("ab"), Doc.LINE, new Doc.Text("c"))), 4));
         }

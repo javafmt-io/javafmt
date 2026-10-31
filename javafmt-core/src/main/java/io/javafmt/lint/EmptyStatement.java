@@ -76,8 +76,7 @@ public final class EmptyStatement implements LintRule {
                 .boxed()
                 .flatMap(
                         i -> semicolonsOutsideComments(
-                                unit.source(),
-                                i == 0 ? bodyOpen + 1 : Math.max(bodyOpen + 1, memberSpans.get(i - 1)[1]),
+                                unit.source(), i == 0 ? bodyOpen + 1 : Math.max(bodyOpen + 1, memberSpans.get(i - 1)[1]),
                                 i == memberSpans.size() ? classEnd - 1 : memberSpans.get(i)[0]));
     }
 
@@ -99,10 +98,7 @@ public final class EmptyStatement implements LintRule {
      */
     private static int bodyBrace(final ClassTree node, final ParsedUnit unit) {
         final var headerParts = Stream.of(
-                node.getModifiers().getAnnotations(),
-                node.getTypeParameters(),
-                node.getImplementsClause(),
-                node.getPermitsClause(),
+                node.getModifiers().getAnnotations(), node.getTypeParameters(), node.getImplementsClause(), node.getPermitsClause(),
                 node.getExtendsClause() == null ? List.<Tree>of() : List.of(node.getExtendsClause()))
                 .flatMap(List::stream);
         final var searchFrom = headerParts.mapToInt(unit::endOf)

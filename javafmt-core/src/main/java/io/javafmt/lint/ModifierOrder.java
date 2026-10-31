@@ -83,8 +83,7 @@ public final class ModifierOrder implements LintRule {
             return Optional.empty();
         }
         final var rewritten = Stream.concat(
-                Stream.concat(scan.annotations().stream(), scan.comments().stream()),
-                canonicalOrder.stream().map(Modifier::toString));
+                Stream.concat(scan.annotations().stream(), scan.comments().stream()), canonicalOrder.stream().map(Modifier::toString));
         return Optional.of(new LintEdit(modifierStart, scan.lastItemEnd(), rewritten.collect(Collectors.joining(" "))));
     }
 

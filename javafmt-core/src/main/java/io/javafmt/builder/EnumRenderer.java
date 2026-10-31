@@ -20,12 +20,7 @@ final class EnumRenderer {
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = ModifierRenderer.modifiersText(node.getModifiers()) + "enum " + node.getSimpleName();
         final var headerDoc = ClassLikeRenderer.buildTypeDeclarationHeader(
-                new Doc.Text(prefix),
-                null,
-                node.getImplementsClause(),
-                false,
-                List.of(),
-                recursor);
+                new Doc.Text(prefix), null, node.getImplementsClause(), false, List.of(), recursor);
         final var constants = node.getMembers()
                 .stream()
                 .filter(m -> isConstant(m, recursor))
@@ -51,12 +46,8 @@ final class EnumRenderer {
                     node.getModifiers(),
                     new Doc.Group(
                             Doc.concat(
-                                    headerDoc,
-                                    new Doc.Text(" {"),
-                                    new Doc.IfBreak(Doc.HARD_LINE, new Doc.Text("")),
-                                    constantsInner,
-                                    beforeTheClosingBrace(pastTheLastSeparator),
-                                    new Doc.Text("}"))),
+                                    headerDoc, new Doc.Text(" {"), new Doc.IfBreak(Doc.HARD_LINE, new Doc.Text("")), constantsInner,
+                                    beforeTheClosingBrace(pastTheLastSeparator), new Doc.Text("}"))),
                     recursor);
         }
         // The constants go in as one member with no tree of its own, which the separation rule

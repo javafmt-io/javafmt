@@ -34,16 +34,10 @@ final class RecordRenderer {
                         ")");
         final var prefixAndComponents = Doc.concatOf(
                 Stream.of(
-                        Stream.of(new Doc.Text(prefix)),
-                        MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
+                        Stream.of(new Doc.Text(prefix)), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
                         Stream.of(componentListDoc)));
         final var fullHeader = ClassLikeRenderer.buildTypeDeclarationHeader(
-                prefixAndComponents,
-                null,
-                node.getImplementsClause(),
-                false,
-                List.of(),
-                recursor);
+                prefixAndComponents, null, node.getImplementsClause(), false, List.of(), recursor);
         final var headerDoc = new Doc.Group(fullHeader);
         return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, bodyMembers, recursor.trailingInside(node), recursor);
     }
