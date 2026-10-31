@@ -45,16 +45,19 @@ import javax.lang.model.type.TypeMirror;
  *   <li>a static factory call that already carries a type witness matching the declared type
  *       arguments, or (with attribution only) a factory on the declared raw type, which gains the
  *       declared type arguments as its witness — see {@link #witnessFitsTheMethod};</li>
- *   <li>for a local that is never reassigned: a {@code new} of any named type, including a
- *       wider declaration; a diamond, which gains the declared type arguments when they are known
- *       to line up with the instantiated class's own; a cast to exactly the declared type; or a
- *       literal of exactly the declared type.</li>
+ *   <li>for a local that is never reassigned: a diamond of the declared class, which gains the
+ *       declared type arguments; a cast to exactly the declared type; or a literal of exactly the
+ *       declared type.</li>
  * </ul>
+ * Each of these leaves the local's static type unchanged.
  *
  * <p>With attribution it also offers every other local that is never reassigned and whose
- * initializer's type equals the declared type or is a subtype of it, then lets
- * {@link VarRetypingCheck} re-attribute the rewritten file and keep only the rewrites under which
- * nothing in the local's scope changes type, symbol or compiles differently.
+ * initializer is a {@code new} of a narrower class (a diamond gains the declared type arguments
+ * when they are known to line up with the instantiated class's own), or whose type equals the
+ * declared type or is a subtype of it. {@link VarRetypingCheck} re-attributes the rewritten file
+ * and keeps only the rewrites under which nothing in the local's scope changes type, symbol or
+ * compiles differently, plus any whose initializer has exactly the declared type without a target
+ * type to infer from.
  *
  * <p>A multi-variable declaration is never rewritten: {@code var} is illegal in a compound
  * declaration, and the declarators share one type span, so the rule would emit the same edit once
@@ -121,19 +124,7 @@ public final class LocalVarUseVar implements LintRule {
 
                     @Override
                     public Void visitVariable(final VariableTree node, final Void p) {
-                        final var path = getCurrentPath();
-                        if (isCandidate(path, unit)) {
-                            final var reassigned = reassignments.reassigned(path.getParentPath().getLeaf(), node.getName().toString());
-                            final var proven = provenEdits(node, path, ctx, reassigned);
-                            if (!proven.isEmpty()) {
-                                sink.add(new Proposal(path, proven, true));
-                            } else if (!reassigned) {
-                                ctx.attribution()
-                                        .filter(attribution -> isAnalyzeCandidate(node, path, attribution))
-                                        .flatMap(_ -> replaceTypeEdit(node, unit))
-                                        .ifPresent(edit -> sink.add(new Proposal(path, List.of(edit), false)));
-                            }
-                        }
+                        proposalFor(getCurrentPath(), ctx, reassignments).ifPresent(sink::add);
                         return super.visitVariable(node, null);
                     }
                 });
@@ -145,14 +136,58 @@ public final class LocalVarUseVar implements LintRule {
         return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream()).flatMap(proposal -> proposal.edits().stream()).toList());
     }
 
-    static boolean rewritesNewInitializer(final TreePath varPath, final ParsedUnit unit) {
-        if (!(varPath.getLeaf() instanceof VariableTree node)
-            || !(node.getInitializer() instanceof NewClassTree newClass)
-            || !isCandidate(varPath, unit)) {
+    static boolean rewritesInitializer(final TreePath varPath, final LintContext ctx) {
+        return proposalFor(varPath, ctx, new ReassignmentDetector()).isPresent();
+    }
+
+    private static Optional<Proposal> proposalFor(final TreePath path, final LintContext ctx, final ReassignmentDetector reassignments) {
+        final var unit = ctx.unit();
+        if (!isCandidate(path, unit) || !(path.getLeaf() instanceof VariableTree node)) {
+            return Optional.empty();
+        }
+        final var reassigned = reassignments.reassigned(path.getParentPath().getLeaf(), node.getName().toString());
+        final var proven = provenEdits(node, path, ctx, reassigned);
+        if (!proven.isEmpty()) {
+            return Optional.of(new Proposal(path, proven, true, true));
+        }
+        if (reassigned) {
+            return Optional.empty();
+        }
+        return ctx.attribution()
+                .flatMap(
+                        attribution -> unprovenEdits(node, path, attribution, unit)
+                                .map(edits -> new Proposal(path, edits, false, keepsItsTypeWithoutTarget(node, path, attribution))));
+    }
+
+    private static Optional<List<LintEdit>> unprovenEdits(
+            final VariableTree node,
+            final TreePath path,
+            final Attribution attribution,
+            final ParsedUnit unit) {
+        if (node.getInitializer() instanceof NewClassTree newClass) {
+            final var edits = widenedNewEdits(node, newClass, unit);
+            return edits.isEmpty() ? Optional.empty() : Optional.of(edits);
+        }
+        return isAnalyzeCandidate(node, path, attribution) ? replaceTypeEdit(node, unit).map(List::of) : Optional.empty();
+    }
+
+    private static boolean keepsItsTypeWithoutTarget(final VariableTree node, final TreePath path, final Attribution attribution) {
+        final var initializer = withoutParentheses(node.getInitializer());
+        final var isPoly = switch (initializer) {
+            case NewClassTree newClass ->
+                newClass.getClassBody() != null
+                    || (newClass.getIdentifier() instanceof ParameterizedTypeTree diamond && diamond.getTypeArguments().isEmpty());
+            case MethodInvocationTree call ->
+                attribution.trees().getElement(new TreePath(new TreePath(path, call), call.getMethodSelect())) instanceof ExecutableElement method
+                    && !method.getTypeParameters().isEmpty();
+            default -> hasNoTypeOfItsOwn(initializer, path, attribution);
+        };
+        if (isPoly) {
             return false;
         }
-        final var reassigned = new ReassignmentDetector().reassigned(varPath.getParentPath().getLeaf(), node.getName().toString());
-        return !newClassEdits(node, newClass, unit, reassigned).isEmpty();
+        final var declaredType = attribution.trees().getTypeMirror(new TreePath(path, node.getType()));
+        final var initializerType = attribution.trees().getTypeMirror(new TreePath(path, node.getInitializer()));
+        return isUsable(declaredType) && isUsable(initializerType) && attribution.types().isSameType(initializerType, declaredType);
     }
 
     private static boolean isCandidate(final TreePath path, final ParsedUnit unit) {
@@ -189,15 +224,23 @@ public final class LocalVarUseVar implements LintRule {
         if (sameText(newClass.getIdentifier(), node.getType(), unit)) {
             return replaceTypeEdit(node, unit).stream().toList();
         }
-        if (reassigned) {
+        if (!reassigned
+            && newClass.getIdentifier() instanceof ParameterizedTypeTree diamond
+            && diamond.getTypeArguments().isEmpty()
+            && node.getType() instanceof ParameterizedTypeTree declared
+            && sameText(declared.getType(), diamond.getType(), unit)) {
+            return diamondEdits(node, diamond, unit);
+        }
+        return List.of();
+    }
+
+    private static List<LintEdit> widenedNewEdits(final VariableTree node, final NewClassTree newClass, final ParsedUnit unit) {
+        if (newClass.getClassBody() != null || newClass.getIdentifier() == null) {
             return List.of();
         }
-        final var declaredParameterized = node.getType() instanceof ParameterizedTypeTree;
         return switch (newClass.getIdentifier()) {
             case ParameterizedTypeTree diamond when diamond.getTypeArguments().isEmpty() -> diamondEdits(node, diamond, unit);
-            case ParameterizedTypeTree _ when declaredParameterized -> replaceTypeEdit(node, unit).stream().toList();
-            case ParameterizedTypeTree _ -> List.of();
-            default -> declaredParameterized ? List.of() : replaceTypeEdit(node, unit).stream().toList();
+            default -> replaceTypeEdit(node, unit).stream().toList();
         };
     }
 
@@ -423,7 +466,7 @@ public final class LocalVarUseVar implements LintRule {
             && IntStream.range(0, declared.size()).allMatch(i -> unit.sourceOf(declared.get(i)).trim().equals(unit.sourceOf(witness.get(i)).trim()));
     }
 
-    record Proposal(TreePath path, List<LintEdit> edits, boolean proven) {
+    record Proposal(TreePath path, List<LintEdit> edits, boolean proven, boolean keepsItsTypeWithoutTarget) {
 
         Proposal {
             edits = List.copyOf(edits);
