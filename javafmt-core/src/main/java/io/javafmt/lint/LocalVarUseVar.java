@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -42,19 +43,21 @@ import javax.lang.model.type.TypeMirror;
  * <p>From the source alone the rule rewrites a local whose initializer is:
  * <ul>
  *   <li>a {@code new} of exactly the declared type, reassigned or not;</li>
- *   <li>a static factory call on the declared raw type that already carries a type witness
- *       matching the declared type arguments;</li>
  *   <li>for a local that is never reassigned: a diamond of the declared class, which gains the
  *       declared type arguments; a cast to exactly the declared type; or a literal of exactly the
  *       declared type.</li>
  * </ul>
- * Each of these leaves the local's static type unchanged.
+ * Each of these leaves the local's static type unchanged. With attribution, a static factory call
+ * on the declared raw type that already carries a type witness matching the declared type
+ * arguments joins them when the method's return type is the declared class with the same number of
+ * type arguments.
  *
  * <p>With attribution it also offers every other local that is never reassigned and whose
  * initializer is a {@code new} of a narrower class (a diamond gains the declared type arguments
  * when they are known to line up with the instantiated class's own), a static factory on the
  * declared raw type (which gains the declared type arguments as its witness, see
- * {@link #witnessFitsTheMethod}), or whose type equals the declared type or is a subtype of it.
+ * {@link #witnessFitsTheMethod}, or already carries a matching witness but returns some other
+ * type), or whose type equals the declared type or is a subtype of it.
  * {@link VarRetypingCheck} re-attributes the rewritten file
  * and keeps only the rewrites under which nothing in the local's scope changes type, symbol or
  * compiles differently, plus any whose initializer has exactly the declared type without a target
@@ -168,7 +171,7 @@ public final class LocalVarUseVar implements LintRule {
         final var unit = ctx.unit();
         final var edits = switch (node.getInitializer()) {
             case NewClassTree newClass -> widenedNewEdits(node, newClass, unit);
-            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, ctx, true);
+            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, ctx, false);
             default -> List.<LintEdit>of();
         };
         if (!edits.isEmpty() || node.getInitializer() instanceof NewClassTree) {
@@ -211,7 +214,7 @@ public final class LocalVarUseVar implements LintRule {
         final var unit = ctx.unit();
         return switch (node.getInitializer()) {
             case NewClassTree newClass -> newClassEdits(node, newClass, unit, reassigned);
-            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, ctx, false);
+            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, ctx, true);
             case TypeCastTree cast when !reassigned && sameText(cast.getType(), node.getType(), unit) ->
                 replaceTypeEdit(node, unit).stream().toList();
             case LiteralTree literal when !reassigned && literalMatches(literal, node.getType(), unit) ->
@@ -412,7 +415,7 @@ public final class LocalVarUseVar implements LintRule {
             final MethodInvocationTree call,
             final TreePath path,
             final LintContext ctx,
-            final boolean liftWitness) {
+            final boolean proven) {
         final var unit = ctx.unit();
         if (!(node.getType() instanceof ParameterizedTypeTree pt) || !(pt.getType() instanceof IdentifierTree rawTypeId)) {
             return List.of();
@@ -429,11 +432,12 @@ public final class LocalVarUseVar implements LintRule {
             return List.of();
         }
         if (!call.getTypeArguments().isEmpty()) {
-            return !liftWitness && typeArgsMatchTextually(pt.getTypeArguments(), call.getTypeArguments(), unit)
+            return typeArgsMatchTextually(pt.getTypeArguments(), call.getTypeArguments(), unit)
+                && (!proven || returnsTheDeclaredType(node, call, path, ctx))
                     ? List.of(new LintEdit(typeStart, typeEnd, "var"))
                     : List.of();
         }
-        if (!liftWitness || !witnessFitsTheMethod(call, path, ctx, pt.getTypeArguments().size())) {
+        if (proven || !witnessFitsTheMethod(call, path, ctx, pt.getTypeArguments().size())) {
             return List.of();
         }
         final var selectEnd = unit.endOf(mst);
@@ -446,6 +450,22 @@ public final class LocalVarUseVar implements LintRule {
         }
         final var witness = src.substring(rawEnd, typeEnd);
         return List.of(new LintEdit(typeStart, typeEnd, "var"), LintEdit.insert(namePos, witness));
+    }
+
+    private static boolean returnsTheDeclaredType(
+            final VariableTree node,
+            final MethodInvocationTree call,
+            final TreePath path,
+            final LintContext ctx) {
+        return ctx.attribution()
+                .filter(
+                        attribution -> attribution.trees()
+                                .getElement(new TreePath(new TreePath(path, call), call.getMethodSelect())) instanceof ExecutableElement method
+                            && method.getReturnType() instanceof DeclaredType returned
+                            && attribution.trees().getTypeMirror(new TreePath(path, node.getType())) instanceof DeclaredType declared
+                            && returned.asElement().equals(declared.asElement())
+                            && returned.getTypeArguments().size() == declared.getTypeArguments().size())
+                .isPresent();
     }
 
     /**
