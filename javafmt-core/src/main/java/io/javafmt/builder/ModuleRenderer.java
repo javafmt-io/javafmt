@@ -90,11 +90,10 @@ final class ModuleRenderer {
         return renderTargeted("provides", node.getServiceName(), node.getImplementationNames(), "with");
     }
 
-    private Doc renderTargeted(
-            final String keyword,
-            final ExpressionTree subject,
-            final List<? extends ExpressionTree> targets,
-            final String connector) {
+    private Doc renderTargeted(final String keyword,
+                               final ExpressionTree subject,
+                               final List<? extends ExpressionTree> targets,
+                               final String connector) {
         if (targets == null || targets.isEmpty()) {
             return new Doc.Text(keyword + " " + subject + ";");
         }

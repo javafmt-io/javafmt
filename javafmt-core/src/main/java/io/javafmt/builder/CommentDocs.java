@@ -95,10 +95,9 @@ final class CommentDocs {
                 .toList();
     }
 
-    <T extends Tree> Stream<Doc> commaList(
-            final List<? extends T> items,
-            final LeadingCommentAttacher attacher,
-            final Function<? super T, Doc> render) {
+    <T extends Tree> Stream<Doc> commaList(final List<? extends T> items,
+                                           final LeadingCommentAttacher attacher,
+                                           final Function<? super T, Doc> render) {
         if (items.size() == 1) {
             return Stream.of(render.apply(items.getFirst()));
         }

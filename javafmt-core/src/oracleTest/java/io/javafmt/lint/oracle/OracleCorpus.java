@@ -52,11 +52,10 @@ public final class OracleCorpus {
         }
     }
 
-    public static void assertJavafmtMakesItClean(
-            final String name,
-            final String source,
-            final String checkClassName,
-            final Map<String, String> checkProperties) {
+    public static void assertJavafmtMakesItClean(final String name,
+                                                 final String source,
+                                                 final String checkClassName,
+                                                 final Map<String, String> checkProperties) {
         Objects.requireNonNull(name, "name");
         final var formatted = formatVerified(name, source);
         assertStillCompiles(name, source, formatted);
@@ -71,11 +70,10 @@ public final class OracleCorpus {
      * attributed against javafmt's own test classpath, which covers the JDK — enough for corpora
      * that reference only {@code java.*} types.
      */
-    public static void assertJavafmtWithAnalyzeMakesItClean(
-            final String name,
-            final String source,
-            final String checkClassName,
-            final Map<String, String> checkProperties) {
+    public static void assertJavafmtWithAnalyzeMakesItClean(final String name,
+                                                            final String source,
+                                                            final String checkClassName,
+                                                            final Map<String, String> checkProperties) {
         Objects.requireNonNull(name, "name");
         final var result = Javafmt.formatWithResult(
                 source,
@@ -100,12 +98,11 @@ public final class OracleCorpus {
      * substring, not subtype, since callers care that javafmt reported <em>something</em>
      * about the case it didn't silently rewrite.
      */
-    public static void assertJavafmtFixesOrReports(
-            final String name,
-            final String source,
-            final String diagnosticMessageSubstring,
-            final String checkClassName,
-            final Map<String, String> checkProperties) {
+    public static void assertJavafmtFixesOrReports(final String name,
+                                                   final String source,
+                                                   final String diagnosticMessageSubstring,
+                                                   final String checkClassName,
+                                                   final Map<String, String> checkProperties) {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(diagnosticMessageSubstring, "diagnosticMessageSubstring");
         final var result = Javafmt.formatWithResult(source, VERIFYING);

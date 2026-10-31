@@ -8,7 +8,18 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public sealed interface Doc
-        permits Doc.Text, Doc.Verbatim, Doc.BlockComment, Doc.Line, Doc.SoftLine, Doc.HardLine, Doc.Indent, Doc.Group, Doc.Concat, Doc.IfBreak {
+        permits Doc.Text,
+            Doc.Verbatim,
+            Doc.BlockComment,
+            Doc.Line,
+            Doc.SoftLine,
+            Doc.HardLine,
+            Doc.Indent,
+            Doc.Align,
+            Doc.Group,
+            Doc.Concat,
+            Doc.IfBreak,
+            Doc.Choice {
 
     /** The sole {@link Line}. The record holds no state, so every instance is interchangeable. */
     Line LINE = new Line();
@@ -44,8 +55,10 @@ public sealed interface Doc
                     return -1;
                 }
                 case Indent(var inner) -> work.push(inner);
+                case Align(var inner) -> work.push(inner);
                 case Group(var inner, var _) -> work.push(inner);
                 case IfBreak(var _, var flatContents) -> work.push(flatContents);
+                case Choice(var preferred, var _) -> work.push(preferred);
                 case Concat(var ps) -> {
                     for (var i = ps.size() - 1; i >= 0; i--) {
                         work.push(ps.get(i));
@@ -71,6 +84,8 @@ public sealed interface Doc
             case Text(var s) -> s.stripTrailing().startsWith("//") || s.stripTrailing().contains("\n//");
             case Verbatim(var s, var _) -> s.stripTrailing().startsWith("//");
             case Indent(var inner) -> endsWithLineComment(inner);
+            case Align(var inner) -> endsWithLineComment(inner);
+            case Choice(var preferred, var _) -> endsWithLineComment(preferred);
             case Group(var inner, var _) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case IfBreak(var breakContents, var _) -> endsWithLineComment(breakContents);
@@ -100,8 +115,13 @@ public sealed interface Doc
                 }
                 case Text _ -> {}
                 case Indent(var inner) -> work.push(inner);
+                case Align(var inner) -> work.push(inner);
                 case Group(var inner, var _) -> work.push(inner);
                 case IfBreak(var breakContents, var _) -> work.push(breakContents);
+                case Choice(var preferred, var fallback) -> {
+                    work.push(preferred);
+                    work.push(fallback);
+                }
                 case Concat(var ps) -> ps.forEach(work::push);
             }
         }
@@ -110,10 +130,10 @@ public sealed interface Doc
 
     /**
      * Wraps {@code contents} in a continuation indent — two block indents (2 × INDENT_SIZE).
-     * Used for wrapped continuations of a single logical line (parameter/argument lists,
-     * record components, {@code extends}/{@code implements}/{@code permits} and {@code throws}
-     * clauses, and method chains) so wrapped content never shares a column with the block body
-     * beneath it. Mirrors Google Java Format's "continuation = 2× block" rule.
+     * Used for wrapped continuations of a single logical line (argument lists,
+     * {@code extends}/{@code implements}/{@code permits} and {@code throws} clauses, method
+     * chains, and parameter lists and record components too wide to align under their first
+     * element) so wrapped content never shares a column with the block body beneath it. Mirrors Google Java Format's "continuation = 2× block" rule.
      */
     static Doc continuationIndent(final Doc contents) {
         Objects.requireNonNull(contents, "contents");
@@ -207,6 +227,13 @@ public sealed interface Doc
         }
     }
 
+    record Align(Doc contents) implements Doc {
+
+        public Align {
+            Objects.requireNonNull(contents, "contents");
+        }
+    }
+
     /**
      * A group whose contents render flat if they fit on the current line, otherwise break. When
      * {@code preferBreakOnAuthor} is true the group additionally prefers BREAK whenever the
@@ -242,6 +269,14 @@ public sealed interface Doc
         public IfBreak {
             Objects.requireNonNull(breakContents, "breakContents");
             Objects.requireNonNull(flatContents, "flatContents");
+        }
+    }
+
+    record Choice(Doc preferred, Doc fallback) implements Doc {
+
+        public Choice {
+            Objects.requireNonNull(preferred, "preferred");
+            Objects.requireNonNull(fallback, "fallback");
         }
     }
 }

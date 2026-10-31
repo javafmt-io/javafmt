@@ -62,10 +62,9 @@ final class JavafmtDaemon {
         return start(executable, timeout, OSProcessUtil::killProcessTree);
     }
 
-    static JavafmtDaemon start(
-            final Path executable,
-            final Duration timeout,
-            final Consumer<Process> kill)
+    static JavafmtDaemon start(final Path executable,
+                               final Duration timeout,
+                               final Consumer<Process> kill)
             throws com.intellij.execution.ExecutionException {
         Objects.requireNonNull(executable, "executable");
         Objects.requireNonNull(timeout, "timeout");

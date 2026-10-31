@@ -21,18 +21,16 @@ interface WarningRule extends LintRule {
         return new LintResult(List.of(), warnings(context));
     }
 
-    static <T extends Tree> List<Diagnostic> onNode(
-            final LintContext context,
-            final Class<T> type,
-            final Predicate<? super T> test,
-            final String message) {
+    static <T extends Tree> List<Diagnostic> onNode(final LintContext context,
+                                                    final Class<T> type,
+                                                    final Predicate<? super T> test,
+                                                    final String message) {
         return onNode(context, type, node -> test.test(node) ? Optional.of(message) : Optional.empty());
     }
 
-    static <T extends Tree> List<Diagnostic> onNode(
-            final LintContext context,
-            final Class<T> type,
-            final Function<? super T, Optional<String>> warning) {
+    static <T extends Tree> List<Diagnostic> onNode(final LintContext context,
+                                                    final Class<T> type,
+                                                    final Function<? super T, Optional<String>> warning) {
         final var unit = context.unit();
         return LintScan.collect(
                 context,

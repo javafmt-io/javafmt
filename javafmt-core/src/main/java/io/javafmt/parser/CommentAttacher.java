@@ -149,12 +149,11 @@ final class CommentAttacher {
      * <p>Only {@code //} qualifies. A block comment past the separator, <code>f(a, /* b *&#47; b)</code>,
      * reads as annotating what comes after it and is already attached that way.
      */
-    private boolean trailsPastTheSeparator(
-            final Slot slot,
-            final CommentToken c,
-            final String source,
-            final CompilationUnitTree cu,
-            final SourcePositions pos) {
+    private boolean trailsPastTheSeparator(final Slot slot,
+                                           final CommentToken c,
+                                           final String source,
+                                           final CompilationUnitTree cu,
+                                           final SourcePositions pos) {
         if (!slot.crossesSeparator() || slot.previous() == null || !c.text().startsWith("//")) {
             return false;
         }
@@ -188,12 +187,11 @@ final class CommentAttacher {
             && pos.getEndPosition(cu, v.getType()) < 0;
     }
 
-    private void collectCompilationUnit(
-            final CompilationUnitTree cu,
-            final String source,
-            final SourcePositions pos,
-            final List<Slot> slots,
-            final List<long[]> opaque) {
+    private void collectCompilationUnit(final CompilationUnitTree cu,
+                                        final String source,
+                                        final SourcePositions pos,
+                                        final List<Slot> slots,
+                                        final List<long[]> opaque) {
         final var cuChildren = new ArrayList<Tree>();
         if (cu.getPackage() != null) {
             cuChildren.add(cu.getPackage());
@@ -566,12 +564,11 @@ final class CommentAttacher {
             collectWithLo(container, containerLo, children, emitTail, false);
         }
 
-        private void collectWithLo(
-                final Tree container,
-                final long containerLo,
-                final List<? extends Tree> children,
-                final boolean emitTail,
-                final boolean crossesSeparator) {
+        private void collectWithLo(final Tree container,
+                                   final long containerLo,
+                                   final List<? extends Tree> children,
+                                   final boolean emitTail,
+                                   final boolean crossesSeparator) {
             final var real = children.stream()
                     .filter(c -> pos.getStartPosition(cu, c) >= 0)
                     .sorted(Comparator.comparingLong(t -> pos.getStartPosition(cu, t)))

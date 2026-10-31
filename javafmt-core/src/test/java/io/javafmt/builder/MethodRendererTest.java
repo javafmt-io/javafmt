@@ -59,12 +59,11 @@ class MethodRendererTest {
                     .isEqualTo("""
                                class Foo {
 
-                                   void someMethod(
-                                           String argumentNumberOne,
-                                           String argumentNumberTwo,
-                                           String argumentNumberThree,
-                                           String argumentNumberFour,
-                                           String argumentNumberFive) {}
+                                   void someMethod(String argumentNumberOne,
+                                                   String argumentNumberTwo,
+                                                   String argumentNumberThree,
+                                                   String argumentNumberFour,
+                                                   String argumentNumberFive) {}
                                }""");
         }
 
@@ -77,12 +76,11 @@ class MethodRendererTest {
                     .isEqualTo("""
                                interface Foo {
 
-                                   void someMethod(
-                                           String argumentNumberOne,
-                                           String argumentNumberTwo,
-                                           String argumentNumberThree,
-                                           String argumentNumberFour,
-                                           String argumentNumberFive);
+                                   void someMethod(String argumentNumberOne,
+                                                   String argumentNumberTwo,
+                                                   String argumentNumberThree,
+                                                   String argumentNumberFour,
+                                                   String argumentNumberFive);
                                }""");
         }
     }
@@ -115,9 +113,8 @@ class MethodRendererTest {
                     .isEqualTo("""
                                class Foo {
 
-                                   void someMethod(
-                                           int a,
-                                           int b)
+                                   void someMethod(int a,
+                                                   int b)
                                            throws ExceptionAlpha, ExceptionBeta, ExceptionGamma, ExceptionDelta, ExceptionEpsilon, ExceptionZeta, ExceptionEta, ExceptionTheta {}
                                }""");
         }
@@ -132,9 +129,8 @@ class MethodRendererTest {
                     .isEqualTo("""
                                class Foo {
 
-                                   void someMethod(
-                                           int a,
-                                           int b)
+                                   void someMethod(int a,
+                                                   int b)
                                            throws ExceptionAlpha,
                                                ExceptionBeta,
                                                ExceptionGamma,
@@ -280,13 +276,12 @@ class MethodRendererTest {
                     .isEqualTo("""
                                class Foo {
 
-                                   Foo(
-                                           String argumentNumberOne,
-                                           String argumentNumberTwo,
-                                           String argumentNumberThree,
-                                           String argumentNumberFour,
-                                           String argumentNumberFive,
-                                           String argumentNumberSix) {}
+                                   Foo(String argumentNumberOne,
+                                       String argumentNumberTwo,
+                                       String argumentNumberThree,
+                                       String argumentNumberFour,
+                                       String argumentNumberFive,
+                                       String argumentNumberSix) {}
                                }""");
         }
 

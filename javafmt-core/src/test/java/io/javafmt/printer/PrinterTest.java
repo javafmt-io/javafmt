@@ -128,6 +128,44 @@ class PrinterTest {
     }
 
     @Nested
+    class AlignTests {
+
+        @Test
+        void align_indentsLineBreaksToTheColumnWhereItStarts() {
+            final var doc = Doc.concat(new Doc.Text("abc("), new Doc.Align(Doc.concat(new Doc.Text("x,"), Doc.HARD_LINE, new Doc.Text("y"))));
+            assertThat(new Printer(80).print(doc)).isEqualTo("abc(x,\n    y");
+        }
+
+        @Test
+        void align_insideIndent_usesTheOutputColumnNotTheIndent() {
+            final var aligned = new Doc.Align(Doc.concat(new Doc.Text("x,"), Doc.HARD_LINE, new Doc.Text("y")));
+            final var doc = new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Text("ab("), aligned));
+            assertThat(new Printer(80).print(doc)).isEqualTo("\n    ab(x,\n       y");
+        }
+    }
+
+    @Nested
+    class ChoiceTests {
+
+        @ParameterizedTest
+        @MethodSource("choiceCases")
+        void choice_takesThePreferredLayoutOnlyWhenEveryLineFits(final int lineWidth, final String last, final String expected) {
+            final var preferred = new Doc.Align(Doc.concat(new Doc.Text("alpha,"), Doc.LINE, new Doc.Text(last)));
+            final var fallback = new Doc.Indent(Doc.concat(Doc.SOFT_LINE, new Doc.Text("alpha,"), Doc.LINE, new Doc.Text(last)));
+            final var doc = new Doc.Group(Doc.concat(new Doc.Text("call("), new Doc.Choice(preferred, fallback), new Doc.Text(")")));
+            assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
+        }
+
+        static Stream<Arguments> choiceCases() {
+            return Stream.of(
+                    Arguments.of(80, "beta", "call(alpha, beta)"),
+                    Arguments.of(12, "beta", "call(alpha,\n     beta)"),
+                    Arguments.of(9, "beta", "call(\n    alpha,\n    beta)"),
+                    Arguments.of(16, "betaGammaDelta", "call(\n    alpha,\n    betaGammaDelta)"));
+        }
+    }
+
+    @Nested
     class IfBreakTests {
 
         @Test

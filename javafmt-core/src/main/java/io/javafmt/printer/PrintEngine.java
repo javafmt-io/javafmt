@@ -51,6 +51,12 @@ final class PrintEngine {
                     col = frame.indent();
                 }
                 case Doc.Indent(var d) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), d));
+                case Doc.Align(var d) -> stack.push(new Frame(col, frame.mode(), d));
+                case Doc.Choice(var preferred, var fallback) -> {
+                    final var preferredFrame = new Frame(frame.indent(), frame.mode(), preferred);
+                    final var fits = frame.mode() == Mode.FLAT || fitsEveryLine(preferredFrame, col, lineWidth, stack, work);
+                    stack.push(fits ? preferredFrame : new Frame(frame.indent(), frame.mode(), fallback));
+                }
                 case Doc.Concat(var parts) -> {
                     for (var i = parts.size() - 1; i >= 0; i--) {
                         stack.push(new Frame(frame.indent(), frame.mode(), parts.get(i)));
@@ -69,13 +75,12 @@ final class PrintEngine {
         return sb.toString();
     }
 
-    private int emitBlockComment(
-            final StringBuilder sb,
-            final int col,
-            final int indent,
-            final List<String> lines,
-            final int sourceCol,
-            final int verbatimEnd) {
+    private int emitBlockComment(final StringBuilder sb,
+                                 final int col,
+                                 final int indent,
+                                 final List<String> lines,
+                                 final int sourceCol,
+                                 final int verbatimEnd) {
         final var continuation = lines.subList(1, lines.size());
         final var minLeading = continuation.stream().filter(line -> !line.isBlank()).mapToInt(PrintEngine::leadingSpaces).min().orElse(sourceCol);
         final var shift = minLeading >= sourceCol ? col - sourceCol : indent - minLeading;
@@ -161,8 +166,60 @@ final class PrintEngine {
                     }
                 }
                 case Doc.Indent(var d) -> work.push(new Frame(f.indent() + INDENT_SIZE, f.mode(), d));
+                case Doc.Align(var d) -> work.push(new Frame(f.indent(), f.mode(), d));
                 case Doc.Group(var d, var _) -> work.push(new Frame(f.indent(), Mode.FLAT, d));
                 case Doc.IfBreak(var bc, var fc) -> work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? bc : fc));
+                case Doc.Choice(var preferred, var _) -> work.push(new Frame(f.indent(), f.mode(), preferred));
+                case Doc.Concat(var parts) -> {
+                    for (var i = parts.size() - 1; i >= 0; i--) {
+                        work.push(new Frame(f.indent(), f.mode(), parts.get(i)));
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean fitsEveryLine(final Frame candidate,
+                                  final int startColumn,
+                                  final int lineWidth,
+                                  final ArrayDeque<Frame> upcoming,
+                                  final ArrayDeque<Frame> work) {
+        var column = startColumn;
+        work.clear();
+        work.push(candidate);
+        final var iterator = upcoming.iterator();
+        var consumedCandidate = false;
+        while (column <= lineWidth) {
+            final Frame f;
+            if (!work.isEmpty()) {
+                f = work.pop();
+            } else if (iterator.hasNext()) {
+                f = iterator.next();
+                consumedCandidate = true;
+            } else {
+                return true;
+            }
+            switch (f.doc()) {
+                case Doc.Text(var s) -> column += s.length();
+                case Doc.Verbatim(var s, var _) -> {
+                    final var firstNewline = s.indexOf('\n');
+                    column += firstNewline >= 0 ? firstNewline : s.length();
+                }
+                case Doc.BlockComment(var lines, var _) -> column += lines.getFirst().length();
+                case Doc.Line _ when f.mode() == Mode.FLAT -> column++;
+                case Doc.SoftLine _ when f.mode() == Mode.FLAT -> {}
+                case Doc.Line _, Doc.SoftLine _, Doc.HardLine _ -> {
+                    if (consumedCandidate) {
+                        return true;
+                    }
+                    column = f.indent();
+                }
+                case Doc.Indent(var d) -> work.push(new Frame(f.indent() + INDENT_SIZE, f.mode(), d));
+                case Doc.Align(var d) -> work.push(new Frame(column, f.mode(), d));
+                case Doc.Group(var d, var _) -> work.push(new Frame(f.indent(), Mode.FLAT, d));
+                case Doc.IfBreak(var bc, var fc) -> work.push(new Frame(f.indent(), f.mode(), f.mode() == Mode.BREAK ? bc : fc));
+                case Doc.Choice(var preferred, var _) -> work.push(new Frame(f.indent(), f.mode(), preferred));
                 case Doc.Concat(var parts) -> {
                     for (var i = parts.size() - 1; i >= 0; i--) {
                         work.push(new Frame(f.indent(), f.mode(), parts.get(i)));

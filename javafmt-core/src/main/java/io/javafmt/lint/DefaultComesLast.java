@@ -58,12 +58,11 @@ public final class DefaultComesLast implements LintRule {
         return new LintResult(edits, diagnostics);
     }
 
-    private static void inspect(
-            final Tree switchNode,
-            final List<? extends CaseTree> cases,
-            final List<LintEdit> edits,
-            final List<Diagnostic> diagnostics,
-            final ParsedUnit unit) {
+    private static void inspect(final Tree switchNode,
+                                final List<? extends CaseTree> cases,
+                                final List<LintEdit> edits,
+                                final List<Diagnostic> diagnostics,
+                                final ParsedUnit unit) {
         final var defaultIndex = indexOfDefault(cases);
         if (defaultIndex < 0 || defaultIndex == cases.size() - 1) {
             return;

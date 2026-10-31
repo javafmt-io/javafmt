@@ -218,8 +218,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     @Test
-    public void testReplacedBinaryAtSamePathIsReprobedRatherThanTrustingAStaleCache(
-            @TempDir final Path dir)
+    public void testReplacedBinaryAtSamePathIsReprobedRatherThanTrustingAStaleCache(@TempDir final Path dir)
             throws IOException, InterruptedException {
         enableJavafmt();
         final var path = fakeBinaryReportingVersion(dir, "javafmt 0.2.0");

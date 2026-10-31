@@ -174,13 +174,12 @@ final class FormatRun {
         };
     }
 
-    private FileOutcome finalizeFormatOutcome(
-            final Path path,
-            final String source,
-            final FormatResult result,
-            final boolean checkOnly,
-            final FormatCache cache,
-            final boolean json) {
+    private FileOutcome finalizeFormatOutcome(final Path path,
+                                              final String source,
+                                              final FormatResult result,
+                                              final boolean checkOnly,
+                                              final FormatCache cache,
+                                              final boolean json) {
         final var reported = result.diagnostics()
                 .stream()
                 .map(d -> json ? JsonDiagnostics.line(path.toString(), d) : d.describe(path.toString()))
@@ -239,15 +238,14 @@ final class FormatRun {
     /** One file's exit code and every line the run should print about it, in order. */
     private record FileOutcome(int exitCode, List<String> report) {}
 
-    record Arguments(
-            List<Path> files,
-            boolean check,
-            int threads,
-            Optional<Path> cacheFile,
-            List<String> excludes,
-            boolean defaultExcludes,
-            Optional<String> classpath,
-            boolean jsonDiagnostics) {
+    record Arguments(List<Path> files,
+                     boolean check,
+                     int threads,
+                     Optional<Path> cacheFile,
+                     List<String> excludes,
+                     boolean defaultExcludes,
+                     Optional<String> classpath,
+                     boolean jsonDiagnostics) {
 
         Arguments {
             files = List.copyOf(files);

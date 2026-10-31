@@ -204,10 +204,9 @@ public final class JavaParser {
      * sources javac can handle keep their attribution. A single source that fails again lands
      * here with nothing left to split, and carries {@code batchFailure} out as its own failure.
      */
-    private List<Staged<AttributedUnit>> attributeIndividually(
-            final List<String> sources,
-            final AttributionSession session,
-            final RuntimeException batchFailure) {
+    private List<Staged<AttributedUnit>> attributeIndividually(final List<String> sources,
+                                                               final AttributionSession session,
+                                                               final RuntimeException batchFailure) {
         if (sources.size() == 1) {
             return List.of(new Staged.Failed<>(batchFailure));
         }
@@ -221,9 +220,8 @@ public final class JavaParser {
      * source (rare; typically options or environment problems) are attributed to
      * {@code fallbackUri} so they aren't silently dropped.
      */
-    private Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri(
-            final DiagnosticCollector<JavaFileObject> diagnostics,
-            final URI fallbackUri) {
+    private Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri(final DiagnosticCollector<JavaFileObject> diagnostics,
+                                                                                         final URI fallbackUri) {
         return diagnostics.getDiagnostics()
                 .stream()
                 .filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR)
@@ -362,13 +360,12 @@ public final class JavaParser {
         return new Position.At((int) line, (int) column, (int) offset);
     }
 
-    private record ParsedBatch(
-            List<String> stripped,
-            List<JavaFileObject> fileObjects,
-            Map<URI, CompilationUnitTree> treeByUri,
-            Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri,
-            DiagnosticCollector<JavaFileObject> diagnostics,
-            JavacTask task) {}
+    private record ParsedBatch(List<String> stripped,
+                               List<JavaFileObject> fileObjects,
+                               Map<URI, CompilationUnitTree> treeByUri,
+                               Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri,
+                               DiagnosticCollector<JavaFileObject> diagnostics,
+                               JavacTask task) {}
 
     private static final class InMemoryJavaFileObject extends SimpleJavaFileObject {
 
