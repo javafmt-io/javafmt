@@ -86,6 +86,8 @@ public final class JavaParser {
 
     private final List<String> TASK_OPTIONS = List.of("-proc:none");
 
+    private final List<String> ATTRIBUTION_OPTIONS = List.of("-Xmaxerrs", String.valueOf(Integer.MAX_VALUE));
+
     private final String NO_COMPILATION_UNIT = "Parser produced no compilation unit for source #";
 
     /**
@@ -166,7 +168,8 @@ public final class JavaParser {
 
     List<Staged<AttributedUnit>> attributeBatch(final List<String> sources, final AttributionSession session) {
         final var classpath = session.classpath();
-        final var options = classpath.isEmpty() ? TASK_OPTIONS : Stream.concat(TASK_OPTIONS.stream(), Stream.of("-classpath", classpath)).toList();
+        final var classpathOptions = classpath.isEmpty() ? List.<String>of() : List.of("-classpath", classpath);
+        final var options = Stream.of(TASK_OPTIONS, ATTRIBUTION_OPTIONS, classpathOptions).flatMap(List::stream).toList();
         final var batch = parseBatch(sources, session.fileManager(), options);
         final var task = batch.task();
         try {
@@ -176,11 +179,24 @@ public final class JavaParser {
         } catch (final RuntimeException e) {
             return attributeIndividually(sources, session, e);
         }
-        final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), session);
+        final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), session, attributionErrors(batch));
         final var positions = attribution.trees().getSourcePositions();
         return IntStream.range(0, batch.stripped().size())
                 .mapToObj(i -> resolve(batch, i, positions).map(unit -> new AttributedUnit(unit, attribution)))
                 .toList();
+    }
+
+    private Map<URI, List<AttributionError>> attributionErrors(final ParsedBatch batch) {
+        return errorsByUri(batch.diagnostics(), batch.fileObjects().getFirst().toUri())
+                .entrySet()
+                .stream()
+                .collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                entry -> entry.getValue()
+                                        .stream()
+                                        .map(d -> new AttributionError(d.getStartPosition(), d.getMessage(Locale.ROOT)))
+                                        .toList()));
     }
 
     /**
@@ -293,7 +309,7 @@ public final class JavaParser {
         }
         final var treeByUri = treeByUri(trees);
         final var errorsByUri = errorsByUri(diagnostics, fileObjects.getFirst().toUri());
-        return new ParsedBatch(stripped, fileObjects, treeByUri, errorsByUri, task);
+        return new ParsedBatch(stripped, fileObjects, treeByUri, errorsByUri, diagnostics, task);
     }
 
     /**
@@ -351,6 +367,7 @@ public final class JavaParser {
             List<JavaFileObject> fileObjects,
             Map<URI, CompilationUnitTree> treeByUri,
             Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri,
+            DiagnosticCollector<JavaFileObject> diagnostics,
             JavacTask task) {}
 
     private static final class InMemoryJavaFileObject extends SimpleJavaFileObject {

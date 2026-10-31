@@ -311,7 +311,7 @@ class JavafmtFormatAllTest {
     @Test
     void configReachesTheAttributedPath() {
         final var source = "class A {\n\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
-        assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).contains("final int x");
-        assertThat(Javafmt.formatWithResult(source, ANALYZE.withLint(false)).output()).doesNotContain("final int x");
+        assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).contains("final var x");
+        assertThat(Javafmt.formatWithResult(source, ANALYZE.withLint(false)).output()).doesNotContain("final var x");
     }
 }

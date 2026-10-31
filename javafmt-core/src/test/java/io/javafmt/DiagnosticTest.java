@@ -59,14 +59,14 @@ class DiagnosticTest {
 
     @Test
     void aKnownPositionExposesItsLineAndColumn() {
-        final Position position = new Position.At(3, 7, 42);
+        final var position = new Position.At(3, 7, 42);
         assertThat(position.line()).isEqualTo(3);
         assertThat(position.column()).isEqualTo(7);
     }
 
     @Test
     void anUnknownPositionIsLineAndColumnZero() {
-        final Position position = new Position.Unknown();
+        final var position = new Position.Unknown();
         assertThat(position.line()).isZero();
         assertThat(position.column()).isZero();
     }

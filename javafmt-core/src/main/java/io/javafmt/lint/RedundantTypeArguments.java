@@ -1,6 +1,5 @@
 package io.javafmt.lint;
 
-import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
@@ -65,7 +64,7 @@ public final class RedundantTypeArguments implements LintRule {
 
             @Override
             public Void visitNewClass(final NewClassTree node, final Void p) {
-                tryDiamondify(node, getCurrentPath(), unit, attribution).ifPresent(edits::add);
+                tryDiamondify(node, getCurrentPath(), unit).ifPresent(edits::add);
                 return super.visitNewClass(node, null);
             }
 
@@ -78,26 +77,18 @@ public final class RedundantTypeArguments implements LintRule {
         return LintResult.ofEdits(edits);
     }
 
-    private static Optional<LintEdit> tryDiamondify(
-            final NewClassTree node,
-            final TreePath path,
-            final ParsedUnit unit,
-            final Optional<Attribution> attribution) {
+    private static Optional<LintEdit> tryDiamondify(final NewClassTree node, final TreePath path, final ParsedUnit unit) {
         if (!(node.getIdentifier() instanceof ParameterizedTypeTree pt) || pt.getTypeArguments().isEmpty()) {
             return Optional.empty();
         }
-        final var target = findTargetTypeArgs(path, node, unit, attribution);
+        final var target = findTargetTypeArgs(path, node, unit);
         if (target.isEmpty() || !typeArgsMatch(pt.getTypeArguments(), target.get(), unit)) {
             return Optional.empty();
         }
         return diamondEdit(pt, unit);
     }
 
-    private static Optional<List<? extends Tree>> findTargetTypeArgs(
-            final TreePath path,
-            final NewClassTree node,
-            final ParsedUnit unit,
-            final Optional<Attribution> attribution) {
+    private static Optional<List<? extends Tree>> findTargetTypeArgs(final TreePath path, final NewClassTree node, final ParsedUnit unit) {
         final var parent = path.getParentPath();
         if (parent == null) {
             return Optional.empty();
@@ -105,7 +96,7 @@ public final class RedundantTypeArguments implements LintRule {
         if (parent.getLeaf() instanceof VariableTree var
             && var.getInitializer() == node
             && var.getType() instanceof ParameterizedTypeTree targetPt) {
-            if (localVarUseVarWillRewrite(parent, var, node, unit, attribution)) {
+            if (LocalVarUseVar.rewritesNewInitializer(parent, unit)) {
                 return Optional.empty();
             }
             return Optional.of(targetPt.getTypeArguments());
@@ -114,33 +105,6 @@ public final class RedundantTypeArguments implements LintRule {
             return enclosingMethodReturnTypeArgs(parent);
         }
         return Optional.empty();
-    }
-
-    /**
-     * Predicts whether {@link LocalVarUseVar} will rewrite this local declaration to
-     * {@code var}. When both rules would fire on the same iteration, their edits compose
-     * into {@code var x = new Foo<>()}, which won't compile (diamond inference has no
-     * target type once the declared type is gone). Defer to {@link LocalVarUseVar} in
-     * that case. Two paths fire: the narrow textual match (declared type source equals
-     * constructor identifier source), and the analyze-path assignability check that also
-     * rewrites widening declarations like {@code List<X> xs = new ArrayList<X>()}.
-     */
-    private static boolean localVarUseVarWillRewrite(
-            final TreePath varPath,
-            final VariableTree var,
-            final NewClassTree newClass,
-            final ParsedUnit unit,
-            final Optional<Attribution> attribution) {
-        final var grandparent = varPath.getParentPath();
-        if (grandparent == null || !(grandparent.getLeaf() instanceof BlockTree)) {
-            return false;
-        }
-        if (unit.sourceOf(var.getType())
-                .trim()
-                .equals(unit.sourceOf(newClass.getIdentifier()).trim())) {
-            return true;
-        }
-        return attribution.isPresent() && LocalVarUseVar.wouldAnalyzeRewrite(var, varPath, attribution.get());
     }
 
     /**
