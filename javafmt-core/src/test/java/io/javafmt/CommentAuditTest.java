@@ -96,6 +96,34 @@ class CommentAuditTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("tailCommentContainers")
     void aCommentAtTheTailOfItsContainerSurvives(final String name, final String source) {
+        assertFormattedKeepingEveryComment(name, source);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("enumConstantsWithLineComments")
+    void aLineCommentInsideAnEnumConstantSurvives(final String name, final String source) {
+        assertFormattedKeepingEveryComment(name, source);
+    }
+
+    static Stream<Arguments> enumConstantsWithLineComments() {
+        return Stream.of(Arguments.of("past an argument's comma", """
+                             enum Speed {
+                                 FAST(1, // the quick path
+                                         2),
+                                 SLOW(3, 4);
+         
+                                 Speed(final int low, final int high) {}
+                             }
+                             """), Arguments.of("past the constant's annotation", """
+                                       enum Speed {
+                                           @Deprecated // retired with the old pricing
+                                           FAST,
+                                           SLOW,
+                                       }
+                                       """));
+    }
+
+    private void assertFormattedKeepingEveryComment(final String name, final String source) {
         final var result = Javafmt.formatWithResult(source);
         assertThat(result.diagnostics().stream().filter(d -> d instanceof Diagnostic.InternalError).toList())
                 .as("%s must not be refused", name)

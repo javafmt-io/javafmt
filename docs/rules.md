@@ -159,10 +159,7 @@ public final Money total() {
 - Preserved verbatim: every `//`, `/* */` and `/** */` keeps its text. No re-wrapping, no `*` realignment, nothing stripped.
 - Comments attach to source tokens, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` lands in the right place.
 - Every position is covered: file headers above `package`, leading comments on declarations, comments on imports, comments between statements, trailing same-line comments, comments inside argument and parameter lists, comments inside empty blocks, and comments between the last statement and its closing brace.
-- A comment stays on the line it was written on. A `//` comment after an argument's comma, on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it.
-- Two exceptions move a `//` comment off its line:
-  - a comment after an annotation, such as `@Override // why`, moves onto its own line above the annotation;
-  - a comment after an argument's comma in the argument list of a `new X(...)` expression moves onto its own line before the next argument, and each argument then takes its own line. A method call's argument list keeps the comment on its line.
+- A comment stays on the line it was written on. A `//` comment after an argument's comma, in a method call or a `new X(...)` expression, after an annotation on its own line (`@Override // why`), on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it.
 - Continuation lines of a block comment reindent to the comment's final output column, not its source column.
 - IDE and tooling directives stay byte-for-byte and are not reindented: `// noinspection ...`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE ...`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-...$`, and the block-comment equivalents.
 - `//` and `/*` are recognised only outside string literals, character literals and text blocks.
