@@ -67,8 +67,7 @@ final class MethodRenderer {
     private Doc renderTypeParams(final List<? extends TypeParameterTree> typeParams, final Recursor recursor) {
         final var interior = new Doc.Concat(
                 Stream.concat(
-                        Stream.of(Doc.SOFT_LINE),
-                        Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), typeParams.stream().map(recursor::scan))));
+                        Stream.of(Doc.SOFT_LINE), Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), typeParams.stream().map(recursor::scan))));
         return new Doc.Group(Doc.concat(new Doc.Text("<"), new Doc.Indent(interior), Doc.SOFT_LINE, new Doc.Text(">")));
     }
 
@@ -117,9 +116,7 @@ final class MethodRenderer {
                     Doc.concatOf(
                             Stream.of(
                                     Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")),
-                                    annotated.getAnnotations()
-                                            .stream()
-                                            .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" "))))));
+                                    annotated.getAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" "))))));
         }
         return Optional.empty();
     }

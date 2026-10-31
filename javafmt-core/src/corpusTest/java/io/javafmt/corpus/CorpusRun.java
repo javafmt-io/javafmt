@@ -38,13 +38,7 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
         }
         final var output = result.output();
         return new FileOutcome(
-                entry.name(),
-                false,
-                false,
-                reparses(output),
-                Javafmt.format(output, config).equals(output),
-                overWidthLines(output),
-                millis);
+                entry.name(), false, false, reparses(output), Javafmt.format(output, config).equals(output), overWidthLines(output), millis);
     }
 
     private static boolean reparses(final String output) {

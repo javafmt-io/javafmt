@@ -116,15 +116,8 @@ class DocBuilderTest {
         };
         final var wrapped = new SyntheticCompilationUnit(realUnit.tree(), synthetic);
         final var unit = new ParsedUnit(
-                wrapped,
-                "",
-                realUnit.sourcePositions(),
-                List.of(),
-                List.of(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>(),
-                new IdentityHashMap<>());
+                wrapped, "", realUnit.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
+                new IdentityHashMap<>(), new IdentityHashMap<>());
         assertThatThrownBy(() -> DocBuilder.build(unit, JavafmtConfig.defaults()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("OTHER")

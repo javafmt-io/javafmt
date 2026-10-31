@@ -19,8 +19,7 @@ class DiagnosticRenderingTest {
     @Test
     void formatResultSplitsErrorsAndWarnings() {
         final var result = new FormatResult(
-                "",
-                List.of(new Diagnostic.ParseError("e", new Position.Unknown()), new Diagnostic.Warning("w", new Position.Unknown())));
+                "", List.of(new Diagnostic.ParseError("e", new Position.Unknown()), new Diagnostic.Warning("w", new Position.Unknown())));
         assertThat(result.errors()).hasSize(1);
         assertThat(result.warnings()).hasSize(1);
     }

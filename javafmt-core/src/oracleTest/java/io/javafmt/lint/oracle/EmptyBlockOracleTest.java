@@ -34,10 +34,7 @@ class EmptyBlockOracleTest {
     private static final String CHECK = "com.puppycrawl.tools.checkstyle.checks.blocks.EmptyBlockCheck";
 
     private static final Map<String, String> PROPERTIES = Map.of(
-            "option",
-            "text",
-            "tokens",
-            "LITERAL_CATCH, LITERAL_FINALLY, LITERAL_SYNCHRONIZED, STATIC_INIT, LITERAL_SWITCH");
+            "option", "text", "tokens", "LITERAL_CATCH, LITERAL_FINALLY, LITERAL_SYNCHRONIZED, STATIC_INIT, LITERAL_SWITCH");
 
     private static final String DIAGNOSTIC_SUBSTRING = "empty ";
 

@@ -29,11 +29,9 @@ class CommentScannerTest {
         static Stream<Arguments> literalsHidingSlashes() {
             return Stream.of(
                     Arguments.of(
-                            "class C { String s = \"a\\\"/* not a comment */\"; }",
-                            "escaped quote inside string keeps scanner inside the literal"),
+                            "class C { String s = \"a\\\"/* not a comment */\"; }", "escaped quote inside string keeps scanner inside the literal"),
                     Arguments.of(
-                            "class C { char c = '\\''; String s = \"// not a comment\"; }",
-                            "char literal '\\'' followed by string with // sequence"),
+                            "class C { char c = '\\''; String s = \"// not a comment\"; }", "char literal '\\'' followed by string with // sequence"),
                     Arguments.of(
                             "class C { String s = \"\"\"\n  contains \\\"\"\" inside\n  /* still in block */\n\"\"\"; }",
                             "text block with escaped triple-quote and embedded /* */ sequences"),

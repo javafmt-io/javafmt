@@ -139,10 +139,7 @@ public final class JavaParser {
         }
         final var self = JavaParser.class.getModule();
         return Stream.of(
-                "com.sun.tools.javac.api",
-                "com.sun.tools.javac.file",
-                "com.sun.tools.javac.parser",
-                "com.sun.tools.javac.tree",
+                "com.sun.tools.javac.api", "com.sun.tools.javac.file", "com.sun.tools.javac.parser", "com.sun.tools.javac.tree",
                 "com.sun.tools.javac.util")
                 .allMatch(p -> jdkCompiler.isExported(p, self));
     }

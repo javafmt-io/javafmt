@@ -86,8 +86,7 @@ final class FormatStages {
                 source,
                 List.of(
                         new Diagnostic.InternalError(
-                                t.getClass().getSimpleName() + ": " + (message == null ? t.toString() : message),
-                                new Position.Unknown())));
+                                t.getClass().getSimpleName() + ": " + (message == null ? t.toString() : message), new Position.Unknown())));
     }
 
     /**

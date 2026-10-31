@@ -75,9 +75,7 @@ class DaemonTest {
         final var fatal = new AtomicReference<Error>();
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY,
-                new ByteArrayInputStream(delimited(request(1, "class A {}"))),
-                out,
+                Wire.BINARY, new ByteArrayInputStream(delimited(request(1, "class A {}"))), out,
                 (_, _) -> {
                     throw new OutOfMemoryError("simulated");
                 },
@@ -98,10 +96,7 @@ class DaemonTest {
                 .reduce(new byte[0], DaemonTest::concat);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY,
-                new ByteArrayInputStream(requests),
-                out,
-                threads,
+                Wire.BINARY, new ByteArrayInputStream(requests), out, threads,
                 (id, source) -> {
                     mostAtOnce.accumulateAndGet(running.incrementAndGet(), Math::max);
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(50));
@@ -133,9 +128,7 @@ class DaemonTest {
         final var writtenDuringFatal = new AtomicInteger(-1);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY,
-                new ByteArrayInputStream(concat(delimited(request(1, "class A {}")), delimited(request(2, "class B {}")))),
-                out,
+                Wire.BINARY, new ByteArrayInputStream(concat(delimited(request(1, "class A {}")), delimited(request(2, "class B {}")))), out,
                 (id, source) -> {
                     if (id == 1) {
                         throw new OutOfMemoryError("simulated");
@@ -164,9 +157,7 @@ class DaemonTest {
     void aRequestThatFailsToFormatStillGetsAReplyCarryingTheFailure() {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY,
-                new ByteArrayInputStream(delimited(request(1, "class A {}"))),
-                out,
+                Wire.BINARY, new ByteArrayInputStream(delimited(request(1, "class A {}"))), out,
                 (_, _) -> {
                     throw new IllegalStateException("boom");
                 },

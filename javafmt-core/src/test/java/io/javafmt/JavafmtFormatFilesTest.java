@@ -66,9 +66,7 @@ class JavafmtFormatFilesTest {
                         i -> assertThat(results.get(i))
                                 .isEqualTo(
                                         new FileResult.Formatted(
-                                                paths.get(i),
-                                                "class F" + i + " {   }\n",
-                                                new FormatResult("class F" + i + " {}\n", List.of()))));
+                                                paths.get(i), "class F" + i + " {   }\n", new FormatResult("class F" + i + " {}\n", List.of()))));
     }
 
     @Test

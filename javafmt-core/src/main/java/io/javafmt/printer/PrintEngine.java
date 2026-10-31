@@ -62,6 +62,8 @@ final class PrintEngine {
                         stack.push(new Frame(frame.indent(), frame.mode(), parts.get(i)));
                     }
                 }
+                case Doc.Fill(var parts) when frame.mode() == Mode.FLAT -> pushParts(stack, frame, parts);
+                case Doc.Fill(var parts) -> fill(frame, parts, lineWidth - col, stack, work);
                 case Doc.Group(var d, var preferBreak) -> {
                     final var flat = new Frame(frame.indent(), Mode.FLAT, d);
                     final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, lineWidth - col, stack, work));
@@ -176,6 +178,7 @@ final class PrintEngine {
                         work.push(new Frame(f.indent(), f.mode(), parts.get(i)));
                     }
                 }
+                case Doc.Fill(var parts) -> pushParts(work, f, parts);
             }
         }
         return false;
@@ -227,12 +230,55 @@ final class PrintEngine {
                         work.push(new Frame(f.indent(), f.mode(), parts.get(i)));
                     }
                 }
+                case Doc.Fill(var parts) -> pushParts(work, f, parts);
             }
         }
         return false;
     }
 
+    private void fill(final Frame frame, final List<Doc> parts, final int budget, final ArrayDeque<Frame> stack, final ArrayDeque<Frame> work) {
+        final var first = frame.firstPart();
+        if (first >= parts.size()) {
+            return;
+        }
+        final var content = parts.get(first);
+        final var contentFits = fitsForward(new Frame(frame.indent(), Mode.FLAT, content), budget, following(frame, parts, first + 1, stack), work);
+        final var contentFrame = new Frame(frame.indent(), contentFits ? Mode.FLAT : Mode.BREAK, content);
+        if (first + 1 == parts.size()) {
+            stack.push(contentFrame);
+            return;
+        }
+        final var separator = parts.get(first + 1);
+        final var pair = new Frame(frame.indent(), Mode.FLAT, Doc.concat(content, separator, parts.get(first + 2)));
+        final var pairFits = contentFits
+            && Doc.flatWidthOrBreak(pair.doc()) >= 0
+            && fitsForward(pair, budget, following(frame, parts, first + 3, stack), work);
+        stack.push(new Frame(frame.indent(), Mode.BREAK, frame.doc(), first + 2));
+        stack.push(new Frame(frame.indent(), pairFits ? Mode.FLAT : Mode.BREAK, separator));
+        stack.push(contentFrame);
+    }
+
+    private ArrayDeque<Frame> following(final Frame frame, final List<Doc> parts, final int index, final ArrayDeque<Frame> stack) {
+        if (index >= parts.size()) {
+            return stack;
+        }
+        final var next = new ArrayDeque<Frame>();
+        next.push(new Frame(frame.indent(), Mode.BREAK, parts.get(index)));
+        return next;
+    }
+
+    private void pushParts(final ArrayDeque<Frame> target, final Frame frame, final List<Doc> parts) {
+        for (var i = parts.size() - 1; i >= frame.firstPart(); i--) {
+            target.push(new Frame(frame.indent(), frame.mode(), parts.get(i)));
+        }
+    }
+
     private enum Mode { FLAT, BREAK }
 
-    private record Frame(int indent, Mode mode, Doc doc) {}
+    private record Frame(int indent, Mode mode, Doc doc, int firstPart) {
+
+        Frame(final int indent, final Mode mode, final Doc doc) {
+            this(indent, mode, doc, 0);
+        }
+    }
 }

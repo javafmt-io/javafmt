@@ -262,8 +262,7 @@ class DefaultComesLastTest {
 
     static Stream<Arguments> idempotencyCases() {
         return Stream.of(
-                Arguments.of("arrow-form-auto-fix", ARROW_FORM_AUTO_FIX),
-                Arguments.of("colon-form-auto-fix", COLON_FORM_AUTO_FIX),
+                Arguments.of("arrow-form-auto-fix", ARROW_FORM_AUTO_FIX), Arguments.of("colon-form-auto-fix", COLON_FORM_AUTO_FIX),
                 Arguments.of("colon-form-warn-only", COLON_FORM_WARN_ONLY));
     }
 

@@ -55,14 +55,10 @@ record TestBuild(Path dir) {
     void gradleProperties(final List<String> extra) {
         final var lines = Stream.concat(
                 Stream.of(
-                        "org.gradle.configuration-cache=true",
-                        "org.gradle.isolated-projects=true",
-                        "org.gradle.java.installations.auto-detect=false",
-                        "org.gradle.java.installations.auto-download=false",
-                        "org.gradle.java.installations.paths=" + JAVA25_HOME),
+                        "org.gradle.configuration-cache=true", "org.gradle.isolated-projects=true", "org.gradle.java.installations.auto-detect=false",
+                        "org.gradle.java.installations.auto-download=false", "org.gradle.java.installations.paths=" + JAVA25_HOME),
                 Stream.concat(
-                        COVERAGE_AGENT.map(agent -> "org.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=384m " + agent).stream(),
-                        extra.stream()));
+                        COVERAGE_AGENT.map(agent -> "org.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=384m " + agent).stream(), extra.stream()));
         write("gradle.properties", lines.collect(Collectors.joining("\n", "", "\n")));
     }
 

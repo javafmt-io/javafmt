@@ -157,8 +157,7 @@ class JavafmtFormatterStepTest {
 
     static Stream<JavafmtConfig> configsDifferingFromDefaults() {
         return Stream.of(
-                JavafmtConfig.defaults().withVerifyOutput(false),
-                JavafmtConfig.defaults().withLint(false),
+                JavafmtConfig.defaults().withVerifyOutput(false), JavafmtConfig.defaults().withLint(false),
                 JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/lib/a.jar")));
     }
 

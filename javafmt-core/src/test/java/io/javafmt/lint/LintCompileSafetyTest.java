@@ -62,18 +62,14 @@ class LintCompileSafetyTest {
                 Arguments.of(
                         "widening-diamond",
                         wrap(
-                                "Map<String, List<Integer>> totals = new HashMap<>();\ntotals.put(\"a\", List.of(1));",
-                                "java.util.HashMap",
-                                "java.util.List",
-                                "java.util.Map"),
+                                "Map<String, List<Integer>> totals = new HashMap<>();\ntotals.put(\"a\", List.of(1));", "java.util.HashMap",
+                                "java.util.List", "java.util.Map"),
                         false),
                 Arguments.of(
                         "subtype-feeds-chain-inference",
                         wrap(
                                 "Collection<String> names = List.of(\"a\");\nList<Collection<String>> rows = Stream.of(names).toList();\nSystem.out.println(rows);",
-                                "java.util.Collection",
-                                "java.util.List",
-                                "java.util.stream.Stream"),
+                                "java.util.Collection", "java.util.List", "java.util.stream.Stream"),
                         true),
                 Arguments.of(
                         "anonymous-class",
@@ -81,12 +77,10 @@ class LintCompileSafetyTest {
                                 "Object o = new Object() {\n@Override public String toString() { return \"x\"; }\n};\no = \"y\";\nSystem.out.println(o);"),
                         false),
                 Arguments.of(
-                        "witness-comment",
-                        wrap("Optional<String> o = Optional /* a.b */.empty();\nSystem.out.println(o);", "java.util.Optional"),
+                        "witness-comment", wrap("Optional<String> o = Optional /* a.b */.empty();\nSystem.out.println(o);", "java.util.Optional"),
                         false),
                 Arguments.of(
-                        "final-field",
-                        "class Fixture {\n\n    static final int LIMIT = 0;\n\n    int m() {\n        return LIMIT;\n    }\n}\n",
+                        "final-field", "class Fixture {\n\n    static final int LIMIT = 0;\n\n    int m() {\n        return LIMIT;\n    }\n}\n",
                         false),
                 Arguments.of("interface-field", "interface Fixture {\n\n    int LIMIT = 0;\n}\n", false),
                 Arguments.of(
@@ -96,8 +90,7 @@ class LintCompileSafetyTest {
                 Arguments.of("modifier-order-comment", "class Fixture {\n\n    static public /* c */ final int X = 1;\n}\n", false),
                 Arguments.of(
                         "modifier-order-sealed",
-                        "public class Fixture {\n\n    static public sealed interface I permits R {}\n\n    record R() implements I {}\n}\n",
-                        false),
+                        "public class Fixture {\n\n    static public sealed interface I permits R {}\n\n    record R() implements I {}\n}\n", false),
                 Arguments.of("mvd-c-style", wrap("int a, b[];\nSystem.out.println(a + b.length);"), false),
                 Arguments.of("mvd-plain-local", wrap("int a, b;\nSystem.out.println(a + b);"), false),
                 // Three rules used to rewrite a span that every declarator of a group shares, which
@@ -107,23 +100,19 @@ class LintCompileSafetyTest {
                 Arguments.of("mvd-modifier-order-group", "class Fixture {\n\n    static private int a = 1, b = 2;\n}\n", false),
                 Arguments.of(
                         "mvd-var-candidate-group",
-                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"),
-                        false),
+                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"), false),
                 Arguments.of(
                         "mvd-var-candidate-group-analyze",
-                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"),
-                        true),
+                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"), true),
                 // A static factory whose receiver happens to share the declared type's simple name
                 // says nothing about how many type parameters the method has. Lifting the declared
                 // type's arguments onto it as a witness is only sound when the counts agree.
                 Arguments.of("factory-witness-arity-two", comparingCase(), false),
                 Arguments.of("factory-witness-arity-two-analyze", comparingCase(), true),
-                Arguments.of("factory-witness-collector", toMapCase(), false),
-                Arguments.of("factory-witness-collector-analyze", toMapCase(), true),
+                Arguments.of("factory-witness-collector", toMapCase(), false), Arguments.of("factory-witness-collector-analyze", toMapCase(), true),
                 Arguments.of("factory-witness-map-entry", mapEntryCase(), false),
                 Arguments.of(
-                        "factory-witness-arity-one",
-                        wrap("Optional<String> o = Optional.empty();\nSystem.out.println(o);", "java.util.Optional"),
+                        "factory-witness-arity-one", wrap("Optional<String> o = Optional.empty();\nSystem.out.println(o);", "java.util.Optional"),
                         false),
                 Arguments.of("factory-witness-list-of", wrap("List<String> xs = List.of();\nSystem.out.println(xs);", "java.util.List"), false),
                 // Diamond on an anonymous class is legal only where the inferred type is denotable
@@ -253,10 +242,8 @@ class LintCompileSafetyTest {
 
     private static String toMapCase() {
         return wrap(
-                "Collector<String, ?, Map<String, Integer>> c = Collectors.toMap(s -> s, String::length);\nSystem.out.println(c);",
-                "java.util.Map",
-                "java.util.stream.Collector",
-                "java.util.stream.Collectors");
+                "Collector<String, ?, Map<String, Integer>> c = Collectors.toMap(s -> s, String::length);\nSystem.out.println(c);", "java.util.Map",
+                "java.util.stream.Collector", "java.util.stream.Collectors");
     }
 
     private static String mapEntryCase() {

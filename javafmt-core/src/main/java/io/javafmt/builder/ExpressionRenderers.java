@@ -48,9 +48,7 @@ final class ExpressionRenderers {
             return renderLogicalChain(node, recursor);
         }
         final var spine = Stream.<@Nullable BinaryTree>iterate(
-                node,
-                Objects::nonNull,
-                b -> b.getLeftOperand() instanceof BinaryTree left && !isLogical(left) ? left : null)
+                node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left && !isLogical(left) ? left : null)
                 .map(Objects::requireNonNull)
                 .toList();
         var doc = recursor.scan(spine.getLast().getLeftOperand());
@@ -163,11 +161,7 @@ final class ExpressionRenderers {
                         recursor.scan(node.getCondition()),
                         Doc.continuationIndent(
                                 Doc.concat(
-                                        Doc.LINE,
-                                        new Doc.Text("? "),
-                                        recursor.scan(node.getTrueExpression()),
-                                        Doc.LINE,
-                                        new Doc.Text(": "),
+                                        Doc.LINE, new Doc.Text("? "), recursor.scan(node.getTrueExpression()), Doc.LINE, new Doc.Text(": "),
                                         recursor.scan(node.getFalseExpression())))));
     }
 
@@ -242,13 +236,11 @@ final class ExpressionRenderers {
         final var arguments = node.getArguments();
         final var argumentsDoc = arguments.isEmpty()
                 ? (Doc) new Doc.Text("()")
-                : WrappableList.of("(", ",", ")", arguments.stream().map(recursor::scan));
+                : WrappableList.packedOf("(", ",", ")", arguments.stream().map(recursor::scan));
         final var body = node.getClassBody();
         final var headParts = Doc.concatOf(
                 Stream.of(
-                        qualifier(node, recursor),
-                        Stream.of(new Doc.Text("new ")),
-                        constructorTypeWitness(node, recursor),
+                        qualifier(node, recursor), Stream.of(new Doc.Text("new ")), constructorTypeWitness(node, recursor),
                         Stream.of(recursor.scan(node.getIdentifier()), argumentsDoc)));
         if (body == null) {
             return headParts;
@@ -276,8 +268,7 @@ final class ExpressionRenderers {
         return Stream.of(
                 Doc.concatOf(
                         Stream.of(
-                                Stream.of(new Doc.Text("<")),
-                                Doc.intersperse(new Doc.Text(", "), typeArguments.stream().map(recursor::scan)),
+                                Stream.of(new Doc.Text("<")), Doc.intersperse(new Doc.Text(", "), typeArguments.stream().map(recursor::scan)),
                                 Stream.of(new Doc.Text(">")))));
     }
 
@@ -319,9 +310,7 @@ final class ExpressionRenderers {
 
     Doc renderMemberSelect(final MemberSelectTree node, final Recursor recursor) {
         final var spine = Stream.<@Nullable MemberSelectTree>iterate(
-                node,
-                Objects::nonNull,
-                s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null)
+                node, Objects::nonNull, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null)
                 .map(Objects::requireNonNull)
                 .toList();
         return spine.reversed()

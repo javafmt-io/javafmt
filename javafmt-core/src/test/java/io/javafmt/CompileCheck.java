@@ -38,10 +38,7 @@ import javax.tools.ToolProvider;
 public final class CompileCheck {
 
     private static final List<String> UNRESOLVABLE_CODE_PREFIXES = List.of(
-            "compiler.err.cant.resolve",
-            "compiler.err.doesnt.exist",
-            "compiler.err.cant.access",
-            "compiler.err.package.not.visible",
+            "compiler.err.cant.resolve", "compiler.err.doesnt.exist", "compiler.err.cant.access", "compiler.err.package.not.visible",
             "compiler.err.not.def.access");
 
     public static Outcome check(final String source) {
@@ -59,12 +56,7 @@ public final class CompileCheck {
                 final var standard = compiler.getStandardFileManager(null, Locale.ROOT, StandardCharsets.UTF_8);
                 final var fileManager = new DiscardingFileManager(standard)) {
             final var task = compiler.getTask(
-                    null,
-                    fileManager,
-                    collector,
-                    List.of("-proc:none", "-nowarn"),
-                    null,
-                    List.of(new InMemorySource(name, source)));
+                    null, fileManager, collector, List.of("-proc:none", "-nowarn"), null, List.of(new InMemorySource(name, source)));
             task.call();
         } catch (final IOException e) {
             throw new IllegalStateException("compile check failed to close its file manager", e);

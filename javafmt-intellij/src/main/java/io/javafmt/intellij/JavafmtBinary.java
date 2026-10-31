@@ -155,8 +155,7 @@ public final class JavafmtBinary {
             return new VersionProbe.Failed();
         }
         final var run = CompletableFuture.supplyAsync(
-                () -> handler.runProcess(Math.toIntExact(TIMEOUT.toMillis()), true),
-                ProcessIOExecutorService.INSTANCE);
+                () -> handler.runProcess(Math.toIntExact(TIMEOUT.toMillis()), true), ProcessIOExecutorService.INSTANCE);
         try {
             final var output = run.get(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
             if (output.isTimeout()) {

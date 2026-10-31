@@ -25,10 +25,8 @@ class PluginJarTest {
     void protobufIsBundledRelocatedSoItCannotClashWithIntellijsOwn() throws IOException {
         assertThat(entries())
                 .contains(
-                        "io/javafmt/daemon/protocol/FormatRequest.class",
-                        "io/javafmt/intellij/protobuf/GeneratedMessage.class",
-                        "io/javafmt/intellij/validate/ValidateProto.class",
-                        "io/javafmt/intellij/native-checksums.txt")
+                        "io/javafmt/daemon/protocol/FormatRequest.class", "io/javafmt/intellij/protobuf/GeneratedMessage.class",
+                        "io/javafmt/intellij/validate/ValidateProto.class", "io/javafmt/intellij/native-checksums.txt")
                 .noneMatch(name -> name.startsWith("com/google/") || name.startsWith("build/buf/") || name.startsWith("dev/cel/"));
     }
 

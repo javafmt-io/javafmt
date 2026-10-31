@@ -23,8 +23,7 @@ final class MethodChainRenderer {
      */
     Doc render(final MethodInvocationTree node, final Recursor recursor) {
         final var calls = Stream.<@Nullable MethodInvocationTree>iterate(
-                node,
-                Objects::nonNull,
+                node, Objects::nonNull,
                 call -> call.getMethodSelect() instanceof MemberSelectTree ms && ms.getExpression() instanceof MethodInvocationTree receiver
                         ? receiver
                         : null)
@@ -110,7 +109,7 @@ final class MethodChainRenderer {
             && lam.getBodyKind() == LambdaExpressionTree.BodyKind.STATEMENT) {
             return Doc.concat(head, new Doc.Text("("), recursor.scan(lam), new Doc.Text(")"));
         }
-        final var interior = new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE), CommentDocs.commaList(arguments, recursor, recursor::scan)));
+        final var interior = Doc.concat(Doc.SOFT_LINE, CommentDocs.commaFill(arguments, recursor, recursor::scan));
         return new Doc.Group(Doc.concat(head, new Doc.Text("("), Doc.continuationIndent(interior), new Doc.Text(")")));
     }
 

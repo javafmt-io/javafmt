@@ -75,7 +75,7 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void argumentList_doesNotFit_breaksAllArguments() {
+    void argumentList_doesNotFit_packsArgumentsOntoContinuationLines() {
         final var input = "class Foo { void test() { "
             + "someMethod(arg1111111111, arg2222222222, arg3333333333, arg4444444444, arg5555555555, "
             + "arg6666666666, arg7777777777, arg8888888888, arg9999999999); } }";
@@ -85,14 +85,7 @@ class MethodChainRendererTest {
 
                                void test() {
                                    someMethod(
-                                           arg1111111111,
-                                           arg2222222222,
-                                           arg3333333333,
-                                           arg4444444444,
-                                           arg5555555555,
-                                           arg6666666666,
-                                           arg7777777777,
-                                           arg8888888888,
+                                           arg1111111111, arg2222222222, arg3333333333, arg4444444444, arg5555555555, arg6666666666, arg7777777777, arg8888888888,
                                            arg9999999999);
                                }
                            }""".stripIndent());
@@ -112,12 +105,7 @@ class MethodChainRendererTest {
                                    result.stream()
                                            .filter(x -> x > 0)
                                            .process(
-                                                   argumentOne12345,
-                                                   argumentTwo12345,
-                                                   argumentThree12345,
-                                                   argumentFour12345,
-                                                   argumentFive12345,
-                                                   argumentSix12345,
+                                                   argumentOne12345, argumentTwo12345, argumentThree12345, argumentFour12345, argumentFive12345, argumentSix12345,
                                                    argumentSeven12345);
                                }
                            }""".stripIndent());

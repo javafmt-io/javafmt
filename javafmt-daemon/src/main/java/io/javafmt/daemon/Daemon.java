@@ -57,8 +57,7 @@ public final class Daemon {
         final var replies = new Replies(out, new ReentrantLock());
         try (
                 final var pool = Executors.newFixedThreadPool(
-                        threads,
-                        Thread.ofPlatform().name("javafmt-daemon-", 0).daemon(true).stackSize(STACK_SIZE).factory())) {
+                        threads, Thread.ofPlatform().name("javafmt-daemon-", 0).daemon(true).stackSize(STACK_SIZE).factory())) {
             wire.frames(in).forEach(frame -> pool.execute(() -> respond(wire, frame, replies, handler, fatal)));
         }
     }
@@ -100,10 +99,7 @@ public final class Daemon {
             return handler.apply(request.getId(), request.getSource());
         } catch (final RuntimeException e) {
             return DaemonHandler.failure(
-                    request.getId(),
-                    request.getSource(),
-                    Kind.KIND_INTERNAL,
-                    e.getClass().getSimpleName() + ": " + e.getMessage());
+                    request.getId(), request.getSource(), Kind.KIND_INTERNAL, e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 

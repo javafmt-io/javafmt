@@ -16,8 +16,7 @@ class FinalCatchParameterTest {
         return Stream.of(
                 Arguments.of("single type", "catch (IOException e) { log(e); }", "catch (final IOException e) { log(e); }"),
                 Arguments.of(
-                        "multi-catch",
-                        "catch (IllegalStateException | IllegalArgumentException e) {}",
+                        "multi-catch", "catch (IllegalStateException | IllegalArgumentException e) {}",
                         "catch (final IllegalStateException | IllegalArgumentException e) {}"),
                 Arguments.of("unnamed parameter", "catch (IllegalStateException _) {}", "catch (final IllegalStateException _) {}"),
                 Arguments.of("annotated parameter", "catch (@Annotated IOException e) {}", "catch (@Annotated final IOException e) {}"),

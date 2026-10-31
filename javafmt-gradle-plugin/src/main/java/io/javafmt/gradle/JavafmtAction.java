@@ -50,11 +50,8 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
         LOGGER.info("javafmt: processed {} file(s)", files.size());
         final var outcome = JavafmtEngine.run(
                 new Request(
-                        files,
-                        parameters.getAnalyze().get() ? Optional.of(parameters.getAnalysisClasspath().get()) : Optional.empty(),
-                        write,
-                        parameters.getProjectDirectory().get().getAsFile(),
-                        parameters.getThreads().get()));
+                        files, parameters.getAnalyze().get() ? Optional.of(parameters.getAnalysisClasspath().get()) : Optional.empty(), write,
+                        parameters.getProjectDirectory().get().getAsFile(), parameters.getThreads().get()));
         final var reporter = getProblems().getReporter();
         outcome.warnings().forEach(warning -> LOGGER.warn("javafmt: {}", warning.description()));
         reporter.report(outcome.warnings().stream().map(warning -> problem(reporter, WARNING, warning)).toList());

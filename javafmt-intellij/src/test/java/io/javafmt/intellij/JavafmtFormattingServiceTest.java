@@ -345,9 +345,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
             final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
             reformat(file);
             PlatformTestUtil.waitWithEventsDispatching(
-                    "no download failure notice",
-                    () -> notifications.stream().anyMatch(n -> n.getType() == NotificationType.WARNING),
-                    20);
+                    "no download failure notice", () -> notifications.stream().anyMatch(n -> n.getType() == NotificationType.WARNING), 20);
             assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
             assertThat(notifications.stream().filter(n -> n.getType() == NotificationType.WARNING))
                     .singleElement()
@@ -370,9 +368,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     private JavafmtBinaryProvider useDownloadsFrom(final FakeRelease release, final Path cache, final String sha256) {
         final var installer = new BinaryInstaller(release.base(), cache, new ReleaseAsset.Published(DOWNLOADED, sha256));
         final var provider = new JavafmtBinaryProvider(
-                installer,
-                JavafmtBinaryProviderTest::runOnNewThread,
-                () -> cache.resolve("empty-path").toString());
+                installer, JavafmtBinaryProviderTest::runOnNewThread, () -> cache.resolve("empty-path").toString());
         ServiceContainerUtil.replaceService(ApplicationManager.getApplication(), JavafmtBinaryProvider.class, provider, getTestRootDisposable());
         return provider;
     }

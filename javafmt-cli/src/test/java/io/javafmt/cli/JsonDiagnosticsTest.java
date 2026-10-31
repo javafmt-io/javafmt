@@ -16,10 +16,8 @@ class JsonDiagnosticsTest {
     private static Stream<Arguments> kinds() {
         final var at = new Position.At(3, 9, 42);
         return Stream.of(
-                Arguments.of(new Diagnostic.ParseError("boom", at), "parse"),
-                Arguments.of(new Diagnostic.LintError("boom", at), "lint"),
-                Arguments.of(new Diagnostic.InternalError("boom", at), "internal"),
-                Arguments.of(new Diagnostic.Warning("boom", at), "warning"));
+                Arguments.of(new Diagnostic.ParseError("boom", at), "parse"), Arguments.of(new Diagnostic.LintError("boom", at), "lint"),
+                Arguments.of(new Diagnostic.InternalError("boom", at), "internal"), Arguments.of(new Diagnostic.Warning("boom", at), "warning"));
     }
 
     @ParameterizedTest

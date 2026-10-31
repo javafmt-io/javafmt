@@ -40,13 +40,8 @@ record CorpusBaseline(String os, Set<String> perOsKeys, int files, int unparseab
                 .map(name -> name.substring(0, name.length() - os.length() - 1))
                 .collect(Collectors.toUnmodifiableSet());
         return new CorpusBaseline(
-                os,
-                perOsKeys,
-                intProperty(properties, os, "files"),
-                intProperty(properties, os, "unparseable"),
-                intProperty(properties, os, "refused"),
-                intProperty(properties, os, "notReparsing"),
-                intProperty(properties, os, "notIdempotent"),
+                os, perOsKeys, intProperty(properties, os, "files"), intProperty(properties, os, "unparseable"),
+                intProperty(properties, os, "refused"), intProperty(properties, os, "notReparsing"), intProperty(properties, os, "notIdempotent"),
                 intProperty(properties, os, "overWidth"));
     }
 
