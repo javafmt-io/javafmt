@@ -52,7 +52,7 @@ final class RecordRenderer {
     }
 
     private Doc componentDoc(final VariableTree comp, final Recursor recursor) {
-        final var prefix = ModifierRenderer.annotationsText(comp.getModifiers(), recursor);
-        return Doc.concat(new Doc.Text(prefix), recursor.scan(comp.getType()), new Doc.Text(" " + comp.getName()));
+        return Doc.concat(
+                ModifierRenderer.annotationsDoc(comp.getModifiers(), recursor), recursor.scan(comp.getType()), new Doc.Text(" " + comp.getName()));
     }
 }

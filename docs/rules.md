@@ -33,6 +33,7 @@ Invoice buildInvoice(final Customer customer,
 
 - When aligning under the first parameter would push a line past 150 characters, the list wraps at +8 instead, still one parameter per line.
 - A wrapped list whose first parameter starts with a `//` comment also wraps at +8, since the comment cannot sit right after `(`.
+- A wrapped list whose first parameter has a `//` comment after one of its annotations also wraps at +8, with the comment beside the annotation and the rest of the parameter on the next line.
 - A wrapped list that already fits on one line stays on one line.
 - Filled argument lists wrap at +8 and pack as many arguments per line as fit.
 - `&&`/`||` wrapping indents +4.
@@ -129,10 +130,11 @@ Lambda parameters are never `final`.
 - Constants fit on one line, or one per line.
 - When the constants do not fit on one line they go one per line, with a trailing comma after the last constant.
 - An enum with body declarations keeps its `;`. A `,` written directly before the `;` is removed.
+- A constant's arguments follow the call-site argument rule: when they do not fit they wrap at +8 and pack as many per line as fit.
 
 ## Records
 
-Fit on one line, keep it there. Otherwise one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line. The same +8 form applies when the first component starts with a `//` comment, since the comment cannot sit right after `(`.
+Fit on one line, keep it there. Otherwise one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line. The same +8 form applies when the first component starts with a `//` comment, since the comment cannot sit right after `(`. It also applies when the first component has a `//` comment after one of its annotations; the comment stays beside the annotation.
 
 Single-component and small records stay inline: `private record Money(long cents, Currency currency) {}`.
 
@@ -158,7 +160,7 @@ public final Money total() {
 - Preserved verbatim: every `//`, `/* */` and `/** */` keeps its text. No re-wrapping, no `*` realignment, nothing stripped.
 - Comments attach to source tokens, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` lands in the right place.
 - Every position is covered: file headers above `package`, leading comments on declarations, comments on imports, comments between statements, trailing same-line comments, comments inside argument and parameter lists, comments inside empty blocks, and comments between the last statement and its closing brace.
-- A comment stays on the line it was written on. A `//` comment after an argument's comma, in a method call or a `new X(...)` expression, after an annotation on its own line (`@Override // why`), on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it.
+- A comment stays on the line it was written on. A `//` comment after an argument's comma, in a method call, a `new X(...)` expression or an enum constant, after an annotation on its own line (`@Override // why`) or on a parameter or record component, on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it.
 - Continuation lines of a block comment reindent to the comment's final output column, not its source column.
 - IDE and tooling directives stay byte-for-byte and are not reindented: `// noinspection ...`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE ...`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-...$`, and the block-comment equivalents.
 - `//` and `/*` are recognised only outside string literals, character literals and text blocks.

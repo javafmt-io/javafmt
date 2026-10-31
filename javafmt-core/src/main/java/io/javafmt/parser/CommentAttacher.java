@@ -25,12 +25,10 @@ import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
@@ -288,8 +286,6 @@ final class CommentAttacher {
 
         private final List<long[]> opaque;
 
-        private final Set<Tree> enumConstantCreations = Collections.newSetFromMap(new IdentityHashMap<>());
-
         Collector(final CompilationUnitTree cu, final SourcePositions pos, final String source, final List<Slot> slots, final List<long[]> opaque) {
             this.cu = cu;
             this.pos = pos;
@@ -336,6 +332,10 @@ final class CommentAttacher {
                     .forEach(this::collectAnnotationLineEnds);
             if (isRecord) {
                 collect(node, recordComponents(node), false);
+                recordComponents(node)
+                        .stream()
+                        .flatMap(component -> component instanceof VariableTree v ? Stream.of(v.getModifiers()) : Stream.empty())
+                        .forEach(this::collectAnnotationLineEnds);
             }
             if (node.getExtendsClause() != null) {
                 collect(node, List.of(node.getExtendsClause()), false);
@@ -359,6 +359,7 @@ final class CommentAttacher {
         @Override
         public Void visitMethod(final MethodTree node, final Void p) {
             collectAnnotationLineEnds(node.getModifiers());
+            node.getParameters().forEach(parameter -> collectAnnotationLineEnds(parameter.getModifiers()));
             collectSeparatedList(node, pos.getStartPosition(cu, node), node.getParameters());
             collect(node, node.getTypeParameters(), false);
             collect(node, node.getThrows(), false);
@@ -412,21 +413,13 @@ final class CommentAttacher {
 
         @Override
         public Void visitNewClass(final NewClassTree node, final Void p) {
-            final var lo = pos.getEndPosition(cu, node.getIdentifier());
-            if (enumConstantCreations.contains(node)) {
-                collectWithLo(node, lo, node.getArguments(), false);
-            } else {
-                collectSeparatedList(node, lo, node.getArguments());
-            }
+            collectSeparatedList(node, pos.getEndPosition(cu, node.getIdentifier()), node.getArguments());
             return super.visitNewClass(node, null);
         }
 
         @Override
         public Void visitVariable(final VariableTree node, final Void p) {
             final var initializer = node.getInitializer();
-            if (isEnumConstant(node) && initializer instanceof NewClassTree creation) {
-                enumConstantCreations.add(creation);
-            }
             if (initializer == null) {
                 return super.visitVariable(node, null);
             }

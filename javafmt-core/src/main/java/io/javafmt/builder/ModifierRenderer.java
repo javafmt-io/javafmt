@@ -38,6 +38,18 @@ final class ModifierRenderer {
                 .collect(Collectors.joining());
     }
 
+    Doc annotationsDoc(final ModifiersTree modifiers, final Recursor recursor) {
+        return new Doc.Concat(
+                modifiers.getAnnotations()
+                        .stream()
+                        .<Doc>map(
+                                a -> recursor.trailing(a).isEmpty()
+                                        ? new Doc.Text(annotationText(a, recursor) + " ")
+                                        : Doc.concat(
+                                                CommentDocs.appendTrailing(new Doc.Text(annotationText(a, recursor)), recursor.trailing(a)),
+                                                Doc.HARD_LINE)));
+    }
+
     /**
      * The text to emit for one annotation.
      *
