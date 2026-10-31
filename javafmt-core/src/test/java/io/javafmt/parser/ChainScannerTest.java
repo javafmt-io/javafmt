@@ -125,7 +125,8 @@ class ChainScannerTest {
         assertThat(literals).hasValue(terms);
     }
 
-    @Nullable private static Throwable onASmallStack(final Runnable work) throws InterruptedException {
+    @Nullable
+    private static Throwable onASmallStack(final Runnable work) throws InterruptedException {
         final var failure = new AtomicReference<Throwable>();
         final var thread = new Thread(
                 null,

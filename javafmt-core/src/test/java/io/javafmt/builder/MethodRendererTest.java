@@ -210,7 +210,7 @@ class MethodRendererTest {
         @Test
         void withAnnotations_rendersAfterAnnotations() {
             assertThat(format("class Foo { @Override <T> T bar(T x) { return x; } }"))
-                    .isEqualTo("class Foo {\n\n    @Override <T> T bar(T x) {\n        return x;\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    @Override\n    <T> T bar(T x) {\n        return x;\n    }\n}");
         }
     }
 
@@ -218,8 +218,8 @@ class MethodRendererTest {
     class Annotations {
 
         @Test
-        void singleParameterless_rendersInline() {
-            assertThat(format("class Foo { @Override void bar() {} }")).isEqualTo("class Foo {\n\n    @Override void bar() {}\n}");
+        void singleParameterless_rendersOnOwnLine() {
+            assertThat(format("class Foo { @Override void bar() {} }")).isEqualTo("class Foo {\n\n    @Override\n    void bar() {}\n}");
         }
 
         @Test
@@ -291,8 +291,8 @@ class MethodRendererTest {
         }
 
         @Test
-        void withAnnotations_rendersInline() {
-            assertThat(format("class Foo { @Inject public Foo() {} }")).isEqualTo("class Foo {\n\n    @Inject public Foo() {}\n}");
+        void withAnnotations_rendersOnOwnLine() {
+            assertThat(format("class Foo { @Inject\n    public Foo() {} }")).isEqualTo("class Foo {\n\n    @Inject\n    public Foo() {}\n}");
         }
     }
 }

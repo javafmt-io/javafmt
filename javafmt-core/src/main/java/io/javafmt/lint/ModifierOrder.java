@@ -158,7 +158,8 @@ public final class ModifierOrder implements LintRule {
         return Modifiers.canonicalOrder().stream().filter(sourceOrder::contains).toList();
     }
 
-    @Nullable private static Modifier matchModifier(final String src, final int pos, final Set<Modifier> flags) {
+    @Nullable
+    private static Modifier matchModifier(final String src, final int pos, final Set<Modifier> flags) {
         for (var mod : Modifiers.canonicalOrder()) {
             if (flags.contains(mod) && Modifiers.skipModifierKeyword(src, pos, mod.toString()) >= 0) {
                 return mod;

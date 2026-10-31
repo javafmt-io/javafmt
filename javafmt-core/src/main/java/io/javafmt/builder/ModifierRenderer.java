@@ -16,19 +16,6 @@ import javax.lang.model.element.Modifier;
 final class ModifierRenderer {
 
     /**
-     * Whether a declaration's annotations belong on the signature line rather than on their own
-     * lines above it. Only one short annotation qualifies — a single argument-less one that the
-     * author already wrote inline, such as {@code @Override public void run()}. Everything else
-     * goes through {@link #prependOwnLineAnnotations}, which preserves the author's layout.
-     */
-    boolean rendersAnnotationsInline(final ModifiersTree mods, final Recursor recursor) {
-        final var annotations = mods.getAnnotations();
-        return annotations.size() == 1
-            && annotations.getFirst().getArguments().isEmpty()
-            && !recursor.isFollowedByNewline(annotations.getFirst());
-    }
-
-    /**
      * The annotations and modifiers of a declaration as one prefix, each token followed by a
      * space so a type can be concatenated directly after it. Empty when the declaration has
      * neither.
@@ -121,13 +108,12 @@ final class ModifierRenderer {
     }
 
     /**
-     * The shared preamble computation for a method, constructor, or compact constructor: whether
-     * its annotations render inline on the signature line, and the prefix text to lead with —
-     * annotations plus modifiers when inline, modifiers alone otherwise (the annotations then go
-     * on their own lines above, via {@link #finish}).
+     * The shared preamble computation for a method, constructor, or compact constructor: the
+     * annotations always go on their own lines above the signature (via {@link #finish}), so the
+     * prefix to lead with is the modifiers alone.
      */
     Preamble preambleOf(final ModifiersTree mods, final Recursor recursor) {
-        return preambleOf(mods, recursor, rendersAnnotationsInline(mods, recursor));
+        return preambleOf(mods, recursor, false);
     }
 
     /** {@link #preambleOf} with the caller's own answer to "do these render inline". */

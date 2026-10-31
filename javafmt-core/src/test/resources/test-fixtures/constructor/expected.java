@@ -15,7 +15,8 @@ class Fixture {
         System.out.println(t);
     }
 
-    @Inject public Fixture(final int x, final int y) {
+    @Inject
+    public Fixture(final int x, final int y) {
         this.x = x + y;
     }
 }
