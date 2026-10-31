@@ -133,7 +133,8 @@ public sealed interface Doc
      * Used for wrapped continuations of a single logical line (argument lists,
      * {@code extends}/{@code implements}/{@code permits} and {@code throws} clauses, method
      * chains, and parameter lists and record components too wide to align under their first
-     * element) so wrapped content never shares a column with the block body beneath it. Mirrors Google Java Format's "continuation = 2× block" rule.
+     * element) so wrapped content never shares a column with the block body beneath it. Mirrors
+     * Google Java Format's "continuation = 2× block" rule.
      */
     static Doc continuationIndent(final Doc contents) {
         Objects.requireNonNull(contents, "contents");

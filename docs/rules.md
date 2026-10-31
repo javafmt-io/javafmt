@@ -32,6 +32,7 @@ Invoice buildInvoice(final Customer customer,
 ```
 
 - When aligning under the first parameter would push a line past 150 characters, the list wraps at +8 instead, still one parameter per line.
+- A wrapped list whose first parameter starts with a `//` comment also wraps at +8, since the comment cannot sit right after `(`.
 - A wrapped list that already fits on one line stays on one line.
 - Filled argument lists wrap at +8 and pack as many arguments per line as fit.
 - `&&`/`||` wrapping indents +4.
@@ -131,7 +132,7 @@ Lambda parameters are never `final`.
 
 ## Records
 
-Fit on one line, keep it there. Otherwise one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line.
+Fit on one line, keep it there. Otherwise one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line. The same +8 form applies when the first component starts with a `//` comment, since the comment cannot sit right after `(`.
 
 Single-component and small records stay inline: `private record Money(long cents, Currency currency) {}`.
 
