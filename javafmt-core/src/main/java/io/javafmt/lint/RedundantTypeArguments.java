@@ -64,31 +64,42 @@ public final class RedundantTypeArguments implements LintRule {
 
             @Override
             public Void visitNewClass(final NewClassTree node, final Void p) {
-                tryDiamondify(node, getCurrentPath(), unit).ifPresent(edits::add);
+                tryDiamondify(node, getCurrentPath(), ctx).ifPresent(edits::add);
                 return super.visitNewClass(node, null);
             }
 
             @Override
             protected void visitInvocation(final MethodInvocationTree node, final Void p) {
-                witnessOf(node, getCurrentPath(), unit).ifPresent(witnessCalls::add);
+                if (!isInitializerOfALocalBecomingVar(node, getCurrentPath(), ctx)) {
+                    witnessOf(node, getCurrentPath(), unit).ifPresent(witnessCalls::add);
+                }
             }
         }.scan(new TreePath(unit.tree()), null);
         attribution.ifPresent(a -> dropRedundantWitnesses(unit, a, witnessCalls, edits));
         return LintResult.ofEdits(edits);
     }
 
-    private static Optional<LintEdit> tryDiamondify(final NewClassTree node, final TreePath path, final ParsedUnit unit) {
+    private static Optional<LintEdit> tryDiamondify(final NewClassTree node, final TreePath path, final LintContext ctx) {
+        final var unit = ctx.unit();
         if (!(node.getIdentifier() instanceof ParameterizedTypeTree pt) || pt.getTypeArguments().isEmpty()) {
             return Optional.empty();
         }
-        final var target = findTargetTypeArgs(path, node, unit);
+        final var target = findTargetTypeArgs(path, node, ctx);
         if (target.isEmpty() || !typeArgsMatch(pt.getTypeArguments(), target.get(), unit)) {
             return Optional.empty();
         }
         return diamondEdit(pt, unit);
     }
 
-    private static Optional<List<? extends Tree>> findTargetTypeArgs(final TreePath path, final NewClassTree node, final ParsedUnit unit) {
+    private static boolean isInitializerOfALocalBecomingVar(final MethodInvocationTree call, final TreePath path, final LintContext ctx) {
+        final var parent = path.getParentPath();
+        return parent != null
+            && parent.getLeaf() instanceof VariableTree variable
+            && variable.getInitializer() == call
+            && LocalVarUseVar.rewritesInitializer(parent, ctx);
+    }
+
+    private static Optional<List<? extends Tree>> findTargetTypeArgs(final TreePath path, final NewClassTree node, final LintContext ctx) {
         final var parent = path.getParentPath();
         if (parent == null) {
             return Optional.empty();
@@ -96,7 +107,7 @@ public final class RedundantTypeArguments implements LintRule {
         if (parent.getLeaf() instanceof VariableTree var
             && var.getInitializer() == node
             && var.getType() instanceof ParameterizedTypeTree targetPt) {
-            if (LocalVarUseVar.rewritesNewInitializer(parent, unit)) {
+            if (LocalVarUseVar.rewritesInitializer(parent, ctx)) {
                 return Optional.empty();
             }
             return Optional.of(targetPt.getTypeArguments());

@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 class Fixture {
 
@@ -9,8 +10,8 @@ class Fixture {
     }
 
     void invoice(final Object amount, final List<String> others) {
-        final var lines = new ArrayList<String>();
-        final var totals = new HashMap<String, Integer>();
+        final List<String> lines = new ArrayList<>();
+        final Map<String, Integer> totals = new HashMap<>();
         final var total = (Object) amount;
         final var currency = "EUR";
         final var count = 1;

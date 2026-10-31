@@ -46,6 +46,15 @@ class VarRetypingCheck {
             final Attribution attribution,
             final List<LocalVarUseVar.Proposal> proven,
             final List<LocalVarUseVar.Proposal> unproven) {
+        final var accepted = accepted(unit, attribution, proven, unproven);
+        return unproven.stream().filter(proposal -> proposal.keepsItsTypeWithoutTarget() || accepted.contains(proposal)).toList();
+    }
+
+    private List<LocalVarUseVar.Proposal> accepted(
+            final ParsedUnit unit,
+            final Attribution attribution,
+            final List<LocalVarUseVar.Proposal> proven,
+            final List<LocalVarUseVar.Proposal> unproven) {
         final var edits = Stream.concat(proven.stream(), unproven.stream()).flatMap(proposal -> proposal.edits().stream()).toList();
         final AttributedUnit rewritten;
         try {
