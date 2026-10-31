@@ -317,6 +317,11 @@ class LocalVarUseVarAnalyzeTest {
                         return List.of();
                     }
 
+                    @SuppressWarnings("rawtypes")
+                    List untypedNames() {
+                        return List.of();
+                    }
+
                     Refund refund() {
                         return new Refund();
                     }
@@ -329,6 +334,10 @@ class LocalVarUseVarAnalyzeTest {
 
                         static <T> SealedBox<T> sealed() {
                             return new SealedBox<>();
+                        }
+
+                        static <T> Box<T> of(final List<T> items) {
+                            return new Box<>();
                         }
 
                         @SuppressWarnings("rawtypes")
@@ -369,7 +378,7 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @ParameterizedTest
-    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);", "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);", "Object label = flag ? \"a\" : \"b\"; show(label);", "List<String> lines = flag ? new ArrayList<>() : new ArrayList<>(); record(lines.get(0).length());", "Box<String> box = Box.sealed(); show(box);", "Box<String> box = Box.<String>sealed(); show(box);", "Box<String> box = Box.<String>raw(); record(box.first().length());", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", })
+    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);", "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);", "Object label = flag ? \"a\" : \"b\"; show(label);", "List<String> lines = flag ? new ArrayList<>() : new ArrayList<>(); record(lines.get(0).length());", "Box<String> box = Box.sealed(); show(box);", "Box<String> box = Box.<String>sealed(); show(box);", "Box<String> box = Box.<String>raw(); record(box.first().length());", "Box<String> box = Box.<String>of(untypedNames()); record(box.first().length());", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", })
     void aLocalWhoseUsesWouldChangeKeepsItsType(final String body) {
         assertThat(rewrittenWithAttribution(ledger(body))).contains(body).doesNotContain("var ");
     }
