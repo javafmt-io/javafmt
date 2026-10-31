@@ -11,23 +11,32 @@ import java.util.Objects;
  *     coverage gap costs the user a reformat rather than their code. On by default; costs an
  *     extra lex of both strings per file. See {@link io.javafmt.parser.RoundTripVerifier}.
  */
-public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysis) implements java.io.Serializable {
+public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysis, int release) implements java.io.Serializable {
+
+    public static final int LATEST_RELEASE = 25;
 
     public JavafmtConfig {
         Objects.requireNonNull(analysis, "analysis");
+        if (release <= 0) {
+            throw new IllegalArgumentException("release must be positive, but was: " + release);
+        }
     }
 
     public JavafmtConfig() {
-        this(true, true, new Analysis.ParseOnly());
+        this(true, true, new Analysis.ParseOnly(), LATEST_RELEASE);
     }
 
     /** Returns a copy with {@link #verifyOutput()} set to {@code verify}. */
     public JavafmtConfig withVerifyOutput(final boolean verify) {
-        return new JavafmtConfig(verify, lint, analysis);
+        return new JavafmtConfig(verify, lint, analysis, release);
     }
 
     public JavafmtConfig withAnalysis(final Analysis newAnalysis) {
-        return new JavafmtConfig(verifyOutput, lint, newAnalysis);
+        return new JavafmtConfig(verifyOutput, lint, newAnalysis, release);
+    }
+
+    public JavafmtConfig withRelease(final int targetRelease) {
+        return new JavafmtConfig(verifyOutput, lint, analysis, targetRelease);
     }
 
     /**
@@ -39,10 +48,10 @@ public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysi
      * integration exposes it — and the lint rules are a large part of what javafmt is for.
      */
     public JavafmtConfig withLint(final boolean runLint) {
-        return new JavafmtConfig(verifyOutput, runLint, analysis);
+        return new JavafmtConfig(verifyOutput, runLint, analysis, release);
     }
 
-    /** The default configuration: output verification on, lint pass on, parse-only. */
+    /** The default configuration: output verification on, lint pass on, parse-only, latest release. */
     public static JavafmtConfig defaults() {
         return new JavafmtConfig();
     }

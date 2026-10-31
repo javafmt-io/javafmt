@@ -5,7 +5,7 @@ class Fixture {
                 var firstResourceWithAVeryMuchLongerName = open("a");
                 var secondResourceWithAVeryMuchLongerName = open("b");
                 var thirdResource = open("c")) {
-            use();
+            use(firstResourceWithAVeryMuchLongerName, secondResourceWithAVeryMuchLongerName, thirdResource);
         }
     }
 }

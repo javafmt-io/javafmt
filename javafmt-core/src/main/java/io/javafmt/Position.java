@@ -13,7 +13,7 @@ public sealed interface Position permits Position.At, Position.Unknown {
     /** {@code "line:column"}, or the empty string for {@link Unknown}. */
     default String display() {
         return switch (this) {
-            case At(var line, var col, var ignored) -> line + ":" + col;
+            case At(var line, var col, var _) -> line + ":" + col;
             case Unknown() -> "";
         };
     }

@@ -135,8 +135,8 @@ public final class LocalVarUseVar implements LintRule {
      */
     private static boolean isPolyExpression(final ExpressionTree initializer) {
         return switch (initializer) {
-            case LambdaExpressionTree ignored -> true;
-            case MemberReferenceTree ignored -> true;
+            case LambdaExpressionTree _ -> true;
+            case MemberReferenceTree _ -> true;
             case NewArrayTree array -> array.getType() == null;
             case NewClassTree newClass -> hasDiamond(newClass) || isAnonymousClassInstantiation(newClass);
             default -> false;

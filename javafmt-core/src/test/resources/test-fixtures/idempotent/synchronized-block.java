@@ -2,7 +2,7 @@ class Fixture {
 
     void lock(final Object lock) {
         synchronized (lock) {
-            final int x = 1;
+            final int _ = 1;
         }
     }
 }

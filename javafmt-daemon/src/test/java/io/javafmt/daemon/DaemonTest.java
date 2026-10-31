@@ -77,7 +77,7 @@ class DaemonTest {
                 Wire.BINARY,
                 new ByteArrayInputStream(delimited(request(1, "class A {}"))),
                 out,
-                (id, source) -> {
+                (_, _) -> {
                     throw new OutOfMemoryError("simulated");
                 },
                 fatal::set);
@@ -119,7 +119,7 @@ class DaemonTest {
 
     @Test
     void deeplyNestedCodeFormatsOnTheDaemonsThreadsWhateverTheDefaultStackSize() {
-        final var nested = IntStream.range(0, 600).boxed().reduce("a", (inner, level) -> "f" + level + "(" + inner + ")", (left, right) -> right);
+        final var nested = IntStream.range(0, 600).boxed().reduce("a", (inner, level) -> "f" + level + "(" + inner + ")", (_, right) -> right);
         final var source = "class Deep {\n\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request(1, source))), out, DaemonHandler::handle, _ -> {});
@@ -142,7 +142,7 @@ class DaemonTest {
                     awaitUninterruptibly(fatalStarted);
                     return FormatReply.newBuilder().setId(id).setOutput(source).build();
                 },
-                error -> {
+                _ -> {
                     fatalStarted.countDown();
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(200));
                     writtenDuringFatal.set(out.size());
@@ -154,7 +154,7 @@ class DaemonTest {
     private static void awaitUninterruptibly(final CountDownLatch latch) {
         try {
             latch.await(5, TimeUnit.SECONDS);
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
         }
     }
@@ -169,7 +169,7 @@ class DaemonTest {
                 (_, _) -> {
                     throw new IllegalStateException("boom");
                 },
-                error -> {});
+                _ -> {});
         assertThat(replies(out))
                 .containsExactly(
                         FormatReply.newBuilder()
@@ -249,7 +249,7 @@ class DaemonTest {
                     if (!nextRequestRead.await(5, TimeUnit.SECONDS)) {
                         repliedBeforeReadingOn.set(true);
                     }
-                } catch (final InterruptedException e) {
+                } catch (final InterruptedException _) {
                     Thread.currentThread().interrupt();
                 }
                 received.write(buffer, offset, length);

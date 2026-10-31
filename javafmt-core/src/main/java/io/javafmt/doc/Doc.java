@@ -32,7 +32,7 @@ public sealed interface Doc
         while (!work.isEmpty()) {
             switch (work.pop()) {
                 case Text(var s) -> total += s.length();
-                case Verbatim(var s, var ignored) -> {
+                case Verbatim(var s, var _) -> {
                     if (s.indexOf('\n') >= 0) {
                         return -1;
                     }
@@ -44,8 +44,8 @@ public sealed interface Doc
                     return -1;
                 }
                 case Indent(var inner) -> work.push(inner);
-                case Group(var inner, var ignored) -> work.push(inner);
-                case IfBreak(var ignored, var flatContents) -> work.push(flatContents);
+                case Group(var inner, var _) -> work.push(inner);
+                case IfBreak(var _, var flatContents) -> work.push(flatContents);
                 case Concat(var ps) -> {
                     for (var i = ps.size() - 1; i >= 0; i--) {
                         work.push(ps.get(i));
@@ -69,11 +69,11 @@ public sealed interface Doc
     static boolean endsWithLineComment(final Doc doc) {
         return switch (doc) {
             case Text(var s) -> s.stripTrailing().startsWith("//") || s.stripTrailing().contains("\n//");
-            case Verbatim(var s, var ignored) -> s.stripTrailing().startsWith("//");
+            case Verbatim(var s, var _) -> s.stripTrailing().startsWith("//");
             case Indent(var inner) -> endsWithLineComment(inner);
-            case Group(var inner, var ignored) -> endsWithLineComment(inner);
+            case Group(var inner, var _) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
-            case IfBreak(var breakContents, var ignored) -> endsWithLineComment(breakContents);
+            case IfBreak(var breakContents, var _) -> endsWithLineComment(breakContents);
             case Line(), SoftLine(), HardLine(), BlockComment _ -> false;
         };
     }
@@ -93,15 +93,15 @@ public sealed interface Doc
                 case Line(), SoftLine(), HardLine(), BlockComment _ -> {
                     return true;
                 }
-                case Verbatim(var s, var ignored) -> {
+                case Verbatim(var s, var _) -> {
                     if (s.indexOf('\n') >= 0) {
                         return true;
                     }
                 }
-                case Text ignored -> {}
+                case Text _ -> {}
                 case Indent(var inner) -> work.push(inner);
-                case Group(var inner, var ignored) -> work.push(inner);
-                case IfBreak(var breakContents, var ignored) -> work.push(breakContents);
+                case Group(var inner, var _) -> work.push(inner);
+                case IfBreak(var breakContents, var _) -> work.push(breakContents);
                 case Concat(var ps) -> ps.forEach(work::push);
             }
         }

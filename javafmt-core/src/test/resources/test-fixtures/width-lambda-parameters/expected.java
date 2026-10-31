@@ -7,6 +7,13 @@ class Fixture {
                 argumentGammaLongName,
                 argumentDeltaLongName,
                 argumentEpsilonLongName,
-                argZeta) -> compute();
+                argumentZetaLongName) -> {
+            use(argumentAlphaLongName);
+            use(argumentBetaLongName);
+            use(argumentGammaLongName);
+            use(argumentDeltaLongName);
+            use(argumentEpsilonLongName);
+            return compute(argumentZetaLongName);
+        };
     }
 }

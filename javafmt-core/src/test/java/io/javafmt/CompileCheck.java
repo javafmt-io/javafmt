@@ -94,7 +94,7 @@ public final class CompileCheck {
         final com.sun.source.tree.CompilationUnitTree tree;
         try {
             tree = io.javafmt.parser.JavaParser.parse(source);
-        } catch (RuntimeException e) {
+        } catch (RuntimeException _) {
             return null;
         }
         if (tree.getModule() != null) {

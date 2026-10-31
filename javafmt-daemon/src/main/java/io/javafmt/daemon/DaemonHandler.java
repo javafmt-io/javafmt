@@ -40,10 +40,10 @@ final class DaemonHandler {
 
     private Kind kind(final io.javafmt.Diagnostic diagnostic) {
         return switch (diagnostic) {
-            case io.javafmt.Diagnostic.ParseError ignored -> Kind.KIND_PARSE;
-            case io.javafmt.Diagnostic.LintError ignored -> Kind.KIND_LINT;
-            case io.javafmt.Diagnostic.InternalError ignored -> Kind.KIND_INTERNAL;
-            case io.javafmt.Diagnostic.Warning ignored -> Kind.KIND_WARNING;
+            case io.javafmt.Diagnostic.ParseError _ -> Kind.KIND_PARSE;
+            case io.javafmt.Diagnostic.LintError _ -> Kind.KIND_LINT;
+            case io.javafmt.Diagnostic.InternalError _ -> Kind.KIND_INTERNAL;
+            case io.javafmt.Diagnostic.Warning _ -> Kind.KIND_WARNING;
         };
     }
 }

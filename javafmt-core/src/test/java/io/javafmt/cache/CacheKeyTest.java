@@ -9,19 +9,24 @@ class CacheKeyTest {
 
     @Test
     void aParseOnlyConfigKeysWithoutAClasspath() {
-        assertThat(CacheKey.of(JavafmtConfig.defaults())).isEqualTo(new CacheKey(true, true, false, ""));
+        assertThat(CacheKey.of(JavafmtConfig.defaults())).isEqualTo(new CacheKey(true, true, false, "", 25));
     }
 
     @Test
     void anAttributedConfigKeysOnItsClasspath() {
         final var config = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/lib/a.jar"));
-        assertThat(CacheKey.of(config)).isEqualTo(new CacheKey(true, true, true, "/lib/a.jar"));
+        assertThat(CacheKey.of(config)).isEqualTo(new CacheKey(true, true, true, "/lib/a.jar", 25));
+    }
+
+    @Test
+    void configsDifferingOnlyInTheirReleaseKeyDifferently() {
+        assertThat(CacheKey.of(JavafmtConfig.defaults().withRelease(21))).isNotEqualTo(CacheKey.of(JavafmtConfig.defaults()));
     }
 
     @Test
     void theFingerprintIsStableSoExistingCacheFilesStayValid() {
-        assertThat(CacheKey.of(JavafmtConfig.defaults()).fingerprint()).isEqualTo("174fa54fb14bac9b");
+        assertThat(CacheKey.of(JavafmtConfig.defaults()).fingerprint()).isEqualTo("1e3ed9cb952895df");
         final var config = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/lib/a.jar"));
-        assertThat(CacheKey.of(config).fingerprint()).isEqualTo("70f4e09f9e6d87b8");
+        assertThat(CacheKey.of(config).fingerprint()).isEqualTo("e0c0800e07385061");
     }
 }

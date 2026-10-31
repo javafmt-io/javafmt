@@ -77,7 +77,7 @@ final class BatchFormatter {
                     pool,
                     workers,
                     reads.stream()
-                            .map(read -> read instanceof FileRead.Pending(var ignored, var source) ? source : "")
+                            .map(read -> read instanceof FileRead.Pending(var _, var source) ? source : "")
                             .toList(),
                     config);
             return IntStream.range(0, reads.size())
@@ -159,7 +159,7 @@ final class BatchFormatter {
                 List.of(source),
                 config,
                 Renderer.INLINE,
-                chunk -> List.of(new Prepared(new Staged.Ok<>(LintContext.parseOnly(unit)), List.of())))
+                _ -> List.of(new Prepared(new Staged.Ok<>(LintContext.parseOnly(unit)), List.of())))
                 .getFirst();
     }
 
@@ -233,7 +233,11 @@ final class BatchFormatter {
 
     /** Lints every successfully parsed source in one batch, leaving parse failures untouched. */
     private List<Staged<LintEngine.Outcome>> lintBatch(final List<Staged<LintContext>> parsed, final JavafmtConfig config) {
-        return Staged.mapAll(parsed, FormatStages.lintEngine(config)::lintAll);
+        return Staged.mapAll(parsed, contexts -> FormatStages.lintEngine(config).lintAll(targeting(contexts, config.release())));
+    }
+
+    private List<LintContext> targeting(final List<LintContext> contexts, final int release) {
+        return contexts.stream().map(context -> context.withRelease(release)).toList();
     }
 
     private List<FormatResult> render(
@@ -331,7 +335,7 @@ final class BatchFormatter {
     @FunctionalInterface
     interface Renderer {
 
-        Renderer INLINE = (sources, tasks) -> tasks.stream().map(Supplier::get).toList();
+        Renderer INLINE = (_, tasks) -> tasks.stream().map(Supplier::get).toList();
 
         List<FormatResult> renderAll(List<String> sources, List<Supplier<FormatResult>> tasks);
 

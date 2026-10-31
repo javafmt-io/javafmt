@@ -5,6 +5,6 @@ class Fixture {
         // between statements
         final int c = b + 1;
         /* and a block comment */
-        final int d = c + 1;
+        final int _ = c + 1;
     }
 }

@@ -173,7 +173,7 @@ class JavafmtFormatAllTest {
         final var sources = List.of("class A {}\n", "class B {}\n");
         final var results = formatChunkFailingWhenBatched(
                 sources,
-                chunk -> {
+                _ -> {
                     throw new IllegalStateException("every chunk fails");
                 });
         assertThat(outputsOf(results)).isEqualTo(sources);
