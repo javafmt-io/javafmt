@@ -208,9 +208,9 @@ class CommentAuditTest {
                     }
                     """),
                 Arguments.of("empty interface body", """
-                                                     interface Marker { // nothing to declare
-                                                     }
-                                                     """));
+                    interface Marker { // nothing to declare
+                    }
+                    """));
     }
 
     @ParameterizedTest(name = "{0}")

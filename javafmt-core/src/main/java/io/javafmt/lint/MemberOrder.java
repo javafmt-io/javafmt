@@ -80,7 +80,9 @@ public final class MemberOrder implements LintRule {
                 .map(m -> "\n\n" + indent + unit.source().substring(span(unit, m).start(), span(unit, m).end()))
                 .reduce("", String::concat);
         return Stream.concat(
-                movers.stream().map(m -> span(unit, m)).map(s -> new LintEdit(s.start(), s.end(), "")),
+                movers.stream()
+                        .map(m -> span(unit, m))
+                        .map(s -> new LintEdit(s.start(), s.end(), "")),
                 Stream.of(LintEdit.insert(insertAt, appended)))
                 .toList();
     }

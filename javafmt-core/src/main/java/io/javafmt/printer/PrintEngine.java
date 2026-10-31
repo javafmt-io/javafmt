@@ -242,20 +242,61 @@ final class PrintEngine {
             return;
         }
         final var content = parts.get(first);
-        final var contentFits = fitsForward(new Frame(frame.indent(), Mode.FLAT, content), budget, following(frame, parts, first + 1, stack), work);
-        final var contentFrame = new Frame(frame.indent(), contentFits ? Mode.FLAT : Mode.BREAK, content);
+        final var contentFrame = new Frame(frame.indent(), Mode.BREAK, content);
         if (first + 1 == parts.size()) {
             stack.push(contentFrame);
             return;
         }
         final var separator = parts.get(first + 1);
-        final var pair = new Frame(frame.indent(), Mode.FLAT, Doc.concat(content, separator, parts.get(first + 2)));
-        final var pairFits = contentFits
-            && Doc.flatWidthOrBreak(pair.doc()) >= 0
-            && fitsForward(pair, budget, following(frame, parts, first + 3, stack), work);
+        final var next = parts.get(first + 2);
+        final var pair = new Frame(frame.indent(), Mode.FLAT, Doc.concat(content, separator, next));
+        final var pairFits = fitsForward(pair, budget, following(frame, parts, first + 3, stack), work)
+            && staysOnOneLine(content)
+            && staysOnOneLine(next);
         stack.push(new Frame(frame.indent(), Mode.BREAK, frame.doc(), first + 2));
         stack.push(new Frame(frame.indent(), pairFits ? Mode.FLAT : Mode.BREAK, separator));
         stack.push(contentFrame);
+    }
+
+    private boolean staysOnOneLine(final Doc doc) {
+        final var pending = new ArrayDeque<Pending>();
+        pending.push(new Pending(doc, false));
+        while (!pending.isEmpty()) {
+            final var current = pending.pop();
+            final var grouped = current.grouped();
+            switch (current.doc()) {
+                case Doc.HardLine _, Doc.BlockComment _ -> {
+                    return false;
+                }
+                case Doc.Line _, Doc.SoftLine _ -> {
+                    if (!grouped) {
+                        return false;
+                    }
+                }
+                case Doc.Verbatim(var s, var _) -> {
+                    if (s.indexOf('\n') >= 0) {
+                        return false;
+                    }
+                }
+                case Doc.Text _ -> {}
+                case Doc.Group(var d, var preferBreak) -> {
+                    if (preferBreak && !grouped) {
+                        return false;
+                    }
+                    pending.push(new Pending(d, true));
+                }
+                case Doc.Indent(var d) -> pending.push(new Pending(d, grouped));
+                case Doc.Align(var d) -> pending.push(new Pending(d, grouped));
+                case Doc.IfBreak(var breakContents, var flatContents) -> pending.push(new Pending(grouped ? flatContents : breakContents, grouped));
+                case Doc.Choice(var preferred, var fallback) -> {
+                    pending.push(new Pending(preferred, grouped));
+                    pending.push(new Pending(fallback, grouped));
+                }
+                case Doc.Concat(var parts) -> parts.forEach(part -> pending.push(new Pending(part, grouped)));
+                case Doc.Fill(var parts) -> parts.forEach(part -> pending.push(new Pending(part, grouped)));
+            }
+        }
+        return true;
     }
 
     private ArrayDeque<Frame> following(final Frame frame, final List<Doc> parts, final int index, final ArrayDeque<Frame> stack) {
@@ -274,6 +315,8 @@ final class PrintEngine {
     }
 
     private enum Mode { FLAT, BREAK }
+
+    private record Pending(Doc doc, boolean grouped) {}
 
     private record Frame(int indent, Mode mode, Doc doc, int firstPart) {
 

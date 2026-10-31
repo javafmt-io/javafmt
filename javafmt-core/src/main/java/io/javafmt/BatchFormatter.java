@@ -75,7 +75,11 @@ final class BatchFormatter {
                     .map(CompletableFuture::join)
                     .toList();
             final var results = formatOn(
-                    pool, workers, reads.stream().map(read -> read instanceof FileRead.Pending(var _, var source) ? source : "").toList(), config);
+                    pool, workers,
+                    reads.stream()
+                            .map(read -> read instanceof FileRead.Pending(var _, var source) ? source : "")
+                            .toList(),
+                    config);
             return IntStream.range(0, reads.size())
                     .mapToObj(
                             i -> switch (reads.get(i)) {
@@ -118,7 +122,10 @@ final class BatchFormatter {
                                     chunks.stream()
                                             .<Supplier<List<FormatResult>>>map(chunk -> () -> formatParseOnly(chunk, config, Renderer.on(pool)))
                                             .toList(),
-                                    (i, failure) -> chunks.get(i).stream().map(source -> FormatStages.internalErrorResult(source, failure)).toList())
+                                    (i, failure) -> chunks.get(i)
+                                            .stream()
+                                            .map(source -> FormatStages.internalErrorResult(source, failure))
+                                            .toList())
                                     .stream()
                                     .flatMap(List::stream)
                                     .toList();

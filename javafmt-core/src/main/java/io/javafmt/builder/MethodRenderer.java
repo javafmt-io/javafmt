@@ -116,7 +116,9 @@ final class MethodRenderer {
                     Doc.concatOf(
                             Stream.of(
                                     Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")),
-                                    annotated.getAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" "))))));
+                                    annotated.getAnnotations()
+                                            .stream()
+                                            .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" "))))));
         }
         return Optional.empty();
     }
