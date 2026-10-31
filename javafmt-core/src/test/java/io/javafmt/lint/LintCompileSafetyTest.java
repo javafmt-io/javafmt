@@ -60,6 +60,22 @@ class LintCompileSafetyTest {
                                                   }
                                                   """, true),
                 Arguments.of(
+                        "widening-diamond",
+                        wrap(
+                                "Map<String, List<Integer>> totals = new HashMap<>();\ntotals.put(\"a\", List.of(1));",
+                                "java.util.HashMap",
+                                "java.util.List",
+                                "java.util.Map"),
+                        false),
+                Arguments.of(
+                        "subtype-feeds-chain-inference",
+                        wrap(
+                                "Collection<String> names = List.of(\"a\");\nList<Collection<String>> rows = Stream.of(names).toList();\nSystem.out.println(rows);",
+                                "java.util.Collection",
+                                "java.util.List",
+                                "java.util.stream.Stream"),
+                        true),
+                Arguments.of(
                         "anon-class",
                         wrap(
                                 "Object o = new Object() {\n@Override public String toString() { return \"x\"; }\n};\no = \"y\";\nSystem.out.println(o);"),

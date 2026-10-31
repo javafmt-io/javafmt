@@ -93,7 +93,7 @@ class JavafmtVerifyOutputTest {
         assertThat(result.diagnostics()).noneMatch(d -> d instanceof Diagnostic.InternalError);
         assertThat(result.output())
                 .contains("void m(final int n)")
-                .contains("final String s = \"hi\";")
+                .contains("final var s = \"hi\";")
                 .contains("if (n > 0) {");
     }
 

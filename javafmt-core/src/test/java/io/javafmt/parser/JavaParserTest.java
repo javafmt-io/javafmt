@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.tools.StandardJavaFileManager;
@@ -36,6 +37,21 @@ class JavaParserTest {
                     }
                 });
         assertThat(JavaParser.idleFileManagers()).isLessThanOrEqualTo(Math.max(before, 1));
+    }
+
+    @Test
+    void attributionReportsEveryErrorInTheUnitWithItsOffset() {
+        final var body = IntStream.range(0, 150).mapToObj(i -> "int n" + i + " = \"x\";").collect(Collectors.joining(" "));
+        final var source = "class Invoices { void settle() { " + body + " } }";
+        final var errors = JavaParser.attributing(
+                "",
+                session -> {
+                    final var attributed = session.attribute(source);
+                    return attributed.attribution().errorsIn(attributed.unit().tree());
+                });
+        assertThat(errors).hasSize(150);
+        assertThat(errors.getFirst().offset()).isEqualTo(source.indexOf("\"x\""));
+        assertThat(errors.getFirst().message()).contains("incompatible types");
     }
 
     @Test

@@ -4,6 +4,9 @@ import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -54,11 +57,7 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @Test
-    void wideningDeclarationKeepsItsDeclaredType() {
-        // List<X> xs = new ArrayList<X>() — declared type is wider than inferred. Rewriting to
-        // `var xs` silently narrows the static type the author chose, and breaks outright as soon
-        // as the local is reassigned from anything that is a List but not an ArrayList. The
-        // declared type stays; RedundantTypeArguments is free to diamond-ify the constructor.
+    void wideningNewBecomesVarAndKeepsItsTypeArguments() {
         final var source = """
                 import java.util.ArrayList;
                 import java.util.List;
@@ -71,9 +70,7 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("final List<String> xs = new ArrayList<>();")
-                .doesNotContain("var xs");
+        assertThat(formatted).contains("final var xs = new ArrayList<String>();");
     }
 
     @Test
@@ -95,8 +92,7 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @Test
-    void diamondInitializerIsNotRewritten() {
-        // `var xs = new ArrayList<>()` has no target type left for the diamond to infer from.
+    void diamondInitializerGainsTheDeclaredTypeArguments() {
         final var source = """
                 import java.util.ArrayList;
                 class Fixture {
@@ -108,9 +104,7 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("ArrayList<String> xs = new ArrayList<>();")
-                .doesNotContain("var xs");
+        assertThat(formatted).contains("final var xs = new ArrayList<String>();");
     }
 
     @Test
@@ -284,5 +278,71 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).doesNotContain("Comparator.<String>comparing");
+    }
+
+    private static String ledger(final String body) {
+        return """
+                import java.util.ArrayList;
+                import java.util.Collection;
+                import java.util.Comparator;
+                import java.util.List;
+                import java.util.function.Function;
+                import java.util.stream.Stream;
+
+                class Ledger {
+
+                    static class Entry {
+
+                        String label = "entry";
+                    }
+
+                    static class Refund extends Entry {
+
+                        String label = "refund";
+                    }
+
+                    String describe() {
+                        return "invoice";
+                    }
+
+                    int count() {
+                        return 1;
+                    }
+
+                    long size() {
+                        return 1L;
+                    }
+
+                    List<String> names() {
+                        return List.of();
+                    }
+
+                    Refund refund() {
+                        return new Refund();
+                    }
+
+                    void show(final CharSequence text) {}
+
+                    void show(final String text) {}
+
+                    void record(final Object value) {}
+
+                    void settle(final boolean flag, final CharSequence other) {
+                %s
+                    }
+                }
+                """.formatted(body);
+    }
+
+    @ParameterizedTest
+    @CsvSource( delimiter = '|', value = { "List<String> xs = Stream.of(\"a\").toList(); record(xs);    | var xs = Stream.of(\"a\").toList();", "CharSequence text = describe(); record(text.length());      | var text = describe();", "String name = describe(); show(name);                       | var name = describe();", "long total = size(); record(total);                         | var total = size();", "List<String> lines = new ArrayList<>(); record(lines);      | var lines = new ArrayList<String>();", "List<Object> xs = List.of(\"a\"); record(xs);               | var xs = List.<Object>of(\"a\");", })
+    void aLocalWhoseUsesStayTheSameBecomesVar(final String body, final String expected) {
+        assertThat(rewrittenWithAttribution(ledger(body))).contains(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "Collection<String> all = names(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", })
+    void aLocalWhoseUsesWouldChangeKeepsItsType(final String body) {
+        assertThat(rewrittenWithAttribution(ledger(body))).contains(body).doesNotContain("var ");
     }
 }
