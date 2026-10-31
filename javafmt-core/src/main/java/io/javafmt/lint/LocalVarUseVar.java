@@ -32,7 +32,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -49,15 +48,14 @@ import javax.lang.model.type.TypeMirror;
  * </ul>
  * Each of these leaves the local's static type unchanged. With attribution, a static factory call
  * on the declared raw type that already carries a type witness matching the declared type
- * arguments joins them when the method's return type is the declared class with the same number of
- * type arguments.
+ * arguments joins them when javac gives the call exactly the declared type.
  *
  * <p>With attribution it also offers every other local that is never reassigned and whose
  * initializer is a {@code new} of a narrower class (a diamond gains the declared type arguments
  * when they are known to line up with the instantiated class's own), a static factory on the
  * declared raw type (which gains the declared type arguments as its witness, see
- * {@link #witnessFitsTheMethod}, or already carries a matching witness but returns some other
- * type), or whose type equals the declared type or is a subtype of it.
+ * {@link #witnessFitsTheMethod}, or already carries a matching witness but the call's type is some
+ * other type), or whose type equals the declared type or is a subtype of it.
  * {@link VarRetypingCheck} re-attributes the rewritten file
  * and keeps only the rewrites under which nothing in the local's scope changes type, symbol or
  * compiles differently, plus any whose initializer has exactly the declared type without a target
@@ -433,7 +431,7 @@ public final class LocalVarUseVar implements LintRule {
         }
         if (!call.getTypeArguments().isEmpty()) {
             return typeArgsMatchTextually(pt.getTypeArguments(), call.getTypeArguments(), unit)
-                && (!proven || returnsTheDeclaredType(node, call, path, ctx))
+                && (!proven || callHasTheDeclaredType(node, call, path, ctx))
                     ? List.of(new LintEdit(typeStart, typeEnd, "var"))
                     : List.of();
         }
@@ -452,19 +450,17 @@ public final class LocalVarUseVar implements LintRule {
         return List.of(new LintEdit(typeStart, typeEnd, "var"), LintEdit.insert(namePos, witness));
     }
 
-    private static boolean returnsTheDeclaredType(
+    private static boolean callHasTheDeclaredType(
             final VariableTree node,
             final MethodInvocationTree call,
             final TreePath path,
             final LintContext ctx) {
         return ctx.attribution()
-                .filter(
-                        attribution -> attribution.trees()
-                                .getElement(new TreePath(new TreePath(path, call), call.getMethodSelect())) instanceof ExecutableElement method
-                            && method.getReturnType() instanceof DeclaredType returned
-                            && attribution.trees().getTypeMirror(new TreePath(path, node.getType())) instanceof DeclaredType declared
-                            && returned.asElement().equals(declared.asElement())
-                            && returned.getTypeArguments().size() == declared.getTypeArguments().size())
+                .filter(attribution -> {
+                    final var callType = attribution.trees().getTypeMirror(new TreePath(path, call));
+                    final var declaredType = attribution.trees().getTypeMirror(new TreePath(path, node.getType()));
+                    return isUsable(callType) && isUsable(declaredType) && attribution.types().isSameType(callType, declaredType);
+                })
                 .isPresent();
     }
 
