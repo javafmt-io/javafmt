@@ -126,6 +126,9 @@ class CorpusGateTest {
                 corpus.count(o -> o.formatted() && !o.idempotent()), BASELINE.notIdempotent(),
                 corpus.count(o -> o.formatted() && o.overWidthLines() > 0), BASELINE.overWidth(),
                 corpus.outcomes().stream().mapToLong(FileOutcome::overWidthLines).sum(), corpus.totalMillis(), PER_FILE_BUDGET_MILLIS,
-                corpus.slowest(SLOWEST_REPORTED).stream().map(o -> "    %5d ms  %s%n".formatted(o.millis(), o.name())).collect(Collectors.joining()));
+                corpus.slowest(SLOWEST_REPORTED)
+                        .stream()
+                        .map(o -> "    %5d ms  %s%n".formatted(o.millis(), o.name()))
+                        .collect(Collectors.joining()));
     }
 }

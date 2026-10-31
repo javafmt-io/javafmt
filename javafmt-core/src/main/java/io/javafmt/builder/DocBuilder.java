@@ -262,7 +262,10 @@ public final class DocBuilder {
         final var module = node.getModule();
         final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.<Doc>ofNullable(scan(module)).stream();
         final var typeDeclarationsStream = Doc.intersperse(
-                Doc.BLANK_LINE, node.getTypeDecls().stream().<Doc>flatMap(declaration -> Optional.<Doc>ofNullable(scan(declaration)).stream()));
+                Doc.BLANK_LINE,
+                node.getTypeDecls()
+                        .stream()
+                        .<Doc>flatMap(declaration -> Optional.<Doc>ofNullable(scan(declaration)).stream()));
         return Doc.concatOf(
                 Stream.of(
                         CommentDocs.fileHeaderStream(unit.fileHeader()), packageAnnotations, pkgStream,
