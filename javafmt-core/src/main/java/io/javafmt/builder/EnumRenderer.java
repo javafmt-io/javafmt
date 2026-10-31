@@ -185,7 +185,7 @@ final class EnumRenderer {
         }
         final var arguments = nc.getArguments().isEmpty()
                 ? Stream.<Doc>empty()
-                : Stream.of(WrappableList.of("(", ",", ")", nc.getArguments().stream().map(recursor::scan)));
+                : Stream.of(ExpressionRenderers.packedArguments(nc.getArguments(), recursor));
         final var body = nc.getClassBody() == null ? Stream.<Doc>empty() : Stream.of(ClassBodyRenderer.render(nc.getClassBody(), recursor));
         return new Doc.Concat(Stream.concat(head, Stream.concat(arguments, body)));
     }
