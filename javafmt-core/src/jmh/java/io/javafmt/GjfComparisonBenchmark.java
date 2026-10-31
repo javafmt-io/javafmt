@@ -77,7 +77,7 @@ public class GjfComparisonBenchmark {
     private static boolean bothFormattersAccept(final String source) {
         try {
             new Formatter().formatSource(source);
-        } catch (FormatterException | RuntimeException _) {
+        } catch (final FormatterException | RuntimeException _) {
             return false;
         }
         return !Javafmt.formatWithResult(source).hasErrors();

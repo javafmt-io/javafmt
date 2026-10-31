@@ -417,7 +417,7 @@ class CommentAuditTest {
     private static String read(final Path path) {
         try {
             return Files.readString(path);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }

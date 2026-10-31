@@ -175,10 +175,10 @@ class JavafmtFormatterStepTest {
     @Test
     void applyKeepsUnusedNamesForAReleaseWithoutUnnamedVariables() {
         final var source = "class Foo { void m() { try { m(); } catch (IllegalStateException unused) { m(); } } }";
-        assertThat(JavafmtFormatterStep.apply(source, 25)).contains("catch (IllegalStateException _)");
-        assertThat(JavafmtFormatterStep.apply(source, 21)).contains("catch (IllegalStateException unused)");
+        assertThat(JavafmtFormatterStep.apply(source, 25)).contains("catch (final IllegalStateException _)");
+        assertThat(JavafmtFormatterStep.apply(source, 21)).contains("catch (final IllegalStateException unused)");
         assertThat(JavafmtFormatterStep.applyWithAnalyze(source, System.getProperty("java.class.path"), 21))
-                .contains("catch (IllegalStateException unused)");
+                .contains("catch (final IllegalStateException unused)");
     }
 
     @Test

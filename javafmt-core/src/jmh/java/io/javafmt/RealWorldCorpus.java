@@ -40,7 +40,7 @@ public final class RealWorldCorpus {
                     .limit(limit)
                     .map(RealWorldCorpus::read)
                     .toList();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -56,7 +56,7 @@ public final class RealWorldCorpus {
         }
         try (final var zip = FileSystems.newFileSystem(Path.of(srcZip))) {
             return read(zip.getPath("java.base", file));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -64,7 +64,7 @@ public final class RealWorldCorpus {
     private static String read(final Path path) {
         try {
             return Files.readString(path, StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }

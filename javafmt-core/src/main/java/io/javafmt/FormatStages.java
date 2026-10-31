@@ -65,7 +65,7 @@ final class FormatStages {
                 return new FormatResult(source, List.of(new Diagnostic.InternalError(mismatch.get(), whereItDiverged(linted, output))));
             }
             return withDiagnostics(new FormatResult(output, built.diagnostics()), lintOutcome.diagnostics());
-        } catch (RuntimeException | AssertionError | StackOverflowError t) {
+        } catch (final RuntimeException | AssertionError | StackOverflowError t) {
             return internalErrorResult(source, t);
         }
     }

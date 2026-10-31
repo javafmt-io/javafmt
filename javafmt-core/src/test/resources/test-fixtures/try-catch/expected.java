@@ -3,7 +3,7 @@ class Fixture {
     void test() {
         try {
             riskyOp();
-        } catch (Exception e) {
+        } catch (final Exception e) {
             handleException(e);
         }
     }

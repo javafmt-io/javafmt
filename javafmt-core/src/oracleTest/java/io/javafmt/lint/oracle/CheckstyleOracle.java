@@ -62,7 +62,7 @@ public final class CheckstyleOracle {
         try {
             checker.setModuleClassLoader(Checker.class.getClassLoader());
             checker.configure(root);
-        } catch (CheckstyleException e) {
+        } catch (final CheckstyleException e) {
             throw new IllegalStateException("failed to configure Checkstyle", e);
         }
         final var collector = new CollectingListener();
@@ -71,18 +71,18 @@ public final class CheckstyleOracle {
         try {
             tempFile = Files.createTempFile("javafmt-oracle-", ".java");
             Files.writeString(tempFile, source);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
         try {
             checker.process(List.of(tempFile.toFile()));
-        } catch (CheckstyleException e) {
+        } catch (final CheckstyleException e) {
             throw new IllegalStateException("Checkstyle processing failed", e);
         } finally {
             checker.destroy();
             try {
                 Files.deleteIfExists(tempFile);
-            } catch (IOException error) {
+            } catch (final IOException error) {
                 LOG.debug("failed to delete temp file {}", tempFile, error);
             }
         }
@@ -95,7 +95,7 @@ public final class CheckstyleOracle {
     private static boolean isFileSetCheck(final String checkClassName) {
         try {
             return AbstractFileSetCheck.class.isAssignableFrom(Class.forName(checkClassName, false, Checker.class.getClassLoader()));
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             throw new IllegalStateException("unknown Checkstyle check class: " + checkClassName, e);
         }
     }
