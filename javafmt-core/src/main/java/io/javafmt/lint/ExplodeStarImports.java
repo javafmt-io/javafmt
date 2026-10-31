@@ -150,12 +150,11 @@ public final class ExplodeStarImports implements LintRule {
      * newline that terminated the wildcard, so the replacement must restore it; a span shared with
      * another declaration on the same line does not end in a newline, so it must not either.
      */
-    private static String replacementFor(
-            final ImportTree imp,
-            final String prefix,
-            final Set<String> names,
-            final RemoveUnusedImports.Span span,
-            final ParsedUnit unit) {
+    private static String replacementFor(final ImportTree imp,
+                                         final String prefix,
+                                         final Set<String> names,
+                                         final RemoveUnusedImports.Span span,
+                                         final ParsedUnit unit) {
         final var keyword = imp.isStatic() ? "import static " : "import ";
         final var body = names.stream()
                 .map(name -> keyword + prefix + "." + name + ";")

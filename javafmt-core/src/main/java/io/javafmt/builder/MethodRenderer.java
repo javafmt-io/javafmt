@@ -40,11 +40,10 @@ final class MethodRenderer {
         return node.getReturnType() == null ? Stream.<Doc>empty() : Stream.of(recursor.scan(node.getReturnType()), new Doc.Text(" "));
     }
 
-    Doc buildLeading(
-            final String modifiers,
-            final List<? extends TypeParameterTree> typeParams,
-            final String afterTypeParams,
-            final Recursor recursor) {
+    Doc buildLeading(final String modifiers,
+                     final List<? extends TypeParameterTree> typeParams,
+                     final String afterTypeParams,
+                     final Recursor recursor) {
         return buildLeading(modifiers, typeParams, new Doc.Text(afterTypeParams), recursor);
     }
 
@@ -73,11 +72,10 @@ final class MethodRenderer {
         return new Doc.Group(Doc.concat(new Doc.Text("<"), new Doc.Indent(interior), Doc.SOFT_LINE, new Doc.Text(">")));
     }
 
-    Doc renderSignature(
-            final Doc leading,
-            final List<? extends VariableTree> params,
-            final List<? extends ExpressionTree> throwsList,
-            final Recursor recursor) {
+    Doc renderSignature(final Doc leading,
+                        final List<? extends VariableTree> params,
+                        final List<? extends ExpressionTree> throwsList,
+                        final Recursor recursor) {
         if (params.isEmpty() && throwsList.isEmpty()) {
             return Doc.concat(leading, new Doc.Text("()"));
         }
@@ -89,9 +87,8 @@ final class MethodRenderer {
     }
 
     private Doc buildParamsPart(final Doc leading, final List<? extends VariableTree> params, final Recursor recursor) {
-        final var interior = new Doc.Concat(
-                Stream.concat(Stream.of(Doc.SOFT_LINE), CommentDocs.commaList(params, recursor, p -> recursor.attach(p, renderParam(p, recursor)))));
-        return Doc.concat(leading, new Doc.Text("("), Doc.continuationIndent(interior), new Doc.Text(")"));
+        final var interior = CommentDocs.commaList(params, recursor, p -> recursor.attach(p, renderParam(p, recursor))).toList();
+        return Doc.concat(leading, WrappableList.alignedOf("(", interior, ")"));
     }
 
     private Doc renderParam(final VariableTree p, final Recursor recursor) {

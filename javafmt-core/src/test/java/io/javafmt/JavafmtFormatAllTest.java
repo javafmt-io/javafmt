@@ -220,9 +220,8 @@ class JavafmtFormatAllTest {
                 .isInstanceOf(LinkageError.class);
     }
 
-    private static List<FormatResult> formatChunkFailingWhenBatched(
-            final List<String> sources,
-            final Function<List<String>, List<BatchFormatter.Prepared>> parser) {
+    private static List<FormatResult> formatChunkFailingWhenBatched(final List<String> sources,
+                                                                    final Function<List<String>, List<BatchFormatter.Prepared>> parser) {
         return BatchFormatter.formatChunk(
                 sources,
                 JavafmtConfig.defaults(),

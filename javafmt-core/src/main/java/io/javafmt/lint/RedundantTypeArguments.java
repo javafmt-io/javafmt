@@ -138,10 +138,9 @@ public final class RedundantTypeArguments implements LintRule {
         return Optional.empty();
     }
 
-    private static boolean typeArgumentsMatch(
-            final List<? extends Tree> constructorArguments,
-            final List<? extends Tree> targetArguments,
-            final ParsedUnit unit) {
+    private static boolean typeArgumentsMatch(final List<? extends Tree> constructorArguments,
+                                              final List<? extends Tree> targetArguments,
+                                              final ParsedUnit unit) {
         return constructorArguments.size() == targetArguments.size()
             && IntStream.range(0, constructorArguments.size())
                     .allMatch(i -> unit.sourceOf(constructorArguments.get(i)).trim().equals(unit.sourceOf(targetArguments.get(i)).trim()));
@@ -225,11 +224,10 @@ public final class RedundantTypeArguments implements LintRule {
      * {@code Types.isSameType} (different javac sessions), so we compare
      * {@code TypeMirror.toString()} representations.
      */
-    private static void dropRedundantWitnesses(
-            final ParsedUnit unit,
-            final Attribution attribution,
-            final List<WitnessCall> candidates,
-            final List<LintEdit> edits) {
+    private static void dropRedundantWitnesses(final ParsedUnit unit,
+                                               final Attribution attribution,
+                                               final List<WitnessCall> candidates,
+                                               final List<LintEdit> edits) {
         if (candidates.isEmpty()) {
             return;
         }
@@ -264,13 +262,12 @@ public final class RedundantTypeArguments implements LintRule {
                 .collect(Collectors.joining());
     }
 
-    private static void tryEmitDrop(
-            final List<WitnessCall> sorted,
-            final int index,
-            final String originalTypeString,
-            final AttributedUnit reattributed,
-            final Map<Integer, TreePath> callsByNameStart,
-            final List<LintEdit> edits) {
+    private static void tryEmitDrop(final List<WitnessCall> sorted,
+                                    final int index,
+                                    final String originalTypeString,
+                                    final AttributedUnit reattributed,
+                                    final Map<Integer, TreePath> callsByNameStart,
+                                    final List<LintEdit> edits) {
         final var candidate = sorted.get(index);
         final var translatedNameStart = candidate.methodNameStart() - strippedLengthBefore(sorted, candidate.methodNameStart());
         final var newPath = callsByNameStart.get(translatedNameStart);

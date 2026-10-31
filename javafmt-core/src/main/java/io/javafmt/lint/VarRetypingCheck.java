@@ -41,20 +41,18 @@ class VarRetypingCheck {
 
     private final Pattern CAPTURE_NUMBER = Pattern.compile("capture#\\d+");
 
-    List<LocalVarUseVar.Proposal> verified(
-            final ParsedUnit unit,
-            final Attribution attribution,
-            final List<LocalVarUseVar.Proposal> proven,
-            final List<LocalVarUseVar.Proposal> unproven) {
+    List<LocalVarUseVar.Proposal> verified(final ParsedUnit unit,
+                                           final Attribution attribution,
+                                           final List<LocalVarUseVar.Proposal> proven,
+                                           final List<LocalVarUseVar.Proposal> unproven) {
         final var accepted = accepted(unit, attribution, proven, unproven);
         return unproven.stream().filter(proposal -> proposal.keepsItsTypeWithoutTarget() || accepted.contains(proposal)).toList();
     }
 
-    private List<LocalVarUseVar.Proposal> accepted(
-            final ParsedUnit unit,
-            final Attribution attribution,
-            final List<LocalVarUseVar.Proposal> proven,
-            final List<LocalVarUseVar.Proposal> unproven) {
+    private List<LocalVarUseVar.Proposal> accepted(final ParsedUnit unit,
+                                                   final Attribution attribution,
+                                                   final List<LocalVarUseVar.Proposal> proven,
+                                                   final List<LocalVarUseVar.Proposal> unproven) {
         final var edits = Stream.concat(proven.stream(), unproven.stream()).flatMap(proposal -> proposal.edits().stream()).toList();
         final AttributedUnit rewritten;
         try {
@@ -84,13 +82,12 @@ class VarRetypingCheck {
         return offset >= shift.start(unit.startOf(proposal.scope())) && offset < shift.end(unit.endOf(proposal.scope()));
     }
 
-    private Set<Long> failures(
-            final ParsedUnit unit,
-            final Attribution attribution,
-            final AttributedUnit rewritten,
-            final Shift shift,
-            final List<LocalVarUseVar.Proposal> proposals,
-            final List<LocalVarUseVar.Proposal> unproven) {
+    private Set<Long> failures(final ParsedUnit unit,
+                               final Attribution attribution,
+                               final AttributedUnit rewritten,
+                               final Shift shift,
+                               final List<LocalVarUseVar.Proposal> proposals,
+                               final List<LocalVarUseVar.Proposal> unproven) {
         final var knownErrors = attribution.errorsIn(unit.tree())
                 .stream()
                 .map(error -> new AttributionError(error.offset() < 0 ? -1 : shift.start((int) error.offset()), normalized(error.message())))
@@ -125,12 +122,11 @@ class VarRetypingCheck {
         return Stream.concat(newErrors, changed).collect(Collectors.toSet());
     }
 
-    private boolean matches(
-            final TreePath before,
-            @Nullable final TreePath after,
-            final Attribution beforeAttribution,
-            final Attribution afterAttribution,
-            final Set<Element> retypedVariables) {
+    private boolean matches(final TreePath before,
+                            @Nullable final TreePath after,
+                            final Attribution beforeAttribution,
+                            final Attribution afterAttribution,
+                            final Set<Element> retypedVariables) {
         if (after == null) {
             return false;
         }

@@ -34,22 +34,20 @@ public final class Daemon {
         serve(wire, in, out, threads, DaemonHandler::handle, Daemon::exit);
     }
 
-    void serve(
-            final Wire wire,
-            final InputStream in,
-            final OutputStream out,
-            final BiFunction<Integer, String, FormatReply> handler,
-            final Consumer<Error> fatal) {
+    void serve(final Wire wire,
+               final InputStream in,
+               final OutputStream out,
+               final BiFunction<Integer, String, FormatReply> handler,
+               final Consumer<Error> fatal) {
         serve(wire, in, out, DEFAULT_THREADS, handler, fatal);
     }
 
-    void serve(
-            final Wire wire,
-            final InputStream in,
-            final OutputStream out,
-            final int threads,
-            final BiFunction<Integer, String, FormatReply> handler,
-            final Consumer<Error> fatal) {
+    void serve(final Wire wire,
+               final InputStream in,
+               final OutputStream out,
+               final int threads,
+               final BiFunction<Integer, String, FormatReply> handler,
+               final Consumer<Error> fatal) {
         Objects.requireNonNull(wire, "wire");
         Objects.requireNonNull(in, "in");
         Objects.requireNonNull(out, "out");
@@ -65,12 +63,11 @@ public final class Daemon {
         }
     }
 
-    private void respond(
-            final Wire wire,
-            final byte[] frame,
-            final Replies replies,
-            final BiFunction<Integer, String, FormatReply> handler,
-            final Consumer<Error> fatal) {
+    private void respond(final Wire wire,
+                         final byte[] frame,
+                         final Replies replies,
+                         final BiFunction<Integer, String, FormatReply> handler,
+                         final Consumer<Error> fatal) {
         try {
             reply(wire, frame, handler).map(wire::encode).ifPresent(replies::write);
         } catch (final RuntimeException e) {

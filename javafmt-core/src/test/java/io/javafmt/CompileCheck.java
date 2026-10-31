@@ -144,11 +144,10 @@ public final class CompileCheck {
         }
 
         @Override
-        public JavaFileObject getJavaFileForOutput(
-                final Location location,
-                final String className,
-                final JavaFileObject.Kind kind,
-                final FileObject sibling) {
+        public JavaFileObject getJavaFileForOutput(final Location location,
+                                                   final String className,
+                                                   final JavaFileObject.Kind kind,
+                                                   final FileObject sibling) {
             return new SimpleJavaFileObject(URI.create("mem:///" + className.replace('.', '/') + kind.extension), kind) {
 
                 @Override

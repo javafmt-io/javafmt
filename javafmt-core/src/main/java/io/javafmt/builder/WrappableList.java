@@ -8,12 +8,13 @@ import java.util.stream.Stream;
 
 /**
  * A bracketed, separator-joined list that breaks one element per line at the continuation indent
- * when it does not fit, and stays on one line when it does.
+ * when it does not fit, and stays on one line when it does. {@link #alignedOf} lines the elements
+ * up under the first one instead, falling back to the continuation indent when that is too wide.
  *
- * <p>The shape method parameter lists have always used, factored out because seven other
- * constructs were built as a flat {@code Concat} with no break point anywhere in them. A list with
- * no break point cannot obey the line width at all: it prints at whatever width it happens to be,
- * and {@code java/lang/FdLibm.java} came out with a 711-character line.
+ * <p>Factored out because seven constructs were built as a flat {@code Concat} with no break
+ * point anywhere in them. A list with no break point cannot obey the line width at all: it prints
+ * at whatever width it happens to be, and {@code java/lang/FdLibm.java} came out with a
+ * 711-character line.
  *
  * <p>The closing bracket hugs the last element rather than taking a line of its own, matching what
  * parameter and argument lists already produce.
@@ -22,11 +23,7 @@ import java.util.stream.Stream;
 final class WrappableList {
 
     Doc of(final String open, final String separator, final String close, final Stream<Doc> elements) {
-        return new Doc.Group(ungroupedOf(open, separator, close, elements));
-    }
-
-    Doc ungroupedOf(final String open, final String separator, final String close, final Stream<Doc> elements) {
-        return build(open, separator, close, elements, Stream.empty());
+        return new Doc.Group(build(open, separator, close, elements, Stream.empty()));
     }
 
     /**
@@ -47,6 +44,13 @@ final class WrappableList {
      */
     Doc joined(final List<Doc> between, final Stream<Doc> elements) {
         return new Doc.Group(Doc.continuationIndent(new Doc.Concat(Doc.intersperse(between, elements))));
+    }
+
+    Doc alignedOf(final String open, final List<Doc> interior, final String close) {
+        final var aligned = new Doc.Align(new Doc.Concat(interior));
+        final var indented = Doc.continuationIndent(new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE), interior.stream())));
+        final var layout = Doc.flatWidthOrBreak(interior.getFirst()) < 0 ? indented : new Doc.Choice(aligned, indented);
+        return Doc.concat(new Doc.Text(open), layout, new Doc.Text(close));
     }
 
     private Doc build(final String open, final String separator, final String close, final Stream<Doc> elements, final Stream<Doc> beforeClose) {

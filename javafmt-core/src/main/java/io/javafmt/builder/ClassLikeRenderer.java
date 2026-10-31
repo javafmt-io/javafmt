@@ -33,13 +33,12 @@ final class ClassLikeRenderer {
         return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, members, recursor.trailingInside(node), recursor);
     }
 
-    Doc buildTypeDeclarationHeader(
-            final Doc prefix,
-            @Nullable final Tree superclass,
-            final List<? extends Tree> interfaces,
-            final boolean interfacesKeywordIsExtends,
-            final List<? extends Tree> permits,
-            final Recursor recursor) {
+    Doc buildTypeDeclarationHeader(final Doc prefix,
+                                   @Nullable final Tree superclass,
+                                   final List<? extends Tree> interfaces,
+                                   final boolean interfacesKeywordIsExtends,
+                                   final List<? extends Tree> permits,
+                                   final Recursor recursor) {
         if (superclass == null && interfaces.isEmpty() && permits.isEmpty()) {
             return prefix;
         }
