@@ -78,6 +78,13 @@ class PrinterTest {
             assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
         }
 
+        @Test
+        void group_breaks_whenAGroupInsideItWasBrokenByTheAuthor() {
+            final var authorBroken = new Doc.Group(Doc.concat(new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc")), true);
+            final var doc = new Doc.Group(Doc.concat(new Doc.Text("f("), new Doc.Indent(Doc.concat(Doc.SOFT_LINE, authorBroken)), new Doc.Text(")")));
+            assertThat(new Printer(80).print(doc)).isEqualTo("f(\n    bb\n    cc)");
+        }
+
         static Stream<Arguments> lineFitCases() {
             return Stream.of(
                     Arguments.of(11, "hello world"), Arguments.of(12, "hello world"), Arguments.of(10, "hello\nworld"),
@@ -209,7 +216,7 @@ class PrinterTest {
                                             new Doc.Text("aa"), separator,
                                             new Doc.Group(Doc.concat(new Doc.Text("f("), authorBroken, new Doc.Text(")"))), separator,
                                             new Doc.Text("dd"))),
-                            "aa, f(bb cc), dd"),
+                            "aa,\nf(bb\ncc),\ndd"),
                     Arguments.of(
                             80,
                             new Doc.Fill(
