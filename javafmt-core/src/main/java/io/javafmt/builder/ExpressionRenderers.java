@@ -232,10 +232,9 @@ final class ExpressionRenderers {
      * {@link NewArrayTree#getDimensions()} empty, so the renderer must re-emit the missing
      * {@code []} between the type and the initializer.
      */
-    private boolean hasImplicitArrayBrackets(
-            @Nullable final Tree type,
-            final List<? extends ExpressionTree> dimensions,
-            @Nullable final List<? extends ExpressionTree> initializers) {
+    private boolean hasImplicitArrayBrackets(@Nullable final Tree type,
+                                             final List<? extends ExpressionTree> dimensions,
+                                             @Nullable final List<? extends ExpressionTree> initializers) {
         return type != null && dimensions.isEmpty() && initializers != null;
     }
 

@@ -25,7 +25,13 @@ final class RecordRenderer {
         final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);
         final var componentListDoc = components.isEmpty()
                 ? new Doc.Text("()")
-                : WrappableList.ungroupedOf("(", ",", ")", components.stream().map(comp -> recursor.attach(comp, componentDoc(comp, recursor))));
+                : WrappableList.alignedOf(
+                        "(",
+                        Doc.intersperse(
+                                List.of(new Doc.Text(","), Doc.LINE),
+                                components.stream().map(comp -> recursor.attach(comp, componentDoc(comp, recursor))))
+                                .toList(),
+                        ")");
         final var prefixAndComponents = Doc.concatOf(
                 Stream.of(
                         Stream.of(new Doc.Text(prefix)),

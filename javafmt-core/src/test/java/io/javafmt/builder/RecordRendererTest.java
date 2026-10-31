@@ -43,10 +43,9 @@ class RecordRendererTest {
     void recordWithManyComponents_breaksToOnePerLine() {
         final var source = "record LongRecord(FirstVeryLongComponentType firstVeryLongComponentName, SecondVeryLongComponentType secondVeryLongComponent, ThirdVeryLong thirdVeryLong) {}";
         final var expected = """
-                record LongRecord(
-                        FirstVeryLongComponentType firstVeryLongComponentName,
-                        SecondVeryLongComponentType secondVeryLongComponent,
-                        ThirdVeryLong thirdVeryLong) {}""";
+                record LongRecord(FirstVeryLongComponentType firstVeryLongComponentName,
+                                  SecondVeryLongComponentType secondVeryLongComponent,
+                                  ThirdVeryLong thirdVeryLong) {}""";
         assertThat(format(source)).isEqualTo(expected);
     }
 

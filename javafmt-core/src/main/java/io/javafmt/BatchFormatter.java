@@ -177,20 +177,18 @@ final class BatchFormatter {
         return formatChunk(chunk, config, renderer, sources -> parseOnly(sources, List.of()));
     }
 
-    private List<FormatResult> formatAttributed(
-            final List<String> sources,
-            final JavafmtConfig config,
-            final String classpath,
-            final Renderer renderer) {
+    private List<FormatResult> formatAttributed(final List<String> sources,
+                                                final JavafmtConfig config,
+                                                final String classpath,
+                                                final Renderer renderer) {
         return JavaParser.attributing(classpath, session -> formatChunk(sources, config, renderer, chunk -> attributedContexts(chunk, session)));
     }
 
     /** Parses, lints, and renders one chunk of non-blank sources. */
-    List<FormatResult> formatChunk(
-            final List<String> chunk,
-            final JavafmtConfig config,
-            final Renderer renderer,
-            final Function<List<String>, List<Prepared>> parser) {
+    List<FormatResult> formatChunk(final List<String> chunk,
+                                   final JavafmtConfig config,
+                                   final Renderer renderer,
+                                   final Function<List<String>, List<Prepared>> parser) {
         // Everything downstream works in LF with no BOM; how each file was written is put back on
         // its own result, so a CRLF file does not come out as a whole-file diff.
         final var encodings = chunk.stream().map(SourceEncoding::of).toList();
@@ -210,11 +208,10 @@ final class BatchFormatter {
      * its attribution: the files that are fine still come back formatted, and whatever failed
      * reappears as the diagnostic of the one file that caused it.
      */
-    private List<FormatResult> formatNormalized(
-            final List<String> sources,
-            final JavafmtConfig config,
-            final Renderer renderer,
-            final Function<List<String>, List<Prepared>> parser) {
+    private List<FormatResult> formatNormalized(final List<String> sources,
+                                                final JavafmtConfig config,
+                                                final Renderer renderer,
+                                                final Function<List<String>, List<Prepared>> parser) {
         try {
             final var parsed = parser.apply(sources);
             final var linted = lintBatch(parsed.stream().map(Prepared::context).toList(), config);
@@ -241,11 +238,10 @@ final class BatchFormatter {
         return contexts.stream().map(context -> context.withRelease(release)).toList();
     }
 
-    private List<FormatResult> render(
-            final List<String> sources,
-            final List<Staged<LintEngine.Outcome>> linted,
-            final JavafmtConfig config,
-            final Renderer renderer) {
+    private List<FormatResult> render(final List<String> sources,
+                                      final List<Staged<LintEngine.Outcome>> linted,
+                                      final JavafmtConfig config,
+                                      final Renderer renderer) {
         return renderer.renderAll(
                 sources,
                 IntStream.range(0, sources.size())

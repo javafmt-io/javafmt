@@ -19,16 +19,15 @@ import java.util.Objects;
  * use identity-keyed lookup because javac may produce {@code .equals}-equal {@link Tree}
  * instances for distinct source positions.
  */
-public record ParsedUnit(
-        CompilationUnitTree tree,
-        String source,
-        SourcePositions sourcePositions,
-        List<CommentToken> fileHeader,
-        List<CommentToken> fileFooter,
-        Map<Tree, List<CommentToken>> leading,
-        Map<Tree, List<CommentToken>> trailing,
-        Map<Tree, List<CommentToken>> interior,
-        Map<Tree, List<CommentToken>> tail) {
+public record ParsedUnit(CompilationUnitTree tree,
+                         String source,
+                         SourcePositions sourcePositions,
+                         List<CommentToken> fileHeader,
+                         List<CommentToken> fileFooter,
+                         Map<Tree, List<CommentToken>> leading,
+                         Map<Tree, List<CommentToken>> trailing,
+                         Map<Tree, List<CommentToken>> interior,
+                         Map<Tree, List<CommentToken>> tail) {
 
     public ParsedUnit {
         Objects.requireNonNull(tree, "tree");

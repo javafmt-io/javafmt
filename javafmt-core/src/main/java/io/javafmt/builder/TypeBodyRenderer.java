@@ -25,12 +25,11 @@ final class TypeBodyRenderer {
      *     no member to hang off, so nothing else would emit them and the file would come back
      *     refused — or, with verification off, silently short a comment.
      */
-    Doc withBody(
-            final ModifiersTree modifiers,
-            final Doc header,
-            final List<Member> members,
-            final List<CommentToken> tail,
-            final Recursor recursor) {
+    Doc withBody(final ModifiersTree modifiers,
+                 final Doc header,
+                 final List<Member> members,
+                 final List<CommentToken> tail,
+                 final Recursor recursor) {
         if (members.isEmpty() && tail.isEmpty()) {
             return ModifierRenderer.prependOwnLineAnnotations(modifiers, Doc.concat(header, new Doc.Text(" {}")), recursor);
         }
@@ -67,12 +66,11 @@ final class TypeBodyRenderer {
         return parts.stream();
     }
 
-    private boolean separatedByBlankLine(
-            final Member previous,
-            final Member member,
-            final boolean wantsBlankLine,
-            final boolean previousWantedBlankLine,
-            final Recursor recursor) {
+    private boolean separatedByBlankLine(final Member previous,
+                                         final Member member,
+                                         final boolean wantsBlankLine,
+                                         final boolean previousWantedBlankLine,
+                                         final Recursor recursor) {
         if (wantsBlankLine || previousWantedBlankLine) {
             return true;
         }

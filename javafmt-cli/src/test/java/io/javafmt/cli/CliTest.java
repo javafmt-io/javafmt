@@ -180,11 +180,10 @@ class CliTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("excludeCases")
-    void excludeFlag_dropsMatchingFiles(
-            final String label,
-            final List<String> filenames,
-            final List<String> excludes,
-            final List<String> expectedRewritten)
+    void excludeFlag_dropsMatchingFiles(final String label,
+                                        final List<String> filenames,
+                                        final List<String> excludes,
+                                        final List<String> expectedRewritten)
             throws Exception {
         final var dir = Files.createTempDirectory("javafmt-exclude");
         final var unformatted = Fixtures.UNFORMATTED_FOO;

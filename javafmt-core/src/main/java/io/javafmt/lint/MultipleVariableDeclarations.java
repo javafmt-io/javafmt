@@ -150,12 +150,11 @@ public final class MultipleVariableDeclarations implements LintRule {
      * this safe for a declaration whose type or initializer contains commas of its own —
      * {@code Node<K, V> first, e;} has two commas and only the second separates anything.
      */
-    private static List<Integer> separatorCommas(
-            final List<VariableTree> group,
-            final ParsedUnit unit,
-            final String src,
-            final int groupStart,
-            final int spanEnd) {
+    private static List<Integer> separatorCommas(final List<VariableTree> group,
+                                                 final ParsedUnit unit,
+                                                 final String src,
+                                                 final int groupStart,
+                                                 final int spanEnd) {
         final var comments = CommentScanner.scan(src.substring(groupStart, spanEnd));
         final var commas = new ArrayList<Integer>();
         var lowerBound = groupStart;

@@ -82,13 +82,12 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
 
     private record PluginProperties(String engineHash, String foojayVersion) {}
 
-    private record SourceSetTasks(
-            Project project,
-            JavafmtExtension extension,
-            PluginProperties properties,
-            Provider<JavafmtWorkerSlot> workerSlot,
-            TaskProvider<Task> checkAll,
-            TaskProvider<Task> formatAll) {
+    private record SourceSetTasks(Project project,
+                                  JavafmtExtension extension,
+                                  PluginProperties properties,
+                                  Provider<JavafmtWorkerSlot> workerSlot,
+                                  TaskProvider<Task> checkAll,
+                                  TaskProvider<Task> formatAll) {
 
         void register(final SourceSet sourceSet) {
             final var name = sourceSet.getName();

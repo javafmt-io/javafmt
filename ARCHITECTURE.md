@@ -62,6 +62,8 @@ The core uses a [Wadler-Lindig document algebra](https://homepages.inf.ed.ac.uk/
 | `Group(d)`     | Try to flatten on one line; break if it doesn't fit            |
 | `Concat(ds)`   | Sequence of docs                                               |
 | `IfBreak(b,f)` | `b` when the enclosing group breaks, `f` when it stays flat    |
+| `Align(d)`     | Line breaks in its contents indent to the column where it starts |
+| `Choice(p,f)`  | `p` if every line it prints fits the width, otherwise `f`      |
 
 The Wadler-Lindig algorithm runs in **O(n)** with line width as a constant factor. Paired with `javac`'s heavily-optimized parser, formatting is competitive with or faster than google-java-format.
 

@@ -161,11 +161,10 @@ public final class LocalVarUseVar implements LintRule {
                                 .map(edits -> new Proposal(path, edits, false, keepsItsTypeWithoutTarget(node, path, attribution))));
     }
 
-    private static Optional<List<LintEdit>> unprovenEdits(
-            final VariableTree node,
-            final TreePath path,
-            final Attribution attribution,
-            final LintContext context) {
+    private static Optional<List<LintEdit>> unprovenEdits(final VariableTree node,
+                                                          final TreePath path,
+                                                          final Attribution attribution,
+                                                          final LintContext context) {
         final var unit = context.unit();
         final var edits = switch (node.getInitializer()) {
             case NewClassTree newClass -> widenedNewEdits(node, newClass, unit);
@@ -221,11 +220,10 @@ public final class LocalVarUseVar implements LintRule {
         };
     }
 
-    private static List<LintEdit> newClassEdits(
-            final VariableTree node,
-            final NewClassTree newClass,
-            final ParsedUnit unit,
-            final boolean reassigned) {
+    private static List<LintEdit> newClassEdits(final VariableTree node,
+                                                final NewClassTree newClass,
+                                                final ParsedUnit unit,
+                                                final boolean reassigned) {
         if (newClass.getClassBody() != null || newClass.getIdentifier() == null || newClass.getEnclosingExpression() != null) {
             return List.of();
         }
@@ -408,12 +406,11 @@ public final class LocalVarUseVar implements LintRule {
         return typeStart >= 0 && typeEnd > typeStart ? Optional.of(new LintEdit(typeStart, typeEnd, "var")) : Optional.empty();
     }
 
-    private static List<LintEdit> staticFactoryEdits(
-            final VariableTree node,
-            final MethodInvocationTree call,
-            final TreePath path,
-            final LintContext context,
-            final boolean proven) {
+    private static List<LintEdit> staticFactoryEdits(final VariableTree node,
+                                                     final MethodInvocationTree call,
+                                                     final TreePath path,
+                                                     final LintContext context,
+                                                     final boolean proven) {
         final var unit = context.unit();
         if (!(node.getType() instanceof ParameterizedTypeTree pt) || !(pt.getType() instanceof IdentifierTree rawTypeId)) {
             return List.of();
@@ -450,11 +447,10 @@ public final class LocalVarUseVar implements LintRule {
         return List.of(new LintEdit(typeStart, typeEnd, "var"), LintEdit.insert(namePos, witness));
     }
 
-    private static boolean callHasTheDeclaredType(
-            final VariableTree node,
-            final MethodInvocationTree call,
-            final TreePath path,
-            final LintContext context) {
+    private static boolean callHasTheDeclaredType(final VariableTree node,
+                                                  final MethodInvocationTree call,
+                                                  final TreePath path,
+                                                  final LintContext context) {
         return context.attribution()
                 .filter(attribution -> {
                     final var callType = attribution.trees().getTypeMirror(new TreePath(path, call));
@@ -472,11 +468,10 @@ public final class LocalVarUseVar implements LintRule {
      * ("wrong number of type arguments; required 2"). Only attribution knows the method's arity,
      * so without it the lift does not happen at all and the declaration keeps its written type.
      */
-    private static boolean witnessFitsTheMethod(
-            final MethodInvocationTree call,
-            final TreePath path,
-            final LintContext context,
-            final int witnessCount) {
+    private static boolean witnessFitsTheMethod(final MethodInvocationTree call,
+                                                final TreePath path,
+                                                final LintContext context,
+                                                final int witnessCount) {
         return context.attribution()
                 .map(attribution -> attribution.trees().getElement(new TreePath(new TreePath(path, call), call.getMethodSelect())))
                 .filter(ExecutableElement.class::isInstance)
@@ -495,10 +490,9 @@ public final class LocalVarUseVar implements LintRule {
         return selectEnd - mst.getIdentifier().length();
     }
 
-    private static boolean typeArgumentsMatchTextually(
-            final List<? extends Tree> declared,
-            final List<? extends Tree> witness,
-            final ParsedUnit unit) {
+    private static boolean typeArgumentsMatchTextually(final List<? extends Tree> declared,
+                                                       final List<? extends Tree> witness,
+                                                       final ParsedUnit unit) {
         return declared.size() == witness.size()
             && IntStream.range(0, declared.size()).allMatch(i -> unit.sourceOf(declared.get(i)).trim().equals(unit.sourceOf(witness.get(i)).trim()));
     }

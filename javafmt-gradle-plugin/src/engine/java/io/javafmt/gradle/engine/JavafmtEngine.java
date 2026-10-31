@@ -69,10 +69,9 @@ public final class JavafmtEngine {
         return attributed.stream().map(result -> retried.getOrDefault(result.path(), result)).toList();
     }
 
-    private static Stream<Outcome.Finding> findings(
-            final Path root,
-            final List<FileResult.Formatted> formatted,
-            final Function<FileResult.Formatted, Collection<Diagnostic>> diagnostics) {
+    private static Stream<Outcome.Finding> findings(final Path root,
+                                                    final List<FileResult.Formatted> formatted,
+                                                    final Function<FileResult.Formatted, Collection<Diagnostic>> diagnostics) {
         return formatted.stream()
                 .flatMap(file -> diagnostics.apply(file).stream().map(diagnostic -> finding(source(root, file.path()), diagnostic)));
     }
