@@ -330,6 +330,15 @@ class LocalVarUseVarAnalyzeTest {
                         static <T> SealedBox<T> sealed() {
                             return new SealedBox<>();
                         }
+
+                        @SuppressWarnings("rawtypes")
+                        static <T> Box raw() {
+                            return new Box<>();
+                        }
+
+                        T first() {
+                            return null;
+                        }
                     }
 
                     static class SealedBox<T> extends Box<T> {}
@@ -354,13 +363,13 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @ParameterizedTest
-    @CsvSource( delimiter = '|', value = { "List<String> xs = Stream.of(\"a\").toList(); record(xs);    | var xs = Stream.of(\"a\").toList();", "CharSequence text = describe(); record(text.length());      | var text = describe();", "String name = describe(); show(name);                       | var name = describe();", "long total = size(); record(total);                         | var total = size();", "List<String> lines = new ArrayList<>(); record(lines);      | var lines = new ArrayList<String>();", "Box<String> box = Box.plain(); show(box);                  | var box = Box.<String>plain();", "Box<String> box = Box.sealed(); record(box);               | var box = Box.<String>sealed();", "List<String> lines = new ArrayList<String>(); record(lines.size()); | var lines = new ArrayList<String>();", "Collection<String> all = new ArrayList<String>(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = new ArrayList<String>(); var rows = Stream.of(all).toList();", "Collection<String> all = names(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = names(); var rows = Stream.of(all).toList();", "List<Object> xs = List.of(\"a\"); record(xs);               | var xs = List.<Object>of(\"a\");", })
+    @CsvSource( delimiter = '|', value = { "List<String> xs = Stream.of(\"a\").toList(); record(xs);    | var xs = Stream.of(\"a\").toList();", "CharSequence text = describe(); record(text.length());      | var text = describe();", "String name = describe(); show(name);                       | var name = describe();", "long total = size(); record(total);                         | var total = size();", "List<String> lines = new ArrayList<>(); record(lines);      | var lines = new ArrayList<String>();", "Box<String> box = Box.plain(); show(box);                  | var box = Box.<String>plain();", "List<String> xs = List.<String>of(); record(xs);            | var xs = List.<String>of();", "Box<String> box = Box.<String>sealed(); record(box);       | var box = Box.<String>sealed();", "Box<String> box = Box.sealed(); record(box);               | var box = Box.<String>sealed();", "List<String> lines = new ArrayList<String>(); record(lines.size()); | var lines = new ArrayList<String>();", "Collection<String> all = new ArrayList<String>(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = new ArrayList<String>(); var rows = Stream.of(all).toList();", "Collection<String> all = names(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = names(); var rows = Stream.of(all).toList();", "List<Object> xs = List.of(\"a\"); record(xs);               | var xs = List.<Object>of(\"a\");", })
     void aLocalWhoseUsesStayTheSameBecomesVar(final String body, final String expected) {
         assertThat(rewrittenWithAttribution(ledger(body))).contains(expected);
     }
 
     @ParameterizedTest
-    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);", "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);", "Object label = flag ? \"a\" : \"b\"; show(label);", "List<String> lines = flag ? new ArrayList<>() : new ArrayList<>(); record(lines.get(0).length());", "Box<String> box = Box.sealed(); show(box);", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", })
+    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);", "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);", "Object label = flag ? \"a\" : \"b\"; show(label);", "List<String> lines = flag ? new ArrayList<>() : new ArrayList<>(); record(lines.get(0).length());", "Box<String> box = Box.sealed(); show(box);", "Box<String> box = Box.<String>sealed(); show(box);", "Box<String> box = Box.<String>raw(); record(box.first().length());", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", })
     void aLocalWhoseUsesWouldChangeKeepsItsType(final String body) {
         assertThat(rewrittenWithAttribution(ledger(body))).contains(body).doesNotContain("var ");
     }
