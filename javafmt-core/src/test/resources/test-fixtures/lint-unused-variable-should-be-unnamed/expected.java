@@ -10,7 +10,7 @@ class Fixture {
         }
         try {
             Integer.parseInt("1");
-        } catch (NumberFormatException _) {
+        } catch (final NumberFormatException _) {
             count--;
         }
         if (o instanceof String _) {

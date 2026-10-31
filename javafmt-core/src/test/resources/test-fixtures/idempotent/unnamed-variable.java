@@ -6,7 +6,7 @@ class UnnamedVariables {
     void catchExample() {
         try {
             risky();
-        } catch (Exception _) {
+        } catch (final Exception _) {
             // discard
         }
     }

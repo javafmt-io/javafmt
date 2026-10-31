@@ -47,7 +47,7 @@ public final class OracleCorpus {
                     .<Arguments>map(p -> Arguments.of(p.getFileName().toString(), readString(p)))
                     .toList()
                     .stream();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -208,9 +208,9 @@ public final class OracleCorpus {
                     .sorted()
                     .toList()
                     .stream();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -221,7 +221,7 @@ public final class OracleCorpus {
             return listing.filter(p -> p.getFileName().toString().endsWith(".java"))
                     .sorted()
                     .toList();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }
@@ -233,7 +233,7 @@ public final class OracleCorpus {
         }
         try {
             return Paths.get(resource.toURI());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -241,7 +241,7 @@ public final class OracleCorpus {
     private static String readString(final Path path) {
         try {
             return Files.readString(path);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }
     }

@@ -171,9 +171,9 @@ public final class JavaParser {
         final var task = batch.task();
         try {
             task.analyze();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new AssertionError(e);
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             return attributeIndividually(sources, session, e);
         }
         final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), session);
@@ -288,7 +288,7 @@ public final class JavaParser {
         final Iterable<? extends CompilationUnitTree> trees;
         try {
             trees = task.parse();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new AssertionError(e);
         }
         final var treeByUri = treeByUri(trees);
@@ -329,7 +329,7 @@ public final class JavaParser {
         try {
             final var cls = Class.forName("com.sun.tools.javac.api.JavacTool", true, ClassLoader.getPlatformClassLoader());
             return (JavaCompiler) cls.getDeclaredConstructor().newInstance();
-        } catch (ReflectiveOperationException e) {
+        } catch (final ReflectiveOperationException e) {
             throw new IllegalStateException("No Java compiler available; run on a JDK, not a JRE", e);
         }
     }

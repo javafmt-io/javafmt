@@ -21,7 +21,7 @@ class Fixture {
         }
         try {
             use("");
-        } catch (@ParamMarker IllegalStateException | IllegalArgumentException e) {
+        } catch (@ParamMarker final IllegalStateException | IllegalArgumentException e) {
             use(e.toString());
         }
     }

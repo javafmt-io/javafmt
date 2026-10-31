@@ -68,7 +68,7 @@ final class FormatRun {
             }
             out.print(result.output());
             return 0;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             err.println(
                     parsed.jsonDiagnostics()
                             ? JsonDiagnostics.cliLine("", "read failed: " + describe(e))
@@ -158,7 +158,7 @@ final class FormatRun {
     private void persistCache(final FormatCache cache, final boolean jsonDiagnostics, final PrintStream err) {
         try {
             cache.save();
-        } catch (RuntimeException e) {
+        } catch (final RuntimeException e) {
             err.println(
                     jsonDiagnostics
                             ? JsonDiagnostics.cliLine("", "failed to save cache: " + e.getMessage())
@@ -197,7 +197,7 @@ final class FormatRun {
         }
         try {
             SourceFiles.write(path, result.output());
-        } catch (UncheckedIOException e) {
+        } catch (final UncheckedIOException e) {
             final var message = "write failed: " + describe(Objects.requireNonNull(e.getCause(), "cause"));
             return new FileOutcome(2, append(reported, cliMessage(path, message, json)));
         }

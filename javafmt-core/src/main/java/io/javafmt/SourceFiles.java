@@ -53,7 +53,7 @@ public final class SourceFiles {
         final var visitor = new Collector(root, applyDefaultExcludes);
         try {
             Files.walkFileTree(root, visitor);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("Failed to walk " + root, e);
         }
         return visitor.discovery();
@@ -78,7 +78,7 @@ public final class SourceFiles {
                 throw new AccessDeniedException(target.toString());
             }
             swapIntoPlace(target, content);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("Failed to write " + file, e);
         }
     }
@@ -95,7 +95,7 @@ public final class SourceFiles {
             Files.writeString(temp, content, StandardCharsets.UTF_8);
             copyPermissions(target, temp);
             move(temp, target);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             deleteQuietly(temp);
             throw e;
         }
@@ -110,7 +110,7 @@ public final class SourceFiles {
     private void move(final Path temp, final Path target) throws IOException {
         try {
             Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-        } catch (AtomicMoveNotSupportedException _) {
+        } catch (final AtomicMoveNotSupportedException _) {
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
@@ -118,7 +118,7 @@ public final class SourceFiles {
     private void deleteQuietly(final Path temp) {
         try {
             Files.deleteIfExists(temp);
-        } catch (IOException _) {
+        } catch (final IOException _) {
             // The write already failed; the caller is told about that, not about the leftover.
         }
     }

@@ -50,7 +50,7 @@ public final class FileFormatCache implements FormatCache {
     private static final ThreadLocal<MessageDigest> DIGEST = ThreadLocal.withInitial(() -> {
         try {
             return MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
+        } catch (final NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 not available", e);
         }
     });
@@ -83,7 +83,7 @@ public final class FileFormatCache implements FormatCache {
             final var lines = Files.readAllLines(cacheFile, StandardCharsets.UTF_8);
             final var parsed = parseLines(lines, header);
             return new FileFormatCache(cacheFile, header, parsed);
-        } catch (IOException | RuntimeException _) {
+        } catch (final IOException | RuntimeException _) {
             return new FileFormatCache(cacheFile, header, Map.of());
         }
     }
@@ -146,10 +146,10 @@ public final class FileFormatCache implements FormatCache {
             Files.writeString(tmp, body, StandardCharsets.UTF_8);
             try {
                 Files.move(tmp, cacheFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException _) {
+            } catch (final AtomicMoveNotSupportedException _) {
                 Files.move(tmp, cacheFile, StandardCopyOption.REPLACE_EXISTING);
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("failed to save javafmt cache to " + cacheFile, e);
         }
     }
