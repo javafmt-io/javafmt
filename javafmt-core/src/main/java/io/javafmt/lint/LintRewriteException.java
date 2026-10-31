@@ -1,6 +1,7 @@
 package io.javafmt.lint;
 
 import io.javafmt.parser.ParseException;
+
 import java.util.List;
 
 /**

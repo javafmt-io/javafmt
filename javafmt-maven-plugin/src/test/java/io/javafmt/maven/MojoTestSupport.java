@@ -1,8 +1,9 @@
 package io.javafmt.maven;
 
-import java.nio.file.Path;
 import org.apache.maven.model.Build;
 import org.apache.maven.project.MavenProject;
+
+import java.nio.file.Path;
 
 /** Shared test scaffolding for the format and check mojo tests. */
 final class MojoTestSupport {

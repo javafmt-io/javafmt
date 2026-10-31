@@ -8,11 +8,12 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
+import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
-import org.jspecify.annotations.Nullable;
 
 @UtilityClass
 final class MethodRenderer {

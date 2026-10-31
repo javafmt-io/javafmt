@@ -1,11 +1,11 @@
 package io.javafmt.lint;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.sun.source.tree.MethodInvocationTree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class WarningRuleTest {
 

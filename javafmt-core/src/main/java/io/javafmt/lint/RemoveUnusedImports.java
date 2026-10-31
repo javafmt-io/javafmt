@@ -6,6 +6,7 @@ import com.sun.source.tree.MemberSelectTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;

@@ -4,6 +4,7 @@ import io.javafmt.Diagnostic;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
+
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;

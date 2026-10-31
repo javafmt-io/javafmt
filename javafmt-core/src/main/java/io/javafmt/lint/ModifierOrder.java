@@ -7,6 +7,8 @@ import com.sun.source.tree.VariableTree;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +16,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Enforces the Java Language Specification modifier order:

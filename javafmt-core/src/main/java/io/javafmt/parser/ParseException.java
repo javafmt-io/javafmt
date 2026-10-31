@@ -1,11 +1,12 @@
 package io.javafmt.parser;
 
 import io.javafmt.Diagnostic;
+import lombok.Getter;
+import org.jspecify.annotations.Nullable;
+
 import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
-import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 
 public final class ParseException extends RuntimeException {
 

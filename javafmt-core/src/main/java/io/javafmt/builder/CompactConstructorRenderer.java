@@ -2,8 +2,9 @@ package io.javafmt.builder;
 
 import com.sun.source.tree.MethodTree;
 import io.javafmt.doc.Doc;
-import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
+
+import java.util.stream.Collectors;
 
 @UtilityClass
 final class CompactConstructorRenderer {

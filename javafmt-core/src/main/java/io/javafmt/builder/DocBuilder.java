@@ -67,6 +67,8 @@ import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentToken;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.parser.TreeFacts;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -74,7 +76,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import org.jspecify.annotations.Nullable;
 
 public final class DocBuilder {
 

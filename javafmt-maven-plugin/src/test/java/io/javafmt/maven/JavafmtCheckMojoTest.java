@@ -1,20 +1,21 @@
 package io.javafmt.maven;
 
-import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
-import static io.javafmt.maven.MojoTestSupport.buildProject;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import io.javafmt.Javafmt;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+
+import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
+import static io.javafmt.maven.MojoTestSupport.buildProject;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtCheckMojoTest {
 

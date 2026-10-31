@@ -9,6 +9,7 @@ import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.List;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;

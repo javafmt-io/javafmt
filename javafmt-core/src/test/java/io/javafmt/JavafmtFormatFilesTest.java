@@ -1,10 +1,13 @@
 package io.javafmt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
 import io.javafmt.cache.FormatCache;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -14,10 +17,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class JavafmtFormatFilesTest {
 

@@ -1,7 +1,5 @@
 package io.javafmt.lint;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.util.TreeScanner;
@@ -9,6 +7,8 @@ import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ReassignmentDetectorTest {
 

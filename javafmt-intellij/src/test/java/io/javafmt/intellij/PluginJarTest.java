@@ -1,8 +1,8 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.daemon.DaemonFixtures;
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -14,7 +14,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class PluginJarTest {
 

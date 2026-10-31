@@ -19,6 +19,9 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.SourcePositions;
+import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
@@ -26,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 import javax.lang.model.element.Modifier;
-import lombok.experimental.UtilityClass;
-import org.jspecify.annotations.Nullable;
 
 @UtilityClass
 final class CommentAttacher {

@@ -1,9 +1,9 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.intellij.util.xmlb.XmlSerializer;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
 

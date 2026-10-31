@@ -1,10 +1,10 @@
 package io.javafmt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import io.javafmt.parser.JavaParser;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -12,7 +12,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class DogfoodTest {
 

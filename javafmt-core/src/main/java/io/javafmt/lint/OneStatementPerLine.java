@@ -5,6 +5,7 @@ import com.sun.source.tree.StatementTree;
 import io.javafmt.Position;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.List;
 
 /**

@@ -1,11 +1,12 @@
 package io.javafmt;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import javax.lang.model.element.Modifier;
-import lombok.experimental.UtilityClass;
 
 /**
  * The Java Language Specification's canonical modifier order, shared by

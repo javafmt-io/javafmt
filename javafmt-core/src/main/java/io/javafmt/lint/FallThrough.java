@@ -6,6 +6,7 @@ import com.sun.source.tree.SwitchTree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.List;
 import java.util.regex.Pattern;
 

@@ -1,8 +1,9 @@
 package io.javafmt.lint.oracle;
 
-import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 /**
  * Non-vacuity guard for the compile assertion that

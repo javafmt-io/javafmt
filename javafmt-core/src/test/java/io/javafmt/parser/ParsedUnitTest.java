@@ -1,14 +1,15 @@
 package io.javafmt.parser;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
+import org.junit.jupiter.api.Test;
+
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ParsedUnitTest {
 

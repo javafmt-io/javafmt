@@ -1,14 +1,15 @@
 package io.javafmt.gradle;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
 import org.gradle.api.file.FilePermissions;
 import org.gradle.api.file.FileTreeElement;
 import org.gradle.api.file.RelativePath;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.util.PatternSet;
+
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
 
 public record ProjectRelativeExcludes(List<String> sourceDirectory, List<String> patterns) implements Spec<FileTreeElement> {
 

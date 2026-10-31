@@ -1,7 +1,5 @@
 package io.javafmt.parser;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.LiteralTree;
@@ -10,6 +8,12 @@ import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.TreeScanner;
+import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,11 +22,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import org.jspecify.annotations.Nullable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ChainScannerTest {
 

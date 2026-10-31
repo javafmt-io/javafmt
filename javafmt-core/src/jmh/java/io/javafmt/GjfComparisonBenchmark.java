@@ -2,8 +2,6 @@ package io.javafmt;
 
 import com.google.googlejavaformat.java.Formatter;
 import com.google.googlejavaformat.java.FormatterException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -15,6 +13,9 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Head-to-head against google-java-format on identical input, so "fast" is a comparison rather

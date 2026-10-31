@@ -4,6 +4,7 @@ import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.PatternCaseLabelTree;
 import com.sun.source.tree.SwitchTree;
 import io.javafmt.Diagnostic;
+
 import java.util.List;
 
 /**

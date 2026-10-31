@@ -1,12 +1,12 @@
 package io.javafmt.lint;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RedundantTypeArgumentsAnalyzeTest {
 

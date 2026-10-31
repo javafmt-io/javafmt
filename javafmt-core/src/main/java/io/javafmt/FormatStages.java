@@ -6,11 +6,12 @@ import io.javafmt.lint.LintRules;
 import io.javafmt.parser.ParseException;
 import io.javafmt.parser.RoundTripVerifier;
 import io.javafmt.printer.Printer;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class FormatStages {

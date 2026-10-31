@@ -1,15 +1,6 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.intellij.util.EnvironmentUtil;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.locks.LockSupport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -17,6 +8,16 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.locks.LockSupport;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 // The fake binaries are /bin/sh scripts with POSIX permissions. Windows spawn behaviour is a
 // listed risk to measure on real hardware, not something to fake here.

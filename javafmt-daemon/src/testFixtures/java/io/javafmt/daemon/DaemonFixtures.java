@@ -5,6 +5,7 @@ import build.buf.protovalidate.ValidatorFactory;
 import build.buf.protovalidate.exceptions.ValidationException;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.Message;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;

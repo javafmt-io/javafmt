@@ -1,5 +1,8 @@
 package io.javafmt.cli;
 
+import lombok.experimental.UtilityClass;
+import picocli.CommandLine;
+
 import java.io.Console;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -7,8 +10,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import lombok.experimental.UtilityClass;
-import picocli.CommandLine;
 
 @UtilityClass
 public final class Cli {

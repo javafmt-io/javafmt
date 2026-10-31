@@ -1,7 +1,5 @@
 package io.javafmt.builder;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ModifiersTree;
@@ -10,11 +8,14 @@ import com.sun.source.tree.TreeVisitor;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.printer.Printer;
+import org.junit.jupiter.api.Test;
+
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import javax.lang.model.element.Modifier;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifierRendererTest {
 

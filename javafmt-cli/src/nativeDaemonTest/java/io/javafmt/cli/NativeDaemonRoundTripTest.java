@@ -1,8 +1,8 @@
 package io.javafmt.cli;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.daemon.DaemonFixtures;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -11,7 +11,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class NativeDaemonRoundTripTest {
 

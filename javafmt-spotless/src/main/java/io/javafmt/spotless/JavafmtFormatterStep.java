@@ -9,11 +9,12 @@ import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.JavafmtVersion;
 import io.javafmt.Position;
+import lombok.experimental.UtilityClass;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public final class JavafmtFormatterStep {

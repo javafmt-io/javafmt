@@ -1,12 +1,14 @@
 package io.javafmt.daemon;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import java.io.ByteArrayInputStream;
 import java.io.SequenceInputStream;
 import java.io.UncheckedIOException;
@@ -15,10 +17,9 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class WireTest {
 

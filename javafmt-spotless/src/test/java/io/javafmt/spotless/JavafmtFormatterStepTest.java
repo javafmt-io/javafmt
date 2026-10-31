@@ -1,22 +1,23 @@
 package io.javafmt.spotless;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 import io.javafmt.Diagnostic;
 import io.javafmt.Fixtures;
 import io.javafmt.FormatResult;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.JavafmtVersion;
 import io.javafmt.Position;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtFormatterStepTest {
 

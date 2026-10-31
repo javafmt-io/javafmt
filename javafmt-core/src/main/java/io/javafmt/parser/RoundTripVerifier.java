@@ -1,11 +1,12 @@
 package io.javafmt.parser;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.IntStream;
-import lombok.experimental.UtilityClass;
 
 /**
  * Checks that formatting only moved whitespace around: the token stream and the comments of

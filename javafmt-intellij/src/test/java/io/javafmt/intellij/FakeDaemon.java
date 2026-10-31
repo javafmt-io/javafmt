@@ -7,6 +7,7 @@ import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;

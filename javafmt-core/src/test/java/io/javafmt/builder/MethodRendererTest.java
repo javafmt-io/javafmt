@@ -1,11 +1,11 @@
 package io.javafmt.builder;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.parser.JavaParser;
 import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 class MethodRendererTest {
 

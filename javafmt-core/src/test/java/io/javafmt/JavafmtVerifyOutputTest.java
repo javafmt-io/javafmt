@@ -1,13 +1,14 @@
 package io.javafmt;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
-import java.util.IdentityHashMap;
-import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+
+import java.util.IdentityHashMap;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * The output-verification guard: when enabled, javafmt refuses to emit output whose token

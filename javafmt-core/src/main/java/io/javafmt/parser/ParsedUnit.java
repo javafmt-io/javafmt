@@ -4,6 +4,7 @@ import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.SourcePositions;
 import io.javafmt.Position;
+
 import java.nio.CharBuffer;
 import java.util.Collections;
 import java.util.IdentityHashMap;

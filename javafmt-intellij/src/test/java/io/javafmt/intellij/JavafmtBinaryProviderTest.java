@@ -1,10 +1,15 @@
 package io.javafmt.intellij;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.intellij.openapi.progress.EmptyProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.testFramework.TestApplicationManager;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -14,12 +19,8 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-import org.junit.jupiter.api.io.TempDir;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Timeout(30)
 class JavafmtBinaryProviderTest {

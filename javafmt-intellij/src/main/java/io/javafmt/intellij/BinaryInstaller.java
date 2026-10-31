@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.util.io.NioFiles;
 import com.intellij.util.download.DownloadableFileService;
 import com.intellij.util.io.HttpRequests;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;

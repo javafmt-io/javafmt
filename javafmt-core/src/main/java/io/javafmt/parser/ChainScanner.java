@@ -5,12 +5,13 @@ import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreeScanner;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.jspecify.annotations.Nullable;
 
 /**
  * A {@link TreeScanner} that walks a chain of binary operators, and a chain of method calls and

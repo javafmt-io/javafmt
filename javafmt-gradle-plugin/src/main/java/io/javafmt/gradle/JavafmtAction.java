@@ -3,14 +3,6 @@ package io.javafmt.gradle;
 import io.javafmt.gradle.engine.JavafmtEngine;
 import io.javafmt.gradle.engine.Outcome;
 import io.javafmt.gradle.engine.Request;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import javax.inject.Inject;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
@@ -25,6 +17,15 @@ import org.gradle.api.problems.Problems;
 import org.gradle.api.provider.Property;
 import org.gradle.workers.WorkAction;
 import org.gradle.workers.WorkParameters;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.inject.Inject;
 
 public abstract class JavafmtAction implements WorkAction<JavafmtAction.Parameters> {
 

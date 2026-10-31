@@ -8,10 +8,11 @@ import io.javafmt.doc.Doc;
 import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
+import lombok.experimental.UtilityClass;
+
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class EnumRenderer {

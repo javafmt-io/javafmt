@@ -4,6 +4,7 @@ import com.sun.source.tree.MethodTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
+
 import java.util.Optional;
 
 /**

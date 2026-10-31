@@ -1,6 +1,5 @@
 package io.javafmt;
 
-import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -13,6 +12,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+
+import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
