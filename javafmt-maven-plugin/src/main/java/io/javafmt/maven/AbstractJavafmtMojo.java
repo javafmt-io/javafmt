@@ -76,7 +76,8 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
         final var formatCache = resolveCache(p);
         try {
             final var files = filter.keep(
-                    Stream.concat(walkNullable(build.getSourceDirectory()).stream(), walkNullable(build.getTestSourceDirectory()).stream()).toList());
+                    Stream.concat(walkNullable(build.getSourceDirectory()).stream(), walkNullable(build.getTestSourceDirectory()).stream())
+                            .toList());
             final var poolSize = threads > 0 ? threads : Runtime.getRuntime().availableProcessors();
             final var results = Javafmt.formatFiles(files, JavafmtConfig.defaults(), formatCache, poolSize);
             failOnUnreadable(results);

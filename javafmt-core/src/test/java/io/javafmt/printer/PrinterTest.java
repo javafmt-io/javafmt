@@ -184,6 +184,7 @@ class PrinterTest {
             final var separator = Doc.concat(new Doc.Text(","), Doc.LINE);
             final var nested = new Doc.Group(
                     Doc.concat(new Doc.Text("inner("), new Doc.Indent(Doc.concat(Doc.SOFT_LINE, new Doc.Text("long"))), new Doc.Text(")")));
+            final var authorBroken = new Doc.Group(Doc.concat(new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc")), true);
             return Stream.of(
                     Arguments.of(
                             80,
@@ -207,6 +208,24 @@ class PrinterTest {
                             "aa,\nbb, cc"),
                     Arguments.of(
                             80, new Doc.Fill(List.of(new Doc.Text("aa"), separator, new Doc.Verbatim("bb\ncc", -1), separator, new Doc.Text("dd"))),
+                            "aa,\nbb\ncc,\ndd"),
+                    Arguments.of(
+                            80, new Doc.Fill(List.of(new Doc.Text("aa"), separator, authorBroken, separator, new Doc.Text("dd"))),
+                            "aa,\nbb\ncc,\ndd"),
+                    Arguments.of(
+                            80,
+                            new Doc.Fill(
+                                    List.of(
+                                            new Doc.Text("aa"), separator,
+                                            new Doc.Group(Doc.concat(new Doc.Text("f("), authorBroken, new Doc.Text(")"))), separator,
+                                            new Doc.Text("dd"))),
+                            "aa, f(bb cc), dd"),
+                    Arguments.of(
+                            80,
+                            new Doc.Fill(
+                                    List.of(
+                                            new Doc.Text("aa"), separator, Doc.concat(new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc")), separator,
+                                            new Doc.Text("dd"))),
                             "aa,\nbb\ncc,\ndd"));
         }
     }
