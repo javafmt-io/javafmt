@@ -8,7 +8,7 @@ class Fixture {
         for (final String x : xs) {
             use(x);
         }
-        for (@LocalMarker String x : xs) {
+        for (@LocalMarker final String x : xs) {
             use(x);
         }
     }

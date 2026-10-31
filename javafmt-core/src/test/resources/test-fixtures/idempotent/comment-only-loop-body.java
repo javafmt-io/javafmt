@@ -10,7 +10,7 @@ class Fixture {
     }
 
     void runFor(final int[] arr) {
-        for (var _ : arr) {
+        for (final var _ : arr) {
             // enhanced-for note
         }
     }

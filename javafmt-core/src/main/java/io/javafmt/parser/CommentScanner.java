@@ -81,7 +81,7 @@ public final class CommentScanner {
         }
         final var out = new StringBuilder(source.length());
         var cursor = 0;
-        for (var comment : comments) {
+        for (final var comment : comments) {
             out.append(source, cursor, comment.start());
             cursor = comment.end();
         }

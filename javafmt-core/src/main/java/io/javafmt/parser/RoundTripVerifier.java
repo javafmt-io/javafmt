@@ -121,7 +121,7 @@ public final class RoundTripVerifier {
         final var imports = new ArrayList<Token>();
         final var body = new ArrayList<Token>();
         var inImport = false;
-        for (var token : tokens) {
+        for (final var token : tokens) {
             inImport = inImport || token.text().equals("import");
             (inImport ? imports : body).add(token);
             inImport = inImport && !token.text().equals(";");

@@ -84,7 +84,7 @@ public final class TokenScanner {
      * not two {@code -} marks.
      */
     private int endOfOperator(final String source, final int start, final int n) {
-        for (var operator : OPERATORS) {
+        for (final var operator : OPERATORS) {
             if (start + operator.length() <= n && source.startsWith(operator, start)) {
                 return start + operator.length();
             }
