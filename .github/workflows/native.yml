@@ -88,7 +88,7 @@ jobs:
       - name: Smoke test the CLI daemon
         run: gradle :javafmt-cli:nativeDaemonTest
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
 
