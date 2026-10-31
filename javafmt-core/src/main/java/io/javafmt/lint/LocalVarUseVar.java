@@ -41,10 +41,10 @@ import javax.lang.model.type.TypeMirror;
  *
  * <p>From the source alone the rule rewrites a local whose initializer is:
  * <ul>
- *   <li>a {@code new} of exactly the declared type, reassigned or not;</li>
- *   <li>for a local that is never reassigned: a diamond of the declared class, which gains the
- *       declared type arguments; a cast to exactly the declared type; or a literal of exactly the
- *       declared type.</li>
+ *   <li>an unqualified {@code new} of exactly the declared type, reassigned or not;</li>
+ *   <li>for a local that is never reassigned: an unqualified diamond of the declared class, which
+ *       gains the declared type arguments; a cast to exactly the declared type; or a literal of
+ *       exactly the declared type.</li>
  * </ul>
  * Each of these leaves the local's static type unchanged. With attribution, a static factory call
  * on the declared raw type that already carries a type witness matching the declared type
@@ -226,7 +226,7 @@ public final class LocalVarUseVar implements LintRule {
             final NewClassTree newClass,
             final ParsedUnit unit,
             final boolean reassigned) {
-        if (newClass.getClassBody() != null || newClass.getIdentifier() == null) {
+        if (newClass.getClassBody() != null || newClass.getIdentifier() == null || newClass.getEnclosingExpression() != null) {
             return List.of();
         }
         if (sameText(newClass.getIdentifier(), node.getType(), unit)) {
