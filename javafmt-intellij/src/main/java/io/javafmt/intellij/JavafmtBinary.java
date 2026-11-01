@@ -5,6 +5,7 @@ import com.intellij.execution.configurations.GeneralCommandLine;
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil;
 import com.intellij.execution.process.CapturingProcessHandler;
 import com.intellij.execution.process.ProcessIOExecutorService;
+import com.intellij.execution.process.ProcessOutput;
 import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
@@ -153,15 +154,19 @@ public final class JavafmtBinary {
         }
         final var run = CompletableFuture.supplyAsync(
                 () -> handler.runProcess(Math.toIntExact(TIMEOUT.toMillis()), true), ProcessIOExecutorService.INSTANCE);
+        return await(run, TIMEOUT, () -> ProcessIOExecutorService.INSTANCE.execute(handler::destroyProcess));
+    }
+
+    static VersionProbe await(final CompletableFuture<ProcessOutput> run, final Duration timeout, final Runnable destroy) {
         try {
-            final var output = run.get(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            final var output = run.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
             if (output.isTimeout()) {
                 return new VersionProbe.Inconclusive();
             }
             return output.getExitCode() == 0 ? new VersionProbe.Reported(output.getStdout().strip()) : new VersionProbe.Failed();
         } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
-            ProcessIOExecutorService.INSTANCE.execute(handler::destroyProcess);
+            destroy.run();
             return new VersionProbe.Inconclusive();
         } catch (final TimeoutException _) {
             return new VersionProbe.Inconclusive();
