@@ -28,11 +28,12 @@ final class EnumRenderer {
         final var className = node.getSimpleName().toString();
         final var bodyMemberStream = node.getMembers().stream().filter(m -> !isConstant(m, recursor));
         final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);
-        if (constants.isEmpty() && bodyMembers.isEmpty()) {
+        if (constants.isEmpty() && bodyMembers.isEmpty() && authorsSeparator(recursor.sourceOf(node)) != ';') {
             return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, List.of(), recursor.trailingInside(node), recursor);
         }
         if (bodyMembers.isEmpty()) {
             final var pastTheLastSeparator = recursor.interior(node);
+            final var afterTheLastConstant = constants.isEmpty() ? List.<CommentToken>of() : recursor.trailing(constants.getLast());
             final var constantsInner = new Doc.Indent(
                     Doc.concatOf(
                             Stream.of(
@@ -45,14 +46,16 @@ final class EnumRenderer {
                     node.getModifiers(),
                     new Doc.Group(
                             Doc.concat(
-                                    headerDoc, new Doc.Text(" {"), constantsInner, beforeTheClosingBrace(pastTheLastSeparator), new Doc.Text("}"))),
+                                    headerDoc, new Doc.Text(" {"), constantsInner, beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant),
+                                    new Doc.Text("}"))),
                     recursor);
         }
         // The constants go in as one member with no tree of its own, which the separation rule
         // reads as "always blank-line separated" — the right answer for a block of constants
         // followed by declarations.
-        final var constantsBlock = new TypeBodyRenderer.Member(null, constantsBlockBeforeBodyMembers(constants, recursor));
-        final var members = constants.isEmpty() ? bodyMembers : Stream.concat(Stream.of(constantsBlock), bodyMembers.stream()).toList();
+        final var constantsBlock = new TypeBodyRenderer.Member(
+                null, constants.isEmpty() ? new Doc.Text(";") : constantsBlockBeforeBodyMembers(constants, recursor));
+        final var members = Stream.concat(Stream.of(constantsBlock), bodyMembers.stream()).toList();
         return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, members, recursor.tail(node), recursor);
     }
 
@@ -105,13 +108,13 @@ final class EnumRenderer {
     }
 
     /**
-     * The break before the closing brace. Hard once a comment sits on the last separator's line,
-     * both so the enum cannot print flat with its brace inside a {@code //} comment and because a
+     * The break before the closing brace. Hard once a comment sits on the last separator's line, or
+     * a {@code //} comment follows a last constant that has no separator after it, both so the enum cannot print flat with its brace inside a {@code //} comment and because a
      * {@link Doc#LINE} there would be a second newline after the one the comment already needs,
      * leaving a blank line above the brace.
      */
-    private Doc beforeTheClosingBrace(final List<CommentToken> pastTheLastSeparator) {
-        return pastTheLastSeparator.isEmpty() ? Doc.LINE : Doc.HARD_LINE;
+    private Doc beforeTheClosingBrace(final List<CommentToken> pastTheLastSeparator, final List<CommentToken> afterTheLastConstant) {
+        return pastTheLastSeparator.isEmpty() && afterTheLastConstant.stream().noneMatch(c -> c.text().startsWith("//")) ? Doc.LINE : Doc.HARD_LINE;
     }
 
     /**
@@ -184,9 +187,16 @@ final class EnumRenderer {
             return new Doc.Concat(head);
         }
         final var arguments = nc.getArguments().isEmpty()
-                ? Stream.<Doc>empty()
+                ? emptyParenthesesAsWritten(v, nc, recursor)
                 : Stream.of(ExpressionRenderers.packedArguments(nc.getArguments(), recursor));
         final var body = nc.getClassBody() == null ? Stream.<Doc>empty() : Stream.of(ClassBodyRenderer.render(nc.getClassBody(), recursor));
         return new Doc.Concat(Stream.concat(head, Stream.concat(arguments, body)));
+    }
+
+    private Stream<Doc> emptyParenthesesAsWritten(final VariableTree v, final NewClassTree nc, final Recursor recursor) {
+        final var written = nc.getClassBody() == null
+                ? CommentScanner.withoutComments(recursor.sourceOf(v)).stripTrailing().endsWith(")")
+                : CommentScanner.withoutComments(recursor.sourceOf(nc)).stripLeading().startsWith("(");
+        return written ? Stream.of(new Doc.Text("()")) : Stream.empty();
     }
 }

@@ -88,6 +88,8 @@ javafmt moves members in two cases only:
 - Nested types (`record`, `class`, `interface`, `enum`, `@interface`) go to the bottom of their enclosing body, in their original order.
 - In a utility class, the private no-argument constructor goes last, below the nested types.
 
+A JUnit 5 `@Nested` class (written `@Nested` or `@org.junit.jupiter.api.Nested`) keeps its position, because a test class reads top-down. Other nested types in the same body still move below it. A class that declares a `@Nested` class is not a utility class, so its private constructor stays where it is.
+
 Fields, methods, initializer blocks, and enum constants keep the author's order. A moved member takes its Javadoc and comments with it.
 
 ## Single-line constructs
@@ -127,6 +129,7 @@ Lambda parameters are never `final`.
 - When the constants do not fit on one line they go one per line, with a trailing comma after the last constant.
 - An enum with body declarations keeps its `;`. A `,` written directly before the `;` is removed.
 - A constant's arguments follow the call-site argument rule: when they do not fit they wrap at +8 and pack as many per line as fit.
+- Empty parentheses after a constant, `A()`, stay as written.
 
 ## Records
 
@@ -201,7 +204,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `ExplodeStarImports` | Replaces a wildcard import with explicit imports for the members the file references. Only runs with `--analyze`, and leaves every wildcard alone if any name in the file fails to resolve. |
 | `RedundantTypeArguments` | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically. With `--analyze` it also drops type witnesses on generic method calls when javac infers the same type without them. |
 | `RedundantSuperCall` | Removes a no-argument `super()` as the first statement of a constructor body. |
-| `MemberOrder` | Moves nested types to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
+| `MemberOrder` | Moves nested types other than JUnit `@Nested` classes to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
 | `UnusedVariableShouldBeUnnamed` | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Only fires when the source targets Java 22 or later; the integrations read the target release from the build. |
 
 ### Warning-only rules

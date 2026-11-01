@@ -9,7 +9,6 @@ import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
 import java.util.Comparator;
-import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -51,15 +50,16 @@ public final class EmptyStatement implements LintRule {
     }
 
     /**
-     * Offsets of the semicolons sitting between the members of {@code node}'s body. Enums are left
-     * out: the {@code ;} that ends their constant list is a required separator, not a stray, and
-     * {@link EnumTrailingComma} owns it.
+     * Offsets of the semicolons sitting between the members of {@code node}'s body. In an enum the
+     * first one is skipped: it ends the constant list, a required separator rather than a stray,
+     * and {@link EnumTrailingComma} owns it.
      */
     private static Stream<Integer> classBodySemicolons(final ClassTree node, final ParsedUnit unit) {
-        if (node.getKind() == Tree.Kind.ENUM) {
-            return Stream.empty();
-        }
-        final var bodyOpen = bodyBrace(node, unit);
+        return semicolonsBetweenMembers(node, unit).skip(node.getKind() == Tree.Kind.ENUM ? 1 : 0);
+    }
+
+    private static Stream<Integer> semicolonsBetweenMembers(final ClassTree node, final ParsedUnit unit) {
+        final var bodyOpen = unit.bodyBraceOf(node);
         final var classEnd = unit.endOf(node);
         if (bodyOpen < 0 || classEnd <= bodyOpen) {
             return Stream.empty();
@@ -87,22 +87,5 @@ public final class EmptyStatement implements LintRule {
                 .filter(i -> source.charAt(i) == ';')
                 .filter(i -> comments.stream().noneMatch(c -> from + c.start() <= i && i < from + c.end()))
                 .boxed();
-    }
-
-    /**
-     * The <code>{</code> that opens {@code node}'s body. Located from the end of the last header element
-     * rather than from the declaration's start, so the braces in an annotation argument —
-     * {@code @Marker({A, B}) class S} — are behind the cursor before the search begins.
-     */
-    private static int bodyBrace(final ClassTree node, final ParsedUnit unit) {
-        final var headerParts = Stream.of(
-                node.getModifiers().getAnnotations(), node.getTypeParameters(), node.getImplementsClause(), node.getPermitsClause(),
-                node.getExtendsClause() == null ? List.<Tree>of() : List.of(node.getExtendsClause()))
-                .flatMap(List::stream);
-        final var searchFrom = headerParts.mapToInt(unit::endOf)
-                .filter(e -> e >= 0)
-                .max()
-                .orElseGet(() -> unit.startOf(node));
-        return searchFrom < 0 ? -1 : unit.source().indexOf('{', searchFrom);
     }
 }
