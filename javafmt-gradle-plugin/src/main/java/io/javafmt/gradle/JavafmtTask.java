@@ -35,6 +35,10 @@ public abstract class JavafmtTask extends DefaultTask {
     @Input
     public abstract Property<Boolean> getAnalyze();
 
+    @Input
+    @org.gradle.api.tasks.Optional
+    public abstract Property<String> getRatchetFrom();
+
     @CompileClasspath
     public abstract ConfigurableFileCollection getAnalysisClasspath();
 
@@ -84,6 +88,7 @@ public abstract class JavafmtTask extends DefaultTask {
                 parameters -> {
                     parameters.getFiles().from(files);
                     parameters.getAnalyze().set(getAnalyze());
+                    parameters.getRatchetFrom().set(getRatchetFrom());
                     parameters.getThreads().set(Math.min(MAX_THREADS, Runtime.getRuntime().availableProcessors()));
                     parameters.getAnalysisClasspath().set(getAnalysisClasspath().getAsPath());
                     parameters.getWrite().set(write);

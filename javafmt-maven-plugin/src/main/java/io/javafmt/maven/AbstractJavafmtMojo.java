@@ -1,6 +1,8 @@
 package io.javafmt.maven;
 
 import io.javafmt.FileResult;
+import io.javafmt.GitRatchet;
+import io.javafmt.GitRatchetException;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.PathFilter;
@@ -58,13 +60,22 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
      */
     @Parameter private List<String> excludes = List.of();
 
+    /**
+     * A git ref such as {@code origin/main}. When set, only files that differ from the merge base of {@code HEAD} and this ref,
+     * plus untracked files git does not ignore, are formatted or checked. Default: every file.
+     */
+    @Nullable
+    @Parameter(property = "javafmt.ratchetFrom")
+    private String ratchetFrom;
+
     AbstractJavafmtMojo() {}
 
-    AbstractJavafmtMojo(final MavenProject project, final List<String> excludes, final Optional<Path> cacheFile) {
+    AbstractJavafmtMojo(final MavenProject project, final List<String> excludes, final Optional<Path> cacheFile, final Optional<String> ratchetFrom) {
         this.project = project;
         this.excludes = List.copyOf(excludes);
         this.cache = cacheFile.isPresent();
         this.cacheFile = cacheFile.map(Path::toString).orElse(null);
+        this.ratchetFrom = ratchetFrom.orElse(null);
     }
 
     @Override
@@ -74,9 +85,11 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
         final var filter = PathFilter.ofGlobs(excludes);
         final var formatCache = resolveCache(p);
         try {
-            final var files = filter.keep(
-                    Stream.concat(walkNullable(build.getSourceDirectory()).stream(), walkNullable(build.getTestSourceDirectory()).stream())
-                            .toList());
+            final var files = changedSinceRatchet(
+                    p,
+                    filter.keep(
+                            Stream.concat(walkNullable(build.getSourceDirectory()).stream(), walkNullable(build.getTestSourceDirectory()).stream())
+                                    .toList()));
             final var poolSize = threads > 0 ? threads : Runtime.getRuntime().availableProcessors();
             final var results = Javafmt.formatFiles(files, JavafmtConfig.defaults(), formatCache, poolSize);
             failOnUnreadable(results);
@@ -84,7 +97,14 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
             formatCache.save();
         } catch (final UncheckedIOException e) {
             throw new MojoExecutionException("javafmt: I/O error: " + e.getMessage(), e.getCause());
+        } catch (final GitRatchetException e) {
+            throw new MojoExecutionException("javafmt: " + e.getMessage(), e);
         }
+    }
+
+    private List<Path> changedSinceRatchet(final MavenProject p, final List<Path> files) {
+        final var ref = ratchetFrom;
+        return ref == null ? files : GitRatchet.since(ref, Objects.requireNonNull(p.getBasedir(), "basedir").toPath()).keep(files);
     }
 
     /** What the goal does with the files that formatted without errors; throws MojoExecutionException to fail the build. */
