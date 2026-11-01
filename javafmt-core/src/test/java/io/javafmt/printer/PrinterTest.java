@@ -174,6 +174,34 @@ class PrinterTest {
                     Arguments.of(9, "beta", "call(\n    alpha,\n    beta)"),
                     Arguments.of(16, "betaGammaDelta", "call(\n    alpha,\n    betaGammaDelta)"));
         }
+
+        @ParameterizedTest
+        @MethodSource("openingLineCases")
+        void openingLineChoice_takesThePreferredLayoutWhenTheLineBeforeItsFirstForcedBreakFits(final int lineWidth,
+                                                                                               final Doc beforeLambda,
+                                                                                               final String expected) {
+            final var lambda = Doc.concat(
+                    new Doc.Text("x -> {"), new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Text("statementLongerThanTheLine();"))), Doc.HARD_LINE,
+                    new Doc.Text("}"));
+            final var preferred = Doc.concat(new Doc.Text("("), beforeLambda, new Doc.Text(", "), lambda, new Doc.Text(")"));
+            final var fallback = Doc.concat(
+                    new Doc.Text("("), new Doc.Indent(Doc.concat(Doc.HARD_LINE, beforeLambda, new Doc.Text(","), Doc.HARD_LINE, lambda)),
+                    new Doc.Text(")"));
+            final var doc = Doc.concat(new Doc.Text("call"), new Doc.Choice(preferred, fallback, Doc.Choice.Fit.OPENING_LINE));
+            assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
+        }
+
+        static Stream<Arguments> openingLineCases() {
+            final var key = new Doc.Text("key");
+            final var authorBroken = new Doc.Group(Doc.concat(new Doc.Text("a"), Doc.LINE, new Doc.Text("b")), true);
+            return Stream.of(
+                    Arguments.of(16, key, "call(key, x -> {\n    statementLongerThanTheLine();\n})"),
+                    Arguments.of(15, key, "call(\n    key,\n    x -> {\n        statementLongerThanTheLine();\n    })"),
+                    Arguments.of(80, authorBroken, "call(\n    a\n    b,\n    x -> {\n        statementLongerThanTheLine();\n    })"),
+                    Arguments.of(
+                            80, Doc.concat(new Doc.Text("a"), Doc.LINE, new Doc.Text("b")),
+                            "call(\n    a\n    b,\n    x -> {\n        statementLongerThanTheLine();\n    })"));
+        }
     }
 
     @Nested

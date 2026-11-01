@@ -101,7 +101,29 @@ Fields, methods, initializer blocks, and enum constants keep the author's order.
 
 ## Lambdas
 
-A multi-line lambda gets its own lines. The body indents 4 past the line that opens it:
+A multi-line lambda gets its own lines. The body indents 4 past the line that opens it.
+
+A block-bodied lambda that is the last argument of a call stays on the call's line, after the other arguments, and the call closes right after the lambda's `}`:
+
+```java
+assertThat(order).satisfies(placed -> {
+    assertThat(placed.id()).isEqualTo(1);
+});
+visits.compute(id, (_, count) -> {
+    if (count == null) {
+        return 1;
+    }
+    return count + 1;
+});
+```
+
+This holds for method calls, `new`, `this(...)`, `super(...)` and enum constant arguments, but only when all of these are true:
+
+- The line up to the lambda's `{` fits in 150 characters.
+- The other arguments have no comments, nothing that spans several lines, and no block-bodied lambda.
+- In a method chain, the call is the last one, no earlier call spans several lines, and the author did not put a `.` on its own line.
+
+Otherwise the arguments wrap at +8 and the lambda starts its own line. When more calls follow the lambda's call, the chain breaks before every `.`:
 
 ```java
 orders.stream()
@@ -113,11 +135,14 @@ orders.stream()
         .forEach(totals::add);
 ```
 
+A lambda whose body is an expression is an ordinary argument: it wraps with the others and never takes the call's line on its own.
+
 Lambda parameters are never `final`.
 
 ## Method chains
 
 - Break before each `.` when the chain does not fit in 150 characters, or when the author already put a `.` on its own line. A chain that contains a multi-line text block always breaks.
+- A chain whose last call ends in a block-bodied lambda stays on one line up to the lambda's `{` when that fits (see Lambdas). Any other part that spans several lines, such as a block lambda in an earlier call, breaks the chain before every `.`.
 - Continuation indent is 8 spaces past the statement. Dots are not aligned with each other.
 - The first call of a chain stays on the line of its receiver (`orders.stream()`, `return Shipments.builder()`).
 - `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters or when the author already broke them.

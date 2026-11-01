@@ -233,7 +233,7 @@ final class ExpressionRenderers {
 
     Doc renderNewClass(final NewClassTree node, final Recursor recursor) {
         final var arguments = node.getArguments();
-        final var argumentsDoc = arguments.isEmpty() ? new Doc.Text("()") : packedArguments(arguments, recursor);
+        final var argumentsDoc = CallArguments.render(arguments, recursor).doc();
         final var body = node.getClassBody();
         final var headParts = Doc.concatOf(
                 Stream.of(
@@ -243,14 +243,6 @@ final class ExpressionRenderers {
             return headParts;
         }
         return Doc.concat(headParts, ClassBodyRenderer.render(body, recursor));
-    }
-
-    Doc packedArguments(final List<? extends ExpressionTree> arguments, final Recursor recursor) {
-        return new Doc.Group(
-                Doc.concat(
-                        new Doc.Text("("),
-                        Doc.continuationIndent(Doc.concat(Doc.SOFT_LINE, CommentDocs.commaFill(arguments, recursor, recursor::scan))),
-                        new Doc.Text(")")));
     }
 
     /**
