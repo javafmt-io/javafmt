@@ -184,7 +184,7 @@ public final Money total() {
 - Every `//`, `/* */` and `/** */` comment keeps its text verbatim. javafmt does not re-wrap comments, realign their `*` margins, or strip anything from them.
 - Comments attach to source tokens, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` stays between the same two tokens in the output.
 - Every position is covered: file headers above `package`, leading comments on declarations, comments on imports, comments between statements, trailing same-line comments, comments inside argument and parameter lists, comments inside empty blocks, and comments between the last statement and its closing brace.
-- A comment stays on the line it was written on. A `//` comment after an argument's comma, in a method call, a `new X(...)` expression or an enum constant, after an annotation on its own line (`@Override // why`) or on a parameter or record component, on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it.
+- A comment stays on the line it was written on. A `//` comment after an argument's comma, in a method call, a `new X(...)` expression, an array initializer or an enum constant, after an annotation on its own line (`@Override // why`) or on a parameter or record component, on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it. A comment written after an array initializer element but before its comma moves after the comma, so a `//` comment cannot swallow it.
 - Continuation lines of a block comment reindent to the comment's final output column, not its source column.
 - IDE and tooling directives stay byte-for-byte and are not reindented: `// noinspection ...`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE ...`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-...$`, and the block-comment equivalents.
 - `//` and `/*` are recognized only outside string literals, character literals and text blocks.
@@ -219,10 +219,10 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `RedundantModifier` | Strips modifiers the JLS implies. |
 | `ArrayTypeStyle` | `String[] arguments`, not `String args[]`. |
 | `UpperEll` | `1L`, not `1l`. |
-| `MultipleVariableDeclarations` | One declaration per statement. |
+| `MultipleVariableDeclarations` | One declaration per statement, in a block, a `case` group or a class body. |
 | `UnusedImports` | Removes unreferenced imports. |
-| `EmptyStatement` | Drops lone `;`. |
-| `OneStatementPerLine` | Splits multiple statements on one line. |
+| `EmptyStatement` | Drops lone `;`, including the optional one after the last resource of a `try`: `try (var in = open();)` becomes `try (var in = open())`. |
+| `OneStatementPerLine` | Splits multiple statements on one line. A comment between two of them stays at the end of the first one's line. |
 | `NewlineAtEndOfFile` | Ends the file with exactly one line ending, in the file's own style. |
 | `ExplicitInitialization` | Strips redundant default field initializers: `int x = 0;` becomes `int x;`, `Object o = null;` becomes `Object o;`, `boolean b = false;` becomes `boolean b;`. Skipped when the class has a superclass, because the superclass constructor may call an override that assigns the field and `= 0` is then a real write, and when a comment sits inside the text being deleted. |
 | `EnumTrailingComma` | Adds a trailing comma after the last constant when the constants do not fit on one line and go one per line. Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |

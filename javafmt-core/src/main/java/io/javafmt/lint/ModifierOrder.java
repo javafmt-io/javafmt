@@ -32,10 +32,11 @@ import javax.lang.model.element.Modifier;
  * Reordering it in place produced the same edit once per declarator, which is not a set
  * {@link LintEngine} can apply.
  *
- * <p>A comment stops the scan rather than being stepped over, for the same reason: the replacement
- * runs from the first keyword to the last one the scan reached, so continuing past a comment would
- * write over it. <code>static public /* c *&#47; final</code> therefore has only its first two keywords
- * reordered.
+ * <p>A block comment among the modifiers is carried through the rewrite. A {@code //} comment
+ * after a keyword stops the scan, because it runs to the end of its line and re-emitting it inside
+ * the rewritten list would swallow what follows. A {@code //} comment before the first keyword, as
+ * in {@code @Deprecated // since 3.1} on the line above the keywords, moves the start of the
+ * replacement past it instead, so everything before it stays where it was written.
  */
 public final class ModifierOrder implements LintRule {
     @Override
@@ -82,15 +83,15 @@ public final class ModifierOrder implements LintRule {
         }
         final var rewritten = Stream.concat(
                 Stream.concat(scan.annotations().stream(), scan.comments().stream()), canonicalOrder.stream().map(Modifier::toString));
-        return Optional.of(new LintEdit(modifierStart, scan.lastItemEnd(), rewritten.collect(Collectors.joining(" "))));
+        return Optional.of(new LintEdit(scan.start(), scan.lastItemEnd(), rewritten.collect(Collectors.joining(" "))));
     }
 
     /**
      * Walks the modifier list, collecting the annotations (as their source text) and the keywords
      * (as modifiers) in the order written.
      *
-     * <p>The replacement covers everything from the start of the modifiers to the last item the
-     * scan reached. Everything the scan collects is inside that span and everything inside that
+     * <p>The replacement covers everything from the start of the modifiers, or from the end of the
+     * last {@code //} comment before the first keyword, to the last item the scan reached. Everything the scan collects is inside that span and everything inside that
      * span is written back, which is what keeps an annotation or a comment from being either
      * dropped or duplicated.
      */
@@ -99,6 +100,7 @@ public final class ModifierOrder implements LintRule {
         final var comments = new ArrayList<String>();
         final var keywords = new ArrayList<Modifier>();
         var annotationAfterAKeyword = false;
+        var start = modifierStart;
         var lastItemEnd = -1;
         var pos = modifierStart;
         while (pos < src.length()) {
@@ -111,15 +113,23 @@ public final class ModifierOrder implements LintRule {
             final var commentEnd = CommentScanner.skipComment(src, pos);
             if (commentEnd >= 0) {
                 if (src.startsWith("//", pos)) {
-                    // A line comment runs to the end of its line, so re-emitting it inside the
-                    // rewritten modifier list would swallow whatever follows. Stop instead.
-                    break;
+                    if (!keywords.isEmpty()) {
+                        break;
+                    }
+                    annotations.clear();
+                    comments.clear();
+                    start = -1;
+                    lastItemEnd = -1;
+                    pos = commentEnd;
+                    continue;
                 }
+                start = start < 0 ? pos : start;
                 comments.add(src.substring(pos, commentEnd));
                 lastItemEnd = commentEnd;
                 pos = commentEnd;
                 continue;
             }
+            start = start < 0 ? pos : start;
             if (src.charAt(pos) == '@') {
                 if (Modifiers.skipModifierKeyword(src, pos + 1, "interface") >= 0) {
                     // `@interface` is the declaration keyword, not an annotation. Hoisting it in
@@ -142,7 +152,7 @@ public final class ModifierOrder implements LintRule {
             lastItemEnd = pos;
             keywords.add(matched);
         }
-        return new Scan(List.copyOf(annotations), List.copyOf(comments), keywords, annotationAfterAKeyword, lastItemEnd);
+        return new Scan(start, List.copyOf(annotations), List.copyOf(comments), keywords, annotationAfterAKeyword, lastItemEnd);
     }
 
     /**
@@ -166,10 +176,11 @@ public final class ModifierOrder implements LintRule {
     }
 
     /**
+     * @param start where the replacement begins
      * @param comments block comments written among the modifiers. They are carried through the
      *     rewrite rather than stopping it, so a declaration like
      *     <code>@A /*non-public*&#47; final native @B Object m()</code> can still be normalised without
      *     losing the note. They end up after the annotations and before the keywords.
      */
-    private record Scan(List<String> annotations, List<String> comments, List<Modifier> keywords, boolean annotationAfterAKeyword, int lastItemEnd) {}
+    private record Scan(int start, List<String> annotations, List<String> comments, List<Modifier> keywords, boolean annotationAfterAKeyword, int lastItemEnd) {}
 }

@@ -460,7 +460,7 @@ final class CommentAttacher {
         @Override
         public Void visitNewArray(final NewArrayTree node, final Void p) {
             if (node.getInitializers() != null) {
-                collect(node, node.getInitializers(), false);
+                collectSeparatedList(node, pos.getStartPosition(cu, node), node.getInitializers());
             }
             return super.visitNewArray(node, null);
         }
@@ -575,10 +575,10 @@ final class CommentAttacher {
         }
 
         /**
-         * A parameter or argument list, whose renderer places a {@code //} comment left after a
-         * comma rather than pushing it down onto the next element. Only lists whose renderer reads
-         * the {@code interior} channel may be collected this way — an enum's constants are the
-         * third, through {@link #visitClass} — because a comment routed there by a renderer that
+         * A parameter, argument or array initializer list, whose renderer places a {@code //} comment
+         * left after a comma rather than pushing it down onto the next element. Only lists whose
+         * renderer reads the {@code interior} channel may be collected this way — an enum's
+         * constants are the fourth, through {@link #visitClass} — because a comment routed there by a renderer that
          * never asks for it is a comment the output does not contain.
          */
         private void collectSeparatedList(final Tree container, final long containerLo, final List<? extends Tree> children) {

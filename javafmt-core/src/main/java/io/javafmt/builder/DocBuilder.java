@@ -75,6 +75,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 public final class DocBuilder {
@@ -95,6 +96,12 @@ public final class DocBuilder {
         public Doc scan(final Tree node) {
             Objects.requireNonNull(node, "node");
             return Objects.requireNonNull(DocBuilder.this.scan(node));
+        }
+
+        @Override
+        public Doc scanBeforeComments(final Tree node, final UnaryOperator<Doc> adjust) {
+            Objects.requireNonNull(node, "node");
+            return Objects.requireNonNull(DocBuilder.this.scan(node, adjust));
         }
 
         @Override
@@ -197,25 +204,25 @@ public final class DocBuilder {
         if (tree == null) {
             return null;
         }
+        return scan(tree, UnaryOperator.identity());
+    }
+
+    private Doc scan(final Tree tree, final UnaryOperator<Doc> adjust) {
         final var ready = prerendered.remove(tree);
         if (ready != null) {
             diagnostics.addAll(ready.diagnostics());
-            return ready.doc();
+            return attacher.attach(tree, adjust.apply(ready.doc()));
         }
         final var reentry = reentryPoint(tree);
         if (reentry != null) {
             walk(reentry, DocBuilder::reentryPoint).toList().reversed().forEach(this::prerender);
         }
-        return render(tree);
-    }
-
-    private Doc render(final Tree tree) {
-        return attacher.attach(tree, dispatch(tree));
+        return attacher.attach(tree, adjust.apply(dispatch(tree)));
     }
 
     private void prerender(final Tree tree) {
         final var from = diagnostics.size();
-        final var doc = render(tree);
+        final var doc = dispatch(tree);
         final var raised = diagnostics.subList(from, diagnostics.size());
         prerendered.put(tree, new Prerendered(doc, List.copyOf(raised)));
         raised.clear();

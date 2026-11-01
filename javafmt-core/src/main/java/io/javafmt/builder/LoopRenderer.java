@@ -70,8 +70,7 @@ final class LoopRenderer {
     }
 
     private Doc renderPart(final Tree tree, final Recursor recursor, final boolean stripSemicolon) {
-        final var doc = recursor.scan(tree);
-        return stripSemicolon ? BlockRenderer.stripTrailingSemicolonDoc(doc) : doc;
+        return stripSemicolon ? recursor.scanBeforeComments(tree, BlockRenderer::stripTrailingSemicolonDoc) : recursor.scan(tree);
     }
 
     Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor) {

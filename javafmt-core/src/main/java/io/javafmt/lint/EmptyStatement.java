@@ -4,17 +4,20 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.EmptyStatementTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.tree.TryTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
  * Removes stray semicolons ({@code ;}): the ones javac models as {@link EmptyStatementTree} inside
- * a block body, and the ones it models as nothing at all between the members of a class body.
+ * a block body, and the ones it models as nothing at all between the members of a class body or
+ * after the last resource of a {@code try}.
  * Does not touch {@code for(;;)} loops — their empty initializer/condition/update are not represented as
  * {@link EmptyStatementTree} at all.
  *
@@ -42,11 +45,43 @@ public final class EmptyStatement implements LintRule {
                     }
 
                     @Override
+                    public Void visitTry(final TryTree node, final Void p) {
+                        semicolonAfterTheLastResource(node, unit).ifPresent(pos -> edits.add(new LintEdit(pos, pos + 1, "")));
+                        return super.visitTry(node, null);
+                    }
+
+                    @Override
                     public Void visitClass(final ClassTree node, final Void p) {
                         classBodySemicolons(node, unit).forEach(pos -> edits.add(new LintEdit(pos, pos + 1, "")));
                         return super.visitClass(node, null);
                     }
                 });
+    }
+
+    private static Optional<Integer> semicolonAfterTheLastResource(final TryTree node, final ParsedUnit unit) {
+        final var resources = node.getResources();
+        if (resources.isEmpty()) {
+            return Optional.empty();
+        }
+        final var source = unit.source();
+        var pos = unit.endOf(resources.getLast());
+        if (pos <= 0) {
+            return Optional.empty();
+        }
+        if (source.charAt(pos - 1) == ';') {
+            return Optional.of(pos - 1);
+        }
+        while (pos < source.length()) {
+            final var commentEnd = CommentScanner.skipComment(source, pos);
+            if (commentEnd >= 0) {
+                pos = commentEnd;
+            } else if (Character.isWhitespace(source.charAt(pos))) {
+                pos++;
+            } else {
+                break;
+            }
+        }
+        return pos < source.length() && source.charAt(pos) == ';' ? Optional.of(pos) : Optional.empty();
     }
 
     /**

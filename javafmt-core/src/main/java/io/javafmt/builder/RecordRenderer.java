@@ -52,7 +52,6 @@ final class RecordRenderer {
     }
 
     private Doc componentDoc(final VariableTree comp, final Recursor recursor) {
-        return Doc.concat(
-                ModifierRenderer.annotationsDoc(comp.getModifiers(), recursor), recursor.scan(comp.getType()), new Doc.Text(" " + comp.getName()));
+        return Doc.concat(ModifierRenderer.annotationsDoc(comp.getModifiers(), recursor), MethodRenderer.typeAndName(comp, recursor));
     }
 }

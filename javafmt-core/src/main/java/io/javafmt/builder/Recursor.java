@@ -7,8 +7,12 @@ import io.javafmt.doc.Doc;
 import io.javafmt.doc.LeadingCommentAttacher;
 import org.jspecify.annotations.Nullable;
 
+import java.util.function.UnaryOperator;
+
 interface Recursor extends LeadingCommentAttacher {
     Doc scan(Tree node);
+
+    Doc scanBeforeComments(Tree node, UnaryOperator<Doc> adjust);
 
     @Nullable
     Doc scanNullable(Tree node);

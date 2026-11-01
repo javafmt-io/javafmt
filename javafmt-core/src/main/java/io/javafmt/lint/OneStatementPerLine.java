@@ -47,12 +47,9 @@ public final class OneStatementPerLine implements LintRule {
                 continue;
             }
             final var src = unit.source();
-            var splitPoint = currentEnd;
-            while (splitPoint < nextStart && src.charAt(splitPoint) != ';') {
-                splitPoint++;
-            }
-            if (splitPoint < nextStart && src.charAt(splitPoint) == ';') {
-                splitPoint++;
+            var splitPoint = nextStart;
+            while (splitPoint > currentEnd && Character.isWhitespace(src.charAt(splitPoint - 1))) {
+                splitPoint--;
             }
             final var indent = MultipleVariableDeclarations.extractIndent(src, currentAt.offset());
             edits.add(new LintEdit(splitPoint, nextStart, "\n" + indent));

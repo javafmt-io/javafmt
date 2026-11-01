@@ -2,7 +2,9 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.BlockTree;
+import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
@@ -18,7 +20,7 @@ import java.util.stream.Stream;
 
 /**
  * Splits {@code int a, b, c = 0;} into separate declarations. Detects groups by checking
- * whether consecutive {@link VariableTree} siblings in the same block or class share the
+ * whether consecutive {@link VariableTree} siblings in the same block, {@code case} group or class share the
  * same type start offset, which javac produces for multi-variable declarations.
  *
  * <p>The split is made by replacing each separating {@code ,} with {@code ;} and a copy of the
@@ -43,6 +45,12 @@ public final class MultipleVariableDeclarations implements LintRule {
                     public Void visitBlock(final BlockTree node, final Void p) {
                         splitGroups(node.getStatements(), unit, edits);
                         return super.visitBlock(node, null);
+                    }
+
+                    @Override
+                    public Void visitCase(final CaseTree node, final Void p) {
+                        splitGroups(statementsOf(node), unit, edits);
+                        return super.visitCase(node, null);
                     }
 
                     @Override
@@ -243,6 +251,7 @@ public final class MultipleVariableDeclarations implements LintRule {
         }
         final List<? extends Tree> siblings = switch (parent.getLeaf()) {
             case BlockTree block -> block.getStatements();
+            case CaseTree caseTree -> statementsOf(caseTree);
             case ClassTree cls -> cls.getMembers();
             default -> List.of();
         };
@@ -263,6 +272,10 @@ public final class MultipleVariableDeclarations implements LintRule {
             && IntStream.of(index - 1, index + 1)
                     .filter(i -> i >= 0 && i < siblings.size())
                     .anyMatch(i -> siblings.get(i) instanceof VariableTree sibling && unit.startOf(sibling.getType()) == typeStart);
+    }
+
+    private static List<? extends StatementTree> statementsOf(final CaseTree caseTree) {
+        return caseTree.getCaseKind() == CaseTree.CaseKind.STATEMENT ? caseTree.getStatements() : List.of();
     }
 
     static String extractIndent(final String src, final int pos) {

@@ -29,7 +29,7 @@ final class TryRenderer {
         if (resources == null || resources.isEmpty()) {
             return new Doc.Text("try");
         }
-        final var rendered = resources.stream().map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scan(r)));
+        final var rendered = resources.stream().map(r -> recursor.scanBeforeComments(r, BlockRenderer::stripTrailingSemicolonDoc));
         return Doc.concat(new Doc.Text("try "), WrappableList.of("(", ";", ")", rendered));
     }
 

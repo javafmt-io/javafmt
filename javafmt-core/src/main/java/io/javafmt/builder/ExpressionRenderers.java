@@ -182,7 +182,14 @@ final class ExpressionRenderers {
         if (initializers.isEmpty()) {
             return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(new Doc.Text(brace + "}"))));
         }
-        final var elements = WrappableList.blockOf(brace, ",", "}", withTrailingComma(initializers.stream().map(recursor::scan).toList()));
+        final var elements = WrappableList.blockOf(
+                brace, "}",
+                IntStream.range(0, initializers.size())
+                        .mapToObj(
+                                i -> CommentDocs.appendTrailing(
+                                        recursor.scanBeforeComments(initializers.get(i), d -> Doc.concat(d, new Doc.Text(","))),
+                                        i + 1 < initializers.size() ? recursor.interior(initializers.get(i + 1)) : List.of()))
+                        .toList());
         return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(elements)));
     }
 
@@ -205,18 +212,6 @@ final class ExpressionRenderers {
             levels++;
         }
         return new ElementType(current, levels);
-    }
-
-    /**
-     * The elements, with the trailing comma attached to the last one rather than to the closing
-     * brace — written as part of the brace it would break onto the closing line as {@code ,}}.
-     *
-     * <p>The comma itself is {@code ArrayTrailingComma}'s: that rule writes one into the source of
-     * every non-empty initializer, so this is reproducing a token rather than inventing one.
-     */
-    private Stream<Doc> withTrailingComma(final List<Doc> elements) {
-        return IntStream.range(0, elements.size())
-                .mapToObj(i -> i < elements.size() - 1 ? elements.get(i) : Doc.concat(elements.get(i), new Doc.Text(",")));
     }
 
     /**

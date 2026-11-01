@@ -73,6 +73,11 @@ class ModifierRendererTest {
             }
 
             @Override
+            public Doc scanBeforeComments(final com.sun.source.tree.Tree node, final java.util.function.UnaryOperator<Doc> adjust) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public Doc attach(final com.sun.source.tree.Tree node, final Doc rendered) {
                 throw new UnsupportedOperationException();
             }

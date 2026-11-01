@@ -93,12 +93,16 @@ final class MethodRenderer {
     private Doc renderParam(final VariableTree p, final Recursor recursor) {
         final var prefix = Doc.concat(
                 ModifierRenderer.annotationsDoc(p.getModifiers(), recursor), new Doc.Text(ModifierRenderer.modifiersText(p.getModifiers())));
+        return Doc.concat(prefix, typeAndName(p, recursor));
+    }
+
+    Doc typeAndName(final VariableTree p, final Recursor recursor) {
         final var varargs = recursor.isVarargs(p) ? varargsElementType(p.getType(), recursor) : Optional.<Doc>empty();
         if (varargs.isPresent()) {
-            return Doc.concat(prefix, varargs.get(), new Doc.Text("... " + Names.of(p)));
+            return Doc.concat(varargs.get(), new Doc.Text("... " + Names.of(p)));
         }
         final var typeDoc = p.getType() == null ? new Doc.Text("var") : recursor.scan(p.getType());
-        return Doc.concat(prefix, typeDoc, new Doc.Text(" " + Names.of(p)));
+        return Doc.concat(typeDoc, new Doc.Text(" " + Names.of(p)));
     }
 
     /**

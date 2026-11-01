@@ -108,6 +108,16 @@ class ModifierOrderTest {
                 .satisfies(e -> assertThat(e.replacement()).isEqualTo("public static"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"@Deprecated // since 3.1", "@SuppressWarnings({\"unused\", \"rawtypes\"})    // kept for callers", "@Deprecated /* old */ // since 3.1"})
+    void keywordsAfterALineCommentFollowingTheAnnotationsAreReordered(final String annotationLine) {
+        final var source = "class Fixture {\n    " + annotationLine + "\n    public final static char NUL = 0;\n}\n";
+        final var unit = JavaParser.parseUnit(source);
+        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("class Fixture {\n    " + annotationLine + "\n    public static final char NUL = 0;\n}\n");
+    }
+
     @Test
     void sealedAbstractReorderedToAbstractSealed() {
         // JLS canonical order (see JavaModifiers.JLS_ORDER): abstract precedes sealed.
