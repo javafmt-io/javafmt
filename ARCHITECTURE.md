@@ -21,7 +21,7 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    core["javafmt-core<br/>parser, lint, DocBuilder, Printer<br/>runtime dependency: slf4j-api only"]
+    core["javafmt-core<br/>parser, lint, DocBuilder, Printer<br/>no runtime dependencies"]
 
     spotless["javafmt-spotless<br/>Spotless FormatterStep"] --> core
     maven["javafmt-maven-plugin<br/>format and check goals"] --> core

@@ -37,7 +37,7 @@ Everything goes through Gradle, including the VS Code extension's TypeScript com
 
 | Module                  | What it does                                                                |
 |-------------------------|-----------------------------------------------------------------------------|
-| `javafmt-core`          | The parser and formatter. The only runtime dep is `slf4j-api`.              |
+| `javafmt-core`          | The parser and formatter. No runtime dependencies.                          |
 | `javafmt-daemon`        | `daemon.proto` and the `javafmt --daemon` server the CLI delegates to.      |
 | `javafmt-cli`           | Standalone CLI. Ships as a fat JAR plus GraalVM native binaries per OS.     |
 | `javafmt-spotless`      | A `FormatterStep` so any Gradle project on Spotless can pick it up.         |

@@ -11,10 +11,11 @@ An opinionated, high-performance Java code formatter for modern LTS (25+). See `
 
 ## Code intelligence (Claude Code)
 
-This repo enables two LSP plugins for contributors using Claude Code (`.claude/settings.json`):
-`jdtls-lsp` for Java and `kotlin-lsp` for Kotlin (`buildSrc/**/*.kts`, `*.kt`). One-time setup
-per contributor: run `/plugins install jdtls-lsp` and `/plugins install kotlin-lsp`, then
-`/reload-plugins`.
+This repo enables three LSP plugins for contributors using Claude Code (`.claude/settings.json`):
+`jdtls-lsp` for Java, `kotlin-lsp` for Kotlin (`buildSrc/**/*.kts`, `*.kt`) and `typescript-lsp`
+for the VS Code extension (`javafmt-vscode/src/**/*.ts`). One-time setup per contributor: run
+`/plugins install jdtls-lsp`, `/plugins install kotlin-lsp` and `/plugins install typescript-lsp`,
+then `/reload-plugins`.
 
 Use the LSP tool for symbol-level work: `goToDefinition`, `findReferences`, `goToImplementation`,
 `hover` (for types), `documentSymbol`, `workspaceSymbol`, and call hierarchy. Use `rg` only for
@@ -29,20 +30,26 @@ first use after a clean build.
 
 ## Code style (Java)
 
-- **Java 25+,** use modern language features everywhere
-- **`final var`** for all local variables; **`final`** on all method parameters unless there is a compelling reason not to
+- **Java 25,** use modern language features everywhere, with two exceptions that compile for an older release because of where they run:
+  - `javafmt-intellij`, and the daemon's `protocol` source set it bundles, target Java 21, because IntelliJ 2025.2 runs on JetBrains Runtime 21.
+  - The `javafmt-gradle-plugin` main classes target Java 17, so they load in a Gradle running on 17, 21 or 25. The formatter itself runs from the plugin's `engine` source set on a Java 25 toolchain, in a separate worker process.
+- **`final var`** for every local where the language allows it. `var` is not allowed for lambdas, method references, `null` or array initializers, and a reassigned local cannot be `final`. Every method and constructor parameter is `final`; lambda parameters never are. javafmt adds the `final`s and some of the `var`s itself (see the lint pass in `docs/rules.md`).
 - **Sealed interfaces + records** for all data types
 - **Immutability everywhere,** `List.of()`, `Map.of()`, `Set.of()`, unmodifiable collections. No mutable state unless absolutely necessary.
 - **Pattern matching** in switch expressions for dispatch
-- **No nulls,** `Optional<T>` at API boundaries, `Objects.requireNonNull` at internal boundaries. Every package must have a `package-info.java` annotated `@NullMarked` (JSpecify compile-time enforcement) — `Objects.requireNonNull` is runtime defense-in-depth on top of that, not a replacement.
-- **No checked exceptions** in public API, wrap in unchecked exceptions
+- **No nulls,** `Optional<T>` at API boundaries, `Objects.requireNonNull` at internal boundaries. Every package under `src/main/java` has a `package-info.java` annotated `@NullMarked`. The compile-time check is NullAway (run by Error Prone), which treats all of `io.javafmt` as non-null unless marked `@Nullable`. NullAway is off for tests, benchmarks and the daemon's generated protocol classes, and `javafmt-intellij` does not run Error Prone at all. `Objects.requireNonNull` adds a runtime check on top of NullAway; it does not replace it.
+- **No checked exceptions** in public API, wrap in unchecked exceptions. The only exception is a host API that declares one, such as Maven's `MojoExecutionException`.
 - **Stream API over mutable accumulators.** Prefer `Stream` pipelines + `.toList()` over `ArrayList` + `for` + `.add()`. Mutable state is a code smell — if you are building a list imperatively, express it as a stream pipeline instead. For nullable results (e.g. `scan()`) in pipelines, use `flatMap(x -> Optional.ofNullable(f(x)).stream())` — this both filters nulls and narrows the element type in one step. The intersperse pattern (separator between elements, not after each) uses `.flatMap(e -> Stream.of(separator, e)).skip(1)`.
-- **Lombok,** use `@Slf4j` for logging in all modules; use `@Getter`/`@Setter` instead of hand-writing accessors; prefer records over `@Data` for data modeling. Lombok is `compileOnly` everywhere (annotation processor only, no runtime dep). `slf4j-api` is an `implementation` dep in all modules via `javafmt.java-conventions`; `javafmt-cli` bundles `slf4j-simple` as `runtimeOnly` since it has no host runtime to provide a binding.
+- **Lombok,** use `@Getter`/`@Setter` instead of hand-writing accessors; prefer records over `@Data` for data modeling. Lombok is `compileOnly` (annotation processor only, no runtime dependency) in every module that applies `javafmt.java-conventions`, which is every Java module except `javafmt-intellij`.
+- **Logging uses whatever the module's host provides.**
+  - `javafmt-core` uses `System.Logger`, so it keeps zero runtime dependencies.
+  - The Gradle, Maven and IntelliJ plugins use Gradle's logger, `getLog()` and IntelliJ's `Logger`.
+  - `javafmt-daemon` and `javafmt-cli` use SLF4J through Lombok's `@Slf4j`. `javafmt-cli` bundles `slf4j-simple` as `runtimeOnly`, since nothing else provides a binding.
 
 ## Testing
 
 - **AssertJ only,** never use JUnit's `assertEquals`, `assertTrue`, `assertNull`, etc. All assertions must use AssertJ's fluent `assertThat(...)` API.
-- **Fixture-based tests** for formatting rules: `test-fixtures/<category>/input.java` + `expected.java` pairs, loaded by parameterized tests.
+- **Fixture-based tests** for formatting rules: one directory per case under `javafmt-core/src/test/resources/test-fixtures/<case>/`, holding `input.java` and `expected.java`, loaded by `JavafmtFixtureTest`. A case can add more inputs named `input-<variant>.java`; each must format to the same `expected.java`.
 - **Idempotent fixtures** (where `format(x) == x`) live as single files at `test-fixtures/idempotent/<name>.java` — no input/expected split. Use this when the contract under test is "this canonical shape is preserved", not "this transformation happens".
 - **Unit tests** for internal components (Doc algebra, Printer, individual rules).
 - **Idempotency**: `format(format(x))` must equal `format(x)`. Test this.
@@ -50,11 +57,21 @@ first use after a clean build.
 
 ## Architecture
 
-- **`javafmt-core` has minimal runtime dependencies.** Every dep must be deliberate and well-justified, e.g. `slf4j-api` is acceptable. Test-only deps (JUnit 5, AssertJ) are always fine.
-- Integration modules (`javafmt-spotless`, `javafmt-maven-plugin`, `javafmt-gradle-plugin`, `javafmt-cli`, `javafmt-intellij`) depend on `javafmt-core` and add only their integration-specific dependencies.
+- **`javafmt-core` has no runtime dependencies.** Adding one needs a strong reason. Test-only dependencies (JUnit 5, AssertJ) are always fine.
+- How the modules depend on `javafmt-core`:
+  - `javafmt-daemon` (the long-running formatting process and its protobuf protocol), `javafmt-spotless` and `javafmt-maven-plugin` depend on it.
+  - `javafmt-cli` depends on it and on `javafmt-daemon`, and is compiled to the native `javafmt` binary.
+  - In `javafmt-gradle-plugin`, only the `engine` source set depends on it.
+  - `javafmt-intellij` and `javafmt-vscode` do not depend on it. They start the native binary as `javafmt --daemon` and talk to it over the daemon protocol.
+  - `website` is the documentation site.
 - `javafmt-maven-plugin` is a Maven plugin JAR but is built by Gradle via the `org.gradlex.maven-plugin-development` plugin, which generates the `META-INF/maven/plugin.xml` descriptor from `@Mojo` annotations. One build system for the whole monorepo, no `mvn install` bootstrap needed.
-- Shared build conventions live in `buildSrc/src/main/kotlin/javafmt.java-conventions.gradle.kts`.
-- All dependency versions go in `gradle/libs.versions.toml`, nowhere else.
+- Shared build conventions live in `buildSrc/src/main/kotlin/` (`javafmt.java-conventions`, `javafmt.spotless-conventions`, `javafmt.native-conventions`, `javafmt.npm-conventions`, `javafmt.publish-conventions`), and the settings plugins in `build-settings/`. `javafmt-intellij` applies only the Spotless conventions.
+- Every Gradle dependency, Gradle plugin and IntelliJ Platform version goes in `gradle/libs.versions.toml`. npm versions live in each module's `package.json`, and the CI workflows pin their own Java and Gradle versions.
+
+## What the build checks
+
+- Every javac lint warning, Error Prone finding and Javadoc warning fails the build (`-Xlint:all -Werror`, and doclint with `-Werror`).
+- Spotless runs javafmt on every Java file under each module's `src/`, tests included, with the `--analyze` rewrites turned on. `gradle build` runs `spotlessCheck`, so run `gradle spotlessApply` before committing. The lint pass rewrites code as well as layout, so expect javafmt to change what you wrote; `docs/rules.md` lists every rewrite.
 
 ## Formatting rules (what javafmt enforces)
 

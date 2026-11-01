@@ -57,7 +57,7 @@ dependencies {
     }
 
     intellijPlatform {
-        intellijIdeaCommunity("2025.2")
+        intellijIdeaCommunity(libs.versions.intellijIdea.get())
         bundledPlugin("com.intellij.java")
         testFramework(TestFrameworkType.Bundled)
         testFramework(TestFrameworkType.JUnit5)
