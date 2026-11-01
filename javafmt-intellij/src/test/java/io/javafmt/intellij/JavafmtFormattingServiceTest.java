@@ -165,6 +165,18 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     @Test
+    public void testAFormatCancelledBeforeItRunsLeavesTheFileAloneQuietly(@TempDir final Path dir) throws IOException {
+        enableJavafmtWithFakeBinary(dir);
+        final var stopped = new JavafmtDaemons();
+        stopped.dispose();
+        ServiceContainerUtil.replaceService(getProject(), JavafmtDaemons.class, stopped, getTestRootDisposable());
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        reformat(file);
+        assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
+        assertThat(notifications).isEmpty();
+    }
+
+    @Test
     public void testSuccessfulFormatIsSilent(@TempDir final Path dir) throws IOException {
         enableJavafmtWithFakeBinary(dir);
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
