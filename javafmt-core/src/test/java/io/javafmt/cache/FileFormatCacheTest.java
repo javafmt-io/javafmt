@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FileFormatCacheTest {
     private static final CacheKey KEY = CacheKey.of(JavafmtConfig.defaults());
@@ -193,5 +194,17 @@ class FileFormatCacheTest {
         assertThat(body)
                 .contains(kept.toAbsolutePath().toString())
                 .doesNotContain(deleted.toAbsolutePath().toString());
+    }
+
+    @Test
+    void sha256IsTheHexDigestOfTheUtf8Bytes() {
+        assertThat(FileFormatCache.sha256("abc")).isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    }
+
+    @Test
+    void aDigestAlgorithmTheRuntimeLacksIsReportedAsAnIllegalState() {
+        assertThatThrownBy(() -> FileFormatCache.hash("NO-SUCH-DIGEST", "abc"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("NO-SUCH-DIGEST");
     }
 }

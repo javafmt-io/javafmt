@@ -159,10 +159,14 @@ public final class FileFormatCache implements FormatCache {
     }
 
     static String sha256(final String content) {
+        return hash("SHA-256", content);
+    }
+
+    static String hash(final String algorithm, final String content) {
         try {
-            return HEX.formatHex(MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8)));
+            return HEX.formatHex(MessageDigest.getInstance(algorithm).digest(content.getBytes(StandardCharsets.UTF_8)));
         } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+            throw new IllegalStateException(algorithm + " not available", e);
         }
     }
 }
