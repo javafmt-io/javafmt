@@ -191,7 +191,7 @@ tasks.named("check") {
 intellijPlatform {
     pluginConfiguration {
         id = "io.javafmt.intellij"
-        name = "javafmt"
+        name = "javafmt (javafmt.io)"
         version = project.version.toString()
         // patchPluginXml replaces <description> in src/main/resources/META-INF/plugin.xml with
         // this, so this is the only copy of the marketplace text.
@@ -213,5 +213,15 @@ intellijPlatform {
         ideaVersion {
             sinceBuild = "262"
         }
+    }
+
+    signing {
+        certificateChain = providers.environmentVariable("JETBRAINS_CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("JETBRAINS_PRIVATE_KEY")
+        password = providers.environmentVariable("JETBRAINS_PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = providers.environmentVariable("JETBRAINS_PLUGIN_TOKEN")
     }
 }
