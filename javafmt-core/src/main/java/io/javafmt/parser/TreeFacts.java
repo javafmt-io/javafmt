@@ -1,12 +1,16 @@
 package io.javafmt.parser;
 
 import com.sun.source.tree.AnnotatedTypeTree;
+import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ModifiersTree;
+import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 /** javac-shape predicates that need source positions to answer questions the tree alone cannot. */
 public final class TreeFacts {
@@ -101,6 +105,35 @@ public final class TreeFacts {
             }
         }
         return count;
+    }
+
+    public boolean followsAModifierKeyword(final ModifiersTree modifiers, final AnnotationTree annotation) {
+        final var annotations = modifiers.getAnnotations();
+        final var index = IntStream.range(0, annotations.size()).filter(i -> annotations.get(i) == annotation).findFirst().orElse(-1);
+        return IntStream.rangeClosed(0, index)
+                .anyMatch(i -> writtenBetween(i == 0 ? unit.startOf(modifiers) : unit.endOf(annotations.get(i - 1)), unit.startOf(annotations.get(i))));
+    }
+
+    public boolean startsAfter(final Tree node, final Tree other) {
+        return unit.startOf(node) > unit.startOf(other) && unit.startOf(other) >= 0;
+    }
+
+    public boolean hasTrailingComma(final NewArrayTree array) {
+        final var initializers = array.getInitializers();
+        if (initializers == null || initializers.isEmpty()) {
+            return false;
+        }
+        final var from = unit.endOf(initializers.getLast());
+        final var to = unit.endOf(array);
+        return from >= 0 && to > from && CommentScanner.withoutComments(unit.source().substring(from, to)).indexOf(',') >= 0;
+    }
+
+    public boolean hasEmptyArgumentList(final AnnotationTree annotation) {
+        return annotation.getArguments().isEmpty() && unit.sourceOf(annotation).endsWith(")");
+    }
+
+    private boolean writtenBetween(final int from, final int to) {
+        return from >= 0 && to > from && !CommentScanner.withoutComments(unit.source().substring(from, to)).isBlank();
     }
 
     /** Whether {@code node} carries a Javadoc comment. */

@@ -14,9 +14,10 @@ import java.util.stream.Stream;
  * {@code ModifierOrderCheck}.
  *
  * <p>Checkstyle's check covers two things: keyword modifiers in JLS order, and annotations
- * preceding keyword modifiers. The lint rule only handles the first and skips any declaration
- * carrying an annotation, but the printer re-emits modifiers in canonical order with annotations
- * hoisted ahead of them, so the end-to-end output satisfies both halves.
+ * preceding keyword modifiers. The lint rule handles both: it reorders the keywords, and moves an
+ * annotation written after them in front of them on a class or {@code void} method. On a field,
+ * variable, parameter, constructor or method that returns a value it leaves the annotation beside
+ * the type, which is where Checkstyle accepts it as a type annotation.
  */
 class ModifierOrderOracleTest {
     ModifierOrderOracleTest() {}

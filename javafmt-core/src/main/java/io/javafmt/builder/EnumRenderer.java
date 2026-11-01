@@ -17,9 +17,9 @@ import java.util.stream.Stream;
 @UtilityClass
 final class EnumRenderer {
     Doc render(final ClassTree node, final Recursor recursor) {
-        final var prefix = ModifierRenderer.modifiersText(node.getModifiers()) + "enum " + node.getSimpleName();
+        final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("enum " + node.getSimpleName()));
         final var headerDoc = ClassLikeRenderer.buildTypeDeclarationHeader(
-                new Doc.Text(prefix), null, node.getImplementsClause(), false, List.of(), recursor);
+                prefix, null, node.getImplementsClause(), false, List.of(), recursor);
         final var constants = node.getMembers()
                 .stream()
                 .filter(m -> isConstant(m, recursor))
@@ -181,8 +181,8 @@ final class EnumRenderer {
      * final} flags javac attaches to every constant are deliberately not rendered.
      */
     private Doc renderConstant(final VariableTree v, final Recursor recursor) {
-        final var prefix = ModifierRenderer.annotationsText(v.getModifiers(), recursor);
-        final var head = Stream.<Doc>of(new Doc.Text(prefix + v.getName().toString()));
+        final var prefix = ModifierRenderer.annotationsDoc(v.getModifiers().getAnnotations(), recursor);
+        final var head = Stream.of(prefix, new Doc.Text(v.getName().toString()));
         if (!(v.getInitializer() instanceof NewClassTree nc)) {
             return new Doc.Concat(head);
         }

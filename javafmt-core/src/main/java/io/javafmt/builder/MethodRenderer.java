@@ -22,12 +22,17 @@ final class MethodRenderer {
         if (node.getName().contentEquals("<init>")) {
             return null;
         }
-        final var preamble = ModifierRenderer.preambleOf(node.getModifiers(), recursor);
-        final var afterTypeParams = new Doc.Concat(Stream.concat(returnTypeDoc(node, recursor), Stream.of(new Doc.Text(node.getName().toString()))));
-        final var leading = buildLeading(preamble.prefix(), node.getTypeParameters(), afterTypeParams, recursor);
+        final var modifiers = node.getModifiers();
+        final var typeParameters = node.getTypeParameters();
+        final var preamble = ModifierRenderer.preambleOf(modifiers, typeParameters, recursor);
+        final var afterTypeParams = Doc.concatOf(
+                Stream.of(
+                        Stream.of(ModifierRenderer.annotationsAfterTypeParameters(modifiers, typeParameters, recursor)),
+                        returnTypeDoc(node, recursor), Stream.of(new Doc.Text(node.getName().toString()))));
+        final var leading = buildLeading(preamble.prefix(), typeParameters, afterTypeParams, recursor);
         final var signature = renderSignature(leading, node.getParameters(), node.getThrows(), recursor);
         final var signatureDoc = appendBody(signature, node, recursor);
-        return ModifierRenderer.finish(preamble, node.getModifiers(), signatureDoc, recursor);
+        return ModifierRenderer.finish(preamble, signatureDoc, recursor);
     }
 
     /**
@@ -39,18 +44,11 @@ final class MethodRenderer {
         return node.getReturnType() == null ? Stream.<Doc>empty() : Stream.of(recursor.scan(node.getReturnType()), new Doc.Text(" "));
     }
 
-    Doc buildLeading(final String modifiers,
-                     final List<? extends TypeParameterTree> typeParams,
-                     final String afterTypeParams,
-                     final Recursor recursor) {
-        return buildLeading(modifiers, typeParams, new Doc.Text(afterTypeParams), recursor);
-    }
-
-    Doc buildLeading(final String modifiers, final List<? extends TypeParameterTree> typeParams, final Doc afterTypeParams, final Recursor recursor) {
+    Doc buildLeading(final Doc modifiers, final List<? extends TypeParameterTree> typeParams, final Doc afterTypeParams, final Recursor recursor) {
         if (typeParams.isEmpty()) {
-            return Doc.concat(new Doc.Text(modifiers), afterTypeParams);
+            return Doc.concat(modifiers, afterTypeParams);
         }
-        return Doc.concat(new Doc.Text(modifiers), renderTypeParams(typeParams, recursor), new Doc.Text(" "), afterTypeParams);
+        return Doc.concat(modifiers, renderTypeParams(typeParams, recursor), new Doc.Text(" "), afterTypeParams);
     }
 
     /**
@@ -91,9 +89,7 @@ final class MethodRenderer {
     }
 
     private Doc renderParam(final VariableTree p, final Recursor recursor) {
-        final var prefix = Doc.concat(
-                ModifierRenderer.annotationsDoc(p.getModifiers(), recursor), new Doc.Text(ModifierRenderer.modifiersText(p.getModifiers())));
-        return Doc.concat(prefix, typeAndName(p, recursor));
+        return Doc.concat(ModifierRenderer.prefixOf(p.getModifiers(), recursor), typeAndName(p, recursor));
     }
 
     Doc typeAndName(final VariableTree p, final Recursor recursor) {

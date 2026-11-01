@@ -1,6 +1,9 @@
 package io.javafmt.builder;
 
+import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.ModifiersTree;
+import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
@@ -49,6 +52,16 @@ interface Recursor extends LeadingCommentAttacher {
      */
     boolean isFollowedByNewline(Tree node);
 
+    boolean followsAModifierKeyword(ModifiersTree modifiers, AnnotationTree annotation);
+
+    boolean startsAfter(Tree node, Tree other);
+
+    boolean hasTrailingComma(NewArrayTree array);
+
+    boolean hasEmptyArgumentList(AnnotationTree annotation);
+
+    boolean hasLeadingComments(Tree node);
+
     /**
      * Whether the author left a blank line between two consecutive declarations or statements.
      * Between plain fields and between statements of a method body, javafmt keeps the author's
@@ -65,9 +78,8 @@ interface Recursor extends LeadingCommentAttacher {
 
     /**
      * The exact source text of {@code node}. Used where reconstructing a node from the parse tree
-     * would lose something the tree does not carry — annotations render this way because javac's
-     * pretty-printer silently drops interior comments and normalizes away punctuation the lint
-     * pass deliberately added.
+     * would lose something the tree does not carry, such as the separator an author wrote after
+     * the last enum constant.
      */
     String sourceOf(Tree node);
 

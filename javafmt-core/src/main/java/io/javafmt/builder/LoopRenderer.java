@@ -77,7 +77,7 @@ final class LoopRenderer {
         final var variable = node.getVariable();
         final var typeDoc = variable.getType() == null ? new Doc.Text("var") : recursor.scan(variable.getType());
         final var header = Doc.concat(
-                new Doc.Text("for (" + ModifierRenderer.prefixOf(variable.getModifiers(), recursor)), typeDoc,
+                new Doc.Text("for ("), ModifierRenderer.prefixOf(variable.getModifiers(), recursor), typeDoc,
                 new Doc.Text(" " + Names.of(variable) + " : "), recursor.scan(node.getExpression()), new Doc.Text(")"));
         return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
     }

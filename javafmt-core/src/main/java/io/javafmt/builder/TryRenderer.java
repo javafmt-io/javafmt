@@ -44,7 +44,7 @@ final class TryRenderer {
     Doc catchClause(final CatchTree c, final Recursor recursor) {
         final var param = c.getParameter();
         return Doc.concat(
-                new Doc.Text("catch (" + ModifierRenderer.prefixOf(param.getModifiers(), recursor)), recursor.scan(param.getType()),
+                new Doc.Text("catch ("), ModifierRenderer.prefixOf(param.getModifiers(), recursor), recursor.scan(param.getType()),
                 new Doc.Text(" " + Names.of(param) + ")"));
     }
 

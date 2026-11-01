@@ -5,15 +5,15 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Annotations render from their own source text rather than javac's pretty-printer. The printer
- * reconstructs an annotation from the parse tree, which silently discards anything not represented
- * there — a trailing comma the lint pass just added, or a comment inside the argument list.
+ * Annotations render through the Doc pipeline rather than javac's pretty-printer. The printer
+ * reconstructs an annotation from the parse tree and silently discards anything not represented
+ * there — the author's trailing comma, or a comment inside the argument list.
  */
 class AnnotationRenderingTest {
     @Test
     void annotationArrayKeepsTheAuthorsPunctuation() {
         // ArrayTrailingComma deliberately skips annotation arrays. Were it to fire, the comma would
-        // now survive into the output rather than being normalized away by the pretty-printer.
+        // survive into the output, which prints exactly the trailing comma the source has.
         final var source = """
                 import java.lang.annotation.ElementType;
                 import java.lang.annotation.Target;

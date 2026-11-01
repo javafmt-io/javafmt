@@ -16,13 +16,12 @@ import java.util.stream.Stream;
 @UtilityClass
 final class ClassLikeRenderer {
     Doc render(final ClassTree node, final String keyword, final Recursor recursor) {
-        final var prefix = ModifierRenderer.modifiersText(node.getModifiers()) + keyword + " " + node.getSimpleName();
+        final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text(keyword + " " + node.getSimpleName()));
         final var isInterface = node.getKind() == Tree.Kind.INTERFACE;
         final var superclass = isInterface ? null : node.getExtendsClause();
         final var interfaces = node.getImplementsClause();
         final var permits = node.getPermitsClause();
-        final var namePart = Doc.concatOf(
-                Stream.of(Stream.of(new Doc.Text(prefix)), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor)));
+        final var namePart = Doc.concatOf(Stream.of(Stream.of(prefix), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor)));
         final var headerDoc = buildTypeDeclarationHeader(namePart, superclass, interfaces, isInterface, permits, recursor);
         final var className = node.getSimpleName().toString();
         // Members render in source order. The utility-class constructor used to be pinned to the

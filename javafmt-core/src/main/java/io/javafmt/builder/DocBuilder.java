@@ -173,6 +173,31 @@ public final class DocBuilder {
         }
 
         @Override
+        public boolean followsAModifierKeyword(final ModifiersTree modifiers, final AnnotationTree annotation) {
+            return facts.followsAModifierKeyword(modifiers, annotation);
+        }
+
+        @Override
+        public boolean startsAfter(final Tree node, final Tree other) {
+            return facts.startsAfter(node, other);
+        }
+
+        @Override
+        public boolean hasTrailingComma(final NewArrayTree array) {
+            return facts.hasTrailingComma(array);
+        }
+
+        @Override
+        public boolean hasEmptyArgumentList(final AnnotationTree annotation) {
+            return facts.hasEmptyArgumentList(annotation);
+        }
+
+        @Override
+        public boolean hasLeadingComments(final Tree node) {
+            return !unit.leadingOf(node).isEmpty();
+        }
+
+        @Override
         public boolean blankLineBetween(final Tree before, final Tree after) {
             return facts.blankLineBetween(before, after);
         }
@@ -257,7 +282,7 @@ public final class DocBuilder {
         final var hasPackage = node.getPackageName() != null;
         final var packageAnnotations = node.getPackageAnnotations()
                 .stream()
-                .<Doc>flatMap(a -> Stream.of(new Doc.Text(a.toString()), Doc.HARD_LINE));
+                .<Doc>flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
         // The blank line after the package declaration normally comes from the import section. With
         // no imports there is no import section, and the first type ran straight into the package.
         final var packageSeparator = node.getImports().isEmpty() ? Stream.<Doc>of(Doc.HARD_LINE) : Stream.<Doc>empty();
@@ -321,11 +346,6 @@ public final class DocBuilder {
         return BlockRenderer.buildBlock(TryRenderer.catchClause(node, recursor), statements, List.of());
     }
 
-    private Doc visitModifiers(final ModifiersTree node) {
-        final var text = ModifierRenderer.prefixOf(node, recursor).stripTrailing();
-        return new Doc.Text(text);
-    }
-
     private Doc dispatch(final Tree tree) {
         final var result = switch (tree) {
             case CompilationUnitTree n -> visitCompilationUnit(n);
@@ -386,7 +406,6 @@ public final class DocBuilder {
             case AnnotatedTypeTree n -> TypeRenderers.renderAnnotatedType(n, recursor);
             case BlockTree n -> visitBlock(n);
             case CatchTree n -> visitCatch(n);
-            case ModifiersTree n -> visitModifiers(n);
             default -> throw new IllegalStateException("no renderer for " + tree.getKind() + ": " + tree);
         };
         return Objects.requireNonNull(result, () -> "renderer returned null for " + tree.getKind());

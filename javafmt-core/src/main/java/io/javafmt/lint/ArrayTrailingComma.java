@@ -18,8 +18,8 @@ import java.util.Optional;
  *
  * <p>Arrays inside annotation arguments are left alone. They are almost always written on one line —
  * {@code @Target({TYPE, METHOD})} — where a trailing comma reads as a typo rather than as diff
- * hygiene, and annotations render from source, so the comma would survive into the output instead
- * of being normalized away.
+ * hygiene, and an annotation's array prints with exactly the trailing comma its source has, so the
+ * comma would survive into the output.
  *
  * <p>Comma detection looks at the source between the last initializer's end position and the
  * array's end position, with comments stripped out first. Reading the raw text was simpler and the

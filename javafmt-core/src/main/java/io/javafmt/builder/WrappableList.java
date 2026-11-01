@@ -19,7 +19,9 @@ import java.util.stream.Stream;
  * 711-character line.
  *
  * <p>The closing bracket hugs the last element rather than taking a line of its own, matching what
- * parameter and argument lists already produce.
+ * parameter and argument lists already produce. In a list whose elements carry their own
+ * separators, a last element that ends in a {@code //} comment would swallow the bracket, so there
+ * the bracket goes on the next line.
  */
 @UtilityClass
 final class WrappableList {
@@ -27,6 +29,10 @@ final class WrappableList {
         final var interior = new Doc.Concat(
                 Stream.concat(Stream.of(Doc.SOFT_LINE), Doc.intersperse(List.of(new Doc.Text(separator), Doc.LINE), elements)));
         return new Doc.Group(Doc.concat(new Doc.Text(open), Doc.continuationIndent(interior), new Doc.Text(close)));
+    }
+
+    Doc separatedOf(final String open, final String close, final List<Doc> elements) {
+        return separated(open, close, elements, Stream.empty());
     }
 
     /**
@@ -37,12 +43,17 @@ final class WrappableList {
      * comment, and the break after an element ending in a {@code //} comment is a hard one.
      */
     Doc blockOf(final String open, final String close, final List<Doc> elements) {
+        return separated(open, close, elements, Stream.of(Doc.SOFT_LINE));
+    }
+
+    private Doc separated(final String open, final String close, final List<Doc> elements, final Stream<Doc> beforeClose) {
         final var breaks = IntStream.range(1, elements.size())
                 .mapToObj(i -> Stream.of(Doc.endsWithLineComment(elements.get(i - 1)) ? Doc.HARD_LINE : Doc.LINE, elements.get(i)))
                 .flatMap(Function.identity());
         final var interior = new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE, elements.getFirst()), breaks));
-        final var beforeClose = Doc.endsWithLineComment(elements.getLast()) ? Doc.HARD_LINE : Doc.SOFT_LINE;
-        return new Doc.Group(Doc.concat(new Doc.Text(open), Doc.continuationIndent(interior), beforeClose, new Doc.Text(close)));
+        final var closing = Doc.endsWithLineComment(elements.getLast()) ? Stream.<Doc>of(Doc.HARD_LINE) : beforeClose;
+        return new Doc.Group(
+                Doc.concatOf(Stream.of(Stream.of(new Doc.Text(open), Doc.continuationIndent(interior)), closing, Stream.of(new Doc.Text(close)))));
     }
 
     /**

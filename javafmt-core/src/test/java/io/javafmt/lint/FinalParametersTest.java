@@ -32,6 +32,13 @@ class FinalParametersTest {
     }
 
     @Test
+    void finalGoesAfterTheAnnotations() {
+        final var unit = JavaParser.parseUnit("class Fixture { void test(@Deprecated @SuppressWarnings(\"unused\") String name) {} }");
+        final var result = new FinalParameters().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("@Deprecated @SuppressWarnings(\"unused\") final String name");
+    }
+
+    @Test
     void formatPropagatesLintWarnings() {
         final var src = """
             class Fixture {

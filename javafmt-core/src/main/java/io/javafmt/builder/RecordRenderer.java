@@ -13,7 +13,7 @@ import javax.lang.model.element.Modifier;
 @UtilityClass
 final class RecordRenderer {
     Doc render(final ClassTree node, final Recursor recursor) {
-        final var prefix = ModifierRenderer.modifiersText(node.getModifiers()) + "record " + node.getSimpleName();
+        final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("record " + node.getSimpleName()));
         final var components = node.getMembers()
                 .stream()
                 .filter(RecordRenderer::isRecordComponent)
@@ -33,7 +33,7 @@ final class RecordRenderer {
                         ")");
         final var prefixAndComponents = Doc.concatOf(
                 Stream.of(
-                        Stream.of(new Doc.Text(prefix)), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
+                        Stream.of(prefix), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
                         Stream.of(componentListDoc)));
         final var fullHeader = ClassLikeRenderer.buildTypeDeclarationHeader(
                 prefixAndComponents, null, node.getImplementsClause(), false, List.of(), recursor);
@@ -52,6 +52,6 @@ final class RecordRenderer {
     }
 
     private Doc componentDoc(final VariableTree comp, final Recursor recursor) {
-        return Doc.concat(ModifierRenderer.annotationsDoc(comp.getModifiers(), recursor), MethodRenderer.typeAndName(comp, recursor));
+        return Doc.concat(ModifierRenderer.annotationsDoc(comp.getModifiers().getAnnotations(), recursor), MethodRenderer.typeAndName(comp, recursor));
     }
 }
