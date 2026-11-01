@@ -109,3 +109,24 @@ tasks.register<NpmTask>("packageVsixTarget") {
     args.set(listOf("run", "package:target", "--", requestedTarget(), vsixVersion, "--no-git-tag-version", "--no-update-package-json"))
     inputs.dir(layout.projectDirectory.dir("bin"))
 }
+
+val vsixFiles = providers.gradleProperty("javafmt.vsixDirectory")
+    .orElse("")
+    .map { directory ->
+        if (directory.isBlank()) {
+            throw GradleException("Pass -Pjavafmt.vsixDirectory=<directory holding the .vsix files to publish>")
+        }
+        File(directory).listFiles { file -> file.name.endsWith(".vsix") }
+            .orEmpty()
+            .map { it.absolutePath }
+            .sorted()
+            .ifEmpty { throw GradleException("No .vsix files in $directory") }
+    }
+
+mapOf("publishMarketplace" to "publish:marketplace", "publishOpenVsx" to "publish:openvsx").forEach { (taskName, script) ->
+    tasks.register<NpmTask>(taskName) {
+        group = "publishing"
+        dependsOn(tasks.named("npmInstall"))
+        args.set(vsixFiles.map { files -> listOf("run", script, "--") + files })
+    }
+}

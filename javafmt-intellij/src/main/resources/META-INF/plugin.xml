@@ -1,7 +1,7 @@
 
 <idea-plugin>
     <id>io.javafmt.intellij</id>
-    <name>javafmt</name>
+    <name>javafmt (javafmt.io)</name>
     <vendor url="https://github.com/javafmt-io/javafmt">javafmt</vendor>
 
     <!--
