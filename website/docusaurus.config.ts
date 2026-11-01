@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
     title: 'javafmt',
-    tagline: 'An opinionated, high-performance Java code formatter for modern LTS (Java 21+).',
+    tagline: 'An opinionated, high-performance Java code formatter for modern LTS (Java 25+).',
 
     url: 'https://javafmt.io',
     baseUrl: '/',

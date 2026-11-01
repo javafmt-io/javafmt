@@ -1,23 +1,19 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 title: Formatting rules
 ---
 
 # Formatting rules
 
-javafmt is opinionated and non-configurable on principle. The rules below are the contract: same input, same output, every version.
+javafmt is opinionated and non-configurable on principle. The rules below are the contract: the same input gives the same output in every version. [Why javafmt](./why.md) explains why it works this way.
 
-## Philosophy
+## Opt-out directives
 
-Formatting is a contract. A reviewer never argues about whitespace. The formatter rewrites code instead of reporting on it.
-
-**No opt-out directives.** `// @formatter:off`, `// spotless:off`, and `// CHECKSTYLE:OFF` do not suspend formatting. The comments stay verbatim. A file that must stay untouched is excluded by path.
+`// @formatter:off`, `// spotless:off`, and `// CHECKSTYLE:OFF` do not suspend formatting, and the comments themselves stay verbatim. To keep a file untouched, exclude it by path.
 
 ## Line width
 
-**150 characters.**
-
-The formatter never splits a string literal or an annotation argument list to meet the width. Those may run past 150.
+Lines are 150 characters wide. The formatter never splits a string literal or an annotation argument list to meet the width, so those may run past 150.
 
 ## Indentation
 
@@ -75,7 +71,7 @@ import static java.util.Objects.requireNonNull;
 
 ## Line endings and byte-order marks
 
-A file is written back the way it was found: a CRLF file stays CRLF, a BOM is preserved, and a file with mixed line endings is normalised to the ending it uses most. The file ends with exactly one line ending, in the file's own style. Nothing else about the file's bytes is preserved: indentation and trailing whitespace are javafmt's.
+A file is written back the way it was found: a CRLF file stays CRLF, a BOM is preserved, and a file with mixed line endings is normalized to the ending it uses most. The file ends with exactly one line ending, in the file's own style. No other bytes are preserved: javafmt decides indentation and trailing whitespace.
 
 ## Module declarations
 
@@ -87,7 +83,7 @@ A compact source file (top-level fields and methods without an enclosing class d
 
 ## Member ordering
 
-Two moves, no others:
+javafmt moves members in two cases only:
 
 - Nested types (`record`, `class`, `interface`, `enum`, `@interface`) go to the bottom of their enclosing body, in their original order.
 - In a utility class, the private no-argument constructor goes last, below the nested types.
@@ -120,7 +116,7 @@ Lambda parameters are never `final`.
 ## Method chains
 
 - Break before each `.` when the chain does not fit in 150 characters, or when the author already put a `.` on its own line. A chain that contains a multi-line text block always breaks.
-- Continuation indent is 8 spaces past the statement. Not dot-aligned.
+- Continuation indent is 8 spaces past the statement. Dots are not aligned with each other.
 - The first call of a chain stays on the line of its receiver (`orders.stream()`, `return Shipments.builder()`).
 - `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters or when the author already broke them.
 
@@ -134,7 +130,7 @@ Lambda parameters are never `final`.
 
 ## Records
 
-Fit on one line, keep it there. Otherwise one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line. The same +8 form applies when the first component starts with a `//` comment, since the comment cannot sit right after `(`. It also applies when the first component has a `//` comment after one of its annotations; the comment stays beside the annotation.
+A record that fits on one line stays there. Otherwise it goes one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line. The same +8 form applies when the first component starts with a `//` comment, since the comment cannot sit right after `(`. It also applies when the first component has a `//` comment after one of its annotations; the comment stays beside the annotation.
 
 Single-component and small records stay inline: `private record Money(long cents, Currency currency) {}`.
 
@@ -144,26 +140,26 @@ Arrow-style, cases aligned. Pattern-matching switches use type patterns, `when` 
 
 ## Annotations
 
-- **Methods and constructors:** every annotation on its own line above the signature, including a lone `@Override`.
+- Methods and constructors: every annotation on its own line above the signature, including a lone `@Override`.
 
 ```java
 @Override
 public final Money total() {
 ```
 
-- **Classes:** every annotation on its own line, in the order the author wrote.
-- **Parameters:** annotations inline before `final`: `@Named("primary") final Account account`, `@NonNull final String orderId`, `@Nullable final LocalDate dueDate`.
-- **Fields:** annotations stay inline with the field declaration when none of them has arguments and the author wrote them inline (`@Getter @Setter private int count;`). Otherwise each annotation goes on its own line above the field.
+- Classes: every annotation on its own line, in the order the author wrote.
+- Parameters: annotations inline before `final`: `@Named("primary") final Account account`, `@NonNull final String orderId`, `@Nullable final LocalDate dueDate`.
+- Fields: annotations stay inline with the field declaration when none of them has arguments and the author wrote them inline (`@Getter @Setter private int count;`). Otherwise each annotation goes on its own line above the field.
 
 ## Javadoc and comments
 
-- Preserved verbatim: every `//`, `/* */` and `/** */` keeps its text. No re-wrapping, no `*` realignment, nothing stripped.
-- Comments attach to source tokens, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` lands in the right place.
+- Every `//`, `/* */` and `/** */` comment keeps its text verbatim. javafmt does not re-wrap comments, realign their `*` margins, or strip anything from them.
+- Comments attach to source tokens, not AST nodes. A comment between `else` and `if`, between two annotation lines, between `,` and the next argument, between `<` and a type parameter, or between `)` and `throws` stays between the same two tokens in the output.
 - Every position is covered: file headers above `package`, leading comments on declarations, comments on imports, comments between statements, trailing same-line comments, comments inside argument and parameter lists, comments inside empty blocks, and comments between the last statement and its closing brace.
 - A comment stays on the line it was written on. A `//` comment after an argument's comma, in a method call, a `new X(...)` expression or an enum constant, after an annotation on its own line (`@Override // why`) or on a parameter or record component, on a chain link, or on the `{` that opens an `if` branch keeps that line. A `/* */` comment written beside an argument or parameter stays beside it.
 - Continuation lines of a block comment reindent to the comment's final output column, not its source column.
 - IDE and tooling directives stay byte-for-byte and are not reindented: `// noinspection ...`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE ...`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-...$`, and the block-comment equivalents.
-- `//` and `/*` are recognised only outside string literals, character literals and text blocks.
+- `//` and `/*` are recognized only outside string literals, character literals and text blocks.
 
 ## Blank lines
 
@@ -183,30 +179,30 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 
 | Rule | What it does |
 | ---- | ------------ |
-| **NeedBraces** | Wraps braceless `if`/`else`/`for`/`while`/`do-while` bodies in `{}`. |
-| **FinalLocalVariable** | Adds `final` to every local never reassigned. Reassigned locals are skipped silently. |
-| **FinalParameters** | Adds `final` to every parameter of a method or constructor that has a body. Methods without a body (abstract, native, and non-default interface methods) are left alone, because `final` means nothing there. Lambda parameters stay bare. Reassigned parameters trigger a warning. |
-| **FinalCatchParameter** | Adds `final` to every `catch` parameter, after any annotations: `catch (final RuntimeException e)`. Never when the body reassigns it. |
-| **FinalForEachVariable** | Adds `final` to the for-each variable: `for (final var x : xs)`. Never when the loop body reassigns it. |
-| **LocalVarUseVar** | Replaces the declared type of a local with `var` when the source shows the type stays the same: an unqualified `new` of exactly the declared type, whether or not the local is reassigned; and, for a local that is never reassigned, an unqualified diamond of the declared class, which gains the declared type arguments, a cast to the declared type, or a literal of the declared type. With `--analyze` it also rewrites a factory call that carries the declared type arguments as its witness when javac gives the call exactly the declared type, and a wider declaration such as `List<String> xs = new ArrayList<String>()`, or any other initializer, when javac confirms every use of the local is unchanged. Lambdas, method references, `null` and array initializers keep their declared type, and so does a reassigned local unless its initializer is an unqualified `new` of exactly the declared type. A qualified `new` such as `outer.new Inner()` names a member of the outer object's type, which can differ from the declared `Inner`, so it is rewritten only with `--analyze` and only when every use stays the same. With FinalLocalVariable the result is `final var`. |
-| **ArrayTrailingComma** | Adds a trailing comma to non-empty array initializers. Empty `{}` initializers are skipped. |
-| **DefaultComesLast** | Moves `default` last in arrow switches. A colon-form switch is rewritten only when `default` has its own terminating body and is not part of a label group; otherwise it warns. |
-| **ModifierOrder** | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. |
-| **RedundantModifier** | Strips modifiers the JLS implies. |
-| **ArrayTypeStyle** | `String[] arguments`, not `String args[]`. |
-| **UpperEll** | `1L`, not `1l`. |
-| **MultipleVariableDeclarations** | One declaration per statement. |
-| **UnusedImports** | Removes unreferenced imports. |
-| **EmptyStatement** | Drops lone `;`. |
-| **OneStatementPerLine** | Splits multiple statements on one line. |
-| **NewlineAtEndOfFile** | Ends the file with exactly one line ending, in the file's own style. |
-| **ExplicitInitialization** | Strips redundant default field initializers: `int x = 0;` becomes `int x;`, `Object o = null;` becomes `Object o;`, `boolean b = false;` becomes `boolean b;`. Skipped when the class has a superclass, because the superclass constructor may call an override that assigns the field and `= 0` is then a real write, and when a comment sits inside the text being deleted. |
-| **EnumTrailingComma** | Adds a trailing comma after the last constant when the constants do not fit on one line and go one per line. Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
-| **ExplodeStarImports** | Replaces a wildcard import with explicit imports for the members the file references. Only runs with `--analyze`, and leaves every wildcard alone if any name in the file fails to resolve. |
-| **RedundantTypeArguments** | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically. With `--analyze` it also drops type witnesses on generic method calls when javac infers the same type without them. |
-| **RedundantSuperCall** | Removes a no-argument `super()` as the first statement of a constructor body. |
-| **MemberOrder** | Moves nested types to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
-| **UnusedVariableShouldBeUnnamed** | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Only fires when the source targets Java 22 or later; the integrations read the target release from the build. |
+| `NeedBraces` | Wraps braceless `if`/`else`/`for`/`while`/`do-while` bodies in `{}`. |
+| `FinalLocalVariable` | Adds `final` to every local never reassigned. Reassigned locals are skipped silently. |
+| `FinalParameters` | Adds `final` to every parameter of a method or constructor that has a body. Methods without a body (abstract, native, and non-default interface methods) are left alone, because `final` means nothing there. Lambda parameters stay bare. Reassigned parameters trigger a warning. |
+| `FinalCatchParameter` | Adds `final` to every `catch` parameter, after any annotations: `catch (final RuntimeException e)`. Never when the body reassigns it. |
+| `FinalForEachVariable` | Adds `final` to the for-each variable: `for (final var x : xs)`. Never when the loop body reassigns it. |
+| `LocalVarUseVar` | Replaces the declared type of a local with `var` when the source shows the type stays the same: an unqualified `new` of exactly the declared type, whether or not the local is reassigned; and, for a local that is never reassigned, an unqualified diamond of the declared class, which gains the declared type arguments, a cast to the declared type, or a literal of the declared type. With `--analyze` it also rewrites a factory call that carries the declared type arguments as its witness when javac gives the call exactly the declared type, and a wider declaration such as `List<String> xs = new ArrayList<String>()`, or any other initializer, when javac confirms every use of the local is unchanged. Lambdas, method references, `null` and array initializers keep their declared type, and so does a reassigned local unless its initializer is an unqualified `new` of exactly the declared type. A qualified `new` such as `outer.new Inner()` names a member of the outer object's type, which can differ from the declared `Inner`, so it is rewritten only with `--analyze` and only when every use stays the same. With FinalLocalVariable the result is `final var`. |
+| `ArrayTrailingComma` | Adds a trailing comma to non-empty array initializers. Empty `{}` initializers are skipped. |
+| `DefaultComesLast` | Moves `default` last in arrow switches. A colon-form switch is rewritten only when `default` has its own terminating body and is not part of a label group; otherwise it warns. |
+| `ModifierOrder` | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. |
+| `RedundantModifier` | Strips modifiers the JLS implies. |
+| `ArrayTypeStyle` | `String[] arguments`, not `String args[]`. |
+| `UpperEll` | `1L`, not `1l`. |
+| `MultipleVariableDeclarations` | One declaration per statement. |
+| `UnusedImports` | Removes unreferenced imports. |
+| `EmptyStatement` | Drops lone `;`. |
+| `OneStatementPerLine` | Splits multiple statements on one line. |
+| `NewlineAtEndOfFile` | Ends the file with exactly one line ending, in the file's own style. |
+| `ExplicitInitialization` | Strips redundant default field initializers: `int x = 0;` becomes `int x;`, `Object o = null;` becomes `Object o;`, `boolean b = false;` becomes `boolean b;`. Skipped when the class has a superclass, because the superclass constructor may call an override that assigns the field and `= 0` is then a real write, and when a comment sits inside the text being deleted. |
+| `EnumTrailingComma` | Adds a trailing comma after the last constant when the constants do not fit on one line and go one per line. Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
+| `ExplodeStarImports` | Replaces a wildcard import with explicit imports for the members the file references. Only runs with `--analyze`, and leaves every wildcard alone if any name in the file fails to resolve. |
+| `RedundantTypeArguments` | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically. With `--analyze` it also drops type witnesses on generic method calls when javac infers the same type without them. |
+| `RedundantSuperCall` | Removes a no-argument `super()` as the first statement of a constructor body. |
+| `MemberOrder` | Moves nested types to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
+| `UnusedVariableShouldBeUnnamed` | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Only fires when the source targets Java 22 or later; the integrations read the target release from the build. |
 
 ### Warning-only rules
 
