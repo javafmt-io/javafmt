@@ -62,7 +62,6 @@ The plan, phase by phase, plus the things still unsettled. For architecture, see
 ## Phase 7 — Performance and polish
 
 - Parallel file formatting (thread pool).
-- Incremental formatting — only changed files, ratcheting style.
 - Range formatting (format selection only) where the surrounding context is stable enough.
 
 ## Open questions

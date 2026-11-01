@@ -2,6 +2,7 @@ package io.javafmt.gradle.engine;
 
 import io.javafmt.Diagnostic;
 import io.javafmt.FileResult;
+import io.javafmt.GitRatchet;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.SourceFiles;
@@ -19,7 +20,9 @@ import java.util.stream.Stream;
 public final class JavafmtEngine {
     public static Outcome run(final Request request) {
         Objects.requireNonNull(request, "request");
-        final var paths = request.files().stream().map(File::toPath).sorted().toList();
+        final var root = request.projectDirectory().toPath();
+        final var sources = request.files().stream().map(File::toPath).sorted().toList();
+        final var paths = request.ratchetFrom().map(ref -> GitRatchet.since(ref, root).keep(sources)).orElse(sources);
         final var threads = request.threads();
         final var results = request.analysisClasspath()
                 .map(
@@ -29,7 +32,6 @@ public final class JavafmtEngine {
                                         FormatCache.noop(), threads),
                                 threads))
                 .orElseGet(() -> Javafmt.formatFiles(paths, JavafmtConfig.defaults(), FormatCache.noop(), threads));
-        final var root = request.projectDirectory().toPath();
         final var formatted = results.stream()
                 .flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty())
                 .toList();

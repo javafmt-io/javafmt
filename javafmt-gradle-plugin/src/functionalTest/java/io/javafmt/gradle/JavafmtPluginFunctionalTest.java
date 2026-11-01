@@ -1,6 +1,7 @@
 package io.javafmt.gradle;
 
 import io.javafmt.Fixtures;
+import io.javafmt.GitRepository;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
@@ -189,6 +190,52 @@ class JavafmtPluginFunctionalTest {
         assertThat(outcome(build.run("javafmtCheck"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
         build.write("../shared/Shared.java", Fixtures.UNFORMATTED_FOO);
         assertThat(build.fail("javafmtCheck").getOutput()).contains("Shared.java").doesNotContain("Generated.java");
+    }
+
+    @Test
+    void ratchetFromChecksAndFormatsOnlyTheSourcesChangedSinceTheRef(@TempDir final Path dir) {
+        final var build = TestBuild.singleProject(dir.resolve("app"), "javafmt {\n    ratchetFrom = 'main'\n}\n");
+        build.write(FOO, Fixtures.UNFORMATTED_FOO);
+        build.write(A, Fixtures.UNFORMATTED_A);
+        GitRepository.init(dir).commitAll("initial");
+        build.write(A, "class A { int y; }");
+        assertThat(build.fail("javafmtCheck").getOutput()).contains("A.java").doesNotContain("Foo.java");
+        build.run("javafmtFormat");
+        assertThat(build.read(A)).isEqualTo("class A {\n    int y;\n}\n");
+        assertThat(build.read(FOO)).isEqualTo(Fixtures.UNFORMATTED_FOO);
+        assertThat(outcome(build.run("javafmtCheck"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
+    }
+
+    @Test
+    void aRatchetCheckRunsAgainWhenTheRefMovesThoughNoSourceChanged(@TempDir final Path dir) {
+        final var build = TestBuild.singleProject(dir, "javafmt {\n    ratchetFrom = 'reviewed'\n}\n");
+        final var repository = GitRepository.init(dir);
+        repository.commitAll("build");
+        build.write(FOO, Fixtures.UNFORMATTED_FOO);
+        repository.commitAll("add foo");
+        repository.git("branch", "reviewed");
+        assertThat(outcome(build.run("javafmtCheck"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
+        repository.git("branch", "--force", "reviewed", "HEAD~1");
+        assertThat(build.fail("javafmtCheck").getOutput()).contains("Foo.java");
+    }
+
+    @Test
+    void aRatchetCheckIsNotTakenFromTheBuildCache(@TempDir final Path dir, @TempDir final Path cache) {
+        final var build = TestBuild.singleProject(dir, "javafmt {\n    ratchetFrom = 'main'\n}\n");
+        build.write("settings.gradle", "rootProject.name = 'demo'\nbuildCache { local { directory = '" + cache.toUri() + "' } }\n");
+        build.write(FOO, Fixtures.UNFORMATTED_FOO);
+        GitRepository.init(dir).commitAll("initial");
+        assertThat(outcome(build.run("javafmtCheck", "--build-cache"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
+        build.run("clean");
+        assertThat(outcome(build.run("javafmtCheck", "--build-cache"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
+    }
+
+    @Test
+    void anUnknownRatchetRefFailsTheBuildAndNamesTheRef(@TempDir final Path dir) {
+        final var build = TestBuild.singleProject(dir, "javafmt {\n    ratchetFrom = 'no-such-branch'\n}\n");
+        build.write(FOO, Fixtures.FORMATTED_FOO);
+        GitRepository.init(dir).commitAll("initial");
+        assertThat(build.fail("javafmtCheck").getOutput()).contains("unknown git ref: no-such-branch");
     }
 
     @Test

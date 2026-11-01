@@ -1,6 +1,7 @@
 package io.javafmt.cli;
 
 import io.javafmt.Fixtures;
+import io.javafmt.GitRepository;
 import io.javafmt.daemon.DaemonFixtures;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -280,6 +281,47 @@ class CliTest {
         assertThat(Files.readString(expected)).isEqualTo(unformatted);
     }
 
+    private static void repositoryWithAnEditedFile(final Path dir) {
+        final var repository = GitRepository.init(dir);
+        repository.write("src/Order.java", Fixtures.UNFORMATTED_A.replace("class A", "class Order"));
+        repository.write("src/Invoice.java", Fixtures.UNFORMATTED_A.replace("class A", "class Invoice"));
+        repository.commitAll("initial");
+        repository.write("src/Invoice.java", "class Invoice { int total; }");
+    }
+
+    @Test
+    void ratchetFrom_formatsOnlyTheFilesChangedSinceTheRef(@TempDir final Path dir) throws Exception {
+        repositoryWithAnEditedFile(dir);
+        final var run = run("--ratchet-from=main", dir.resolve("src").toString());
+        assertThat(run.exit()).as("err=%s", run.err()).isZero();
+        assertThat(Files.readString(dir.resolve("src/Invoice.java"))).isEqualTo("class Invoice {\n    int total;\n}\n");
+        assertThat(Files.readString(dir.resolve("src/Order.java"))).isEqualTo(Fixtures.UNFORMATTED_A.replace("class A", "class Order"));
+    }
+
+    @Test
+    void ratchetFrom_checksOnlyTheFilesChangedSinceTheRef(@TempDir final Path dir) {
+        repositoryWithAnEditedFile(dir);
+        final var run = run("--check", "--ratchet-from", "main", dir.resolve("src").toString());
+        assertThat(run.exit()).isEqualTo(1);
+        assertThat(run.err()).contains("Invoice.java: would reformat").doesNotContain("Order.java");
+    }
+
+    @Test
+    void ratchetFrom_anUnknownRefIsAnErrorThatNamesTheRef(@TempDir final Path dir) {
+        repositoryWithAnEditedFile(dir);
+        final var run = run("--ratchet-from=no-such-branch", dir.resolve("src").toString());
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err().strip()).isEqualTo("javafmt: unknown git ref: no-such-branch");
+    }
+
+    @Test
+    void ratchetFrom_cannotBeUsedWithStdin() {
+        final var run = runStdin(Fixtures.UNFORMATTED_FOO, "--ratchet-from=main");
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.out()).isEmpty();
+        assertThat(run.err()).contains("--ratchet-from selects files and cannot be used with stdin");
+    }
+
     @Test
     void checkOnStdin_unformattedInput_exitsNonZero() {
         // `javafmt --check < F.java` returning 0 for unformatted input is a silent CI false-pass:
@@ -321,6 +363,7 @@ class CliTest {
                 .contains("--check")
                 .contains("--analyze")
                 .contains("--exclude")
+                .contains("--ratchet-from")
                 .contains("Exit Codes:");
     }
 

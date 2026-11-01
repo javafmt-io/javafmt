@@ -48,7 +48,7 @@ javafmt {
 }
 ```
 
-`excludes` takes Ant-style patterns, matched against each source file's path relative to the project directory. A source directory outside the project directory is matched the same way, so its paths start with `../`. `analyze` (off by default) passes the source set's compile classpath to javafmt, which turns on the lint rules that need resolved types. `maxHeapSize` (default `1g`) and `jvmArgs` configure the worker JVM.
+`excludes` takes Ant-style patterns, matched against each source file's path relative to the project directory. A source directory outside the project directory is matched the same way, so its paths start with `../`. `analyze` (off by default) passes the source set's compile classpath to javafmt, which turns on the lint rules that need resolved types. `maxHeapSize` (default `1g`) and `jvmArgs` configure the worker JVM. `ratchetFrom` limits both tasks to the files changed since a git ref (see [Adopting javafmt gradually](#adopting-javafmt-gradually)).
 
 The plugin needs Gradle 9.1 or newer, the first release that supports Java 25 toolchains. It loads in any Gradle daemon JVM, but javafmt itself runs in a worker process on a Java 25 toolchain. If Gradle can't find one, `javafmtCheck` and `javafmtFormat` fail and say so. Either install a JDK 25, or let Gradle download one by adding the Foojay resolver to the `plugins` block of `settings.gradle.kts`. The error message names the exact line to add, with the resolver version the plugin was tested against:
 
@@ -126,6 +126,59 @@ javafmt MyClass.java          # rewrites in place
 javafmt --check MyClass.java  # non-zero exit if anything needs reformatting
 echo "class X{}" | javafmt    # stdin -> stdout
 ```
+
+## Adopting javafmt gradually
+
+The first run on an existing codebase usually changes most of its files. To avoid one large reformatting commit, point javafmt at a git ref and it checks and formats only the files you have touched since your branch left that ref. Over time the whole codebase gets formatted, one change at a time.
+
+A file counts as touched when it differs from the merge base of `HEAD` and the ref: committed on your branch, staged, changed in the working tree, or new and not ignored by git. Files changed on the ref after your branch left it do not count, and neither do deleted files. Whole files are formatted, not just the changed lines. javafmt runs the `git` executable, so git must be on the `PATH`. An unknown ref, or a project outside a git repository, fails the run.
+
+CLI:
+
+```bash
+javafmt --ratchet-from=origin/main src/
+javafmt --check --ratchet-from=origin/main src/
+```
+
+`--ratchet-from` filters the files found under the paths you pass. It cannot be used with stdin.
+
+Gradle:
+
+```kotlin
+javafmt {
+    ratchetFrom = "origin/main"
+}
+```
+
+It applies to `javafmtCheck` and `javafmtFormat`. A check with `ratchetFrom` set runs every time and never comes from the build cache, because its result depends on the state of the git repository as well as on the source files.
+
+Maven:
+
+```xml
+<plugin>
+    <groupId>io.javafmt</groupId>
+    <artifactId>javafmt-maven-plugin</artifactId>
+    <version>0.1.0</version>
+    <configuration>
+        <ratchetFrom>origin/main</ratchetFrom>
+    </configuration>
+</plugin>
+```
+
+It applies to both goals, and `-Djavafmt.ratchetFrom=origin/main` sets it from the command line.
+
+Spotless has its own `ratchetFrom`, which works the same way for the javafmt step:
+
+```kotlin
+spotless {
+    ratchetFrom("origin/main")
+    java {
+        addStep(io.javafmt.spotless.JavafmtFormatterStep.create())
+    }
+}
+```
+
+In CI, fetch enough history for the merge base to exist: a shallow clone of one commit has no merge base with `origin/main`.
 
 ## What it enforces
 

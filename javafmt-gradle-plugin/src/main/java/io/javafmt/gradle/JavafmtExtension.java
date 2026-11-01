@@ -8,6 +8,8 @@ public interface JavafmtExtension {
 
     Property<Boolean> getAnalyze();
 
+    Property<String> getRatchetFrom();
+
     Property<String> getMaxHeapSize();
 
     ListProperty<String> getJvmArgs();

@@ -3,6 +3,8 @@ package io.javafmt.cli;
 import io.javafmt.Diagnostic;
 import io.javafmt.FileResult;
 import io.javafmt.FormatResult;
+import io.javafmt.GitRatchet;
+import io.javafmt.GitRatchetException;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.PathFilter;
@@ -27,14 +29,40 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 @UtilityClass
 final class FormatRun {
     int runPaths(final Arguments parsed, final PrintStream err) {
-        final var expansion = expandDirectories(parsed, err);
-        final var exit = runFiles(dropExcludedFiles(expansion.arguments()), err);
-        return Math.max(exit, expansion.unreadable() ? 2 : 0);
+        try {
+            final var changed = changedFiles(parsed);
+            final var expansion = expandDirectories(parsed, err);
+            final var kept = dropExcludedFiles(expansion.arguments());
+            final var exit = runFiles(kept.withFiles(kept.files.stream().filter(changed).toList()), err);
+            return Math.max(exit, expansion.unreadable() ? 2 : 0);
+        } catch (final GitRatchetException e) {
+            final var message = Objects.requireNonNullElse(e.getMessage(), "git failed");
+            err.println(parsed.jsonDiagnostics() ? JsonDiagnostics.cliLine("", message) : "javafmt: " + message);
+            return 2;
+        }
+    }
+
+    private Predicate<Path> changedFiles(final Arguments parsed) {
+        return parsed.ratchetFrom.<Predicate<Path>>map(ref -> {
+            final var ratchets = parsed.files.stream()
+                    .map(FormatRun::gitDirectory)
+                    .distinct()
+                    .map(directory -> GitRatchet.since(ref, directory))
+                    .toList();
+            return file -> ratchets.stream().anyMatch(ratchet -> ratchet.includes(file));
+        })
+                .orElse(_ -> true);
+    }
+
+    private Path gitDirectory(final Path path) {
+        final var absolute = path.toAbsolutePath();
+        return Files.isDirectory(absolute) ? absolute : Objects.requireNonNullElse(absolute.getParent(), absolute);
     }
 
     private Arguments dropExcludedFiles(final Arguments parsed) {
@@ -243,6 +271,7 @@ final class FormatRun {
                      List<String> excludes,
                      boolean defaultExcludes,
                      Optional<String> classpath,
+                     Optional<String> ratchetFrom,
                      boolean jsonDiagnostics) {
         Arguments {
             files = List.copyOf(files);
@@ -257,7 +286,7 @@ final class FormatRun {
         }
 
         Arguments withFiles(final List<Path> files) {
-            return new Arguments(files, check, threads, cacheFile, excludes, defaultExcludes, classpath, jsonDiagnostics);
+            return new Arguments(files, check, threads, cacheFile, excludes, defaultExcludes, classpath, ratchetFrom, jsonDiagnostics);
         }
     }
 }

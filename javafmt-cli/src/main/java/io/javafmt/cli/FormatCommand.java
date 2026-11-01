@@ -57,6 +57,9 @@ final class FormatCommand implements Callable<Integer> {
 
     private OptionalInt threads = OptionalInt.empty();
 
+    @Option( names = "--ratchet-from", paramLabel = "<ref>", description = "Only format files that differ from where HEAD branched off this git ref: changed, staged and untracked files.")
+    private Optional<String> ratchetFrom = Optional.empty();
+
     @Option(names = "--cache", paramLabel = "<file>", description = "Skip files unchanged since the last run recorded in this file.")
     private Optional<Path> cache = Optional.empty();
 
@@ -92,20 +95,27 @@ final class FormatCommand implements Callable<Integer> {
         }
         final var formatArguments = new FormatRun.Arguments(
                 paths, check, threads.orElse(Runtime.getRuntime().availableProcessors()), cache, excludes, !noDefaultExcludes,
-                Optional.ofNullable(analysis).filter(a -> a.analyze).map(a -> a.classpath), diagnostics == DiagnosticsFormat.JSON);
+                Optional.ofNullable(analysis).filter(a -> a.analyze).map(a -> a.classpath), ratchetFrom, diagnostics == DiagnosticsFormat.JSON);
         if (beforeEndOfOptions(paths).contains(STDIN)) {
             if (paths.size() > 1) {
                 throw new ParameterException(spec.commandLine(), "'-' reads stdin and cannot be combined with file arguments");
             }
-            return FormatRun.runStdin(formatArguments, in, out, err);
+            return runStdin(formatArguments);
         }
         if (paths.isEmpty()) {
             if (stdinIsATerminal) {
                 throw new ParameterException(spec.commandLine(), "No input: pass files or directories, or pipe source on stdin.");
             }
-            return FormatRun.runStdin(formatArguments, in, out, err);
+            return runStdin(formatArguments);
         }
         return FormatRun.runPaths(formatArguments, err);
+    }
+
+    private int runStdin(final FormatRun.Arguments formatArguments) {
+        if (ratchetFrom.isPresent()) {
+            throw new ParameterException(spec.commandLine(), "--ratchet-from selects files and cannot be used with stdin");
+        }
+        return FormatRun.runStdin(formatArguments, in, out, err);
     }
 
     private int serveDaemon() {
