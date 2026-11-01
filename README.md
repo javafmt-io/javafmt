@@ -4,8 +4,7 @@
 
 A fast, opinionated Java formatter for Java 25+. No options to configure, no XML files to export, no whitespace debates in code review.
 
-- [docs/intro.md](docs/intro.md): install it (Maven, Gradle, Spotless, VS Code, IntelliJ, CLI)
-- [docs/why.md](docs/why.md): why every file should look the same, and how javafmt compares to other formatters
+- [docs/intro.md](docs/intro.md): why javafmt exists, how to install it (Maven, Gradle, Spotless, VS Code, IntelliJ, CLI), and how it compares to other formatters
 - [docs/rules.md](docs/rules.md): the formatting and lint contract
 - [ARCHITECTURE.md](ARCHITECTURE.md): how it's built
 - [ROADMAP.md](ROADMAP.md): what's shipped, what's next, what's still open

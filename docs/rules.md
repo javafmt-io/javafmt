@@ -1,11 +1,11 @@
 ---
-sidebar_position: 3
+sidebar_position: 2
 title: Formatting rules
 ---
 
 # Formatting rules
 
-javafmt is opinionated and non-configurable on principle. The rules below are the contract: the same input gives the same output in every version. [Why javafmt](./why.md) explains why it works this way.
+javafmt is opinionated and non-configurable on principle. The rules below are the contract: the same input gives the same output in every version. [Getting started](./intro.md#why-javafmt) explains why it works this way.
 
 ## Opt-out directives
 

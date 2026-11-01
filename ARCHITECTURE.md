@@ -1,6 +1,6 @@
 # Architecture
 
-What javafmt enforces is in [docs/rules.md](docs/rules.md), and why in [docs/why.md](docs/why.md).
+What javafmt enforces is in [docs/rules.md](docs/rules.md), and why in [docs/intro.md](docs/intro.md#why-javafmt).
 
 ## Formatting one file
 
