@@ -1,5 +1,6 @@
 package io.javafmt.parser;
 
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.SourcePositions;
@@ -11,6 +12,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * Parsed compilation unit with comments attached to AST nodes.
@@ -86,6 +88,23 @@ public record ParsedUnit(CompilationUnitTree tree,
         final var line = (int) lineMap.getLineNumber(offset);
         final var column = (int) lineMap.getColumnNumber(offset);
         return new Position.At(line, column, offset);
+    }
+
+    /**
+     * The <code>{</code> that opens {@code node}'s body. Located from the end of the last header element
+     * rather than from the declaration's start, so the braces in an annotation argument —
+     * {@code @Marker({A, B}) class S} — are behind the cursor before the search begins.
+     */
+    public int bodyBraceOf(final ClassTree node) {
+        final var headerParts = Stream.of(
+                node.getModifiers().getAnnotations(), node.getTypeParameters(), node.getImplementsClause(), node.getPermitsClause(),
+                node.getExtendsClause() == null ? List.<Tree>of() : List.of(node.getExtendsClause()))
+                .flatMap(List::stream);
+        final var searchFrom = headerParts.mapToInt(this::endOf)
+                .filter(e -> e >= 0)
+                .max()
+                .orElseGet(() -> startOf(node));
+        return searchFrom < 0 ? -1 : source.indexOf('{', searchFrom);
     }
 
     private static Map<Tree, List<CommentToken>> deepCopy(final Map<Tree, List<CommentToken>> src) {

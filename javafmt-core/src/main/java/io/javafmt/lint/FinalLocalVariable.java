@@ -36,10 +36,7 @@ public final class FinalLocalVariable implements LintRule {
                             && !node.getName().isEmpty()
                             && !MultipleVariableDeclarations.isPartOfDeclarationGroup(path, unit)
                             && !reassignments.reassigned(path.getParentPath().getLeaf(), node.getName().toString())) {
-                            final var pos = unit.startOf(node);
-                            if (pos >= 0) {
-                                edits.add(LintEdit.insert(pos, "final "));
-                            }
+                            Modifiers.insertFinal(unit, node).ifPresent(edits::add);
                         }
                         return super.visitVariable(node, null);
                     }

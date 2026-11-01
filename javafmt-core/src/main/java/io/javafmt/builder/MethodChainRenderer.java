@@ -1,7 +1,5 @@
 package io.javafmt.builder;
 
-import com.sun.source.tree.ExpressionTree;
-import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import io.javafmt.doc.Doc;
@@ -40,7 +38,17 @@ final class MethodChainRenderer {
                         .boxed()
                         .flatMap(i -> Stream.of(links.get(i - 1).endsTheLine() ? Doc.HARD_LINE : Doc.SOFT_LINE, links.get(i).doc())));
         final var contents = Doc.concat(links.getFirst().doc(), Doc.continuationIndent(tail));
-        return chainGroup(contents, !recursor.inCompactContext() && authorBrokeChain(calls, recursor));
+        final var authorBroke = !recursor.inCompactContext() && authorBrokeChain(calls, recursor);
+        final var broken = chainGroup(contents, authorBroke);
+        if (authorBroke || !hugsLastLink(links)) {
+            return broken;
+        }
+        return new Doc.Choice(new Doc.Concat(links.stream().map(Link::doc)), broken, Doc.Choice.Fit.OPENING_LINE);
+    }
+
+    private boolean hugsLastLink(final List<Link> links) {
+        return links.getLast().hugsLastArgument()
+            && links.subList(0, links.size() - 1).stream().noneMatch(link -> link.endsTheLine() || Doc.flatWidthOrBreak(link.doc()) < 0);
     }
 
     Doc chainGroup(final Doc contents, final boolean authorBroke) {
@@ -64,14 +72,16 @@ final class MethodChainRenderer {
                     Stream.concat(
                             Stream.of(new Doc.Text(".")),
                             Stream.concat(typeArguments(call, recursor), Stream.of(new Doc.Text(ms.getIdentifier().toString())))));
-            final var callSuffix = buildCallSuffix(head, call.getArguments(), recursor);
+            final var arguments = CallArguments.render(call.getArguments(), recursor);
+            final var callSuffix = Doc.concat(head, arguments.doc());
             if (ms.getExpression() instanceof MethodInvocationTree) {
-                return new Link(callSuffix);
+                return new Link(callSuffix, false, arguments.hugsLastArgument());
             }
-            return new Link(Doc.concat(recursor.scan(ms.getExpression()), callSuffix));
+            return new Link(Doc.concat(recursor.scan(ms.getExpression()), callSuffix), false, arguments.hugsLastArgument());
         }
         final var head = new Doc.Concat(Stream.concat(typeArguments(call, recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
-        return new Link(buildCallSuffix(head, call.getArguments(), recursor));
+        final var arguments = CallArguments.render(call.getArguments(), recursor);
+        return new Link(Doc.concat(head, arguments.doc()), false, arguments.hugsLastArgument());
     }
 
     /**
@@ -86,7 +96,7 @@ final class MethodChainRenderer {
         return new Link(
                 Doc.concatOf(
                         Stream.of(Stream.of(link.doc()), comments.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))))),
-                comments.stream().anyMatch(c -> c.text().startsWith("//")));
+                comments.stream().anyMatch(c -> c.text().startsWith("//")), false);
     }
 
     private Stream<Doc> typeArguments(final MethodInvocationTree mit, final Recursor recursor) {
@@ -99,27 +109,10 @@ final class MethodChainRenderer {
                 Stream.concat(Doc.intersperse(new Doc.Text(", "), arguments.stream().map(recursor::scan)), Stream.of(new Doc.Text(">"))));
     }
 
-    private Doc buildCallSuffix(final Doc head, final List<? extends ExpressionTree> arguments, final Recursor recursor) {
-        if (arguments.isEmpty()) {
-            return Doc.concat(head, new Doc.Text("()"));
-        }
-        if (arguments.size() == 1
-            && arguments.getFirst() instanceof LambdaExpressionTree lam
-            && lam.getBodyKind() == LambdaExpressionTree.BodyKind.STATEMENT) {
-            return Doc.concat(head, new Doc.Text("("), recursor.scan(lam), new Doc.Text(")"));
-        }
-        final var interior = Doc.concat(Doc.SOFT_LINE, CommentDocs.commaFill(arguments, recursor, recursor::scan));
-        return new Doc.Group(Doc.concat(head, new Doc.Text("("), Doc.continuationIndent(interior), new Doc.Text(")")));
-    }
-
     /**
      * One link of the chain. {@code endsTheLine} marks a link whose own trailing {@code //}
      * comment closes the line, so the link after it has to start a new one however the enclosing
      * group prints.
      */
-    private record Link(Doc doc, boolean endsTheLine) {
-        Link(final Doc doc) {
-            this(doc, false);
-        }
-    }
+    private record Link(Doc doc, boolean endsTheLine, boolean hugsLastArgument) {}
 }

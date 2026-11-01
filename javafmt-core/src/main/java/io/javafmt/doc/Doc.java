@@ -58,7 +58,7 @@ public sealed interface Doc
                 case Align(var inner) -> work.push(inner);
                 case Group(var inner, var _) -> work.push(inner);
                 case IfBreak(var _, var flatContents) -> work.push(flatContents);
-                case Choice(var preferred, var _) -> work.push(preferred);
+                case Choice(var preferred, var _, var _) -> work.push(preferred);
                 case Concat(var ps) -> {
                     for (var i = ps.size() - 1; i >= 0; i--) {
                         work.push(ps.get(i));
@@ -86,7 +86,7 @@ public sealed interface Doc
             case Verbatim(var s, var _) -> s.stripTrailing().startsWith("//");
             case Indent(var inner) -> endsWithLineComment(inner);
             case Align(var inner) -> endsWithLineComment(inner);
-            case Choice(var preferred, var _) -> endsWithLineComment(preferred);
+            case Choice(var preferred, var _, var _) -> endsWithLineComment(preferred);
             case Group(var inner, var _) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case Fill(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
@@ -120,7 +120,7 @@ public sealed interface Doc
                 case Align(var inner) -> work.push(inner);
                 case Group(var inner, var _) -> work.push(inner);
                 case IfBreak(var breakContents, var _) -> work.push(breakContents);
-                case Choice(var preferred, var fallback) -> {
+                case Choice(var preferred, var fallback, var _) -> {
                     work.push(preferred);
                     work.push(fallback);
                 }
@@ -269,11 +269,18 @@ public sealed interface Doc
         }
     }
 
-    record Choice(Doc preferred, Doc fallback) implements Doc {
+    record Choice(Doc preferred, Doc fallback, Fit fit) implements Doc {
         public Choice {
             Objects.requireNonNull(preferred, "preferred");
             Objects.requireNonNull(fallback, "fallback");
+            Objects.requireNonNull(fit, "fit");
         }
+
+        public Choice(final Doc preferred, final Doc fallback) {
+            this(preferred, fallback, Fit.EVERY_LINE);
+        }
+
+        public enum Fit { EVERY_LINE, OPENING_LINE }
     }
 
     record Fill(List<Doc> parts) implements Doc {

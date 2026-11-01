@@ -2,6 +2,8 @@ package io.javafmt.lint;
 
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -102,5 +104,21 @@ class EmptyStatementTest {
             """);
         final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "try (Resource first = open(); ) {}|try (Resource first = open() ) {}",
+            "try (Resource first = open(); Resource second = open();) {}|try (Resource first = open(); Resource second = open()) {}",
+            "try (held; ) {}|try (held ) {}",
+            "try (held /* last */ ; ) {}|try (held /* last */  ) {}",
+            "try (Resource first = open()) {}|try (Resource first = open()) {}",
+            "try (held) {}|try (held) {}",
+    })
+    void deletesTheSemicolonAfterTheLastResource(final String statement, final String expected) {
+        final var unit = JavaParser.parseUnit("class Fixture {\n    void test(Resource held) throws Exception {\n        " + statement + "\n    }\n}\n");
+        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("class Fixture {\n    void test(Resource held) throws Exception {\n        " + expected + "\n    }\n}\n");
     }
 }

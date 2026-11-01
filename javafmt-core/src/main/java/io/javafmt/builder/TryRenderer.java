@@ -29,7 +29,7 @@ final class TryRenderer {
         if (resources == null || resources.isEmpty()) {
             return new Doc.Text("try");
         }
-        final var rendered = resources.stream().map(r -> BlockRenderer.stripTrailingSemicolonDoc(recursor.scan(r)));
+        final var rendered = resources.stream().map(r -> recursor.scanBeforeComments(r, BlockRenderer::stripTrailingSemicolonDoc));
         return Doc.concat(new Doc.Text("try "), WrappableList.of("(", ";", ")", rendered));
     }
 
@@ -44,7 +44,7 @@ final class TryRenderer {
     Doc catchClause(final CatchTree c, final Recursor recursor) {
         final var param = c.getParameter();
         return Doc.concat(
-                new Doc.Text("catch (" + ModifierRenderer.prefixOf(param.getModifiers(), recursor)), recursor.scan(param.getType()),
+                new Doc.Text("catch ("), ModifierRenderer.prefixOf(param.getModifiers(), recursor), recursor.scan(param.getType()),
                 new Doc.Text(" " + Names.of(param) + ")"));
     }
 

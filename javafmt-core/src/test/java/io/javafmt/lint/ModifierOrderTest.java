@@ -3,6 +3,7 @@ package io.javafmt.lint;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -108,6 +109,16 @@ class ModifierOrderTest {
                 .satisfies(e -> assertThat(e.replacement()).isEqualTo("public static"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"@Deprecated // since 3.1", "@SuppressWarnings({\"unused\", \"rawtypes\"})    // kept for callers", "@Deprecated /* old */ // since 3.1"})
+    void keywordsAfterALineCommentFollowingTheAnnotationsAreReordered(final String annotationLine) {
+        final var source = "class Fixture {\n    " + annotationLine + "\n    public final static char NUL = 0;\n}\n";
+        final var unit = JavaParser.parseUnit(source);
+        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("class Fixture {\n    " + annotationLine + "\n    public static final char NUL = 0;\n}\n");
+    }
+
     @Test
     void sealedAbstractReorderedToAbstractSealed() {
         // JLS canonical order (see JavaModifiers.JLS_ORDER): abstract precedes sealed.
@@ -139,9 +150,7 @@ class ModifierOrderTest {
     }
 
     @Test
-    void anAnnotationBetweenTwoKeywordsIsHoistedInFrontOfThem() {
-        // The renderer prints annotations before keywords whatever the source says, so the source
-        // has to say it too — otherwise the verifier sees tokens in an order the output never has.
+    void anAnnotationBetweenTwoKeywordsOfAFieldMovesBehindThem() {
         final var unit = JavaParser.parseUnit("""
             class Fixture {
 
@@ -149,11 +158,11 @@ class ModifierOrderTest {
             }
             """);
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("@Deprecated private static final int VALUE");
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("private static final @Deprecated int VALUE");
     }
 
     @Test
-    void aQualifiedAnnotationSurvivesTheHoist() {
+    void aQualifiedAnnotationSurvivesTheMove() {
         // `@jdk.internal.RequiresIdentity` is one annotation; a name scan that stopped at the first
         // `.` left the rest inside the span being replaced, and it was deleted.
         final var unit = JavaParser.parseUnit("""
@@ -163,7 +172,7 @@ class ModifierOrderTest {
             }
             """);
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("@jdk.internal.RequiresIdentity private static final int VALUE");
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("private static final @jdk.internal.RequiresIdentity int VALUE");
     }
 
     @Test
@@ -171,11 +180,38 @@ class ModifierOrderTest {
         final var unit = JavaParser.parseUnit("""
             class Fixture {
 
-                final @SuppressWarnings("a)b") int VALUE = 1;
+                static @SuppressWarnings("a)b") public int VALUE = 1;
             }
             """);
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("@SuppressWarnings(\"a)b\") final int VALUE");
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("public static @SuppressWarnings(\"a)b\") int VALUE");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "class Fixture { private final @Nullable String value = null; }",
+        "class Fixture { public @Nullable String find() { return null; } }",
+        "class Fixture { public static <T> @Nullable T first() { return null; } }",
+        "class Fixture { void accept(final @Nullable String value) {} }",
+        "class Fixture { void run() { final @Nullable String value = null; } }",
+        "class Fixture { public @Nullable Fixture() {} }"
+    })
+    void anAnnotationAfterTheKeywordsOfATypedDeclarationStaysThere(final String source) {
+        final var result = new ModifierOrder().apply(LintContext.parseOnly(JavaParser.parseUnit(source)));
+        assertThat(result.edits()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "class Fixture { public @Deprecated void legacy() {} }|@Deprecated public void legacy()",
+        "public @Deprecated class Fixture {}|@Deprecated public class Fixture",
+        "public @Deprecated interface Fixture {}|@Deprecated public interface Fixture",
+        "class Fixture { static @Deprecated public void legacy() {} }|@Deprecated public static void legacy()"
+    })
+    void anAnnotationAfterTheKeywordsOfADeclarationWithoutATypeMovesInFrontOfThem(final String source, final String reordered) {
+        final var unit = JavaParser.parseUnit(source);
+        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains(reordered);
     }
 
     @Test

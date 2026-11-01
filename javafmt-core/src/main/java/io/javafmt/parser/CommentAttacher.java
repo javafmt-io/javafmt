@@ -15,6 +15,7 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ModuleTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.PackageTree;
 import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
@@ -459,10 +460,22 @@ final class CommentAttacher {
 
         @Override
         public Void visitNewArray(final NewArrayTree node, final Void p) {
-            if (node.getInitializers() != null) {
-                collect(node, node.getInitializers(), false);
+            if (node.getInitializers() != null && !node.getInitializers().isEmpty()) {
+                collectWithLo(node, pos.getStartPosition(cu, node), node.getInitializers(), true, true);
             }
             return super.visitNewArray(node, null);
+        }
+
+        @Override
+        public Void visitAnnotation(final AnnotationTree node, final Void p) {
+            collectWithLo(node, pos.getEndPosition(cu, node.getAnnotationType()), node.getArguments(), true, true);
+            return super.visitAnnotation(node, null);
+        }
+
+        @Override
+        public Void visitPackage(final PackageTree node, final Void p) {
+            node.getAnnotations().forEach(this::collectLineEnd);
+            return super.visitPackage(node, null);
         }
 
         @Override
@@ -577,9 +590,11 @@ final class CommentAttacher {
         /**
          * A parameter or argument list, whose renderer places a {@code //} comment left after a
          * comma rather than pushing it down onto the next element. Only lists whose renderer reads
-         * the {@code interior} channel may be collected this way — an enum's constants are the
-         * third, through {@link #visitClass} — because a comment routed there by a renderer that
-         * never asks for it is a comment the output does not contain.
+         * the {@code interior} channel may be collected this way — an enum's constants, an
+         * annotation's arguments and an array's initializers are the others, through
+         * {@link #visitClass}, {@link #visitAnnotation} and {@link #visitNewArray} — because a
+         * comment routed there by a renderer that never asks for it is a comment the output does
+         * not contain.
          */
         private void collectSeparatedList(final Tree container, final long containerLo, final List<? extends Tree> children) {
             if (children.isEmpty()) {

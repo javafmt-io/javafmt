@@ -2,6 +2,8 @@ package io.javafmt.lint;
 
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,6 +22,17 @@ class FinalLocalVariableTest {
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEqualTo("final ");
         assertThat(result.diagnostics()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+        "@SuppressWarnings(\"unused\") String name = \"x\";|@SuppressWarnings(\"unused\") final String name",
+        "@SuppressWarnings(\"unused\") var name = \"x\";|@SuppressWarnings(\"unused\") final var name"
+    })
+    void finalGoesAfterTheAnnotations(final String declaration, final String finalized) {
+        final var unit = JavaParser.parseUnit("class Fixture { void test() { " + declaration + " } }");
+        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains(finalized);
     }
 
     @Test

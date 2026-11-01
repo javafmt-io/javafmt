@@ -4,17 +4,18 @@ import com.sun.source.tree.MethodTree;
 import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @UtilityClass
 final class CompactConstructorRenderer {
     Doc render(final MethodTree node, final String className, final Recursor recursor) {
-        final var preamble = ModifierRenderer.preambleOf(node.getModifiers(), recursor);
+        final var preamble = ModifierRenderer.preambleOf(node.getModifiers(), List.of(), recursor);
         final var throwsText = node.getThrows().isEmpty()
                 ? ""
                 : " throws " + node.getThrows().stream().map(Object::toString).collect(Collectors.joining(", "));
-        final var header = (Doc) new Doc.Text(preamble.prefix() + className + throwsText);
+        final var header = Doc.concat(preamble.prefix(), new Doc.Text(className + throwsText));
         final var withBody = MethodRenderer.appendBody(header, node, recursor);
-        return ModifierRenderer.finish(preamble, node.getModifiers(), withBody, recursor);
+        return ModifierRenderer.finish(preamble, withBody, recursor);
     }
 }

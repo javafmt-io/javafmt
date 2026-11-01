@@ -13,15 +13,18 @@ import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.PrimitiveTypeTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.UnionTypeTree;
 import com.sun.source.tree.WildcardTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.ParsedUnit;
 import lombok.experimental.UtilityClass;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -77,7 +80,7 @@ final class TypeRenderers {
     }
 
     Doc renderArrayType(final ArrayTypeTree node, final Recursor recursor) {
-        return Doc.concat(recursor.scan(node.getType()), new Doc.Text("[]"));
+        return renderArrayDimensions(node, recursor);
     }
 
     Doc renderParameterizedType(final ParameterizedTypeTree node, final Recursor recursor) {
@@ -137,8 +140,8 @@ final class TypeRenderers {
         final var annotations = node.getAnnotations()
                 .stream()
                 .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
-        if (node.getUnderlyingType() instanceof ArrayTypeTree arr) {
-            return renderArrayDimensionAnnotation(arr, annotations, recursor);
+        if (node.getUnderlyingType() instanceof ArrayTypeTree) {
+            return renderArrayDimensions(node, recursor);
         }
         if (node.getUnderlyingType() instanceof MemberSelectTree qualified) {
             return renderQualifiedTypeAnnotation(qualified, annotations, recursor);
@@ -149,12 +152,33 @@ final class TypeRenderers {
     /**
      * A type-use annotation on an array type is written between the element type and the
      * brackets it applies to. {@code int @Nullable []} annotates the array; {@code @Nullable
-     * int[]} annotates the element — a different type. javac nests one {@link AnnotatedTypeTree}
-     * per dimension, so recursing on the element type places each level's annotations correctly:
-     * {@code int @A [] @B []}.
+     * int[]} annotates the element — a different type. javac nests one level per pair of brackets,
+     * the outermost for the first pair written, and wraps a level in an {@link AnnotatedTypeTree}
+     * when its brackets carry an annotation. Writing the levels from the outside in, after the
+     * element type, puts every annotation back on its own brackets: {@code char[] @A []} and
+     * {@code byte @A [][]} are different types, and recursing inward instead swapped them.
      */
-    private Doc renderArrayDimensionAnnotation(final ArrayTypeTree arr, final Stream<Doc> annotations, final Recursor recursor) {
-        return Doc.concatOf(Stream.of(Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")), annotations, Stream.of(new Doc.Text("[]"))));
+    private Doc renderArrayDimensions(final Tree type, final Recursor recursor) {
+        final var levels = Stream.<@Nullable Tree>iterate(type, Objects::nonNull, TypeRenderers::componentOf).map(Objects::requireNonNull).toList();
+        final var brackets = levels.subList(0, levels.size() - 1).stream().map(level -> bracketsOf(level, recursor));
+        return Doc.concatOf(Stream.of(Stream.of(recursor.scan(levels.getLast())), brackets));
+    }
+
+    private Doc bracketsOf(final Tree level, final Recursor recursor) {
+        if (!(level instanceof AnnotatedTypeTree annotated)) {
+            return new Doc.Text("[]");
+        }
+        final var annotations = annotated.getAnnotations().stream().flatMap(a -> Stream.of(new Doc.Text(" "), recursor.scan(a)));
+        return Doc.concatOf(Stream.of(annotations, Stream.of(new Doc.Text(" []"))));
+    }
+
+    @Nullable
+    private Tree componentOf(final Tree type) {
+        return switch (type) {
+            case ArrayTypeTree array -> array.getType();
+            case AnnotatedTypeTree annotated when annotated.getUnderlyingType() instanceof ArrayTypeTree array -> array.getType();
+            default -> null;
+        };
     }
 
     /**
