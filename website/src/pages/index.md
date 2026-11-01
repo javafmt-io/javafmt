@@ -20,7 +20,7 @@ class X {}
 
 The Java formatters that exist are either slow or always a language version behind. javafmt uses `javac`'s own parser (`com.sun.source.tree`), so when new syntax lands in the JDK it's already supported. The CLI ships as a fat JAR and as a platform-native binary via GraalVM `native-image`.
 
-The style is opinionated on purpose. Every config knob is a debate your team would otherwise have to have. Pick javafmt if you'd rather skip that meeting. [Why javafmt](/docs/why) has the longer case, including what it does for code written by coding agents.
+The style is opinionated on purpose. Every config knob is a debate your team would otherwise have to have. Pick javafmt if you'd rather skip that meeting. [Getting started](/docs/intro#why-javafmt) has the longer case, including what it does for code written by coding agents.
 
 ## Get started
 
