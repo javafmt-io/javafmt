@@ -7,6 +7,7 @@ import org.gradle.api.Task;
 import org.gradle.api.file.ConfigurableFileTree;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
@@ -81,6 +82,19 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
 
     private record PluginProperties(String engineHash, String foojayVersion) {}
 
+    private static final class RatchetFromSet implements Spec<Task> {
+        private final boolean set;
+
+        private RatchetFromSet(final boolean set) {
+            this.set = set;
+        }
+
+        @Override
+        public boolean isSatisfiedBy(final Task task) {
+            return ((JavafmtTask) task).getRatchetFrom().isPresent() == set;
+        }
+    }
+
     private record SourceSetTasks(Project project,
                                   JavafmtExtension extension,
                                   PluginProperties properties,
@@ -106,6 +120,9 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
                                         "Checks that the " + name + " Java sources are formatted with javafmt.");
                                 configure(task, sourceSet);
                                 task.getMarker().set(project.getLayout().getBuildDirectory().file("javafmt/" + name + ".checked"));
+                                task.getOutputs().upToDateWhen(new RatchetFromSet(false));
+                                task.getOutputs()
+                                        .doNotCacheIf("The files ratchetFrom selects depend on the state of the git repository.", new RatchetFromSet(true));
                                 task.mustRunAfter(format);
                             });
             checkAll.configure(task -> task.dependsOn(check));
@@ -116,6 +133,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             final var toolchains = project.getExtensions().getByType(JavaToolchainService.class);
             task.getSources().from(project.provider(() -> javaSources(sourceSet)));
             task.getAnalyze().set(extension.getAnalyze());
+            task.getRatchetFrom().set(extension.getRatchetFrom());
             task.getAnalysisClasspath().from(extension.getAnalyze().map(analyze -> analyze ? sourceSet.getCompileClasspath() : List.of()));
             task.getEngineHash().set(properties.engineHash());
             task.getLauncher().convention(project.provider(() -> java25(toolchains, properties.foojayVersion())));

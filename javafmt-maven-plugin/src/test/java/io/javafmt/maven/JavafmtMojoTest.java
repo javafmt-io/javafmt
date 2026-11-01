@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
 import static io.javafmt.maven.MojoTestSupport.buildProject;
+import static io.javafmt.maven.MojoTestSupport.projectInRepositoryWithAnEditedFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -106,6 +107,14 @@ class JavafmtMojoTest {
         try (final var entries = Files.list(srcDir)) {
             assertThat(entries).containsExactly(file);
         }
+    }
+
+    @Test
+    void formatGoalWithRatchetFromOnlyRewritesTheFilesChangedSinceTheRef(@TempDir final Path dir) throws Exception {
+        new JavafmtMojo(projectInRepositoryWithAnEditedFile(dir), List.of(), Optional.empty(), Optional.of("main")).execute();
+        final var edited = UNFORMATTED.replace("Foo", "Invoice").replace("bar", "total");
+        assertThat(Files.readString(dir.resolve("src/main/java/Invoice.java"), StandardCharsets.UTF_8)).isEqualTo(Javafmt.format(edited));
+        assertThat(Files.readString(dir.resolve("src/main/java/Order.java"), StandardCharsets.UTF_8)).isEqualTo(UNFORMATTED.replace("Foo", "Order"));
     }
 
     @Test

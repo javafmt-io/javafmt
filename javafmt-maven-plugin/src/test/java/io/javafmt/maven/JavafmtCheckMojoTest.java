@@ -13,6 +13,7 @@ import java.util.Optional;
 
 import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
 import static io.javafmt.maven.MojoTestSupport.buildProject;
+import static io.javafmt.maven.MojoTestSupport.projectInRepositoryWithAnEditedFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -105,6 +106,24 @@ class JavafmtCheckMojoTest {
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining(file.toString());
+    }
+
+    @Test
+    void checkGoalWithRatchetFromOnlyChecksTheFilesChangedSinceTheRef(@TempDir final Path dir) {
+        final var mojo = new JavafmtCheckMojo(projectInRepositoryWithAnEditedFile(dir), List.of(), Optional.empty(), Optional.of("main"));
+        assertThatThrownBy(mojo::execute)
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining("1 file(s) not formatted")
+                .hasMessageContaining("Invoice.java")
+                .satisfies(t -> assertThat(t.getMessage()).doesNotContain("Order.java"));
+    }
+
+    @Test
+    void checkGoalWithAnUnknownRatchetRefFailsAndNamesTheRef(@TempDir final Path dir) {
+        final var mojo = new JavafmtCheckMojo(projectInRepositoryWithAnEditedFile(dir), List.of(), Optional.empty(), Optional.of("no-such-branch"));
+        assertThatThrownBy(mojo::execute)
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessage("javafmt: unknown git ref: no-such-branch");
     }
 
     @Test
