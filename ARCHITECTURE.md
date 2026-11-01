@@ -35,6 +35,7 @@ flowchart TB
     cli["javafmt-cli<br/>fat JAR + GraalVM native binary"] --> core
     cli --> daemon
 
-    intellij["javafmt-intellij<br/>finds or downloads the native binary"] -- "javafmt --daemon<br/>length-delimited protobuf on stdin/stdout" --> cli
+    intellij["javafmt-intellij<br/>formats in the IDE by default"] -- "in-process" --> core
+    intellij -- "optional: javafmt --daemon<br/>length-delimited protobuf on stdin/stdout" --> cli
     vscode["javafmt-vscode<br/>bundles the native binary"] -- "javafmt --daemon<br/>length-delimited protobuf on stdin/stdout" --> cli
 ```

@@ -16,7 +16,8 @@ public abstract class JavafmtIntellijTestCase extends LightJavaCodeInsightFixtur
         try {
             // The light fixture shares one project across the whole class, so settings written
             // by one test would otherwise leak into the next.
-            JavafmtSettings.getInstance(getProject()).loadState(new JavafmtSettings.State());
+            JavafmtSettings.getInstance(getProject()).loadState(new JavafmtSettings());
+            JavafmtApplicationSettings.getInstance().loadState(new JavafmtApplicationSettings());
         } finally {
             super.tearDown();
         }

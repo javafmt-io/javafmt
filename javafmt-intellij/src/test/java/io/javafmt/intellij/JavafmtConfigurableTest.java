@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,6 +114,34 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
         // over without running the binary on the EDT, so the settings page has to say so.
         assertThat(UIUtil.findComponentsOfType(form, JBLabel.class).stream().map(JBLabel::getText))
                 .anySatisfy(text -> assertThat(text).contains("Optimize Imports"));
+    }
+
+    @Test
+    public void testEngineStartsInProcess() {
+        assertThat(engine().getSelectedItem()).isEqualTo(JavafmtApplicationSettings.Engine.IN_PROCESS);
+        assertThat(findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME).isEnabled()).isFalse();
+    }
+
+    @Test
+    public void testChoosingTheNativeEngineIsAppliedAndEnablesTheBinaryPath() {
+        engine().setSelectedItem(JavafmtApplicationSettings.Engine.NATIVE);
+        assertThat(configurable.isModified()).isTrue();
+        assertThat(findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME).isEnabled()).isTrue();
+        configurable.apply();
+        assertThat(JavafmtApplicationSettings.getInstance().getEngine()).isEqualTo(JavafmtApplicationSettings.Engine.NATIVE);
+        assertThat(configurable.isModified()).isFalse();
+    }
+
+    @Test
+    public void testFormShowsThePersistedEngine() {
+        JavafmtApplicationSettings.getInstance().setEngine(JavafmtApplicationSettings.Engine.NATIVE);
+        configurable.reset();
+        assertThat(engine().getSelectedItem()).isEqualTo(JavafmtApplicationSettings.Engine.NATIVE);
+        assertThat(configurable.isModified()).isFalse();
+    }
+
+    private JComboBox<?> engine() {
+        return (JComboBox<?>) findByName(configurable, JavafmtConfigurable.ENGINE_COMBO_BOX_NAME);
     }
 
     private JCheckBox checkBox(final String name) {

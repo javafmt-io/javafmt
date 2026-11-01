@@ -42,8 +42,10 @@ val protocolRuntime = configurations.resolvable("protocolRuntime") {
 }
 
 dependencies {
-    // Deliberately no javafmt-core: formatting happens out of process in the native javafmt binary.
+    implementation(project(":javafmt-core"))
     compileOnly(libs.jspecify)
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
     protocol(project(":javafmt-daemon")) {
         capabilities {
             requireFeature("protocol")
@@ -67,8 +69,6 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.junit4)
     testImplementation(libs.assertj.core)
-    // Kept despite the module having no main-code dependency on javafmt-core:
-    // JavafmtExternalFormatProcessorTest uses io.javafmt.Fixtures, and test code never loads into the IDE.
     testImplementation(testFixtures(project(":javafmt-core")))
     testImplementation(testFixtures(project(":javafmt-daemon")))
     testRuntimeOnly(libs.junit.platform.launcher)
@@ -202,12 +202,13 @@ intellijPlatform {
             Java files. Reformatting a selection, and any request that may only change whitespace,
             still goes to IntelliJ's built-in formatter, because javafmt's lint pass rewrites code
             (it inserts <code>final</code>, adds braces, drops unused imports) rather than only
-            laying it out. Formatting runs in javafmt's native binary: the plugin uses the path
-            configured under <em>Settings | Tools | javafmt</em>, else a <code>javafmt</code> on
-            <code>PATH</code>, else downloads the matching binary from the javafmt GitHub release
-            on the first reformat and verifies its checksum. When no binary is available, or when
-            javafmt cannot parse the file, it is left exactly as it was and a notification says
-            why — IntelliJ's own formatter does not step in for a whole-file reformat.
+            laying it out. Formatting runs inside the IDE by default; the IDE-wide <em>Formatter</em> setting
+            can switch it to javafmt's native binary, found at the configured path, else as
+            <code>javafmt</code> on <code>PATH</code>, else downloaded from the matching javafmt
+            GitHub release and checked against its checksum. When javafmt cannot parse the file, or
+            the native binary is selected and unavailable, the file is left exactly as it was and a
+            notification says why — IntelliJ's own formatter does not step in for a whole-file
+            reformat.
         """.trimIndent()
 
         ideaVersion {

@@ -38,7 +38,7 @@ first use after a clean build.
 - **No nulls,** `Optional<T>` at API boundaries, `Objects.requireNonNull` at internal boundaries. Every package under `src/main/java` has a `package-info.java` annotated `@NullMarked`. The compile-time check is NullAway (run by Error Prone), which treats all of `io.javafmt` as non-null unless marked `@Nullable`. NullAway is off for tests, benchmarks and the daemon's generated protocol classes, and `javafmt-intellij` does not run Error Prone at all. `Objects.requireNonNull` adds a runtime check on top of NullAway; it does not replace it.
 - **No checked exceptions** in public API, wrap in unchecked exceptions. The only exception is a host API that declares one, such as Maven's `MojoExecutionException`.
 - **Stream API over mutable accumulators.** Prefer `Stream` pipelines + `.toList()` over `ArrayList` + `for` + `.add()`. Mutable state is a code smell — if you are building a list imperatively, express it as a stream pipeline instead. For nullable results (e.g. `scan()`) in pipelines, use `flatMap(x -> Optional.ofNullable(f(x)).stream())` — this both filters nulls and narrows the element type in one step. The intersperse pattern (separator between elements, not after each) uses `.flatMap(e -> Stream.of(separator, e)).skip(1)`.
-- **Lombok,** use `@Getter`/`@Setter` instead of hand-writing accessors; prefer records over `@Data` for data modeling. Lombok is `compileOnly` (annotation processor only, no runtime dependency) in every module that applies `javafmt.java-conventions`, which is every Java module except `javafmt-intellij`.
+- **Lombok,** use `@Getter`/`@Setter` instead of hand-writing accessors; prefer records over `@Data` for data modeling. Lombok is `compileOnly` (annotation processor only, no runtime dependency) in every Java module: through `javafmt.java-conventions`, and declared directly in `javafmt-intellij`, which does not apply those conventions.
 - **Logging uses whatever the module's host provides.**
   - `javafmt-core` uses `System.Logger`, so it keeps zero runtime dependencies.
   - The Gradle, Maven and IntelliJ plugins use Gradle's logger, `getLog()` and IntelliJ's `Logger`.
@@ -60,7 +60,8 @@ first use after a clean build.
   - `javafmt-daemon` (the long-running formatting process and its protobuf protocol), `javafmt-spotless` and `javafmt-maven-plugin` depend on it.
   - `javafmt-cli` depends on it and on `javafmt-daemon`, and is compiled to the native `javafmt` binary.
   - In `javafmt-gradle-plugin`, only the `engine` source set depends on it.
-  - `javafmt-intellij` and `javafmt-vscode` do not depend on it. They start the native binary as `javafmt --daemon` and talk to it over the daemon protocol.
+  - `javafmt-intellij` bundles it and formats inside the IDE by default. An IDE-wide setting switches it to the native binary instead, started as `javafmt --daemon` and spoken to over the daemon protocol.
+  - `javafmt-vscode` does not depend on it: it always starts the native binary as `javafmt --daemon`.
   - `website` is the documentation site.
 - `javafmt-maven-plugin` is a Maven plugin JAR but is built by Gradle via the `org.gradlex.maven-plugin-development` plugin, which generates the `META-INF/maven/plugin.xml` descriptor from `@Mojo` annotations. One build system for the whole monorepo, no `mvn install` bootstrap needed.
 - Shared build conventions live in `buildSrc/src/main/kotlin/` (`javafmt.java-conventions`, `javafmt.spotless-conventions`, `javafmt.native-conventions`, `javafmt.npm-conventions`, `javafmt.publish-conventions`), and the settings plugins in `build-settings/`. `javafmt-intellij` applies only the Spotless conventions.

@@ -12,18 +12,21 @@ import io.javafmt.daemon.protocol.Diagnostic;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * Drives the {@code javafmt} binary from <em>Reformat Code</em>.
+ * Runs javafmt from <em>Reformat Code</em>, inside the IDE or through the native {@code javafmt}
+ * binary, as {@link JavafmtApplicationSettings#getEngine()} selects for the whole IDE, and logs how long each format took.
  *
  * <p>An {@link AsyncDocumentFormattingService} rather than an {@code ExternalFormatProcessor}
- * because the format is a subprocess. The platform calls an {@code ExternalFormatProcessor}
+ * because a format can take a while. The platform calls an {@code ExternalFormatProcessor}
  * synchronously from {@code CodeStyleManagerImpl.reformatText}, on the EDT, with the write lock
- * held: a binary on a cold network mount, or one caught by an antivirus scan, would freeze the
- * whole IDE for as long as it took, with no way to cancel. This base class instead runs the
+ * held: a large file, a binary on a cold network mount, or one caught by an antivirus scan, would
+ * freeze the whole IDE for as long as it took, with no way to cancel. This base class instead runs the
  * {@link FormattingTask} on a pooled thread under a cancellable progress indicator and installs
  * the result in a write action of its own.
  *
@@ -69,6 +72,14 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
     @NotNull
     protected String getName() {
         return "javafmt";
+    }
+
+    static String timing(final String fileName, final JavafmtApplicationSettings.Engine engine, final Duration took) {
+        final var label = switch (engine) {
+            case IN_PROCESS -> "in-process";
+            case NATIVE -> "native";
+        };
+        return "javafmt: formatted " + fileName + " in " + took.toMillis() + " ms (" + label + ")";
     }
 
     /**
@@ -143,30 +154,18 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             final var project = context.getProject();
             final var fileName = context.getContainingFile().getName();
             final var content = request.getDocumentText();
-            final var provider = JavafmtBinaryProvider.getInstance();
-            final var resolved = locate(project, provider);
-            if (resolved.isEmpty()) {
+            final var engine = JavafmtApplicationSettings.getInstance().getEngine();
+            final var outcome = switch (engine) {
+                case IN_PROCESS -> Optional.of(timed(fileName, engine, () -> InProcessFormatter.format(content)));
+                case NATIVE ->
+                    supportedBinary(project)
+                            .map(binary -> timed(fileName, engine, () -> JavafmtDaemons.getInstance(project).format(binary, content)));
+            };
+            if (outcome.isEmpty()) {
                 request.onTextReady(content);
                 return;
             }
-            final var binary = resolved.get();
-            final var supported = provider.versionGate().isSupported(binary);
-            if (supported.isEmpty()) {
-                if (!Thread.currentThread().isInterrupted()) {
-                    notifyUser(project, NotificationType.WARNING, "The javafmt binary at " + binary.path() + " did not report its version in time.");
-                }
-                request.onTextReady(content);
-                return;
-            }
-            if (!supported.get()) {
-                notifyUser(
-                        project, NotificationType.WARNING,
-                        "The javafmt binary at " + binary.path() + " is too old: javafmt " + JavafmtBinary.minimumVersion()
-                                + " or newer is required.");
-                request.onTextReady(content);
-                return;
-            }
-            switch (JavafmtDaemons.getInstance(project).format(binary, content)) {
+            switch (outcome.get()) {
                 case JavafmtBinary.Outcome.Cancelled _ -> request.onTextReady(content);
                 case JavafmtBinary.Outcome.Refused refused -> {
                     LOG.warn("javafmt: " + refused.reason());
@@ -177,6 +176,41 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 }
                 case JavafmtBinary.Outcome.Formatted formatted -> install(project, fileName, content, formatted);
             }
+        }
+
+        private static JavafmtBinary.Outcome timed(final String fileName,
+                                                   final JavafmtApplicationSettings.Engine engine,
+                                                   final Supplier<JavafmtBinary.Outcome> formatter) {
+            final var start = System.nanoTime();
+            final var outcome = formatter.get();
+            if (!(outcome instanceof JavafmtBinary.Outcome.Cancelled)) {
+                LOG.info(timing(fileName, engine, Duration.ofNanos(System.nanoTime() - start)));
+            }
+            return outcome;
+        }
+
+        private static Optional<BinaryIdentity> supportedBinary(final Project project) {
+            final var provider = JavafmtBinaryProvider.getInstance();
+            final var resolved = locate(project, provider);
+            if (resolved.isEmpty()) {
+                return Optional.empty();
+            }
+            final var binary = resolved.get();
+            final var supported = provider.versionGate().isSupported(binary);
+            if (supported.isEmpty()) {
+                if (!Thread.currentThread().isInterrupted()) {
+                    notifyUser(project, NotificationType.WARNING, "The javafmt binary at " + binary.path() + " did not report its version in time.");
+                }
+                return Optional.empty();
+            }
+            if (!supported.get()) {
+                notifyUser(
+                        project, NotificationType.WARNING,
+                        "The javafmt binary at " + binary.path() + " is too old: javafmt " + JavafmtBinary.minimumVersion()
+                                + " or newer is required.");
+                return Optional.empty();
+            }
+            return resolved;
         }
 
         private static Optional<BinaryIdentity> locate(final Project project, final JavafmtBinaryProvider provider) {
