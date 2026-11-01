@@ -16,25 +16,21 @@ class CommentScannerTest {
         return CommentScanner.scan(source).stream().map(CommentToken::text).toList();
     }
 
-    @Nested
-    class StringAndCharLiterals {
-        @ParameterizedTest(name = "{1}")
-        @MethodSource("literalsHidingSlashes")
-        void scannerIgnoresCommentSyntaxInsideLiterals(final String source, final String label) {
-            assertThat(CommentScanner.scan(source)).as(label).isEmpty();
-        }
+    @ParameterizedTest(name = "{1}")
+    @MethodSource("literalsHidingSlashes")
+    void scannerIgnoresCommentSyntaxInsideLiterals(final String source, final String label) {
+        assertThat(CommentScanner.scan(source)).as(label).isEmpty();
+    }
 
-        static Stream<Arguments> literalsHidingSlashes() {
-            return Stream.of(
-                    Arguments.of(
-                            "class C { String s = \"a\\\"/* not a comment */\"; }", "escaped quote inside string keeps scanner inside the literal"),
-                    Arguments.of(
-                            "class C { char c = '\\''; String s = \"// not a comment\"; }", "char literal '\\'' followed by string with // sequence"),
-                    Arguments.of(
-                            "class C { String s = \"\"\"\n  contains \\\"\"\" inside\n  /* still in block */\n\"\"\"; }",
-                            "text block with escaped triple-quote and embedded /* */ sequences"),
-                    Arguments.of("class C { String s = \"contains /* and */ marks\"; }", "string containing both /* and */ sequences"));
-        }
+    static Stream<Arguments> literalsHidingSlashes() {
+        return Stream.of(
+                Arguments.of("class C { String s = \"a\\\"/* not a comment */\"; }", "escaped quote inside string keeps scanner inside the literal"),
+                Arguments.of(
+                        "class C { char c = '\\''; String s = \"// not a comment\"; }", "char literal '\\'' followed by string with // sequence"),
+                Arguments.of(
+                        "class C { String s = \"\"\"\n  contains \\\"\"\" inside\n  /* still in block */\n\"\"\"; }",
+                        "text block with escaped triple-quote and embedded /* */ sequences"),
+                Arguments.of("class C { String s = \"contains /* and */ marks\"; }", "string containing both /* and */ sequences"));
     }
 
     @Nested

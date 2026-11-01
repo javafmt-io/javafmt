@@ -20,25 +20,22 @@ class ClassLikeRendererTest {
         return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source))).stripTrailing();
     }
 
-    @Nested
-    class EmptyBody {
-        @ParameterizedTest
-        @ValueSource(strings = {"class Foo {}", "class Foo {   }", "class Foo {\n\n}", "class Foo {\n\n    \n}"})
-        void emptyClass_noPackage_rendersOnOneLine(final String source) {
-            assertThat(format(source)).isEqualTo("class Foo {}");
-        }
+    @ParameterizedTest
+    @ValueSource(strings = {"class Foo {}", "class Foo {   }", "class Foo {\n\n}", "class Foo {\n\n    \n}"})
+    void emptyClass_noPackage_rendersOnOneLine(final String source) {
+        assertThat(format(source)).isEqualTo("class Foo {}");
+    }
 
-        @ParameterizedTest
-        @MethodSource("packageVariants")
-        void packageDeclaration_isFollowedByOneBlankLine(final String pkg, final String expected) {
-            assertThat(format("package " + pkg + ";\n\n\n\nclass Foo {}")).isEqualTo(expected);
-        }
+    @ParameterizedTest
+    @MethodSource("packageVariants")
+    void packageDeclaration_isFollowedByOneBlankLine(final String pkg, final String expected) {
+        assertThat(format("package " + pkg + ";\n\n\n\nclass Foo {}")).isEqualTo(expected);
+    }
 
-        static Stream<Arguments> packageVariants() {
-            return Stream.of(
-                    Arguments.of("a", "package a;\n\nclass Foo {}"), Arguments.of("foo.bar", "package foo.bar;\n\nclass Foo {}"),
-                    Arguments.of("com.example.deeply.nested", "package com.example.deeply.nested;\n\nclass Foo {}"));
-        }
+    static Stream<Arguments> packageVariants() {
+        return Stream.of(
+                Arguments.of("a", "package a;\n\nclass Foo {}"), Arguments.of("foo.bar", "package foo.bar;\n\nclass Foo {}"),
+                Arguments.of("com.example.deeply.nested", "package com.example.deeply.nested;\n\nclass Foo {}"));
     }
 
     @Nested

@@ -17,6 +17,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PrinterTest {
+    @Test
+    void lineWidth_zero_throws() {
+        assertThatThrownBy(() -> new Printer(0)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void lineWidth_negative_throws() {
+        assertThatThrownBy(() -> new Printer(-1)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void lineWidth_one_isValid() {
+        assertThat(new Printer(1).print(new Doc.Text("x"))).isEqualTo("x");
+    }
+
     @Nested
     class TextTests {
         @Test
@@ -459,24 +474,6 @@ class PrinterTest {
         @Test
         void groupWithIndentedLines_breaksBeyondWidth() {
             assertThat(new Printer(13).print(blockDoc())).isEqualTo("{\n    x: 1,\n    y: 2\n}");
-        }
-    }
-
-    @Nested
-    class ConstructorValidationTests {
-        @Test
-        void lineWidth_zero_throws() {
-            assertThatThrownBy(() -> new Printer(0)).isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        void lineWidth_negative_throws() {
-            assertThatThrownBy(() -> new Printer(-1)).isInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        void lineWidth_one_isValid() {
-            assertThat(new Printer(1).print(new Doc.Text("x"))).isEqualTo("x");
         }
     }
 
