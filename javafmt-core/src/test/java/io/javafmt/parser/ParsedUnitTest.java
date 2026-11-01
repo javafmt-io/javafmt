@@ -25,7 +25,7 @@ class ParsedUnitTest {
         final var cls = parsed.tree().getTypeDecls().getFirst();
         final var truncated = new ParsedUnit(
                 parsed.tree(), "class", parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                new IdentityHashMap<>(), new IdentityHashMap<>());
+                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
         assertThatThrownBy(() -> truncated.sourceSpanOf(cls))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("CLASS");
@@ -42,7 +42,7 @@ class ParsedUnitTest {
         leadingMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
                 parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), leadingMap, new IdentityHashMap<>(),
-                new IdentityHashMap<>(), new IdentityHashMap<>());
+                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.leadingOf(cls)).hasSize(1);
     }
@@ -58,7 +58,7 @@ class ParsedUnitTest {
         trailingMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
                 parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), trailingMap,
-                new IdentityHashMap<>(), new IdentityHashMap<>());
+                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.trailingOf(cls)).hasSize(1);
     }
@@ -74,7 +74,7 @@ class ParsedUnitTest {
         interiorMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
                 parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                interiorMap, new IdentityHashMap<>());
+                interiorMap, new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.interiorOf(cls)).hasSize(1);
     }
@@ -90,8 +90,36 @@ class ParsedUnitTest {
         tailMap.put(cls, mutableList);
         final var unit = new ParsedUnit(
                 parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                new IdentityHashMap<>(), tailMap);
+                new IdentityHashMap<>(), tailMap, new IdentityHashMap<>(), List.of());
         mutableList.add(new CommentToken(3, 5, "//", 0));
         assertThat(unit.tailOf(cls)).hasSize(1);
+    }
+
+    @Test
+    void braceLineListsAreDeeplyImmutableAfterConstruction() {
+        final var parsed = JavaParser.parseUnit("class C {}");
+        final var cls = (ClassTree) parsed.tree().getTypeDecls().getFirst();
+        final var comment = new CommentToken(0, 2, "//", 0);
+        final var mutableList = new ArrayList<CommentToken>();
+        mutableList.add(comment);
+        final var braceLineMap = new IdentityHashMap<Tree, List<CommentToken>>();
+        braceLineMap.put(cls, mutableList);
+        final var unit = new ParsedUnit(
+                parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
+                new IdentityHashMap<>(), new IdentityHashMap<>(), braceLineMap, List.of());
+        mutableList.add(new CommentToken(3, 5, "//", 0));
+        assertThat(unit.braceLineOf(cls)).hasSize(1);
+    }
+
+    @Test
+    void looseCommentsAreImmutableAfterConstruction() {
+        final var parsed = JavaParser.parseUnit("class C {}");
+        final var mutableList = new ArrayList<CommentToken>();
+        mutableList.add(new CommentToken(0, 2, "//", 0));
+        final var unit = new ParsedUnit(
+                parsed.tree(), parsed.source(), parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
+                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), mutableList);
+        mutableList.add(new CommentToken(3, 5, "//", 0));
+        assertThat(unit.loose()).hasSize(1);
     }
 }

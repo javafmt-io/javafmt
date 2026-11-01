@@ -23,6 +23,9 @@ final class ClassBodyRenderer {
                 ? Stream.<Doc>empty()
                 : Stream.<Doc>of(new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Concat(Doc.intersperse(Doc.BLANK_LINE, members.stream())))));
         final var tailLines = TypeBodyRenderer.tailLines(recursor.trailingInside(body));
-        return Doc.concatOf(Stream.of(Stream.<Doc>of(new Doc.Text(" {")), indentedMembers, tailLines, Doc.closeBrace()));
+        return Doc.concatOf(
+                Stream.of(
+                        Stream.<Doc>of(new Doc.Text(" {")), BlockRenderer.braceLineComments(recursor.braceLine(body)), indentedMembers,
+                        tailLines, Doc.closeBrace()));
     }
 }

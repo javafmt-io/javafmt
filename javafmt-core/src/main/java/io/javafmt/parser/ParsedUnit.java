@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 /**
  * Parsed compilation unit with comments attached to AST nodes.
  *
- * <p>Comment-channel maps ({@code leading}, {@code trailing}, {@code interior}, {@code tail})
+ * <p>Comment-channel maps ({@code leading}, {@code trailing}, {@code interior}, {@code tail}, {@code braceLine})
  * use identity-keyed lookup because javac may produce {@code .equals}-equal {@link Tree}
  * instances for distinct source positions.
  */
@@ -29,7 +29,9 @@ public record ParsedUnit(CompilationUnitTree tree,
                          Map<Tree, List<CommentToken>> leading,
                          Map<Tree, List<CommentToken>> trailing,
                          Map<Tree, List<CommentToken>> interior,
-                         Map<Tree, List<CommentToken>> tail) {
+                         Map<Tree, List<CommentToken>> tail,
+                         Map<Tree, List<CommentToken>> braceLine,
+                         List<CommentToken> loose) {
     public ParsedUnit {
         Objects.requireNonNull(tree, "tree");
         Objects.requireNonNull(source, "source");
@@ -40,6 +42,8 @@ public record ParsedUnit(CompilationUnitTree tree,
         trailing = deepCopy(Objects.requireNonNull(trailing, "trailing"));
         interior = deepCopy(Objects.requireNonNull(interior, "interior"));
         tail = deepCopy(Objects.requireNonNull(tail, "tail"));
+        braceLine = deepCopy(Objects.requireNonNull(braceLine, "braceLine"));
+        loose = List.copyOf(Objects.requireNonNull(loose, "loose"));
     }
 
     public String sourceOf(final Tree node) {
@@ -77,6 +81,10 @@ public record ParsedUnit(CompilationUnitTree tree,
 
     public List<CommentToken> tailOf(final Tree node) {
         return tail.getOrDefault(node, List.of());
+    }
+
+    public List<CommentToken> braceLineOf(final Tree node) {
+        return braceLine.getOrDefault(node, List.of());
     }
 
     public Position positionOf(final Tree node) {

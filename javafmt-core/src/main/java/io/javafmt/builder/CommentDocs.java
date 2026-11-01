@@ -10,6 +10,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -76,6 +77,44 @@ final class CommentDocs {
         return new Doc.Concat(Stream.concat(Stream.of(doc), comments.stream().flatMap(c -> Stream.of(new Doc.Text(" "), renderComment(c)))));
     }
 
+    Doc withSeparator(final Tree tree, final UnaryOperator<Doc> adjust, final String separator, final Recursor recursor) {
+        if (separator.isEmpty()) {
+            return recursor.scanBeforeComments(tree, adjust);
+        }
+        if (hasLineComment(recursor.trailing(tree))) {
+            return recursor.scanBeforeComments(tree, d -> Doc.concat(adjust.apply(d), new Doc.Text(separator)));
+        }
+        return Doc.concat(recursor.scanBeforeComments(tree, adjust), new Doc.Text(separator));
+    }
+
+    private Doc attachedWithComma(final Tree item, final Doc doc, final boolean comma, final LeadingCommentAttacher attacher) {
+        if (!comma) {
+            return attacher.attach(item, doc);
+        }
+        if (hasLineComment(attacher.trailing(item))) {
+            return attacher.attach(item, Doc.concat(doc, new Doc.Text(",")));
+        }
+        return Doc.concat(attacher.attach(item, doc), new Doc.Text(","));
+    }
+
+    List<CommentToken> inside(final Tree node, final LeadingCommentAttacher attacher) {
+        final var pastTheSeparator = attacher.pastTheSeparatorBefore(node);
+        return attacher.interior(node).stream().filter(c -> !pastTheSeparator.contains(c)).toList();
+    }
+
+    boolean hasLineComment(final List<CommentToken> comments) {
+        return comments.stream().anyMatch(c -> c.text().startsWith("//"));
+    }
+
+    Doc closeAfter(final Doc doc, final List<CommentToken> ownLine, final String closer) {
+        final var withComments = ownLine.isEmpty()
+                ? doc
+                : Doc.concatOf(Stream.of(Stream.of(doc), ownLine.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, renderComment(c)))));
+        return Doc.endsWithLineComment(withComments)
+                ? Doc.concat(withComments, Doc.HARD_LINE, new Doc.Text(closer))
+                : Doc.concat(withComments, new Doc.Text(closer));
+    }
+
     /**
      * The separator that joins a list element to the one before it: the punctuation, then any
      * comment the author left after that punctuation, then the break. The comment comes after the
@@ -96,26 +135,33 @@ final class CommentDocs {
     <T extends Tree> Stream<Doc> commaList(final List<? extends T> items,
                                            final LeadingCommentAttacher attacher,
                                            final Function<? super T, Doc> render) {
-        if (items.size() == 1) {
-            return Stream.of(render.apply(items.getFirst()));
-        }
+        final var rendered = IntStream.range(0, items.size())
+                .mapToObj(i -> attachedWithComma(items.get(i), render.apply(items.get(i)), i + 1 < items.size(), attacher))
+                .toList();
         return IntStream.range(0, items.size())
                 .boxed()
                 .flatMap(
                         i -> Stream.concat(
-                                i == 0 ? Stream.empty() : listSeparator(",", attacher.interior(items.get(i))).stream(),
-                                Stream.of(render.apply(items.get(i)))));
+                                i == 0 ? Stream.empty() : Stream.of(afterComma(rendered.get(i - 1), attacher.pastTheSeparatorBefore(items.get(i)))),
+                                Stream.of(rendered.get(i))));
     }
 
-    Doc commaFill(final List<? extends Tree> items, final List<Doc> rendered, final LeadingCommentAttacher attacher) {
+    Doc commaFill(final List<? extends Tree> items, final List<Doc> renderedWithCommas, final LeadingCommentAttacher attacher) {
         return new Doc.Fill(
                 IntStream.range(0, items.size())
                         .boxed()
                         .flatMap(
                                 i -> Stream.concat(
-                                        i == 0 ? Stream.empty() : Stream.of(new Doc.Concat(listSeparator(",", attacher.interior(items.get(i))))),
-                                        Stream.of(rendered.get(i))))
+                                        i == 0 ? Stream.empty() : Stream.of(afterComma(renderedWithCommas.get(i - 1), attacher.pastTheSeparatorBefore(items.get(i)))),
+                                        Stream.of(renderedWithCommas.get(i))))
                         .toList());
+    }
+
+    private Doc afterComma(final Doc previous, final List<CommentToken> afterSeparator) {
+        if (afterSeparator.isEmpty() && Doc.endsWithLineComment(previous)) {
+            return Doc.HARD_LINE;
+        }
+        return new Doc.Concat(listSeparator("", afterSeparator));
     }
 
     boolean commentBeforeFirstBreak(final Doc doc) {
@@ -131,7 +177,7 @@ final class CommentDocs {
                 case Doc.BlockComment _ -> {
                     return true;
                 }
-                case Doc.HardLine _ -> {
+                case Doc.HardLine _, Doc.LineStart _ -> {
                     return false;
                 }
                 case Doc.Verbatim _, Doc.Line _, Doc.SoftLine _ -> {}

@@ -29,7 +29,7 @@ final class EnumRenderer {
         final var bodyMemberStream = node.getMembers().stream().filter(m -> !isConstant(m, recursor));
         final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);
         if (constants.isEmpty() && bodyMembers.isEmpty() && authorsSeparator(recursor.sourceOf(node)) != ';') {
-            return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, List.of(), recursor.trailingInside(node), recursor);
+            return TypeBodyRenderer.withBody(node, headerDoc, List.of(), recursor.trailingInside(node), recursor);
         }
         if (bodyMembers.isEmpty()) {
             final var pastTheLastSeparator = recursor.interior(node);
@@ -38,16 +38,18 @@ final class EnumRenderer {
                     Doc.concatOf(
                             Stream.of(
                                     Stream.of(Doc.LINE),
-                                    CommentDocs.commaList(constants, recursor, c -> recursor.attach(c, renderConstant(c, recursor))),
+                                    CommentDocs.commaList(constants, recursor, c -> renderConstant(c, recursor)),
                                     Stream.of(trailingSeparator(node, recursor)),
                                     pastTheLastSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
                                     commentsAfterTheLastConstant(node, recursor))));
+            final var braceLine = recursor.braceLine(node);
             return ModifierRenderer.prependOwnLineAnnotations(
                     node.getModifiers(),
                     new Doc.Group(
                             Doc.concat(
-                                    headerDoc, new Doc.Text(" {"), constantsInner, beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant),
-                                    new Doc.Text("}"))),
+                                    headerDoc, new Doc.Text(" {"), new Doc.Concat(BlockRenderer.braceLineComments(braceLine).toList()), constantsInner,
+                                    beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant), new Doc.Text("}")),
+                            !braceLine.isEmpty()),
                     recursor);
         }
         // The constants go in as one member with no tree of its own, which the separation rule
@@ -56,7 +58,7 @@ final class EnumRenderer {
         final var constantsBlock = new TypeBodyRenderer.Member(
                 null, constants.isEmpty() ? new Doc.Text(";") : constantsBlockBeforeBodyMembers(constants, recursor));
         final var members = Stream.concat(Stream.of(constantsBlock), bodyMembers.stream()).toList();
-        return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, members, recursor.tail(node), recursor);
+        return TypeBodyRenderer.withBody(node, headerDoc, members, recursor.tail(node), recursor);
     }
 
     /**
@@ -74,7 +76,7 @@ final class EnumRenderer {
                         IntStream.range(0, n)
                                 .<Doc>mapToObj(
                                         i -> i < n - 1
-                                                ? constantAndComma(constants.get(i), recursor.interior(constants.get(i + 1)), recursor)
+                                                ? constantAndComma(constants.get(i), recursor.pastTheSeparatorBefore(constants.get(i + 1)), recursor)
                                                 : lastConstant(constants.get(i), recursor))));
     }
 
@@ -188,7 +190,7 @@ final class EnumRenderer {
         }
         final var arguments = nc.getArguments().isEmpty()
                 ? emptyParenthesesAsWritten(v, nc, recursor)
-                : Stream.of(CallArguments.render(nc.getArguments(), recursor).doc());
+                : Stream.of(CallArguments.render(nc, nc.getArguments(), recursor).doc());
         final var body = nc.getClassBody() == null ? Stream.<Doc>empty() : Stream.of(ClassBodyRenderer.render(nc.getClassBody(), recursor));
         return new Doc.Concat(Stream.concat(head, Stream.concat(arguments, body)));
     }

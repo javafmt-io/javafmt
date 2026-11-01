@@ -11,6 +11,8 @@ public interface LeadingCommentAttacher {
 
     List<CommentToken> interior(Tree node);
 
+    List<CommentToken> pastTheSeparatorBefore(Tree item);
+
     /**
      * The comments the author wrote after {@code node} on its own line. {@link #attach} already
      * emits these, so a caller reads them only where it renders the node without going through
@@ -21,6 +23,10 @@ public interface LeadingCommentAttacher {
     }
 
     default List<CommentToken> tail(final Tree node) {
+        return List.of();
+    }
+
+    default List<CommentToken> braceLine(final Tree node) {
         return List.of();
     }
 

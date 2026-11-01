@@ -8,6 +8,7 @@ import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
+import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
@@ -17,16 +18,19 @@ import java.util.stream.Stream;
 @UtilityClass
 final class SwitchExpressionRenderer {
     Doc renderSwitch(final SwitchExpressionTree node, final Recursor recursor) {
-        return renderSwitchLike(recursor.scan(node.getExpression()), node.getCases(), recursor);
+        return renderSwitchLike(node, recursor.scan(node.getExpression()), node.getCases(), recursor);
     }
 
     Doc renderSwitch(final SwitchTree node, final Recursor recursor) {
-        return renderSwitchLike(recursor.scan(node.getExpression()), node.getCases(), recursor);
+        return renderSwitchLike(node, recursor.scan(node.getExpression()), node.getCases(), recursor);
     }
 
-    private Doc renderSwitchLike(final Doc selectorWithParens, final List<? extends CaseTree> cases, final Recursor recursor) {
+    private Doc renderSwitchLike(final Tree node, final Doc selectorWithParens, final List<? extends CaseTree> cases, final Recursor recursor) {
         final var caseDocs = cases.stream().map(recursor::scan).map(Doc::indentedLine);
-        return Doc.concatOf(Stream.of(Stream.of(new Doc.Text("switch "), selectorWithParens, new Doc.Text(" {")), caseDocs, Doc.closeBrace()));
+        return Doc.concatOf(
+                Stream.of(
+                        Stream.of(new Doc.Text("switch "), selectorWithParens, new Doc.Text(" {")),
+                        BlockRenderer.braceLineComments(recursor.braceLine(node)), caseDocs, Doc.closeBrace()));
     }
 
     Doc renderCase(final CaseTree node, final Recursor recursor) {
@@ -43,9 +47,16 @@ final class SwitchExpressionRenderer {
                     .stream()
                     .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
                     .toList();
-            return BlockRenderer.buildBlock(Doc.concat(prefixDoc, new Doc.Text(" ->")), statements, recursor.interior(blockBody));
+            return BlockRenderer.buildBlock(
+                    Doc.concat(prefixDoc, new Doc.Text(" -> {")),
+                    Stream.concat(recursor.braceLine(node).stream(), recursor.braceLine(blockBody).stream()).toList(), statements,
+                    recursor.trailingInside(blockBody));
         }
         final var bodyDoc = body instanceof StatementTree ? recursor.scan(body) : Doc.concat(recursor.scan(body), new Doc.Text(";"));
+        final var afterArrow = recursor.braceLine(node);
+        if (!afterArrow.isEmpty()) {
+            return afterTheArrowComments(prefixDoc, afterArrow, bodyDoc);
+        }
         if (mustHugArrow(bodyDoc)) {
             return Doc.concat(prefixDoc, new Doc.Text(" -> "), bodyDoc);
         }
@@ -53,6 +64,14 @@ final class SwitchExpressionRenderer {
                 Doc.concat(
                         prefixDoc, new Doc.Text(" ->"),
                         new Doc.IfBreak(new Doc.Indent(Doc.concat(Doc.HARD_LINE, bodyDoc)), Doc.concat(new Doc.Text(" "), bodyDoc))));
+    }
+
+    private Doc afterTheArrowComments(final Doc prefixDoc, final List<CommentToken> afterArrow, final Doc bodyDoc) {
+        final var arrowLine = Doc.concatOf(Stream.of(Stream.of(prefixDoc, new Doc.Text(" ->")), BlockRenderer.braceLineComments(afterArrow)));
+        if (Doc.endsWithLineComment(arrowLine)) {
+            return Doc.concat(arrowLine, new Doc.Indent(Doc.concat(Doc.HARD_LINE, bodyDoc)));
+        }
+        return Doc.concat(arrowLine, new Doc.Text(" "), bodyDoc);
     }
 
     /**
@@ -97,7 +116,7 @@ final class SwitchExpressionRenderer {
     }
 
     private Doc renderColonForm(final Doc prefixDoc, final CaseTree node, final Recursor recursor) {
-        final var prefix = Doc.concat(prefixDoc, new Doc.Text(":"));
+        final var prefix = Doc.concatOf(Stream.of(Stream.of(prefixDoc, new Doc.Text(":")), BlockRenderer.braceLineComments(recursor.braceLine(node))));
         final var statements = node.getStatements()
                 .stream()
                 .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
@@ -105,11 +124,26 @@ final class SwitchExpressionRenderer {
         if (statements.isEmpty()) {
             return prefix;
         }
-        if (node.getStatements().size() == 1 && node.getStatements().getFirst() instanceof BlockTree) {
+        if (node.getStatements().size() == 1
+            && node.getStatements().getFirst() instanceof BlockTree
+            && !Doc.endsWithLineComment(prefix)
+            && !startsWithComment(statements.getFirst())) {
             // K&R: a braced colon-form arm opens on the label's line, the same as every other block
             // in the file. Indenting the brace onto its own line is the one place javafmt did not.
             return Doc.concat(prefix, new Doc.Text(" "), statements.getFirst());
         }
         return new Doc.Concat(Stream.concat(Stream.of(prefix), statements.stream().map(Doc::indentedLine)));
+    }
+
+    private boolean startsWithComment(final Doc doc) {
+        return switch (doc) {
+            case Doc.Text(var text) -> text.startsWith("//") || text.startsWith("/*");
+            case Doc.BlockComment _ -> true;
+            case Doc.Concat(var parts) -> !parts.isEmpty() && startsWithComment(parts.getFirst());
+            case Doc.Indent(var inner) -> startsWithComment(inner);
+            case Doc.Align(var inner) -> startsWithComment(inner);
+            case Doc.Group(var inner, var _) -> startsWithComment(inner);
+            default -> false;
+        };
     }
 }

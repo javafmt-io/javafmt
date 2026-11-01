@@ -11,22 +11,44 @@ import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @UtilityClass
 final class LoopRenderer {
     Doc renderFor(final ForLoopTree node, final Recursor recursor) {
         final var header = buildForHeader(node, recursor);
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
+        return BlockRenderer.braced(header, node.getStatement(), recursor);
     }
 
     private Doc buildForHeader(final ForLoopTree node, final Recursor recursor) {
-        return Doc.concatOf(
-                Stream.of(
-                        Stream.of(new Doc.Text("for (")), forInitializers(node.getInitializer(), recursor), Stream.of(new Doc.Text("; ")),
-                        node.getCondition() != null ? Stream.of(renderPart(node.getCondition(), recursor, false)) : Stream.<Doc>empty(),
-                        Stream.of(new Doc.Text(node.getUpdate().isEmpty() ? ";" : "; ")), joinInto(node.getUpdate(), recursor, true),
-                        Stream.of(new Doc.Text(")"))));
+        final var initializers = node.getInitializer().isEmpty()
+                ? Stream.<Doc>of(new Doc.Text(";"))
+                : forInitializers(node.getInitializer(), recursor);
+        final var condition = node.getCondition() == null
+                ? new Doc.Text(";")
+                : CommentDocs.withSeparator(node.getCondition(), UnaryOperator.identity(), ";", recursor);
+        final var pieces = Stream.of(
+                Stream.<Doc>of(new Doc.Text("for (")), initializers, Stream.<Doc>of(new Doc.Text(" "), condition),
+                node.getUpdate().isEmpty() ? Stream.<Doc>empty() : Stream.<Doc>of(new Doc.Text(" ")), commaSeparated(node.getUpdate(), "", recursor))
+                .flatMap(Function.identity())
+                .toList();
+        return CommentDocs.closeAfter(Doc.continuationIndent(joinedOnOneLine(pieces)), recursor.tail(node), ")");
+    }
+
+    private Doc joinedOnOneLine(final List<Doc> pieces) {
+        return pieces.stream()
+                .reduce(
+                        (joined, piece) -> Doc.endsWithLineComment(joined)
+                                ? Doc.concat(joined, Doc.HARD_LINE, withoutLeadingSpace(piece))
+                                : Doc.concat(joined, piece))
+                .orElseThrow();
+    }
+
+    private Doc withoutLeadingSpace(final Doc piece) {
+        return piece instanceof Doc.Text(var text) ? new Doc.Text(text.stripLeading()) : piece;
     }
 
     /**
@@ -43,13 +65,23 @@ final class LoopRenderer {
      */
     private Stream<Doc> forInitializers(final List<? extends StatementTree> initializers, final Recursor recursor) {
         if (!sharesOneDeclaration(initializers)) {
-            return joinInto(initializers, recursor, true);
+            return commaSeparated(initializers, ";", recursor);
         }
-        final var continuations = initializers.stream()
-                .skip(1)
-                .map(VariableTree.class::cast)
-                .map(v -> continuationOf(v, recursor));
-        return Doc.intersperse(new Doc.Text(", "), Stream.concat(Stream.of(renderPart(initializers.getFirst(), recursor, true)), continuations));
+        final var count = initializers.size();
+        return spaced(
+                IntStream.range(0, count)
+                        .mapToObj(
+                                i -> i == 0
+                                        ? CommentDocs.withSeparator(initializers.getFirst(), BlockRenderer::stripTrailingSemicolonDoc, ",", recursor)
+                                        : continuation((VariableTree) initializers.get(i), i + 1 < count ? "," : ";", recursor)));
+    }
+
+    private Doc continuation(final VariableTree variable, final String separator, final Recursor recursor) {
+        final var doc = continuationOf(variable, recursor);
+        if (CommentDocs.hasLineComment(recursor.trailing(variable))) {
+            return recursor.attach(variable, Doc.concat(doc, new Doc.Text(separator)));
+        }
+        return Doc.concat(recursor.attach(variable, doc), new Doc.Text(separator));
     }
 
     private boolean sharesOneDeclaration(final List<? extends StatementTree> initializers) {
@@ -65,12 +97,16 @@ final class LoopRenderer {
         return initializer == null ? name : Doc.concat(name, new Doc.Text(" = "), recursor.scan(initializer));
     }
 
-    private Stream<Doc> joinInto(final List<? extends Tree> trees, final Recursor recursor, final boolean stripSemicolon) {
-        return Doc.intersperse(new Doc.Text(", "), trees.stream().map(t -> renderPart(t, recursor, stripSemicolon)));
+    private Stream<Doc> commaSeparated(final List<? extends Tree> trees, final String afterTheLast, final Recursor recursor) {
+        return spaced(
+                IntStream.range(0, trees.size())
+                        .mapToObj(
+                                i -> CommentDocs.withSeparator(
+                                        trees.get(i), BlockRenderer::stripTrailingSemicolonDoc, i + 1 < trees.size() ? "," : afterTheLast, recursor)));
     }
 
-    private Doc renderPart(final Tree tree, final Recursor recursor, final boolean stripSemicolon) {
-        return stripSemicolon ? recursor.scanBeforeComments(tree, BlockRenderer::stripTrailingSemicolonDoc) : recursor.scan(tree);
+    private Stream<Doc> spaced(final Stream<Doc> elements) {
+        return Doc.intersperse(new Doc.Text(" "), elements);
     }
 
     Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor) {
@@ -79,19 +115,19 @@ final class LoopRenderer {
         final var header = Doc.concat(
                 new Doc.Text("for ("), ModifierRenderer.prefixOf(variable.getModifiers(), recursor), typeDoc,
                 new Doc.Text(" " + Names.of(variable) + " : "), recursor.scan(node.getExpression()), new Doc.Text(")"));
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
+        return BlockRenderer.braced(header, node.getStatement(), recursor);
     }
 
     Doc renderWhile(final WhileLoopTree node, final Recursor recursor) {
         final var header = Doc.concat(new Doc.Text("while "), recursor.scan(node.getCondition()));
-        return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
+        return BlockRenderer.braced(header, node.getStatement(), recursor);
     }
 
     Doc renderDoWhile(final DoWhileLoopTree node, final Recursor recursor) {
         final var statements = BlockRenderer.blockStatements(node.getStatement(), recursor);
-        return new Doc.Concat(
-                Stream.concat(
-                        BlockRenderer.blockParts("do", statements),
+        return Doc.concatOf(
+                Stream.of(
+                        BlockRenderer.opened(new Doc.Text("do"), node.getStatement(), recursor), statements.stream().map(Doc::indentedLine),
                         Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} while "), recursor.scan(node.getCondition()), new Doc.Text(";"))));
     }
 }

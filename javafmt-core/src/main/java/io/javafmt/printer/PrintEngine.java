@@ -24,12 +24,28 @@ final class PrintEngine {
         stack.push(new Frame(0, Mode.BREAK, doc));
         var column = 0;
         var verbatimEnd = 0;
+        var lineCommentOpen = false;
         while (!stack.isEmpty()) {
             final var frame = stack.pop();
+            final var startsContent = switch (frame.doc()) {
+                case Doc.Text(var text) -> !text.isBlank();
+                case Doc.Verbatim(var text, var _) -> !text.isEmpty();
+                case Doc.BlockComment _ -> true;
+                default -> false;
+            };
+            if (lineCommentOpen && startsContent) {
+                final var lineStart = output.lastIndexOf("\n") + 1;
+                final var continuation = Math.max(frame.indent(), leadingSpaces(output.substring(lineStart)) + 2 * INDENT_SIZE);
+                stripTrailingWhitespace(output, verbatimEnd);
+                output.append('\n').repeat(' ', continuation);
+                column = continuation;
+                lineCommentOpen = false;
+            }
             switch (frame.doc()) {
                 case Doc.Text(var text) -> {
                     output.append(text);
                     column += text.length();
+                    lineCommentOpen = lineCommentOpen || text.stripLeading().startsWith("//");
                 }
                 case Doc.Verbatim(var text, var sourceColumn) -> {
                     if (text.startsWith("\n")) {
@@ -45,10 +61,19 @@ final class PrintEngine {
                     column++;
                 }
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
+                case Doc.LineStart _ -> {
+                    if (!output.substring(output.lastIndexOf("\n") + 1).isBlank()) {
+                        stripTrailingWhitespace(output, verbatimEnd);
+                        output.append('\n').repeat(' ', frame.indent());
+                        column = frame.indent();
+                    }
+                    lineCommentOpen = false;
+                }
                 case Doc.Line _, Doc.SoftLine _, Doc.HardLine _ -> {
                     stripTrailingWhitespace(output, verbatimEnd);
                     output.append('\n').repeat(' ', frame.indent());
                     column = frame.indent();
+                    lineCommentOpen = false;
                 }
                 case Doc.Indent(var contents) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> stack.push(new Frame(column, frame.mode(), contents));
@@ -160,6 +185,7 @@ final class PrintEngine {
         work.push(candidate);
         final var iterator = upcoming.iterator();
         var consumedCandidate = false;
+        var lineCommentEnded = false;
         while (column <= lineWidth) {
             final Frame frame;
             if (!work.isEmpty()) {
@@ -169,6 +195,39 @@ final class PrintEngine {
                 consumedCandidate = true;
             } else {
                 return true;
+            }
+            if (lineCommentEnded && consumedCandidate) {
+                return true;
+            }
+            final var content = switch (frame.doc()) {
+                case Doc.Text(var text) -> !text.isBlank();
+                case Doc.Verbatim(var text, var _) -> !text.isEmpty();
+                case Doc.BlockComment _ -> true;
+                default -> false;
+            };
+            if (lineCommentEnded && content) {
+                return false;
+            }
+            if (frame.doc() instanceof Doc.Text(var comment) && comment.stripLeading().startsWith("//")) {
+                if (column + comment.length() > lineWidth) {
+                    return false;
+                }
+                if (consumedCandidate) {
+                    return true;
+                }
+                lineCommentEnded = true;
+                continue;
+            }
+            if (frame.doc() instanceof Doc.HardLine || frame.doc() instanceof Doc.LineStart) {
+                lineCommentEnded = false;
+                if (consumedCandidate || reach == Reach.OPENING_LINE) {
+                    return true;
+                }
+                if (reach == Reach.FIRST_LINE) {
+                    return false;
+                }
+                column = frame.indent();
+                continue;
             }
             switch (frame.doc()) {
                 case Doc.Text(var text) -> column += text.length();
@@ -184,15 +243,7 @@ final class PrintEngine {
                 }
                 case Doc.Line _ when frame.mode() == Mode.FLAT -> column++;
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
-                case Doc.HardLine _ -> {
-                    if (consumedCandidate || reach == Reach.OPENING_LINE) {
-                        return true;
-                    }
-                    if (reach == Reach.FIRST_LINE) {
-                        return false;
-                    }
-                    column = frame.indent();
-                }
+                case Doc.HardLine _, Doc.LineStart _ -> {}
                 case Doc.Line _, Doc.SoftLine _ -> {
                     if (consumedCandidate || reach == Reach.FIRST_LINE) {
                         return true;
@@ -254,7 +305,7 @@ final class PrintEngine {
             final var current = pending.pop();
             final var grouped = current.grouped();
             switch (current.doc()) {
-                case Doc.HardLine _, Doc.BlockComment _ -> {
+                case Doc.HardLine _, Doc.LineStart _, Doc.BlockComment _ -> {
                     return false;
                 }
                 case Doc.Line _, Doc.SoftLine _ -> {
@@ -267,7 +318,11 @@ final class PrintEngine {
                         return false;
                     }
                 }
-                case Doc.Text _ -> {}
+                case Doc.Text(var text) -> {
+                    if (text.stripLeading().startsWith("//")) {
+                        return false;
+                    }
+                }
                 case Doc.Group(var contents, var preferBreak) -> {
                     if (preferBreak) {
                         return false;

@@ -33,8 +33,8 @@ import javax.lang.model.type.TypeKind;
  * <p>Fast path (always-on): {@code new Foo<T>(...)} becomes {@code new Foo<>()} when the
  * surrounding context syntactically pins {@code Foo<T>} as the target type — variable
  * declarations and field initializers in v1. Detection is textual: the constructor's type
- * arguments must be identical to the target's, so widening, wildcards, and mismatched type
- * arguments are all left alone.
+ * arguments must be identical to the target's once spacing and comments are set aside, so
+ * widening, wildcards, and mismatched type arguments are all left alone.
  *
  * <p>Analyze path (when {@link LintContext#attribution()} is present): also drops type
  * witnesses on generic method calls such as {@code Stream.<T>of(...)} when removing the
@@ -83,7 +83,7 @@ public final class RedundantTypeArguments implements LintRule {
             return Optional.empty();
         }
         final var target = findTargetTypeArguments(path, node, context);
-        if (target.isEmpty() || !typeArgumentsMatch(pt.getTypeArguments(), target.get(), unit)) {
+        if (target.isEmpty() || !typeArgumentsMatch(pt.getTypeArguments(), target.get())) {
             return Optional.empty();
         }
         return diamondEdit(pt, unit);
@@ -136,12 +136,10 @@ public final class RedundantTypeArguments implements LintRule {
         return Optional.empty();
     }
 
-    private static boolean typeArgumentsMatch(final List<? extends Tree> constructorArguments,
-                                              final List<? extends Tree> targetArguments,
-                                              final ParsedUnit unit) {
+    private static boolean typeArgumentsMatch(final List<? extends Tree> constructorArguments, final List<? extends Tree> targetArguments) {
         return constructorArguments.size() == targetArguments.size()
             && IntStream.range(0, constructorArguments.size())
-                    .allMatch(i -> unit.sourceOf(constructorArguments.get(i)).trim().equals(unit.sourceOf(targetArguments.get(i)).trim()));
+                    .allMatch(i -> constructorArguments.get(i).toString().equals(targetArguments.get(i).toString()));
     }
 
     private static Optional<LintEdit> diamondEdit(final ParameterizedTypeTree pt, final ParsedUnit unit) {

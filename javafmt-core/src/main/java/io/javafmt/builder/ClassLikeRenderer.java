@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -28,7 +29,7 @@ final class ClassLikeRenderer {
         // bottom here; that is now the MemberOrder lint rule, so the reorder lands in the source
         // the output verifier compares against rather than looking like tokens moving underneath it.
         final var members = TypeBodyRenderer.renderMembers(bodyMembers(node), className, recursor);
-        return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, members, recursor.trailingInside(node), recursor);
+        return TypeBodyRenderer.withBody(node, headerDoc, members, recursor.trailingInside(node), recursor);
     }
 
     Doc buildTypeDeclarationHeader(final Doc prefix,
@@ -56,8 +57,21 @@ final class ClassLikeRenderer {
     }
 
     Doc buildTypeList(final String keyword, final List<? extends Tree> types, final Recursor recursor) {
-        final var typesInterior = new Doc.Concat(Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), types.stream().map(recursor::scan)));
+        final var rendered = IntStream.range(0, types.size())
+                .mapToObj(i -> i < types.size() - 1 ? typeAndComma(types.get(i), types.get(i + 1), recursor) : new WrappableList.Element(recursor.scan(types.get(i)), false))
+                .toList();
+        final var typesInterior = new Doc.Concat(
+                IntStream.range(0, rendered.size())
+                        .boxed()
+                        .flatMap(i -> i == 0 ? Stream.of(rendered.get(i).doc()) : Stream.of(rendered.get(i - 1).endsItsLine() ? Doc.HARD_LINE : Doc.LINE, rendered.get(i).doc()))
+                        .toList());
         return Doc.continuationIndent(Doc.concat(Doc.LINE, new Doc.Text(keyword), new Doc.Group(new Doc.Indent(typesInterior))));
+    }
+
+    private WrappableList.Element typeAndComma(final Tree type, final Tree next, final Recursor recursor) {
+        final var pastTheComma = recursor.pastTheSeparatorBefore(next);
+        final var doc = CommentDocs.appendTrailing(recursor.scanBeforeComments(type, d -> Doc.concat(d, new Doc.Text(","))), pastTheComma);
+        return new WrappableList.Element(doc, !pastTheComma.isEmpty() || Doc.endsWithLineComment(doc));
     }
 
     /**
