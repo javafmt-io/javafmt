@@ -5,6 +5,7 @@ import com.sun.source.tree.TryTree;
 import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -17,11 +18,11 @@ final class TryRenderer {
         final var finallyStream = finallyBlock == null
                 ? Stream.<Doc>empty()
                 : Stream.concat(
-                        Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} finally {")),
+                        Stream.concat(Stream.<Doc>of(Doc.HARD_LINE), BlockRenderer.opened(new Doc.Text("} finally"), finallyBlock, recursor)),
                         BlockRenderer.blockStatements(finallyBlock, recursor)
                                 .stream()
                                 .map(Doc::indentedLine));
-        return Doc.concatOf(Stream.of(BlockRenderer.blockParts(header, tryStatements), catchStream, finallyStream, Doc.closeBrace()));
+        return Doc.concatOf(Stream.of(Stream.concat(BlockRenderer.opened(header, node.getBlock(), recursor), tryStatements.stream().map(Doc::indentedLine)), catchStream, finallyStream, Doc.closeBrace()));
     }
 
     private Doc buildHeader(final TryTree node, final Recursor recursor) {
@@ -29,8 +30,14 @@ final class TryRenderer {
         if (resources == null || resources.isEmpty()) {
             return new Doc.Text("try");
         }
-        final var rendered = resources.stream().map(r -> recursor.scanBeforeComments(r, BlockRenderer::stripTrailingSemicolonDoc));
-        return Doc.concat(new Doc.Text("try "), WrappableList.of("(", ";", ")", rendered));
+        final var rendered = IntStream.range(0, resources.size())
+                .mapToObj(
+                        i -> CommentDocs.withSeparator(
+                                resources.get(i), BlockRenderer::stripTrailingSemicolonDoc, i + 1 < resources.size() ? ";" : "", recursor))
+                .map(doc -> new WrappableList.Element(doc, Doc.endsWithLineComment(doc)))
+                .toList();
+        return Doc.concat(
+                new Doc.Text("try "), new Doc.Group(CommentDocs.closeAfter(WrappableList.openedSeparated("(", rendered), recursor.tail(node), ")")));
     }
 
     /**
@@ -50,6 +57,8 @@ final class TryRenderer {
 
     private Stream<Doc> catchParts(final CatchTree c, final Recursor recursor) {
         final var header = Doc.concat(new Doc.Text("} "), catchClause(c, recursor));
-        return Stream.concat(Stream.of(Doc.HARD_LINE), BlockRenderer.blockParts(header, BlockRenderer.blockStatements(c.getBlock(), recursor)));
+        return Stream.concat(Stream.of(Doc.HARD_LINE), Stream.concat(
+                        BlockRenderer.opened(header, c.getBlock(), recursor),
+                        BlockRenderer.blockStatements(c.getBlock(), recursor).stream().map(Doc::indentedLine)));
     }
 }

@@ -96,7 +96,7 @@ class FormatResultTest {
         final var wrapped = new SyntheticCompilationUnit(realUnit.tree(), synthetic);
         final var unit = new ParsedUnit(
                 wrapped, src, realUnit.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                new IdentityHashMap<>(), new IdentityHashMap<>());
+                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
         final var result = BatchFormatter.formatParsed(src, unit, JavafmtConfig.defaults());
         assertThat(result.output()).isEqualTo(src);
         assertThat(result.hasErrors()).isTrue();

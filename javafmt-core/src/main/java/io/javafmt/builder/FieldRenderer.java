@@ -2,7 +2,10 @@ package io.javafmt.builder;
 
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
+import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
+
+import java.util.List;
 
 @UtilityClass
 final class FieldRenderer {
@@ -21,20 +24,11 @@ final class FieldRenderer {
         final var head = Doc.concat(preamble.prefix(), typeDoc, new Doc.Text(" " + Names.of(node)));
         final var declaration = node.getInitializer() == null
                 ? Doc.concat(head, new Doc.Text(";"))
-                : withInitializer(head, recursor.scan(node.getInitializer()));
+                : withInitializer(head, recursor.scan(node.getInitializer()), recursor.tail(node));
         return ModifierRenderer.finish(preamble, declaration, recursor);
     }
 
-    private Doc withInitializer(final Doc head, final Doc initializer) {
-        return Doc.concat(head, new Doc.Text(" = "), initializer, terminator(initializer));
-    }
-
-    /**
-     * The {@code ;} that ends a declaration, on a line of its own when the initializer finishes with
-     * a {@code //} comment. Written straight after such a comment the semicolon is inside it, and
-     * the declaration no longer compiles.
-     */
-    private Doc terminator(final Doc initializer) {
-        return Doc.endsWithLineComment(initializer) ? Doc.concat(Doc.HARD_LINE, new Doc.Text(";")) : new Doc.Text(";");
+    private Doc withInitializer(final Doc head, final Doc initializer, final List<CommentToken> beforeTerminator) {
+        return Doc.concat(head, new Doc.Text(" = "), CommentDocs.closeAfter(initializer, beforeTerminator, ";"));
     }
 }

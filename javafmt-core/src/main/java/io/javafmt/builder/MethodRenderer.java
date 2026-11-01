@@ -84,7 +84,7 @@ final class MethodRenderer {
     }
 
     private Doc buildParamsPart(final Doc leading, final List<? extends VariableTree> params, final Recursor recursor) {
-        final var interior = CommentDocs.commaList(params, recursor, p -> recursor.attach(p, renderParam(p, recursor))).toList();
+        final var interior = CommentDocs.commaList(params, recursor, p -> renderParam(p, recursor)).toList();
         return Doc.concat(leading, WrappableList.alignedOf("(", interior, ")"));
     }
 
@@ -134,13 +134,8 @@ final class MethodRenderer {
         }
         final var body = node.getBody();
         final var statements = body.getStatements();
-        final var tail = recursor.trailingInside(body);
-        if (statements.isEmpty() && tail.isEmpty()) {
-            return Doc.concat(header, new Doc.Text(" {}"));
-        }
-        final var statementDocs = BlockRenderer.statementDocs(statements, recursor);
-        final var tailDocs = tail.stream().<Doc>map(CommentDocs::renderComment);
-        final var all = Stream.concat(statementDocs, tailDocs);
-        return Doc.concatOf(Stream.of(Stream.of(header, new Doc.Text(" {")), all.map(Doc::indentedLine), Doc.closeBrace()));
+        return BlockRenderer.buildBlock(
+                Doc.concat(header, new Doc.Text(" {")), recursor.braceLine(body), BlockRenderer.statementDocs(statements, recursor).toList(),
+                recursor.trailingInside(body));
     }
 }

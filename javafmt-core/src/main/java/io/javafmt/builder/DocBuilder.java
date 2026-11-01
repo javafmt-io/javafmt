@@ -41,6 +41,7 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ModuleTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
+import com.sun.source.tree.PackageTree;
 import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.PatternCaseLabelTree;
@@ -138,6 +139,11 @@ public final class DocBuilder {
         }
 
         @Override
+        public List<CommentToken> pastTheSeparatorBefore(final Tree item) {
+            return attacher.pastTheSeparatorBefore(item);
+        }
+
+        @Override
         public List<CommentToken> trailing(final Tree node) {
             return attacher.trailing(node);
         }
@@ -145,6 +151,11 @@ public final class DocBuilder {
         @Override
         public List<CommentToken> tail(final Tree node) {
             return attacher.tail(node);
+        }
+
+        @Override
+        public List<CommentToken> braceLine(final Tree node) {
+            return attacher.braceLine(node);
         }
 
         @Override
@@ -286,9 +297,9 @@ public final class DocBuilder {
         // The blank line after the package declaration normally comes from the import section. With
         // no imports there is no import section, and the first type ran straight into the package.
         final var packageSeparator = node.getImports().isEmpty() ? Stream.<Doc>of(Doc.HARD_LINE) : Stream.<Doc>empty();
-        final var pkgStream = hasPackage
-                ? Stream.concat(Stream.<Doc>of(new Doc.Text("package " + node.getPackageName() + ";"), Doc.HARD_LINE), packageSeparator)
-                : Stream.<Doc>empty();
+        final var pkgStream = node.getPackage() == null
+                ? Stream.<Doc>empty()
+                : Stream.concat(Stream.<Doc>of(packageLine(node.getPackage()), Doc.HARD_LINE), packageSeparator);
         final var module = node.getModule();
         final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.<Doc>ofNullable(scan(module)).stream();
         final var typeDeclarationsStream = Doc.intersperse(
@@ -301,6 +312,11 @@ public final class DocBuilder {
                         CommentDocs.fileHeaderStream(unit.fileHeader()), packageAnnotations, pkgStream,
                         ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit), moduleStream, typeDeclarationsStream,
                         CommentDocs.fileFooterStream(unit.fileFooter())));
+    }
+
+    private Doc packageLine(final PackageTree node) {
+        final var name = CommentDocs.prepend(unit.leadingOf(node.getPackageName()), new Doc.Text(node.getPackageName() + ";"));
+        return CommentDocs.appendTrailing(Doc.concat(new Doc.Text("package "), name), unit.trailingOf(node));
     }
 
     private Doc visitClass(final ClassTree node) {
@@ -331,7 +347,7 @@ public final class DocBuilder {
                 .stream()
                 .<Doc>flatMap(s -> Optional.ofNullable(scan(s)).stream())
                 .toList();
-        return BlockRenderer.buildBlock(statements, attacher.trailingInside(node));
+        return BlockRenderer.buildBlock(new Doc.Text("{"), attacher.braceLine(node), statements, attacher.trailingInside(node));
     }
 
     /**
@@ -342,8 +358,7 @@ public final class DocBuilder {
      * cannot drift apart.
      */
     private Doc visitCatch(final CatchTree node) {
-        final var statements = BlockRenderer.blockStatements(node.getBlock(), recursor);
-        return BlockRenderer.buildBlock(TryRenderer.catchClause(node, recursor), statements, List.of());
+        return BlockRenderer.braced(TryRenderer.catchClause(node, recursor), node.getBlock(), recursor);
     }
 
     private Doc dispatch(final Tree tree) {
@@ -429,7 +444,7 @@ public final class DocBuilder {
         Objects.requireNonNull(unit, "unit");
         Objects.requireNonNull(config, "config");
         final var builder = new DocBuilder(unit);
-        final var doc = builder.visitCompilationUnit(unit.tree());
+        final var doc = LooseComments.weave(builder.visitCompilationUnit(unit.tree()), unit);
         return new BuildResult(Objects.requireNonNull(doc, "visitCompilationUnit returned null"), List.copyOf(builder.diagnostics));
     }
 
@@ -474,7 +489,14 @@ public final class DocBuilder {
 
         @Override
         public List<CommentToken> interior(final Tree node) {
-            return unit.interiorOf(node);
+            final var start = unit.startOf(node);
+            return unit.interiorOf(node).stream().filter(c -> c.start() >= start).toList();
+        }
+
+        @Override
+        public List<CommentToken> pastTheSeparatorBefore(final Tree item) {
+            final var start = unit.startOf(item);
+            return unit.interiorOf(item).stream().filter(c -> c.start() < start).toList();
         }
 
         @Override
@@ -485,6 +507,11 @@ public final class DocBuilder {
         @Override
         public List<CommentToken> tail(final Tree node) {
             return unit.tailOf(node);
+        }
+
+        @Override
+        public List<CommentToken> braceLine(final Tree node) {
+            return unit.braceLineOf(node);
         }
     }
 }

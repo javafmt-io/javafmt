@@ -6,8 +6,7 @@ class Probe {
         return "";
     }
 
-    /* why */
-    @Override
+    @Override /* why */
     public int hashCode() {
         return 1;
     }

@@ -1,6 +1,5 @@
 class Fixture {
     int test() {
-        /* two */
-        return 1 + 2;
+        return 1 + /* two */ 2;
     }
 }

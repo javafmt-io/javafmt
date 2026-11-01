@@ -1,8 +1,8 @@
 @SuppressWarnings("unchecked")
+/*
+ * Every helper here is static.
+ */
 final class Orders {
-    /*
-     * Every helper here is static.
-     */
     static int count() {
         return 0;
     }

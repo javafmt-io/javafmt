@@ -14,9 +14,6 @@ final class InitializerBlockRenderer {
                 .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
                 .toList();
         final var trailing = recursor.trailingInside(block);
-        if (block.isStatic()) {
-            return BlockRenderer.buildBlock("static", statements, trailing);
-        }
-        return BlockRenderer.buildBlock(statements, trailing);
+        return BlockRenderer.buildBlock(new Doc.Text(block.isStatic() ? "static {" : "{"), recursor.braceLine(block), statements, trailing);
     }
 }

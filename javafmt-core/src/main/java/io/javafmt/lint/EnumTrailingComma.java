@@ -1,14 +1,19 @@
 package io.javafmt.lint;
 
+import com.sun.source.tree.BlockTree;
+import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
-import io.javafmt.parser.ChainScanner;
+import com.sun.source.util.TreePath;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Adds the trailing comma after the last constant of an enum whose constant list is too wide to
@@ -35,18 +40,26 @@ public final class EnumTrailingComma implements LintRule {
         final var unit = context.unit();
         return LintScan.edits(
                 context,
-                edits -> new ChainScanner<>() {
+                edits -> new ChainPathScanner<>() {
                     @Override
                     public Void visitClass(final ClassTree node, final Void p) {
                         if (node.getKind() == Tree.Kind.ENUM) {
-                            editFor(node, unit).ifPresent(edits::add);
+                            editFor(node, printedColumn(getCurrentPath()), unit).ifPresent(edits::add);
                         }
                         return super.visitClass(node, null);
                     }
                 });
     }
 
-    private static Optional<LintEdit> editFor(final ClassTree node, final ParsedUnit unit) {
+    private static int printedColumn(final TreePath path) {
+        final var enclosing = Stream.iterate(path.getParentPath(), Objects::nonNull, TreePath::getParentPath)
+                .map(Objects::requireNonNull)
+                .filter(p -> p.getLeaf() instanceof ClassTree || p.getLeaf() instanceof BlockTree || p.getLeaf() instanceof CaseTree)
+                .count();
+        return Math.toIntExact(enclosing) * SourceLayout.INDENT_WIDTH;
+    }
+
+    private static Optional<LintEdit> editFor(final ClassTree node, final int column, final ParsedUnit unit) {
         final var constants = node.getMembers()
                 .stream()
                 .filter(m -> isConstant(unit, m))
@@ -68,7 +81,7 @@ public final class EnumTrailingComma implements LintRule {
         if (separators.indexOf(',') >= 0) {
             return Optional.empty();
         }
-        return fitsOnOneLine(node, constants, unit) ? Optional.empty() : Optional.of(LintEdit.insert(lastEnd, ","));
+        return fitsOnOneLine(node, column, constants, unit) ? Optional.empty() : Optional.of(LintEdit.insert(lastEnd, ","));
     }
 
     /**
@@ -92,7 +105,7 @@ public final class EnumTrailingComma implements LintRule {
      * header — modifiers, name, an {@code implements} clause — does not have to be reconstructed
      * here; the flattening collapses the author's whitespace to the single spaces the renderer uses.
      */
-    private static boolean fitsOnOneLine(final ClassTree node, final List<VariableTree> constants, final ParsedUnit unit) {
+    private static boolean fitsOnOneLine(final ClassTree node, final int column, final List<VariableTree> constants, final ParsedUnit unit) {
         final var enumStart = unit.startOf(node);
         final var firstConstantStart = unit.startOf(constants.getFirst());
         if (enumStart < 0 || firstConstantStart <= enumStart) {
@@ -103,7 +116,7 @@ public final class EnumTrailingComma implements LintRule {
                 .map(c -> SourceLayout.flatten(unit.source().substring(unit.startOf(c), unit.endOf(c))))
                 .toList();
         final var oneLine = header + " " + String.join(", ", body) + " }";
-        return SourceLayout.fits(SourceLayout.columnOf(unit.source(), enumStart), oneLine.length());
+        return SourceLayout.fits(column, oneLine.length());
     }
 
     /**
