@@ -89,11 +89,11 @@ final class JavafmtDaemon {
             }
             requests.add(FormatRequest.newBuilder().setId(id).setSource(source).build());
             return reply.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (final TimeoutException e) {
+        } catch (final TimeoutException _) {
             final var refused = refused("javafmt did not respond within " + timeout.toSeconds() + "s");
             stop(refused);
             return refused;
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
             return new JavafmtBinary.Outcome.Cancelled();
         } catch (final ExecutionException e) {
@@ -128,9 +128,9 @@ final class JavafmtDaemon {
                 requests.take().writeDelimitedTo(stdin);
                 stdin.flush();
             }
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
-        } catch (final IOException e) {
+        } catch (final IOException _) {
             stop(refused(exitReason("javafmt stopped reading its input")));
         }
     }
@@ -152,7 +152,7 @@ final class JavafmtDaemon {
     private Optional<FormatReply> nextReply(final InputStream stdout) {
         try {
             return Optional.ofNullable(FormatReply.parseDelimitedFrom(stdout));
-        } catch (final InvalidProtocolBufferException e) {
+        } catch (final InvalidProtocolBufferException _) {
             stop(refused("javafmt sent a reply that is not part of its protocol"));
             return Optional.empty();
         } catch (final IOException e) {
@@ -171,7 +171,7 @@ final class JavafmtDaemon {
             if (process.waitFor(1, TimeUnit.SECONDS)) {
                 return "javafmt exited with code " + process.exitValue();
             }
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
         }
         return stillRunning;

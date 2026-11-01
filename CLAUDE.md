@@ -30,9 +30,7 @@ first use after a clean build.
 
 ## Code style (Java)
 
-- **Java 25,** use modern language features everywhere, with two exceptions that compile for an older release because of where they run:
-  - `javafmt-intellij`, and the daemon's `protocol` source set it bundles, target Java 21, because IntelliJ 2025.2 runs on JetBrains Runtime 21.
-  - The `javafmt-gradle-plugin` main classes target Java 17, so they load in a Gradle running on 17, 21 or 25. The formatter itself runs from the plugin's `engine` source set on a Java 25 toolchain, in a separate worker process.
+- **Java 25,** use modern language features everywhere. The one exception is the `javafmt-gradle-plugin` main classes, which target Java 17 so they load in a Gradle running on 17, 21 or 25. The formatter itself runs from the plugin's `engine` source set on a Java 25 toolchain, in a separate worker process. `javafmt-intellij` requires IntelliJ 2026.2, the first release that runs on Java 25.
 - **`final var`** for every local where the language allows it. `var` is not allowed for lambdas, method references, `null` or array initializers, and a reassigned local cannot be `final`. Every method and constructor parameter is `final`; lambda parameters never are. javafmt adds the `final`s and some of the `var`s itself (see the lint pass in `docs/rules.md`).
 - **Sealed interfaces + records** for all data types
 - **Immutability everywhere,** `List.of()`, `Map.of()`, `Set.of()`, unmodifiable collections. No mutable state unless absolutely necessary.

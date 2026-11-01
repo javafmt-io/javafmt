@@ -52,7 +52,7 @@ final class BinaryInstaller {
             case ReleaseAsset.Published published ->
                 Optional.of(installDir.resolve(published.name()))
                         .filter(path -> Files.isRegularFile(path) && Files.isExecutable(path));
-            case ReleaseAsset.Unpublished ignored -> Optional.empty();
+            case ReleaseAsset.Unpublished _ -> Optional.empty();
         };
     }
 
@@ -76,7 +76,7 @@ final class BinaryInstaller {
             } finally {
                 NioFiles.deleteRecursively(staging);
             }
-        } catch (final ProcessCanceledException e) {
+        } catch (final ProcessCanceledException _) {
             return new Installation.Cancelled();
         } catch (final HttpRequests.HttpStatusException e) {
             return new Installation.Failed("downloading " + url + " failed with HTTP status " + e.getStatusCode());

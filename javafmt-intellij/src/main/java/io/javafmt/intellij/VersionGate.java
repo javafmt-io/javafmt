@@ -38,8 +38,8 @@ final class VersionGate {
     private static Optional<Boolean> verdict(final JavafmtBinary.VersionProbe probe) {
         return switch (probe) {
             case JavafmtBinary.VersionProbe.Reported reported -> Optional.of(JavafmtBinary.isSupportedVersion(reported.output()));
-            case JavafmtBinary.VersionProbe.Failed ignored -> Optional.of(false);
-            case JavafmtBinary.VersionProbe.Inconclusive ignored -> Optional.empty();
+            case JavafmtBinary.VersionProbe.Failed _ -> Optional.of(false);
+            case JavafmtBinary.VersionProbe.Inconclusive _ -> Optional.empty();
         };
     }
 }

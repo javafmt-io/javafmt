@@ -12,14 +12,14 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Guards the boundary this module depends on to load in JBR 21: no dependency on javafmt-core,
- * and bytecode compiled no higher than what JBR 21 can read. Without this, a convenient import
- * or a stray classpath dependency compiles fine and fails only when a user tries to load the
- * plugin.
+ * Guards the boundary this module depends on in the IDE: main classes compile for Java 25, the
+ * runtime IntelliJ 2026.2 ships, and main sources never reference javafmt-core, because the plugin
+ * formats through the native javafmt binary. Without this, a convenient import or a stray
+ * classpath dependency compiles fine and fails only when a user tries to load the plugin.
  */
 class BytecodeTargetTest {
-    /** JBR 21 in IDEA 2025.2 reads at most class file major 65. */
-    private static final int MAX_MAJOR = 65;
+    /** Class file major version of Java 25. */
+    private static final int JAVA_25_MAJOR = 69;
 
     /**
      * Matches "io.javafmt." not followed by "intellij" or "daemon.protocol" as a whole word, so it
@@ -30,7 +30,7 @@ class BytecodeTargetTest {
     private static final Pattern CORE_REFERENCE = Pattern.compile("io\\.javafmt\\.(?!intellij\\b|daemon\\.protocol\\b)");
 
     @Test
-    void everyShimClassLoadsInJbr21() throws IOException {
+    void everyMainClassTargetsJava25() throws IOException {
         final var classesDir = Path.of("build/classes/java/main");
         assertThat(Files.isDirectory(classesDir))
                 .as("compile the module before running this test")
@@ -43,16 +43,15 @@ class BytecodeTargetTest {
                     .as("expected at least one compiled class under %s", classesDir)
                     .isNotEmpty();
             final var offenders = classFiles.stream()
-                    .filter(p -> majorVersion(p) > MAX_MAJOR)
+                    .filter(p -> majorVersion(p) != JAVA_25_MAJOR)
                     .map(Path::toString)
                     .toList();
             assertThat(offenders).isEmpty();
         }
     }
 
-    // Test sources are deliberately exempt from this check: they run on the Java 25 launcher this
-    // module's `test` task pins, never inside JBR 21, so a major-69 class on the test classpath —
-    // e.g. javafmt-core's test-fixtures, used by JavafmtExternalFormatProcessorTest — is harmless.
+    // Test sources are deliberately exempt from this check: they never load into the IDE, so
+    // javafmt-core's test fixtures, used by JavafmtExternalFormatProcessorTest, are fine there.
     @Test
     void mainSourcesDoNotReferenceJavafmtCore() throws IOException {
         try (final var sources = Files.walk(Path.of("src/main/java"))) {
@@ -63,7 +62,7 @@ class BytecodeTargetTest {
                     .map(Path::toString)
                     .toList();
             assertThat(offenders)
-                    .as("javafmt-core is class file major 69 and cannot load in JBR 21")
+                    .as("the plugin formats through the native javafmt binary and does not bundle javafmt-core")
                     .isEmpty();
         }
     }
