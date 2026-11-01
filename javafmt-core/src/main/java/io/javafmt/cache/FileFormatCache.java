@@ -46,14 +46,6 @@ public final class FileFormatCache implements FormatCache {
 
     private static final HexFormat HEX = HexFormat.of();
 
-    private static final ThreadLocal<MessageDigest> DIGEST = ThreadLocal.withInitial(() -> {
-        try {
-            return MessageDigest.getInstance("SHA-256");
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
-    });
-
     private final Path cacheFile;
 
     private final String header;
@@ -167,8 +159,10 @@ public final class FileFormatCache implements FormatCache {
     }
 
     static String sha256(final String content) {
-        final var digest = DIGEST.get();
-        digest.reset();
-        return HEX.formatHex(digest.digest(content.getBytes(StandardCharsets.UTF_8)));
+        try {
+            return HEX.formatHex(MessageDigest.getInstance("SHA-256").digest(content.getBytes(StandardCharsets.UTF_8)));
+        } catch (final NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 }
