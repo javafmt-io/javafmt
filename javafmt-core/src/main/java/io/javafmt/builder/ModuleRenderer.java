@@ -27,9 +27,13 @@ final class ModuleRenderer {
     Doc render(final ModuleTree node, final Recursor recursor) {
         final var header = headerText(node);
         final var directives = node.getDirectives();
-        final var body = directives.isEmpty()
+        final var tail = recursor.trailingInside(node);
+        final var body = directives.isEmpty() && tail.isEmpty()
                 ? Doc.concat(new Doc.Text(header), new Doc.Text(" {}"))
-                : Doc.concatOf(Stream.of(Stream.of(new Doc.Text(header), new Doc.Text(" {")), bodyStream(directives, recursor), Doc.closeBrace()));
+                : Doc.concatOf(
+                        Stream.of(
+                                Stream.of(new Doc.Text(header), new Doc.Text(" {")), bodyStream(directives, recursor),
+                                TypeBodyRenderer.tailLines(tail), Doc.closeBrace()));
         return ModifierRenderer.prependOwnLineAnnotations(node.getAnnotations(), body, recursor);
     }
 

@@ -5,10 +5,8 @@ import com.sun.source.tree.IfTree;
 import com.sun.source.tree.StatementTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.CommentScanner;
-import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -93,37 +91,35 @@ final class IfRenderer {
     private Doc renderExpanded(final IfTree node, final Recursor recursor) {
         final var condDoc = recursor.scan(node.getCondition());
         final var header = Doc.concat(new Doc.Text("if "), condDoc);
-        final var thenStatements = BlockRenderer.blockStatements(node.getThenStatement(), recursor);
-        final var braceLine = recursor.interior(node);
-        if (node.getElseStatement() == null && braceLine.isEmpty()) {
-            return BlockRenderer.buildBlock(header, thenStatements, List.of());
-        }
-        final var thenParts = thenParts(header, thenStatements, braceLine);
+        final var thenStatement = node.getThenStatement();
         if (node.getElseStatement() == null) {
-            return Doc.concatOf(Stream.of(thenParts, Doc.closeBrace()));
+            return BlockRenderer.braced(header, thenStatement, recursor);
         }
+        final var thenParts = Stream.concat(
+                BlockRenderer.opened(header, thenStatement, recursor),
+                BlockRenderer.blockStatements(thenStatement, recursor).stream().map(Doc::indentedLine));
         final var elseJoint = elseJointParts(node, recursor);
         if (node.getElseStatement() instanceof IfTree elseIf) {
             final var elseIfDoc = Objects.requireNonNull(recursor.scan(elseIf));
-            return Doc.concatOf(Stream.of(thenParts, Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")), elseJoint, Stream.of(elseIfDoc)));
+            return Doc.concatOf(Stream.of(thenParts, closeTheThenBranch(node, recursor), elseJoint, Stream.of(elseIfDoc)));
         }
-        final var elseStatements = BlockRenderer.blockStatements(node.getElseStatement(), recursor);
+        final var elseStatement = node.getElseStatement();
         return Doc.concatOf(
                 Stream.of(
-                        thenParts, Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} else ")), elseJoint, Stream.<Doc>of(new Doc.Text("{")),
-                        elseStatements.stream().map(Doc::indentedLine), Doc.closeBrace()));
+                        thenParts, closeTheThenBranch(node, recursor), elseJoint,
+                        Stream.<Doc>of(new Doc.Text("{")), BlockRenderer.braceLineAfter(elseStatement, recursor),
+                        BlockRenderer.blockStatements(elseStatement, recursor).stream().map(Doc::indentedLine), Doc.closeBrace()));
     }
 
-    /**
-     * The header, the then-branch's opening brace, and its statements — with any comment the
-     * author left on the brace's own line emitted right after the brace. Moving such a comment
-     * down onto the first statement's line makes it read as annotating that statement rather
-     * than the branch.
-     */
-    private Stream<Doc> thenParts(final Doc header, final List<Doc> thenStatements, final List<CommentToken> braceLine) {
+    private Stream<Doc> closeTheThenBranch(final IfTree node, final Recursor recursor) {
+        final var sameLine = recursor.braceLine(node);
+        final var ownLine = recursor.interior(node);
+        if (sameLine.isEmpty() && ownLine.isEmpty()) {
+            return Stream.of(Doc.HARD_LINE, new Doc.Text("} else "));
+        }
         return Stream.of(
-                Stream.of(header, new Doc.Text(" {")), braceLine.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
-                thenStatements.stream().map(Doc::indentedLine))
+                Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("}")), BlockRenderer.braceLineComments(sameLine),
+                ownLine.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))), Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("else ")))
                 .flatMap(Function.identity());
     }
 

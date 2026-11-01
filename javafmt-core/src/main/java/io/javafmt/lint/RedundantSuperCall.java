@@ -1,11 +1,17 @@
 package io.javafmt.lint;
 
+import com.sun.source.tree.ExpressionStatementTree;
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.StatementTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
+import io.javafmt.parser.CommentToken;
 import io.javafmt.parser.ParsedUnit;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Removes a no-argument {@code super()} as the first statement of a constructor body.
@@ -49,10 +55,23 @@ public final class RedundantSuperCall implements LintRule {
         if (start < 0 || end < 0 || end > src.length()) {
             return Optional.empty();
         }
-        if (!src.substring(start, end).strip().equals("super();")) {
+        if (!isNoArgumentSuperCall(first)) {
             return Optional.empty();
         }
+        final var inside = CommentScanner.scan(src.substring(start, end));
+        if (!inside.isEmpty()) {
+            return Optional.of(new LintEdit(start, end, inside.stream().map(CommentToken::text).collect(Collectors.joining(" "))));
+        }
         return Optional.of(deleteEdit(src, start, end));
+    }
+
+    private static boolean isNoArgumentSuperCall(final StatementTree statement) {
+        return statement instanceof ExpressionStatementTree expression
+            && expression.getExpression() instanceof MethodInvocationTree call
+            && call.getMethodSelect() instanceof IdentifierTree name
+            && name.getName().contentEquals("super")
+            && call.getArguments().isEmpty()
+            && call.getTypeArguments().isEmpty();
     }
 
     /**

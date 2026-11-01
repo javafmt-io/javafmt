@@ -38,7 +38,7 @@ final class RecordRenderer {
         final var fullHeader = ClassLikeRenderer.buildTypeDeclarationHeader(
                 prefixAndComponents, null, node.getImplementsClause(), false, List.of(), recursor);
         final var headerDoc = new Doc.Group(fullHeader);
-        return TypeBodyRenderer.withBody(node.getModifiers(), headerDoc, bodyMembers, recursor.trailingInside(node), recursor);
+        return TypeBodyRenderer.withBody(node, headerDoc, bodyMembers, recursor.trailingInside(node), recursor);
     }
 
     /**

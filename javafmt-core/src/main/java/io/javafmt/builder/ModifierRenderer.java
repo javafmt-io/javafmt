@@ -5,6 +5,7 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.TypeParameterTree;
 import io.javafmt.JavaModifiers;
 import io.javafmt.doc.Doc;
+import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
@@ -21,7 +22,17 @@ final class ModifierRenderer {
      * neither. An annotation the author wrote after a modifier keyword stays after the keywords.
      */
     Doc prefixOf(final ModifiersTree modifiers, final Recursor recursor) {
-        return Doc.concat(annotationsDoc(declarationAnnotations(modifiers, List.of(), recursor), recursor), modifiersDoc(modifiers, recursor));
+        return Doc.concat(
+                annotationsDoc(declarationAnnotations(modifiers, List.of(), recursor), recursor), commentsBeforeTheModifiers(modifiers, recursor),
+                modifiersDoc(modifiers, recursor));
+    }
+
+    private Doc commentsBeforeTheModifiers(final ModifiersTree modifiers, final Recursor recursor) {
+        return new Doc.Concat(
+                recursor.tail(modifiers)
+                        .stream()
+                        .map(CommentDocs::renderComment)
+                        .flatMap(comment -> Stream.of(comment, Doc.endsWithLineComment(comment) ? Doc.HARD_LINE : new Doc.Text(" "))));
     }
 
     Doc annotationsDoc(final List<? extends AnnotationTree> annotations, final Recursor recursor) {
@@ -105,23 +116,24 @@ final class ModifierRenderer {
      * them.
      */
     Preamble preambleOf(final ModifiersTree modifiers, final List<? extends TypeParameterTree> typeParameters, final Recursor recursor) {
-        return new Preamble(modifiersDoc(modifiers, typeParameters, recursor), declarationAnnotations(modifiers, typeParameters, recursor));
+        return new Preamble(
+                modifiersDoc(modifiers, typeParameters, recursor), declarationAnnotations(modifiers, typeParameters, recursor), recursor.tail(modifiers));
     }
 
     /** {@link #preambleOf} with the caller's own answer to "do these render inline". */
     Preamble preambleOf(final ModifiersTree modifiers, final Recursor recursor, final boolean inline) {
         return inline
-                ? new Preamble(prefixOf(modifiers, recursor), List.of())
-                : new Preamble(modifiersDoc(modifiers, recursor), declarationAnnotations(modifiers, List.of(), recursor));
+                ? new Preamble(prefixOf(modifiers, recursor), List.of(), List.of())
+                : new Preamble(modifiersDoc(modifiers, recursor), declarationAnnotations(modifiers, List.of(), recursor), recursor.tail(modifiers));
     }
 
     /** Closes out a {@link Preamble}: own-line annotations prepended, unless already rendered inline. */
     Doc finish(final Preamble preamble, final Doc doc, final Recursor recursor) {
-        return prependOwnLineAnnotations(preamble.ownLine(), doc, recursor);
+        return prependOwnLineAnnotations(preamble.ownLine(), CommentDocs.prepend(preamble.afterAnnotations(), doc), recursor);
     }
 
     Doc prependOwnLineAnnotations(final ModifiersTree modifiers, final Doc doc, final Recursor recursor) {
-        return prependOwnLineAnnotations(declarationAnnotations(modifiers, List.of(), recursor), doc, recursor);
+        return prependOwnLineAnnotations(declarationAnnotations(modifiers, List.of(), recursor), CommentDocs.prepend(recursor.tail(modifiers), doc), recursor);
     }
 
     Doc prependOwnLineAnnotations(final List<? extends AnnotationTree> annotations, final Doc doc, final Recursor recursor) {
@@ -131,5 +143,5 @@ final class ModifierRenderer {
         return new Doc.Concat(Stream.concat(annotations.stream().flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE)), Stream.of(doc)));
     }
 
-    record Preamble(Doc prefix, List<? extends AnnotationTree> ownLine) {}
+    record Preamble(Doc prefix, List<? extends AnnotationTree> ownLine, List<CommentToken> afterAnnotations) {}
 }

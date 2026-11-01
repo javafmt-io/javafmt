@@ -14,6 +14,7 @@ public sealed interface Doc
             Doc.Line,
             Doc.SoftLine,
             Doc.HardLine,
+            Doc.LineStart,
             Doc.Indent,
             Doc.Align,
             Doc.Group,
@@ -29,6 +30,8 @@ public sealed interface Doc
 
     /** The sole {@link HardLine}. The record holds no state, so every instance is interchangeable. */
     HardLine HARD_LINE = new HardLine();
+
+    LineStart LINE_START = new LineStart();
 
     Doc BLANK_LINE = new Concat(List.of(HARD_LINE, HARD_LINE));
 
@@ -51,7 +54,7 @@ public sealed interface Doc
                 }
                 case Line() -> total += 1;
                 case SoftLine() -> {}
-                case HardLine(), BlockComment _ -> {
+                case HardLine(), LineStart(), BlockComment _ -> {
                     return -1;
                 }
                 case Indent(var inner) -> work.push(inner);
@@ -91,7 +94,7 @@ public sealed interface Doc
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case Fill(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case IfBreak(var breakContents, var _) -> endsWithLineComment(breakContents);
-            case Line(), SoftLine(), HardLine(), BlockComment _ -> false;
+            case Line(), SoftLine(), HardLine(), LineStart(), BlockComment _ -> false;
         };
     }
 
@@ -107,7 +110,7 @@ public sealed interface Doc
         work.push(doc);
         while (!work.isEmpty()) {
             switch (work.pop()) {
-                case Line(), SoftLine(), HardLine(), BlockComment _ -> {
+                case Line(), SoftLine(), HardLine(), LineStart(), BlockComment _ -> {
                     return true;
                 }
                 case Verbatim(var s, var _) -> {
@@ -220,6 +223,8 @@ public sealed interface Doc
     record SoftLine() implements Doc {}
 
     record HardLine() implements Doc {}
+
+    record LineStart() implements Doc {}
 
     record Indent(Doc contents) implements Doc {
         public Indent {

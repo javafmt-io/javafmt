@@ -46,6 +46,63 @@ class PrinterTest {
     }
 
     @Nested
+    class LineCommentTests {
+        static Stream<Arguments> codeAfterALineComment() {
+            return Stream.of(
+                    Arguments.of(
+                            "text",
+                            new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Text(" "), new Doc.Text("// c"), new Doc.Text(" "), new Doc.Text("b"))),
+                            "a // c\n        b"),
+                    Arguments.of(
+                            "flat line",
+                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Text(" // c"), Doc.LINE, new Doc.Text("b")))),
+                            "a // c\nb"),
+                    Arguments.of(
+                            "indented",
+                            new Doc.Indent(new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Text(" "), new Doc.Text("// c"), new Doc.Text("b")))),
+                            "a // c\n        b"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("codeAfterALineComment")
+        void codeAfterALineCommentStartsANewLine(final String name, final Doc doc, final String expected) {
+            assertThat(new Printer(80).print(doc)).isEqualTo(expected);
+        }
+
+        @Test
+        void aGroupHoldingALineCommentBreaks() {
+            final var doc = new Doc.Group(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE, new Doc.Text("// c"), Doc.LINE, new Doc.Text("b"))));
+            assertThat(new Printer(80).print(doc)).isEqualTo("a\n// c\nb");
+        }
+
+        static Stream<Arguments> lineStarts() {
+            return Stream.of(
+                    Arguments.of("mid line", new Doc.Concat(List.of(new Doc.Text("a "), Doc.LINE_START, new Doc.Text("b"))), "a\nb"),
+                    Arguments.of("at a line start", new Doc.Concat(List.of(new Doc.Text("a"), Doc.HARD_LINE, Doc.LINE_START, new Doc.Text("b"))), "a\nb"),
+                    Arguments.of(
+                            "indented",
+                            new Doc.Indent(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE_START, new Doc.Text("b")))),
+                            "a\n    b"),
+                    Arguments.of(
+                            "inside a group that would fit",
+                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE, Doc.LINE_START, new Doc.Text("b")))),
+                            "a\nb"));
+        }
+
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("lineStarts")
+        void lineStartBreaksOnlyWhenTheLineHasContent(final String name, final Doc doc, final String expected) {
+            assertThat(new Printer(80).print(doc)).isEqualTo(expected);
+        }
+
+        @Test
+        void aLineBreakAfterALineCommentIsNotDoubled() {
+            final var doc = new Doc.Concat(List.of(new Doc.Text("a // c"), Doc.HARD_LINE, new Doc.Text("b")));
+            assertThat(new Printer(80).print(doc)).isEqualTo("a // c\nb");
+        }
+    }
+
+    @Nested
     class ConcatTests {
         @Test
         void concat_empty_emitsNothing() {

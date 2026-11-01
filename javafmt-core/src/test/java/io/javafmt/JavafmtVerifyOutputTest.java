@@ -31,7 +31,7 @@ class JavafmtVerifyOutputTest {
         final var parsed = JavaParser.parseUnit(SOURCE);
         return new ParsedUnit(
                 parsed.tree(), SOURCE_WITH_NOTE, parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                new IdentityHashMap<>(), new IdentityHashMap<>());
+                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
     }
 
     @Test

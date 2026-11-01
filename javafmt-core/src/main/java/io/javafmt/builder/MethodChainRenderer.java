@@ -72,7 +72,7 @@ final class MethodChainRenderer {
                     Stream.concat(
                             Stream.of(new Doc.Text(".")),
                             Stream.concat(typeArguments(call, recursor), Stream.of(new Doc.Text(ms.getIdentifier().toString())))));
-            final var arguments = CallArguments.render(call.getArguments(), recursor);
+            final var arguments = CallArguments.render(call, call.getArguments(), recursor);
             final var callSuffix = Doc.concat(head, arguments.doc());
             if (ms.getExpression() instanceof MethodInvocationTree) {
                 return new Link(callSuffix, false, arguments.hugsLastArgument());
@@ -80,7 +80,7 @@ final class MethodChainRenderer {
             return new Link(Doc.concat(recursor.scan(ms.getExpression()), callSuffix), false, arguments.hugsLastArgument());
         }
         final var head = new Doc.Concat(Stream.concat(typeArguments(call, recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
-        final var arguments = CallArguments.render(call.getArguments(), recursor);
+        final var arguments = CallArguments.render(call, call.getArguments(), recursor);
         return new Link(Doc.concat(head, arguments.doc()), false, arguments.hugsLastArgument());
     }
 
