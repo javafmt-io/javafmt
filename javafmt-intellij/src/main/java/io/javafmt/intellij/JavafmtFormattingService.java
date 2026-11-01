@@ -167,7 +167,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 return;
             }
             switch (JavafmtDaemons.getInstance(project).format(binary, content)) {
-                case JavafmtBinary.Outcome.Cancelled ignored -> request.onTextReady(content);
+                case JavafmtBinary.Outcome.Cancelled _ -> request.onTextReady(content);
                 case JavafmtBinary.Outcome.Refused refused -> {
                     LOG.warn("javafmt: " + refused.reason());
                     notifyUser(

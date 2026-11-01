@@ -27,9 +27,7 @@ import java.util.stream.Stream;
  * Finds the native {@code javafmt} binary and checks its version. Formatting itself goes through
  * the long-lived {@code javafmt --daemon} process that {@link JavafmtDaemons} keeps per project.
  *
- * <p>Out of process is what lets this module compile to Java 21 bytecode while the formatter stays
- * on Java 25: the binary embeds its own runtime, so {@code javafmt-core} is never loaded by the
- * IDE's JBR.
+ * <p>The binary embeds its own runtime, so {@code javafmt-core} is never loaded into the IDE.
  *
  * <p><b>{@link #version} returns within roughly {@code TIMEOUT} (10s) of being called, or at once
  * when the calling thread is interrupted.</b> The probe runs on the platform's process I/O pool and
@@ -150,7 +148,7 @@ public final class JavafmtBinary {
         final CapturingProcessHandler handler;
         try {
             handler = new CapturingProcessHandler(new GeneralCommandLine(executable.toString(), "--version"));
-        } catch (final ExecutionException e) {
+        } catch (final ExecutionException _) {
             return new VersionProbe.Failed();
         }
         final var run = CompletableFuture.supplyAsync(
@@ -161,13 +159,13 @@ public final class JavafmtBinary {
                 return new VersionProbe.Inconclusive();
             }
             return output.getExitCode() == 0 ? new VersionProbe.Reported(output.getStdout().strip()) : new VersionProbe.Failed();
-        } catch (final InterruptedException e) {
+        } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
             ProcessIOExecutorService.INSTANCE.execute(handler::destroyProcess);
             return new VersionProbe.Inconclusive();
-        } catch (final TimeoutException e) {
+        } catch (final TimeoutException _) {
             return new VersionProbe.Inconclusive();
-        } catch (final java.util.concurrent.ExecutionException e) {
+        } catch (final java.util.concurrent.ExecutionException _) {
             return new VersionProbe.Failed();
         }
     }

@@ -16,7 +16,7 @@ record BinaryIdentity(Path path, FileTime lastModified, long size) {
     static Optional<BinaryIdentity> of(final Path path) {
         try {
             return Optional.of(new BinaryIdentity(path, Files.getLastModifiedTime(path), Files.size(path)));
-        } catch (final IOException e) {
+        } catch (final IOException _) {
             return Optional.empty();
         }
     }

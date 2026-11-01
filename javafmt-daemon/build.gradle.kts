@@ -23,7 +23,6 @@ protobuf {
 }
 
 tasks.named<JavaCompile>(protocol.compileJavaTaskName) {
-    options.release.set(21)
     options.compilerArgs.clear()
     options.errorprone.enabled.set(false)
 }

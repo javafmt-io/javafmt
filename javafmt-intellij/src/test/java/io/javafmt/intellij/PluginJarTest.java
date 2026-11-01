@@ -18,7 +18,7 @@ import java.util.zip.ZipEntry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PluginJarTest {
-    private static final int MAX_MAJOR = 65;
+    private static final int MAX_MAJOR = 69;
 
     @Test
     void protobufIsBundledRelocatedSoItCannotClashWithIntellijsOwn() throws IOException {
@@ -41,7 +41,7 @@ class PluginJarTest {
     }
 
     @Test
-    void everyBundledClassLoadsInJbr21() throws IOException {
+    void everyBundledClassLoadsInJava25() throws IOException {
         try (final var jar = new JarFile(System.getProperty("javafmt.pluginJar"))) {
             assertThat(
                     jar.stream()

@@ -42,8 +42,7 @@ val protocolRuntime = configurations.resolvable("protocolRuntime") {
 }
 
 dependencies {
-    // Deliberately no javafmt-core: it is class file major 69 and IDEA 2025.2's JBR 21 reads at
-    // most 65. Formatting happens out of process in the native javafmt binary.
+    // Deliberately no javafmt-core: formatting happens out of process in the native javafmt binary.
     compileOnly(libs.jspecify)
     protocol(project(":javafmt-daemon")) {
         capabilities {
@@ -57,9 +56,10 @@ dependencies {
     }
 
     intellijPlatform {
-        intellijIdeaCommunity(libs.versions.intellijIdea.get())
+        intellijIdea(libs.versions.intellijIdea.get())
         bundledPlugin("com.intellij.java")
-        testFramework(TestFrameworkType.Bundled)
+        testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Plugin.Java)
         testFramework(TestFrameworkType.JUnit5)
     }
 
@@ -68,8 +68,7 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.assertj.core)
     // Kept despite the module having no main-code dependency on javafmt-core:
-    // JavafmtExternalFormatProcessorTest uses io.javafmt.Fixtures. Test code runs on the Java 25
-    // launcher below, never inside JBR 21, so a major-69 class on the test classpath is harmless.
+    // JavafmtExternalFormatProcessorTest uses io.javafmt.Fixtures, and test code never loads into the IDE.
     testImplementation(testFixtures(project(":javafmt-core")))
     testImplementation(testFixtures(project(":javafmt-daemon")))
     testRuntimeOnly(libs.junit.platform.launcher)
@@ -154,10 +153,6 @@ tasks.withType<Javadoc>().configureEach {
     }
 }
 
-tasks.named<JavaCompile>("compileJava") {
-    options.release.set(21)
-}
-
 tasks.named<Test>("test") {
     useJUnitPlatform()
     // The version gate is derived from the plugin's own version, so the test that pins the two
@@ -216,7 +211,7 @@ intellijPlatform {
         """.trimIndent()
 
         ideaVersion {
-            sinceBuild = "252"
+            sinceBuild = "262"
         }
     }
 }
