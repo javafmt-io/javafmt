@@ -58,20 +58,4 @@ first use after a clean build.
 
 ## Formatting rules (what javafmt enforces)
 
-- **150-character line width**
-- **K&R braces**, always required (even single-statement `if`/`for`/`while`); missing braces are auto-fixed by the `NeedBraces` lint rule
-- **4-space block indent, 8-space continuation indent.** Wrapped continuations of a single logical line — method/constructor parameter lists, call-site argument lists, record components, `extends`/`implements`/`permits` and `throws` clauses, and method chains — indent +8 so wrapped content never shares a column with the block body beneath it. Logical `&&`/`||` operator wrapping stays at +4.
-- **Imports**: three groups separated by a blank line — third-party, then `java.*`/`javax.*`, then static — each ASCII-sorted; module imports come first
-- **Enums**: constants keep declaration order, trailing comma on multi-line enums
-- **Records**: one line if fits in 150 chars, otherwise one component per line, aligned under the first component
-- **Lambdas**: Palantir style, multi-line lambdas on their own lines, body indented relative to the enclosing chain
-- **Method chains**: break before `.` if chain doesn't fit, 8-space continuation indent
-- **Single-line constructs**: an `if` written in the compact one-line form `if (cond) {stmt;}` — no space inside the braces, one statement per branch, no comment, whole chain on one line — is preserved if it fits in 150 chars; every other shape, and every loop body, expands
-- **Annotations**: every class, method and constructor annotation on its own line (including `@Override`); parameter annotations stay inline; field annotations stay inline when none has arguments and the author wrote them inline, otherwise each goes on its own line
-- **Parameter lists**: a wrapped method/constructor parameter list or record component list aligns under the first one, one per line, falling back to +8 when alignment would pass 150; call-site arguments wrap at +8 and pack
-- **Overflow**: string literals and annotation argument lists may run past 150 and are never split
-- **Javadoc/comments**: left alone (v1)
-- **Blank lines**: one between methods, one between visibility groups, no doubles, no blank line after any type's or method's `{` or before `}`
-- **Lint pass**: javafmt applies Checkstyle's rule catalog ruff-style — safe rewrites are auto-fixes, unsafe ones are warnings only. See `docs/rules.md § Lint pass` for the full catalog.
-  - *Auto-fixes* (unconditional): `NeedBraces`, `FinalLocalVariable`, `FinalParameters`, `FinalCatchParameter`, `FinalForEachVariable`, `ArrayTrailingComma`, `LocalVarUseVar`, `DefaultComesLast`, `ModifierOrder`, `RedundantModifier`, `ArrayTypeStyle`, `UpperEll`, `MultipleVariableDeclarations`, `UnusedImports`, `EmptyStatement`, `OneStatementPerLine`, `NewlineAtEndOfFile`, `ExplicitInitialization`, `RedundantSuperCall`, `UnusedVariableShouldBeUnnamed`.
-  - *Warnings only*: `FallThrough` (suppress with `// fallthrough`), `EqualsHashCode`, `MissingSwitchDefault`, `EmptyBlock`, `AvoidStarImport`, `HideUtilityClassConstructor`, `CovariantEquals`, `StringLiteralEquality`.
+`docs/rules.md` is the one place the formatting and lint rules are written down. Read it before writing or reviewing Java here, and update it in the same commit as any change to what javafmt produces. Do not copy rules into this file.
