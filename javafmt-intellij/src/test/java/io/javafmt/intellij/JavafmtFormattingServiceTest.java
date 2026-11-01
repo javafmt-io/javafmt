@@ -54,6 +54,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
+        JavafmtApplicationSettings.getInstance().setEngine(JavafmtApplicationSettings.Engine.NATIVE);
         service = new JavafmtFormattingService();
         getProject()
                 .getMessageBus()

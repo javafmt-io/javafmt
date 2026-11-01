@@ -113,7 +113,9 @@ If another Java extension also offers a formatter, add `"editor.defaultFormatter
 
 ### IntelliJ IDEA
 
-Search **javafmt** in *Settings -> Plugins -> Marketplace*.
+Search **javafmt** in *Settings -> Plugins -> Marketplace*. It needs IntelliJ IDEA 2026.2 or later. Turn it on per project under *Settings -> Tools -> javafmt*.
+
+The plugin formats inside the IDE by default. *Formatter (all projects): Native javafmt binary* uses the [`javafmt` binary](#cli) instead, for every project in the IDE: the path set there, else a `javafmt` on `PATH`, else the matching binary downloaded from the GitHub release. Each format's duration goes to `idea.log`, so the two can be compared.
 
 ### CLI
 

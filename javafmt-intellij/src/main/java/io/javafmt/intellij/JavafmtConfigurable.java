@@ -5,8 +5,10 @@ import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.TextBrowseFolderListener;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.ui.SimpleListCellRenderer;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.concurrency.AppExecutorUtil;
@@ -32,11 +34,15 @@ public final class JavafmtConfigurable implements Configurable {
 
     static final String BINARY_PATH_FIELD_NAME = "javafmt.binaryPath";
 
+    static final String ENGINE_COMBO_BOX_NAME = "javafmt.engine";
+
     private final Project project;
 
     private final JBCheckBox enabled = checkBox(ENABLED_CHECKBOX_NAME, "Use javafmt to reformat Java files in this project");
 
     private final List<Toggle> toggles = List.of(new Toggle(enabled, JavafmtSettings::isEnabled, JavafmtSettings::setEnabled));
+
+    private final ComboBox<JavafmtApplicationSettings.Engine> engine = engineComboBox();
 
     private final TextFieldWithBrowseButton binaryPath = binaryPathField();
 
@@ -47,6 +53,26 @@ public final class JavafmtConfigurable implements Configurable {
 
     public JavafmtConfigurable(final Project project) {
         this.project = Objects.requireNonNull(project, "project");
+        engine.addItemListener(_ -> enableBinaryPathForNativeEngine());
+    }
+
+    private static ComboBox<JavafmtApplicationSettings.Engine> engineComboBox() {
+        final var box = new ComboBox<>(JavafmtApplicationSettings.Engine.values());
+        box.setName(ENGINE_COMBO_BOX_NAME);
+        box.setRenderer(
+                SimpleListCellRenderer.create(
+                        "",
+                        engine -> switch (engine) {
+                            case IN_PROCESS -> "Inside the IDE";
+                            case NATIVE -> "Native javafmt binary";
+                        }));
+        return box;
+    }
+
+    private void enableBinaryPathForNativeEngine() {
+        final var nativeEngine = engine.getItem() == JavafmtApplicationSettings.Engine.NATIVE;
+        binaryPath.setEnabled(nativeEngine);
+        binaryStatus.setEnabled(nativeEngine);
     }
 
     private static JBCheckBox checkBox(final String name, final String text) {
@@ -112,14 +138,16 @@ public final class JavafmtConfigurable implements Configurable {
     public JComponent createComponent() {
         final var hint = new JBLabel("<html>When enabled, javafmt replaces IntelliJ's formatter for whole-file <i>Reformat Code</i> on Java files."
                                              + " Reformatting a selection, and any request that may only touch whitespace, still goes to IntelliJ's"
-                                             + " own formatter. If no binary is found, or javafmt cannot parse the file, the file is left exactly as"
-                                             + " it was and a notification says why."
+                                             + " own formatter. If javafmt cannot parse the file, or the native binary is selected and none is found,"
+                                             + " the file is left exactly as it was and a notification says why. Each format's duration is"
+                                             + " written to idea.log, so the two formatters can be compared."
                                              + "<br/><br/><i>Optimize Imports</i> (Ctrl+Alt+O) is still IntelliJ's own: it puts static imports last"
                                              + " and groups <code>java.*</code> separately, where javafmt puts static imports first in one"
                                              + " ASCII-sorted group. Each will rewrite the other's ordering, so prefer <i>Reformat Code</i>.</html>");
         hint.setForeground(UIUtil.getContextHelpForeground());
         final var form = FormBuilder.createFormBuilder();
         toggles.forEach(t -> form.addComponent(t.box()));
+        form.addLabeledComponent("Formatter (all projects):", engine);
         form.addLabeledComponent("javafmt binary:", binaryPath);
         form.addComponent(binaryStatus);
         return form.addComponent(hint).addComponentFillVertically(new JPanel(), 0).getPanel();
@@ -129,6 +157,7 @@ public final class JavafmtConfigurable implements Configurable {
     public boolean isModified() {
         final var settings = JavafmtSettings.getInstance(project);
         return toggles.stream().anyMatch(t -> t.box().isSelected() != t.read().test(settings))
+            || engine.getItem() != JavafmtApplicationSettings.getInstance().getEngine()
             || !binaryPath.getText().trim().equals(settings.getBinaryPath());
     }
 
@@ -136,6 +165,7 @@ public final class JavafmtConfigurable implements Configurable {
     public void apply() {
         final var settings = JavafmtSettings.getInstance(project);
         toggles.forEach(t -> t.write().accept(settings, t.box().isSelected()));
+        JavafmtApplicationSettings.getInstance().setEngine(engine.getItem());
         settings.setBinaryPath(binaryPath.getText().trim());
         refreshStatus();
     }
@@ -144,7 +174,9 @@ public final class JavafmtConfigurable implements Configurable {
     public void reset() {
         final var settings = JavafmtSettings.getInstance(project);
         toggles.forEach(t -> t.box().setSelected(t.read().test(settings)));
+        engine.setItem(JavafmtApplicationSettings.getInstance().getEngine());
         binaryPath.setText(settings.getBinaryPath());
+        enableBinaryPathForNativeEngine();
         refreshStatus();
     }
 

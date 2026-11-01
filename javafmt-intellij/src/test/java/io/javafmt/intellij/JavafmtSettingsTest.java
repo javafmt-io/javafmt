@@ -11,10 +11,6 @@ public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
         assertThat(JavafmtSettings.getInstance(getProject()).isEnabled()).isFalse();
     }
 
-    // testConfigKeepsOutputVerificationOn was deleted along with toConfig(): formatting now runs
-    // out of process, so the guarantee it pinned (output verification always on) lives in
-    // javafmt-core's JavafmtConfig() default and the fact that the CLI exposes no flag to turn it
-    // off. There is nothing left in this module for a replacement assertion to check.
     @Test
     void binaryPathDefaultsToBlankMeaningSearchPath() {
         assertThat(new JavafmtSettings().getBinaryPath()).isEmpty();
@@ -24,7 +20,7 @@ public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
     void binaryPathRoundTripsThroughPersistedState() {
         final var settings = new JavafmtSettings();
         settings.setBinaryPath("/usr/local/bin/javafmt");
-        assertThat(settings.getState().binaryPath).isEqualTo("/usr/local/bin/javafmt");
+        assertThat(settings.getState().getBinaryPath()).isEqualTo("/usr/local/bin/javafmt");
     }
 
     @Test
@@ -32,7 +28,7 @@ public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
         final var settings = JavafmtSettings.getInstance(getProject());
         settings.setEnabled(true);
         final var persisted = settings.getState();
-        assertThat(persisted.enabled).isTrue();
+        assertThat(persisted.isEnabled()).isTrue();
         final var reloaded = new JavafmtSettings();
         reloaded.loadState(persisted);
         assertThat(reloaded.isEnabled()).isTrue();
@@ -40,14 +36,14 @@ public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
 
     @Test
     public void testStateSurvivesXmlSerialization() {
-        // JavafmtSettings.State is a mutable public-field bean precisely because this is how the
-        // platform persists it; a record or private fields would silently round-trip to defaults.
-        final var state = new JavafmtSettings.State();
-        state.enabled = true;
-        state.binaryPath = "/opt/javafmt";
-        final var restored = XmlSerializer.deserialize(XmlSerializer.serialize(state), JavafmtSettings.State.class);
-        assertThat(restored.enabled).isTrue();
-        assertThat(restored.binaryPath).isEqualTo("/opt/javafmt");
+        // JavafmtSettings is a mutable bean with a getter and a setter per property precisely because
+        // this is how the platform persists it; a record would silently round-trip to defaults.
+        final var settings = new JavafmtSettings();
+        settings.setEnabled(true);
+        settings.setBinaryPath("/opt/javafmt");
+        final var restored = XmlSerializer.deserialize(XmlSerializer.serialize(settings), JavafmtSettings.class);
+        assertThat(restored.isEnabled()).isTrue();
+        assertThat(restored.getBinaryPath()).isEqualTo("/opt/javafmt");
     }
 
     @Test
