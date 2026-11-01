@@ -182,8 +182,33 @@ final class ExpressionRenderers {
         if (initializers.isEmpty()) {
             return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(new Doc.Text(brace + "}"))));
         }
-        final var elements = WrappableList.blockOf(brace, ",", "}", withTrailingComma(initializers.stream().map(recursor::scan).toList()));
+        final var elements = WrappableList.blockOf(brace, "}", separatedElements(node, initializers, recursor.hasTrailingComma(node), recursor));
         return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, Stream.of(elements)));
+    }
+
+    private List<Doc> separatedElements(final Tree list, final List<? extends Tree> items, final boolean trailingComma, final Recursor recursor) {
+        return IntStream.range(0, items.size()).mapToObj(i -> separatedElement(list, items, i, trailingComma, recursor)).toList();
+    }
+
+    /**
+     * One element with its comma, the trailing comma attached to the last one rather than to the
+     * closing brace — written as part of the brace it would break onto the closing line as
+     * {@code ,}}.
+     *
+     * <p>An array's trailing comma is the author's or {@code ArrayTrailingComma}'s: that rule writes
+     * one into the source of every non-empty initializer outside an annotation, so this is
+     * reproducing a token rather than inventing one.
+     */
+    private Doc separatedElement(final Tree list, final List<? extends Tree> items, final int index, final boolean trailingComma, final Recursor recursor) {
+        final var last = index == items.size() - 1;
+        final var comma = !last || trailingComma;
+        final var element = recursor.scanBeforeComments(items.get(index), d -> comma ? Doc.concat(d, new Doc.Text(",")) : d);
+        final var pastTheComma = CommentDocs.appendTrailing(element, last ? recursor.interior(list) : recursor.interior(items.get(index + 1)));
+        return last ? Doc.concatOf(Stream.of(Stream.of(pastTheComma), ownLineTail(list, recursor))) : pastTheComma;
+    }
+
+    private Stream<Doc> ownLineTail(final Tree node, final Recursor recursor) {
+        return recursor.tail(node).stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
     }
 
     /**
@@ -208,18 +233,6 @@ final class ExpressionRenderers {
     }
 
     /**
-     * The elements, with the trailing comma attached to the last one rather than to the closing
-     * brace — written as part of the brace it would break onto the closing line as {@code ,}}.
-     *
-     * <p>The comma itself is {@code ArrayTrailingComma}'s: that rule writes one into the source of
-     * every non-empty initializer, so this is reproducing a token rather than inventing one.
-     */
-    private Stream<Doc> withTrailingComma(final List<Doc> elements) {
-        return IntStream.range(0, elements.size())
-                .mapToObj(i -> i < elements.size() - 1 ? elements.get(i) : Doc.concat(elements.get(i), new Doc.Text(",")));
-    }
-
-    /**
      * Whether {@code node} is the {@code new T[]{...}} initializer-only array form. javac shifts
      * one bracket level into {@link NewArrayTree#getType()} for this form and leaves
      * {@link NewArrayTree#getDimensions()} empty, so the renderer must re-emit the missing
@@ -233,7 +246,7 @@ final class ExpressionRenderers {
 
     Doc renderNewClass(final NewClassTree node, final Recursor recursor) {
         final var arguments = node.getArguments();
-        final var argumentsDoc = arguments.isEmpty() ? new Doc.Text("()") : packedArguments(arguments, recursor);
+        final var argumentsDoc = CallArguments.render(arguments, recursor).doc();
         final var body = node.getClassBody();
         final var headParts = Doc.concatOf(
                 Stream.of(
@@ -243,14 +256,6 @@ final class ExpressionRenderers {
             return headParts;
         }
         return Doc.concat(headParts, ClassBodyRenderer.render(body, recursor));
-    }
-
-    Doc packedArguments(final List<? extends ExpressionTree> arguments, final Recursor recursor) {
-        return new Doc.Group(
-                Doc.concat(
-                        new Doc.Text("("),
-                        Doc.continuationIndent(Doc.concat(Doc.SOFT_LINE, CommentDocs.commaFill(arguments, recursor, recursor::scan))),
-                        new Doc.Text(")")));
     }
 
     /**
@@ -297,7 +302,7 @@ final class ExpressionRenderers {
         // `if (o instanceof final String s)` is legal and the modifier was simply never read, so
         // the file came back refused rather than formatted.
         final var modifiers = ModifierRenderer.prefixOf(variable.getModifiers(), recursor);
-        return Doc.concat(new Doc.Text(modifiers), typeDoc, new Doc.Text(" " + Names.of(variable)));
+        return Doc.concat(modifiers, typeDoc, new Doc.Text(" " + Names.of(variable)));
     }
 
     Doc renderDeconstructionPattern(final DeconstructionPatternTree node, final Recursor recursor) {
@@ -346,12 +351,25 @@ final class ExpressionRenderers {
     }
 
     Doc renderAnnotation(final AnnotationTree node, final Recursor recursor) {
-        final var prefix = Doc.concat(new Doc.Text("@"), recursor.scan(node.getAnnotationType()));
+        final var name = Doc.concat(new Doc.Text("@"), recursor.scan(node.getAnnotationType()));
         final var arguments = node.getArguments();
         if (arguments.isEmpty()) {
-            return prefix;
+            return recursor.hasEmptyArgumentList(node) ? Doc.concat(name, emptyArgumentList(node, recursor)) : name;
         }
-        return Doc.concat(prefix, WrappableList.of("(", ",", ")", arguments.stream().map(recursor::scan)));
+        final var sole = arguments.getFirst();
+        if (arguments.size() == 1 && sole instanceof NewArrayTree && recursor.tail(node).isEmpty() && !recursor.hasLeadingComments(sole)) {
+            final var array = recursor.scan(sole);
+            final var close = Doc.endsWithLineComment(array) ? Doc.concat(Doc.HARD_LINE, new Doc.Text(")")) : new Doc.Text(")");
+            return Doc.concat(name, new Doc.Text("("), array, close);
+        }
+        return Doc.concat(name, WrappableList.separatedOf("(", ")", separatedElements(node, arguments, false, recursor)));
+    }
+
+    private Doc emptyArgumentList(final AnnotationTree node, final Recursor recursor) {
+        final var comments = new Doc.Concat(Doc.intersperse(new Doc.Text(" "), recursor.interior(node).stream().map(CommentDocs::renderComment)));
+        return Doc.endsWithLineComment(comments)
+                ? Doc.concat(new Doc.Text("("), comments, Doc.HARD_LINE, new Doc.Text(")"))
+                : Doc.concat(new Doc.Text("("), comments, new Doc.Text(")"));
     }
 
     private String binaryOperatorText(final BinaryTree node) {

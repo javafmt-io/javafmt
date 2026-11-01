@@ -1,14 +1,14 @@
 package io.javafmt.builder;
 
 import com.sun.source.tree.AnnotationTree;
-import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
-import io.javafmt.doc.Doc;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -39,99 +39,26 @@ class ModifierRendererTest {
     }
 
     @Test
-    void prependOwnLineAnnotations_multilineAnnotationSource_isCollapsedOntoOneLine() {
-        // Emitting the source lines as-is would not converge: each carries its original indentation
-        // and the enclosing Indent adds more every pass. Collapsing keeps every token — an
-        // author-written trailing comma included — while staying stable across passes.
-        final var source = "@Foo({\n    \"a\",\n    \"b\",\n})";
-        final var modifiers = stubModifiers(Set.of(), List.of(stubAnnotation(source)));
-        final var doc = ModifierRenderer.prependOwnLineAnnotations(modifiers, new Doc.Text("class Bar"), stubRecursor(source));
-        assertThat(new Printer(WIDTH).print(doc)).isEqualTo("@Foo({ \"a\", \"b\", })\nclass Bar");
+    void aMultiLineAnnotationThatFitsIsJoinedOntoOneLine() {
+        assertThat(format("@Foo({\n    \"a\",\n    \"b\"\n})\nclass Bar {}")).isEqualTo("@Foo({\"a\", \"b\"})\nclass Bar {}");
     }
 
-    /** Only {@link Recursor#sourceOf} is exercised here; everything else is out of scope. */
-    private static Recursor stubRecursor(final String source) {
-        return stubRecursor(source, false);
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "class Foo {\n    public @Nullable String find() {\n        return null;\n    }\n}",
+        "class Foo {\n    public static <T> @Nullable T first() {\n        return null;\n    }\n}",
+        "class Foo {\n    private final @Nullable String name;\n}",
+        "class Foo {\n    void accept(final @Nullable String name) {}\n}",
+        "public @Deprecated class Foo {}"
+    })
+    void anAnnotationWrittenAfterTheModifiersStaysThere(final String source) {
+        assertThat(format(source)).isEqualTo(source);
     }
 
-    /** Adds a canned {@link Recursor#isFollowedByNewline} answer for the inline-annotation predicate. */
-    private static Recursor stubRecursor(final String source, final boolean followedByNewline) {
-        return new Recursor() {
-            @Override
-            public String sourceOf(final com.sun.source.tree.Tree node) {
-                return source;
-            }
-
-            @Override
-            public CharSequence sourceSpan(final com.sun.source.tree.Tree node) {
-                return source;
-            }
-
-            @Override
-            public Doc scan(final com.sun.source.tree.Tree node) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public Doc attach(final com.sun.source.tree.Tree node, final Doc rendered) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public List<io.javafmt.parser.CommentToken> interior(final com.sun.source.tree.Tree node) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public Doc scanNullable(final com.sun.source.tree.Tree node) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public Doc scanCompact(final com.sun.source.tree.Tree node) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean inCompactContext() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public void emitWarning(final String message, final com.sun.source.tree.Tree at) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean isVarargs(final com.sun.source.tree.VariableTree param) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean isCompactConstructor(final com.sun.source.tree.MethodTree ctor) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean isEnumConstant(final com.sun.source.tree.VariableTree member) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean blankLineBetween(final com.sun.source.tree.Tree before, final com.sun.source.tree.Tree after) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean hasJavadoc(final com.sun.source.tree.Tree node) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public boolean isFollowedByNewline(final com.sun.source.tree.Tree node) {
-                return followedByNewline;
-            }
-        };
+    @Test
+    void anAnnotationInFrontOfTheModifiersOfAMethodTakesItsOwnLine() {
+        assertThat(format("class Foo {\n    @Deprecated public @Nullable String find() {\n        return null;\n    }\n}"))
+                .isEqualTo("class Foo {\n    @Deprecated\n    public @Nullable String find() {\n        return null;\n    }\n}");
     }
 
     private static ModifiersTree stubModifiers(final Set<Modifier> flags, final List<? extends AnnotationTree> annotations) {
@@ -154,39 +81,6 @@ class ModifierRendererTest {
             @Override
             public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
                 return null;
-            }
-        };
-    }
-
-    private static AnnotationTree stubAnnotation(final String prettyPrinted) {
-        return stubAnnotation(prettyPrinted, List.of());
-    }
-
-    private static AnnotationTree stubAnnotation(final String prettyPrinted, final List<? extends ExpressionTree> arguments) {
-        return new AnnotationTree() {
-            @Override
-            public Tree getAnnotationType() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public List<? extends ExpressionTree> getArguments() {
-                return arguments;
-            }
-
-            @Override
-            public Tree.Kind getKind() {
-                return Tree.Kind.ANNOTATION;
-            }
-
-            @Override
-            public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
-                return null;
-            }
-
-            @Override
-            public String toString() {
-                return prettyPrinted;
             }
         };
     }

@@ -71,8 +71,7 @@ public final class FinalParameters implements LintRule {
     }
 
     private static Optional<LintEdit> editFor(final VariableTree param, final ParsedUnit unit) {
-        final var pos = unit.startOf(param);
-        return pos < 0 ? Optional.empty() : Optional.of(LintEdit.insert(pos, "final "));
+        return Modifiers.insertFinal(unit, param);
     }
 
     private static Diagnostic warningFor(final VariableTree param, final ParsedUnit unit) {

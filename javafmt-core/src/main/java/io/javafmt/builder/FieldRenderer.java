@@ -18,11 +18,11 @@ final class FieldRenderer {
         final var modifiers = node.getModifiers();
         final var preamble = ModifierRenderer.preambleOf(modifiers, recursor, ModifierRenderer.rendersFieldAnnotationsInline(modifiers, recursor));
         final var typeDoc = node.getType() == null ? new Doc.Text("var") : recursor.scan(node.getType());
-        final var head = Doc.concat(new Doc.Text(preamble.prefix()), typeDoc, new Doc.Text(" " + Names.of(node)));
+        final var head = Doc.concat(preamble.prefix(), typeDoc, new Doc.Text(" " + Names.of(node)));
         final var declaration = node.getInitializer() == null
                 ? Doc.concat(head, new Doc.Text(";"))
                 : withInitializer(head, recursor.scan(node.getInitializer()));
-        return ModifierRenderer.finish(preamble, node.getModifiers(), declaration, recursor);
+        return ModifierRenderer.finish(preamble, declaration, recursor);
     }
 
     private Doc withInitializer(final Doc head, final Doc initializer) {

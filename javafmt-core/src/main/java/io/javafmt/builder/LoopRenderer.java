@@ -70,15 +70,14 @@ final class LoopRenderer {
     }
 
     private Doc renderPart(final Tree tree, final Recursor recursor, final boolean stripSemicolon) {
-        final var doc = recursor.scan(tree);
-        return stripSemicolon ? BlockRenderer.stripTrailingSemicolonDoc(doc) : doc;
+        return stripSemicolon ? recursor.scanBeforeComments(tree, BlockRenderer::stripTrailingSemicolonDoc) : recursor.scan(tree);
     }
 
     Doc renderEnhancedFor(final EnhancedForLoopTree node, final Recursor recursor) {
         final var variable = node.getVariable();
         final var typeDoc = variable.getType() == null ? new Doc.Text("var") : recursor.scan(variable.getType());
         final var header = Doc.concat(
-                new Doc.Text("for (" + ModifierRenderer.prefixOf(variable.getModifiers(), recursor)), typeDoc,
+                new Doc.Text("for ("), ModifierRenderer.prefixOf(variable.getModifiers(), recursor), typeDoc,
                 new Doc.Text(" " + Names.of(variable) + " : "), recursor.scan(node.getExpression()), new Doc.Text(")"));
         return BlockRenderer.buildBlock(header, BlockRenderer.blockStatements(node.getStatement(), recursor), List.of());
     }

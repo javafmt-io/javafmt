@@ -4,6 +4,8 @@ import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -17,21 +19,41 @@ import java.util.stream.Stream;
  * 711-character line.
  *
  * <p>The closing bracket hugs the last element rather than taking a line of its own, matching what
- * parameter and argument lists already produce.
+ * parameter and argument lists already produce. In a list whose elements carry their own
+ * separators, a last element that ends in a {@code //} comment would swallow the bracket, so there
+ * the bracket goes on the next line.
  */
 @UtilityClass
 final class WrappableList {
     Doc of(final String open, final String separator, final String close, final Stream<Doc> elements) {
-        return new Doc.Group(build(open, separator, close, elements, Stream.empty()));
+        final var interior = new Doc.Concat(
+                Stream.concat(Stream.of(Doc.SOFT_LINE), Doc.intersperse(List.of(new Doc.Text(separator), Doc.LINE), elements)));
+        return new Doc.Group(Doc.concat(new Doc.Text(open), Doc.continuationIndent(interior), new Doc.Text(close)));
+    }
+
+    Doc separatedOf(final String open, final String close, final List<Doc> elements) {
+        return separated(open, close, elements, Stream.empty());
     }
 
     /**
-     * {@link #of} with the closing bracket on a line of its own at the enclosing indent when the
-     * list breaks. For a braced initializer, hugging the last element writes {@code 12,};} — the
-     * brace that opened a block-shaped thing should close like one.
+     * A list whose elements each carry their own separator, with the closing bracket on a line of
+     * its own at the enclosing indent when the list breaks. For a braced initializer, hugging the
+     * last element writes {@code 12,};} — the brace that opened a block-shaped thing should close
+     * like one. The separator is the element's so that it comes before the element's trailing
+     * comment, and the break after an element ending in a {@code //} comment is a hard one.
      */
-    Doc blockOf(final String open, final String separator, final String close, final Stream<Doc> elements) {
-        return new Doc.Group(build(open, separator, close, elements, Stream.of(Doc.SOFT_LINE)));
+    Doc blockOf(final String open, final String close, final List<Doc> elements) {
+        return separated(open, close, elements, Stream.of(Doc.SOFT_LINE));
+    }
+
+    private Doc separated(final String open, final String close, final List<Doc> elements, final Stream<Doc> beforeClose) {
+        final var breaks = IntStream.range(1, elements.size())
+                .mapToObj(i -> Stream.of(Doc.endsWithLineComment(elements.get(i - 1)) ? Doc.HARD_LINE : Doc.LINE, elements.get(i)))
+                .flatMap(Function.identity());
+        final var interior = new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE, elements.getFirst()), breaks));
+        final var closing = Doc.endsWithLineComment(elements.getLast()) ? Stream.<Doc>of(Doc.HARD_LINE) : beforeClose;
+        return new Doc.Group(
+                Doc.concatOf(Stream.of(Stream.of(new Doc.Text(open), Doc.continuationIndent(interior)), closing, Stream.of(new Doc.Text(close)))));
     }
 
     /**
@@ -50,14 +72,5 @@ final class WrappableList {
         final var indented = Doc.continuationIndent(new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE), interior.stream())));
         final var layout = Doc.flatWidthOrBreak(interior.getFirst()) < 0 ? indented : new Doc.Choice(aligned, indented);
         return Doc.concat(new Doc.Text(open), layout, new Doc.Text(close));
-    }
-
-    private Doc build(final String open, final String separator, final String close, final Stream<Doc> elements, final Stream<Doc> beforeClose) {
-        final var interior = new Doc.Concat(
-                Stream.concat(Stream.of(Doc.SOFT_LINE), Doc.intersperse(List.of(new Doc.Text(separator), Doc.LINE), elements)));
-        return new Doc.Concat(
-                Stream.concat(
-                        Stream.<Doc>of(new Doc.Text(open), Doc.continuationIndent(interior)),
-                        Stream.concat(beforeClose, Stream.<Doc>of(new Doc.Text(close)))));
     }
 }

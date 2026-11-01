@@ -16,7 +16,9 @@ import javax.lang.model.element.Modifier;
 
 /**
  * Moves nested types to the bottom of the body that declares them, and in a utility class moves the
- * private no-argument constructor below those. Nothing else is reordered.
+ * private no-argument constructor below those. Nothing else is reordered. A JUnit {@code @Nested}
+ * class stays where it is, because a test class reads top-down, and a class declaring one is
+ * instantiated by JUnit and so is not a utility class.
  *
  * <p>Both moves are safe in a way general member reordering is not: a nested type executes no code
  * and can be referenced from anywhere in the enclosing body, and a constructor whose only job is to
@@ -71,27 +73,33 @@ public final class MemberOrder implements LintRule {
         if (movers.isEmpty() || alreadyInOrder(members, movers)) {
             return List.of();
         }
-        final var spans = members.stream().map(m -> span(unit, m)).toList();
+        final var bodyStart = unit.bodyBraceOf(node) + 1;
+        final var spans = members.stream().map(m -> span(unit, m, bodyStart)).toList();
         final var insertAt = spans.getLast().end();
         final var indent = " ".repeat(columnOf(unit.source(), spans.getFirst().start()));
         final var appended = movers.stream()
-                .map(m -> "\n\n" + indent + unit.source().substring(span(unit, m).start(), span(unit, m).end()))
+                .map(m -> "\n\n" + indent + unit.source().substring(span(unit, m, bodyStart).start(), span(unit, m, bodyStart).end()))
                 .reduce("", String::concat);
         return Stream.concat(
                 movers.stream()
-                        .map(m -> span(unit, m))
+                        .map(m -> span(unit, m, bodyStart))
                         .map(s -> new LintEdit(s.start(), s.end(), "")),
                 Stream.of(LintEdit.insert(insertAt, appended)))
                 .toList();
     }
 
     /**
-     * Every nested type, in declaration order, followed by the utility-class constructor. All the
-     * nested types move whenever any one of them is out of place: moving only the stragglers would
-     * shuffle them past the ones that stayed and lose the order the author wrote them in.
+     * Every nested type other than a JUnit {@code @Nested} class, in declaration order, followed by
+     * the utility-class constructor. All of them move whenever any one of them is out of place:
+     * moving only the stragglers would shuffle them past the ones that stayed and lose the order the
+     * author wrote them in.
      */
     private static List<Tree> membersToMove(final ClassTree node, final List<? extends Tree> members) {
-        final var nestedTypes = members.stream().filter(ClassTree.class::isInstance).<Tree>map(m -> m).toList();
+        final var nestedTypes = members.stream()
+                .filter(ClassTree.class::isInstance)
+                .filter(m -> !isJunitNestedClass(m))
+                .<Tree>map(m -> m)
+                .toList();
         final var constructor = utilityConstructor(node, members);
         return constructor.isEmpty() ? nestedTypes : Stream.concat(nestedTypes.stream(), constructor.stream()).toList();
     }
@@ -105,7 +113,7 @@ public final class MemberOrder implements LintRule {
         if (node.getKind() != Tree.Kind.CLASS || !node.getModifiers().getFlags().contains(Modifier.FINAL)) {
             return List.of();
         }
-        if (members.stream().anyMatch(MemberOrder::isInstanceField)) {
+        if (members.stream().anyMatch(m -> isInstanceField(m) || isJunitNestedClass(m))) {
             return List.of();
         }
         final var constructors = members.stream()
@@ -120,6 +128,15 @@ public final class MemberOrder implements LintRule {
         return flags.contains(Modifier.PRIVATE) && constructor.getParameters().isEmpty() ? List.of(constructor) : List.of();
     }
 
+    private static boolean isJunitNestedClass(final Tree member) {
+        return member instanceof ClassTree type
+            && type.getModifiers()
+                    .getAnnotations()
+                    .stream()
+                    .map(a -> a.getAnnotationType().toString())
+                    .anyMatch(name -> name.equals("Nested") || name.equals("org.junit.jupiter.api.Nested"));
+    }
+
     private static boolean isConstructor(final Tree member) {
         return member instanceof MethodTree m && m.getName().contentEquals(CONSTRUCTOR_NAME);
     }
@@ -130,12 +147,14 @@ public final class MemberOrder implements LintRule {
 
     /**
      * A member's source span including its leading comments and Javadoc and any trailing comment on
-     * its own last line, so a member that moves takes what the author wrote about it along.
+     * its own last line, so a member that moves takes what the author wrote about it along. A comment
+     * before {@code bodyStart} sits in the enclosing declaration's header and stays there.
      */
-    private static Span span(final ParsedUnit unit, final Tree member) {
+    private static Span span(final ParsedUnit unit, final Tree member, final int bodyStart) {
         final var leading = unit.leadingOf(member)
                 .stream()
                 .mapToInt(c -> c.start())
+                .filter(start -> start >= bodyStart)
                 .min()
                 .orElse(unit.startOf(member));
         final var trailing = unit.trailingOf(member)

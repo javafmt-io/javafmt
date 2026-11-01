@@ -52,9 +52,9 @@ final class PrintEngine {
                 }
                 case Doc.Indent(var contents) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> stack.push(new Frame(column, frame.mode(), contents));
-                case Doc.Choice(var preferred, var fallback) -> {
+                case Doc.Choice(var preferred, var fallback, var fit) -> {
                     final var preferredFrame = new Frame(frame.indent(), frame.mode(), preferred);
-                    final var fits = frame.mode() == Mode.FLAT || fitsEveryLine(preferredFrame, column, lineWidth, stack, work);
+                    final var fits = frame.mode() == Mode.FLAT || fits(preferredFrame, column, lineWidth, stack, work, reachOf(fit));
                     stack.push(fits ? preferredFrame : new Frame(frame.indent(), frame.mode(), fallback));
                 }
                 case Doc.Concat(var parts) -> {
@@ -142,12 +142,11 @@ final class PrintEngine {
         return fits(candidate, 0, budget, upcoming, work, Reach.FIRST_LINE);
     }
 
-    private boolean fitsEveryLine(final Frame candidate,
-                                  final int startColumn,
-                                  final int lineWidth,
-                                  final ArrayDeque<Frame> upcoming,
-                                  final ArrayDeque<Frame> work) {
-        return fits(candidate, startColumn, lineWidth, upcoming, work, Reach.EVERY_LINE);
+    private Reach reachOf(final Doc.Choice.Fit fit) {
+        return switch (fit) {
+            case EVERY_LINE -> Reach.EVERY_LINE;
+            case OPENING_LINE -> Reach.OPENING_LINE;
+        };
     }
 
     private boolean fits(final Frame candidate,
@@ -186,7 +185,7 @@ final class PrintEngine {
                 case Doc.Line _ when frame.mode() == Mode.FLAT -> column++;
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
                 case Doc.HardLine _ -> {
-                    if (consumedCandidate) {
+                    if (consumedCandidate || reach == Reach.OPENING_LINE) {
                         return true;
                     }
                     if (reach == Reach.FIRST_LINE) {
@@ -198,19 +197,22 @@ final class PrintEngine {
                     if (consumedCandidate || reach == Reach.FIRST_LINE) {
                         return true;
                     }
+                    if (reach == Reach.OPENING_LINE) {
+                        return false;
+                    }
                     column = frame.indent();
                 }
                 case Doc.Indent(var contents) -> work.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> work.push(new Frame(column, frame.mode(), contents));
                 case Doc.Group(var contents, var preferBreak) -> {
-                    if (preferBreak && !consumedCandidate && reach == Reach.FIRST_LINE) {
+                    if (preferBreak && !consumedCandidate && reach != Reach.EVERY_LINE) {
                         return false;
                     }
                     work.push(new Frame(frame.indent(), Mode.FLAT, contents));
                 }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
                     work.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? breakContents : flatContents));
-                case Doc.Choice(var preferred, var fallback) ->
+                case Doc.Choice(var preferred, var fallback, var _) ->
                     work.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? fallback : preferred));
                 case Doc.Concat(var parts) -> {
                     for (var index = parts.size() - 1; index >= 0; index--) {
@@ -275,7 +277,7 @@ final class PrintEngine {
                 case Doc.Indent(var contents) -> pending.push(new Pending(contents, grouped));
                 case Doc.Align(var contents) -> pending.push(new Pending(contents, grouped));
                 case Doc.IfBreak(var breakContents, var flatContents) -> pending.push(new Pending(grouped ? flatContents : breakContents, grouped));
-                case Doc.Choice(var preferred, var fallback) -> {
+                case Doc.Choice(var preferred, var fallback, var _) -> {
                     pending.push(new Pending(preferred, grouped));
                     pending.push(new Pending(fallback, grouped));
                 }
@@ -303,7 +305,7 @@ final class PrintEngine {
 
     private enum Mode { FLAT, BREAK }
 
-    private enum Reach { FIRST_LINE, EVERY_LINE }
+    private enum Reach { FIRST_LINE, OPENING_LINE, EVERY_LINE }
 
     private record Pending(Doc doc, boolean grouped) {}
 

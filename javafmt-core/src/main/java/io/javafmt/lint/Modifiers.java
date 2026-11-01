@@ -3,14 +3,17 @@ package io.javafmt.lint;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.JavaModifiers;
 import io.javafmt.parser.CommentScanner;
+import io.javafmt.parser.ParsedUnit;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.Optional;
 import javax.lang.model.element.Modifier;
 
 /**
  * Modifier helpers shared across lint rules: the canonical JLS order, whether a declaration is
- * already {@code final}, and source-level matching of a modifier keyword at a given position.
+ * already {@code final} and where a {@code final} goes, and source-level matching of a modifier
+ * keyword at a given position.
  */
 @UtilityClass
 final class Modifiers {
@@ -20,6 +23,18 @@ final class Modifiers {
 
     boolean hasFinal(final VariableTree node) {
         return node.getModifiers().getFlags().contains(Modifier.FINAL);
+    }
+
+    Optional<LintEdit> insertFinal(final ParsedUnit unit, final VariableTree variable) {
+        final var annotations = variable.getModifiers().getAnnotations();
+        final var typeStart = variable.getType() == null ? -1 : unit.startOf(variable.getType());
+        if (typeStart >= 0) {
+            return Optional.of(LintEdit.insert(typeStart, "final "));
+        }
+        if (!annotations.isEmpty()) {
+            return Optional.of(unit.endOf(annotations.getLast())).filter(pos -> pos >= 0).map(pos -> LintEdit.insert(pos, " final"));
+        }
+        return Optional.of(unit.startOf(variable)).filter(pos -> pos >= 0).map(pos -> LintEdit.insert(pos, "final "));
     }
 
     /**

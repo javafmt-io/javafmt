@@ -6,6 +6,7 @@ import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -106,15 +107,44 @@ final class CommentDocs {
                                 Stream.of(render.apply(items.get(i)))));
     }
 
-    <T extends Tree> Doc commaFill(final List<? extends T> items, final LeadingCommentAttacher attacher, final Function<? super T, Doc> render) {
+    Doc commaFill(final List<? extends Tree> items, final List<Doc> rendered, final LeadingCommentAttacher attacher) {
         return new Doc.Fill(
                 IntStream.range(0, items.size())
                         .boxed()
                         .flatMap(
                                 i -> Stream.concat(
                                         i == 0 ? Stream.empty() : Stream.of(new Doc.Concat(listSeparator(",", attacher.interior(items.get(i))))),
-                                        Stream.of(render.apply(items.get(i)))))
+                                        Stream.of(rendered.get(i))))
                         .toList());
+    }
+
+    boolean commentBeforeFirstBreak(final Doc doc) {
+        final var work = new ArrayDeque<Doc>();
+        work.push(doc);
+        while (!work.isEmpty()) {
+            switch (work.pop()) {
+                case Doc.Text(var text) -> {
+                    if (text.startsWith("//") || text.startsWith("/*")) {
+                        return true;
+                    }
+                }
+                case Doc.BlockComment _ -> {
+                    return true;
+                }
+                case Doc.HardLine _ -> {
+                    return false;
+                }
+                case Doc.Verbatim _, Doc.Line _, Doc.SoftLine _ -> {}
+                case Doc.Indent(var inner) -> work.push(inner);
+                case Doc.Align(var inner) -> work.push(inner);
+                case Doc.Group(var inner, var _) -> work.push(inner);
+                case Doc.IfBreak(var _, var flatContents) -> work.push(flatContents);
+                case Doc.Choice(var preferred, var _, var _) -> work.push(preferred);
+                case Doc.Concat(var parts) -> parts.reversed().forEach(work::push);
+                case Doc.Fill(var parts) -> parts.reversed().forEach(work::push);
+            }
+        }
+        return false;
     }
 
     Stream<Doc> fileHeaderStream(final List<CommentToken> comments) {

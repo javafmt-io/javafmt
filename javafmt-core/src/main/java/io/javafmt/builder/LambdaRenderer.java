@@ -54,7 +54,7 @@ final class LambdaRenderer {
      * modifiers were never read, so the {@code final} was dropped and the file refused.
      */
     private Doc renderParam(final VariableTree param, final Recursor recursor) {
-        final var modifiers = new Doc.Text(ModifierRenderer.prefixOf(param.getModifiers(), recursor));
+        final var modifiers = ModifierRenderer.prefixOf(param.getModifiers(), recursor);
         if (param.getType() == null) {
             return Doc.concat(modifiers, new Doc.Text(Names.of(param)));
         }
