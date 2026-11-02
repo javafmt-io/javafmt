@@ -12,6 +12,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,9 +26,11 @@ class JavafmtPluginFunctionalTest {
 
     private static final String A = "src/main/java/A.java";
 
+    private static final String APP = "app/src/main/java/com/example/app/App.java";
+
     private static final String PROBLEMS_REPORT = "build/reports/problems/problems-report.html";
 
-    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n    List<String> xs;\n}\n";
+    private static final String WARNED_SOURCE = "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
 
     @Test
     void formatRewritesEveryJavaSourceSetInPlace(@TempDir final Path dir) {
@@ -62,7 +66,7 @@ class JavafmtPluginFunctionalTest {
         final var build = TestBuild.singleProject(dir, "");
         build.write(FOO, Fixtures.UNFORMATTED_FOO);
         build.write("src/main/java/Broken.java", "class Broken {");
-        build.write("src/main/java/Star.java", STAR_IMPORT_SOURCE);
+        build.write("src/main/java/Warned.java", WARNED_SOURCE);
         build.fail("javafmtCheck");
         assertThat(build.read(PROBLEMS_REPORT))
                 .contains("File not formatted by javafmt")
@@ -71,7 +75,7 @@ class JavafmtPluginFunctionalTest {
                 .contains("javafmt warning")
                 .contains("Foo.java")
                 .contains("Broken.java")
-                .contains("Star.java");
+                .contains("Warned.java");
     }
 
     @Test
@@ -79,7 +83,7 @@ class JavafmtPluginFunctionalTest {
         final var build = TestBuild.singleProject(dir, "");
         build.write(FOO, Fixtures.UNFORMATTED_FOO);
         build.write("src/main/java/Broken.java", "class Broken {");
-        build.write("src/main/java/Star.java", STAR_IMPORT_SOURCE);
+        build.write("src/main/java/Warned.java", WARNED_SOURCE);
         build.fail("javafmtCheck");
         assertThat(build.read(PROBLEMS_REPORT))
                 .contains("\"displayName\":\"File not formatted by javafmt\"}],\"severity\":\"ERROR\"")
@@ -117,8 +121,8 @@ class JavafmtPluginFunctionalTest {
     @Test
     void checkPrintsWarningsWithoutFailing(@TempDir final Path dir) {
         final var build = TestBuild.singleProject(dir, "");
-        build.write("src/main/java/Star.java", STAR_IMPORT_SOURCE);
-        assertThat(build.run("javafmtCheck").getOutput()).containsPattern("Star\\.java:\\d+:\\d+: warning: ");
+        build.write("src/main/java/Warned.java", WARNED_SOURCE);
+        assertThat(build.run("javafmtCheck").getOutput()).containsPattern("Warned\\.java:\\d+:\\d+: warning: ");
     }
 
     @Test
@@ -139,6 +143,21 @@ class JavafmtPluginFunctionalTest {
         assertThat(outcome(build.run("javafmtCheck", "--build-cache"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
         build.run("clean");
         assertThat(outcome(build.run("javafmtCheck", "--build-cache"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.FROM_CACHE);
+    }
+
+    @Test
+    void aLargeSourceSetFormatsWithTheClasspathInASmallWorkerHeap(@TempDir final Path dir) {
+        final var build = TestBuild.singleProject(dir, "javafmt {\n    maxHeapSize = '256m'\n}\n");
+        IntStream.range(0, 100).forEach(i -> build.write("src/main/java/orders/Order" + i + ".java", generatedOrder(i)));
+        final var result = build.run("javafmtFormat");
+        assertThat(outcome(result, ":javafmtFormatMain")).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(result.getOutput()).doesNotContain("OutOfMemoryError");
+    }
+
+    private static String generatedOrder(final int index) {
+        return IntStream.range(0, 2000)
+                .mapToObj(method -> "\n    int compute%d(final int seed) {\n        return seed * %d;\n    }\n".formatted(method, method))
+                .collect(Collectors.joining("", "package orders;\n\nfinal class Order%d {".formatted(index), "}\n"));
     }
 
     @Test
@@ -169,7 +188,7 @@ class JavafmtPluginFunctionalTest {
 
     @Test
     void anIncrementalCheckOnlyReadsTheChangedFiles(@TempDir final Path dir) {
-        final var build = TestBuild.singleProject(dir, "");
+        final var build = TestBuild.singleProject(dir, "javafmt {\n    analyze = false\n}\n");
         build.write(FOO, Fixtures.FORMATTED_FOO);
         build.write(A, Fixtures.FORMATTED_A);
         assertThat(build.run("javafmtCheck", "--info").getOutput()).contains("javafmt: processed 2 file(s)");
@@ -281,7 +300,47 @@ class JavafmtPluginFunctionalTest {
     }
 
     @Test
-    void analyzeResolvesTypesFromTheCompileClasspath(@TempDir final Path dir) {
+    void theRulesThatNeedTheClasspathRunByDefault(@TempDir final Path dir) {
+        final var build = multiProjectWithAStarImport(dir, "");
+        build.run(":app:javafmtFormat");
+        assertThat(build.read(APP)).contains("import com.example.lib.Greeter;").doesNotContain("com.example.lib.*");
+    }
+
+    @Test
+    void analyzeFalseTurnsOffTheRulesThatNeedTheClasspath(@TempDir final Path dir) {
+        final var build = multiProjectWithAStarImport(dir, "javafmt {\n    analyze = false\n}\n");
+        build.run(":app:javafmtFormat");
+        assertThat(build.read(APP)).contains("import com.example.lib.*;");
+    }
+
+    @Test
+    void aProjectFileSkipsTheRulesItNames(@TempDir final Path dir) {
+        final var build = multiProjectWithAStarImport(dir, "");
+        build.write(".javafmt", "analyze.skip=ExplodeStarImports\n");
+        build.run(":app:javafmtFormat");
+        assertThat(build.read(APP)).contains("import com.example.lib.*;");
+    }
+
+    @Test
+    void editingTheProjectFileMakesTheCheckRunAgain(@TempDir final Path dir) {
+        final var build = multiProjectWithAStarImport(dir, "");
+        build.write(".javafmt", "analyze.skip=ExplodeStarImports\n");
+        build.run(":app:javafmtFormat");
+        assertThat(outcome(build.run(":app:javafmtCheck"), ":app:javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(outcome(build.run(":app:javafmtCheck"), ":app:javafmtCheckMain")).isEqualTo(TaskOutcome.UP_TO_DATE);
+        build.write(".javafmt", "");
+        assertThat(build.fail(":app:javafmtCheck").getOutput()).contains("App.java");
+    }
+
+    @Test
+    void anInvalidProjectFileFailsTheCheckAndNamesTheRule(@TempDir final Path dir) {
+        final var build = TestBuild.singleProject(dir, "");
+        build.write(FOO, Fixtures.FORMATTED_FOO);
+        build.write(".javafmt", "analyze.skip=FinalParameters\n");
+        assertThat(build.fail("javafmtCheck").getOutput()).contains(".javafmt", "FinalParameters");
+    }
+
+    private static TestBuild multiProjectWithAStarImport(final Path dir, final String appExtension) {
         final var build = new TestBuild(dir);
         build.gradleProperties(List.of());
         build.write("settings.gradle", "rootProject.name = 'demo'\ninclude 'lib', 'app'\n");
@@ -305,12 +364,8 @@ class JavafmtPluginFunctionalTest {
                 dependencies {
                     implementation project(':lib')
                 }
-
-                javafmt {
-                    analyze = true
-                }
-                """);
-        build.write("app/src/main/java/com/example/app/App.java", """
+                """ + appExtension);
+        build.write(APP, """
                 package com.example.app;
 
                 import com.example.lib.*;
@@ -322,10 +377,7 @@ class JavafmtPluginFunctionalTest {
                     }
                 }
                 """);
-        build.run(":app:javafmtFormat");
-        assertThat(build.read("app/src/main/java/com/example/app/App.java"))
-                .contains("import com.example.lib.Greeter;")
-                .doesNotContain("com.example.lib.*");
+        return build;
     }
 
     @Test

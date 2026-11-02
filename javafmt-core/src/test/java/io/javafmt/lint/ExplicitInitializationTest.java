@@ -9,7 +9,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class ExplicitInitializationTest {
     @ParameterizedTest
-    @ValueSource(strings = {"class Fixture { int x = 0; }", "class Fixture { byte x = 0; }", "class Fixture { short x = 0; }", "class Fixture { boolean x = false; }", "class Fixture { Object x = null; }", "class Fixture { String x = null; }"})
+    @ValueSource(
+            strings = {
+                    "class Fixture { int x = 0; }",
+                    "class Fixture { byte x = 0; }",
+                    "class Fixture { short x = 0; }",
+                    "class Fixture { boolean x = false; }",
+                    "class Fixture { Object x = null; }",
+                    "class Fixture { String x = null; }"
+            })
     void redundantDefaultInitializerRemovedFromField(final String src) {
         final var unit = JavaParser.parseUnit(src);
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));

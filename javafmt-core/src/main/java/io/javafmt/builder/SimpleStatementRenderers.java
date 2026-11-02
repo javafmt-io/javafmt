@@ -10,8 +10,6 @@ import com.sun.source.tree.YieldTree;
 import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
-import java.util.List;
-
 @UtilityClass
 final class SimpleStatementRenderers {
     Doc renderAssert(final AssertTree node, final Recursor recursor) {

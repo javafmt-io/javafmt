@@ -44,7 +44,7 @@ final class CommentAttacher {
      * Orders slots so the innermost slot fires first when two slots enclose the same comment: by
      * ascending {@code hi}, then by {@link Reach}, then ascending {@code lo}.
      */
-    private static final Comparator<Slot> SLOT_ORDER = Comparator.<Slot>comparingLong(Slot::hi)
+    private static final Comparator<Slot> SLOT_ORDER = Comparator.comparingLong(Slot::hi)
             .thenComparing(Slot::reach)
             .thenComparingLong(Slot::lo);
 
@@ -478,12 +478,20 @@ final class CommentAttacher {
                     .filter(i -> gaps.get(i) == pos.getStartPosition(cu, annotations.get(i + 1)))
                     .boxed()
                     .toList();
-            chained.forEach(i -> slots.add(new Slot(annotations.get(i), annotations.get(i + 1), pos.getEndPosition(cu, annotations.get(i)), gaps.get(i), Kind.LEADING)));
-            final var leadsTheDeclaration = !annotations.isEmpty() && pos.getStartPosition(cu, modifiers) == pos.getStartPosition(cu, annotations.getFirst());
+            chained.forEach(
+                    i -> slots.add(
+                            new Slot(
+                                    annotations.get(i), annotations.get(i + 1), pos.getEndPosition(cu, annotations.get(i)), gaps.get(i),
+                                    Kind.LEADING)));
+            final var leadsTheDeclaration = !annotations.isEmpty()
+                && pos.getStartPosition(cu, modifiers) == pos.getStartPosition(cu, annotations.getFirst());
             if (!withHeaderGap || !leadsTheDeclaration) {
                 return;
             }
-            final var lastOfTheLeadingRun = IntStream.range(0, annotations.size()).filter(i -> !chained.contains(i)).findFirst().orElse(annotations.size() - 1);
+            final var lastOfTheLeadingRun = IntStream.range(0, annotations.size())
+                    .filter(i -> !chained.contains(i))
+                    .findFirst()
+                    .orElse(annotations.size() - 1);
             final var end = pos.getEndPosition(cu, annotations.get(lastOfTheLeadingRun));
             final var headerStart = gaps.get(lastOfTheLeadingRun);
             if (end >= 0 && headerStart > end) {
@@ -659,7 +667,10 @@ final class CommentAttacher {
 
         private int endOfOperator(final int from) {
             var at = from;
-            while (at < source.length() && "&|+-*/%<>=!^?:".indexOf(source.charAt(at)) >= 0 && !source.startsWith("//", at) && !source.startsWith("/*", at)) {
+            while (at < source.length()
+                && "&|+-*/%<>=!^?:".indexOf(source.charAt(at)) >= 0
+                && !source.startsWith("//", at)
+                && !source.startsWith("/*", at)) {
                 at++;
             }
             return at;
@@ -712,7 +723,10 @@ final class CommentAttacher {
             if (node.getCaseKind() == CaseTree.CaseKind.RULE) {
                 final var body = node.getBody();
                 if (body != null && source.startsWith("->", punctuation)) {
-                    slots.add(new Slot(null, node, punctuation + 2L, pos.getStartPosition(cu, body), body instanceof BlockTree ? Kind.BEFORE_BRACE : Kind.BRACE_LINE));
+                    slots.add(
+                            new Slot(
+                                    null, node, punctuation + 2L, pos.getStartPosition(cu, body),
+                                    body instanceof BlockTree ? Kind.BEFORE_BRACE : Kind.BRACE_LINE));
                 }
                 return;
             }
@@ -828,10 +842,10 @@ final class CommentAttacher {
             if (classStart < 0 || classEnd < 0) {
                 return;
             }
-            final var extendsClause = node.getExtendsClause() == null ? List.<Tree>of() : List.<Tree>of(node.getExtendsClause());
+            final var extendsClause = node.getExtendsClause() == null ? List.<Tree>of() : List.of(node.getExtendsClause());
             final var searchFrom = Stream.of(
-                    node.getModifiers().getAnnotations(), node.getTypeParameters(), extendsClause, node.getImplementsClause(), node.getPermitsClause(),
-                    isRecord ? recordComponents(node) : List.<Tree>of())
+                    node.getModifiers().getAnnotations(), node.getTypeParameters(), extendsClause, node.getImplementsClause(),
+                    node.getPermitsClause(), isRecord ? recordComponents(node) : List.<Tree>of())
                     .flatMap(List::stream)
                     .mapToLong(t -> pos.getEndPosition(cu, t))
                     .max()

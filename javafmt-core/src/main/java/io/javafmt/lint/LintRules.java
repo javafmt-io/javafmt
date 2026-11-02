@@ -3,6 +3,8 @@ package io.javafmt.lint;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -36,7 +38,23 @@ public final class LintRules {
             .flatMap(List::stream)
             .toList();
 
+    private final List<String> ANALYSIS_RULE_NAMES = DEFAULTS.stream()
+            .filter(LintRule::usesAnalysis)
+            .map(LintRule::name)
+            .sorted()
+            .toList();
+
+    private final Set<String> RULE_NAMES = DEFAULTS.stream().map(LintRule::name).collect(Collectors.toUnmodifiableSet());
+
     public List<LintRule> defaults() {
         return DEFAULTS;
+    }
+
+    public List<String> analysisRuleNames() {
+        return ANALYSIS_RULE_NAMES;
+    }
+
+    public Set<String> ruleNames() {
+        return RULE_NAMES;
     }
 }

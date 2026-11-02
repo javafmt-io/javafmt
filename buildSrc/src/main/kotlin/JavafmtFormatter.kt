@@ -35,7 +35,6 @@ object JavafmtFormatter {
 
     private const val FORMATTER_CLASS = "io.javafmt.spotless.JavafmtFormatterStep"
     private const val APPLY_METHOD = "apply"
-    private const val APPLY_WITH_ANALYZE_METHOD = "applyWithAnalyze"
 
     private val loaderCache = ConcurrentHashMap<List<JarEntry>, URLClassLoader>()
 
@@ -44,9 +43,10 @@ object JavafmtFormatter {
      * the jars that make up the javafmt-spotless runtime classpath. The jars
      * need not exist yet; the spotless tasks declare them as classpath inputs.
      *
-     * When [analysisClasspath] is provided the step calls [APPLY_WITH_ANALYZE_METHOD]
-     * instead of [APPLY_METHOD], enabling attribution-dependent lint rules such as
-     * [RedundantTypeArguments]'s witness-drop and [LocalVarUseVar]'s widening-assignment path.
+     * The step calls [APPLY_METHOD] with each file and [analysisClasspath], so
+     * the lint rules that need resolved types run and the `.javafmt` project
+     * file that applies to the file is honoured. An empty [analysisClasspath]
+     * formats without those rules.
      */
     fun step(jars: Collection<File>, analysisClasspath: Collection<File>, release: () -> Int): FormatterStep {
         val classpathStr = analysisClasspath.joinToString(File.pathSeparator) { it.absolutePath }
@@ -79,22 +79,11 @@ object JavafmtFormatter {
                 URLClassLoader(urls, ClassLoader.getPlatformClassLoader())
             }
             val clazz = Class.forName(FORMATTER_CLASS, true, loader)
-            if (!state.analysisClasspath.isNullOrEmpty()) {
-                val method = clazz.getMethod(APPLY_WITH_ANALYZE_METHOD, String::class.java, String::class.java, Int::class.javaPrimitiveType)
-                val classpath = state.analysisClasspath
-                return FormatterFunc { input ->
-                    try {
-                        method.invoke(null, input, classpath, state.release) as String
-                    } catch (t: ReflectiveOperationException) {
-                        val cause = t.cause ?: t
-                        throw RuntimeException("javafmt formatter invocation failed: ${cause.message}", cause)
-                    }
-                }
-            }
-            val method = clazz.getMethod(APPLY_METHOD, String::class.java, Int::class.javaPrimitiveType)
-            return FormatterFunc { input ->
+            val method = clazz.getMethod(APPLY_METHOD, String::class.java, File::class.java, String::class.java, Int::class.javaPrimitiveType)
+            val classpath = state.analysisClasspath ?: ""
+            return FormatterFunc.NeedsFile { input, file ->
                 try {
-                    method.invoke(null, input, state.release) as String
+                    method.invoke(null, input, file, classpath, state.release) as String
                 } catch (t: ReflectiveOperationException) {
                     val cause = t.cause ?: t
                     throw RuntimeException("javafmt formatter invocation failed: ${cause.message}", cause)

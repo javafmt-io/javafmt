@@ -55,6 +55,14 @@ class DaemonTest {
     }
 
     @Test
+    void aJsonRequestCarriesItsClasspath() {
+        final var out = new ByteArrayOutputStream();
+        final var source = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
+        Daemon.serve(Wire.JSON, input("{\"id\":1,\"source\":" + quoted(source) + ",\"classpath\":\"\"}\n"), out);
+        assertThat(out.toString(StandardCharsets.UTF_8)).contains("import java.util.List;");
+    }
+
+    @Test
     void aMalformedJsonLineDoesNotKillTheLoop() {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.JSON, input("{not json}\n{\"id\":1,\"source\":\"class A {}\"}\n"), out);
@@ -75,7 +83,7 @@ class DaemonTest {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY, new ByteArrayInputStream(delimited(request(1, "class A {}"))), out,
-                (_, _) -> {
+                _ -> {
                     throw new OutOfMemoryError("simulated");
                 },
                 fatal::set);
@@ -96,11 +104,11 @@ class DaemonTest {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY, new ByteArrayInputStream(requests), out, threads,
-                (id, source) -> {
+                request -> {
                     mostAtOnce.accumulateAndGet(running.incrementAndGet(), Math::max);
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(50));
                     running.decrementAndGet();
-                    return FormatReply.newBuilder().setId(id).setOutput(source).build();
+                    return FormatReply.newBuilder().setId(request.getId()).setOutput(request.getSource()).build();
                 },
                 _ -> {});
         assertThat(mostAtOnce.get()).isBetween(1, threads);
@@ -128,12 +136,12 @@ class DaemonTest {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY, new ByteArrayInputStream(concat(delimited(request(1, "class A {}")), delimited(request(2, "class B {}")))), out,
-                (id, source) -> {
-                    if (id == 1) {
+                request -> {
+                    if (request.getId() == 1) {
                         throw new OutOfMemoryError("simulated");
                     }
                     awaitUninterruptibly(fatalStarted);
-                    return FormatReply.newBuilder().setId(id).setOutput(source).build();
+                    return FormatReply.newBuilder().setId(request.getId()).setOutput(request.getSource()).build();
                 },
                 _ -> {
                     fatalStarted.countDown();
@@ -157,7 +165,7 @@ class DaemonTest {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY, new ByteArrayInputStream(delimited(request(1, "class A {}"))), out,
-                (_, _) -> {
+                _ -> {
                     throw new IllegalStateException("boom");
                 },
                 _ -> {});
@@ -258,6 +266,10 @@ class DaemonTest {
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(requests), out);
         assertThat(replies(out)).extracting(FormatReply::getId).containsExactlyInAnyOrderElementsOf(IntStream.range(1, 51).boxed().toList());
         assertThat(replies(out)).allSatisfy(reply -> assertThat(DaemonFixtures.violations(reply)).isEmpty());
+    }
+
+    private static String quoted(final String text) {
+        return "\"" + text.replace("\n", "\\n") + "\"";
     }
 
     private static FormatRequest request(final int id, final String source) {

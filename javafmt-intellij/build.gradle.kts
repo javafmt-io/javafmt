@@ -202,11 +202,16 @@ intellijPlatform {
             Java files. Reformatting a selection, and any request that may only change whitespace,
             still goes to IntelliJ's built-in formatter, because javafmt's lint pass rewrites code
             (it inserts <code>final</code>, adds braces, drops unused imports) rather than only
-            laying it out. Formatting runs inside the IDE by default; the IDE-wide <em>Formatter</em> setting
+            laying it out. Each file is formatted with the compile classpath of its module (the test
+            classpath for test sources), which turns on the rules that need it, as javafmt's Gradle plugin
+            does in CI; a file outside every module, such as a scratch file, is formatted without them.
+            The <code>.javafmt</code> project file applies too.
+            Formatting runs inside the IDE by default; the IDE-wide <em>Formatter</em> setting
             can switch it to javafmt's native binary, found at the configured path, else as
             <code>javafmt</code> on <code>PATH</code>, else downloaded from the matching javafmt
-            GitHub release and checked against its checksum. When javafmt cannot parse the file, or
-            the native binary is selected and unavailable, the file is left exactly as it was and a
+            GitHub release and checked against its checksum. When javafmt cannot parse the file, the
+            <code>.javafmt</code> project file is invalid, or the native binary is selected and
+            unavailable, the file is left exactly as it was and a
             notification says why — IntelliJ's own formatter does not step in for a whole-file
             reformat.
         """.trimIndent()

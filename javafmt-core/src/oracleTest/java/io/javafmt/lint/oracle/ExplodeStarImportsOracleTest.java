@@ -18,7 +18,7 @@ import java.util.stream.Stream;
  * the explicit members actually referenced in the file.
  *
  * <p>The rule needs resolved symbols to decide what a wildcard supplies, so the oracle formats
- * with {@code --analyze}. Without it the wildcard is left in place and {@link
+ * with a classpath. Without one the wildcard is left in place and {@link
  * io.javafmt.lint.AvoidStarImport} reports it as a warning instead.
  */
 class ExplodeStarImportsOracleTest {

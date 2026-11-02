@@ -92,16 +92,14 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
     }
 
     private static Problem problem(final ProblemReporter reporter, final ProblemId id, final Outcome.Finding finding) {
-        return reporter.create(
-                id,
-                spec -> {
-                    if (finding.line() > 0) {
-                        spec.lineInFileLocation(finding.source().path(), finding.line(), finding.column());
-                    } else {
-                        spec.fileLocation(finding.source().path());
-                    }
-                    spec.contextualLabel(finding.message()).details(finding.description());
-                });
+        return reporter.create(id, spec -> {
+            if (finding.line() > 0) {
+                spec.lineInFileLocation(finding.source().path(), finding.line(), finding.column());
+            } else {
+                spec.fileLocation(finding.source().path());
+            }
+            spec.contextualLabel(finding.message()).details(finding.description());
+        });
     }
 
     public interface Parameters extends WorkParameters {

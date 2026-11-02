@@ -18,8 +18,7 @@ import java.util.stream.Stream;
 final class EnumRenderer {
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("enum " + node.getSimpleName()));
-        final var headerDoc = ClassLikeRenderer.buildTypeDeclarationHeader(
-                prefix, null, node.getImplementsClause(), false, List.of(), recursor);
+        final var headerDoc = ClassLikeRenderer.buildTypeDeclarationHeader(prefix, null, node.getImplementsClause(), false, List.of(), recursor);
         final var constants = node.getMembers()
                 .stream()
                 .filter(m -> isConstant(m, recursor))
@@ -37,8 +36,7 @@ final class EnumRenderer {
             final var constantsInner = new Doc.Indent(
                     Doc.concatOf(
                             Stream.of(
-                                    Stream.of(Doc.LINE),
-                                    CommentDocs.commaList(constants, recursor, c -> renderConstant(c, recursor)),
+                                    Stream.of(Doc.LINE), CommentDocs.commaList(constants, recursor, c -> renderConstant(c, recursor)),
                                     Stream.of(trailingSeparator(node, recursor)),
                                     pastTheLastSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
                                     commentsAfterTheLastConstant(node, recursor))));
@@ -47,8 +45,8 @@ final class EnumRenderer {
                     node.getModifiers(),
                     new Doc.Group(
                             Doc.concat(
-                                    headerDoc, new Doc.Text(" {"), new Doc.Concat(BlockRenderer.braceLineComments(braceLine).toList()), constantsInner,
-                                    beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant), new Doc.Text("}")),
+                                    headerDoc, new Doc.Text(" {"), new Doc.Concat(BlockRenderer.braceLineComments(braceLine).toList()),
+                                    constantsInner, beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant), new Doc.Text("}")),
                             !braceLine.isEmpty()),
                     recursor);
         }
@@ -74,7 +72,7 @@ final class EnumRenderer {
                 Doc.intersperse(
                         Doc.HARD_LINE,
                         IntStream.range(0, n)
-                                .<Doc>mapToObj(
+                                .mapToObj(
                                         i -> i < n - 1
                                                 ? constantAndComma(constants.get(i), recursor.pastTheSeparatorBefore(constants.get(i + 1)), recursor)
                                                 : lastConstant(constants.get(i), recursor))));

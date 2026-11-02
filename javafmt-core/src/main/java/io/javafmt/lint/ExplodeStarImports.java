@@ -23,7 +23,7 @@ import javax.lang.model.type.TypeKind;
 /**
  * Replaces wildcard imports with explicit imports for the members actually referenced.
  *
- * <p>Requires attribution, so the rule only fires under {@code --analyze}. Membership is read off
+ * <p>Requires attribution, so the rule only fires when there is a classpath. Membership is read off
  * the symbol each identifier resolves to: the declaration's owner is compared against the
  * wildcard's prefix. Nothing is guessed, so the result cannot vary with how javafmt happens to be
  * packaged, and a name the file's own package supplies is never rebound to a same-named type from
@@ -38,7 +38,7 @@ import javax.lang.model.type.TypeKind;
 public final class ExplodeStarImports implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
-        final var attribution = context.attribution();
+        final var attribution = context.attributionFor(ExplodeStarImports.class);
         if (attribution.isEmpty()) {
             return LintResult.EMPTY;
         }
@@ -54,6 +54,11 @@ public final class ExplodeStarImports implements LintRule {
         return resolveUses(unit, attribution.get())
                 .map(uses -> LintResult.ofEdits(stars.stream().flatMap(s -> editFor(s, uses, attribution.get(), unit).stream()).toList()))
                 .orElse(LintResult.EMPTY);
+    }
+
+    @Override
+    public boolean usesAnalysis() {
+        return true;
     }
 
     private static String prefixOf(final ImportTree imp) {

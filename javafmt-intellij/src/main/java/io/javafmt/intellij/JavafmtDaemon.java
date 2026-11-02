@@ -77,8 +77,9 @@ final class JavafmtDaemon {
         return stopped.get().isEmpty();
     }
 
-    JavafmtBinary.Outcome format(final String source) {
+    JavafmtBinary.Outcome format(final String source, final FileScope scope) {
         Objects.requireNonNull(source, "source");
+        Objects.requireNonNull(scope, "scope");
         final var id = ids.incrementAndGet();
         final var reply = new CompletableFuture<JavafmtBinary.Outcome>();
         pending.put(id, reply);
@@ -87,7 +88,7 @@ final class JavafmtDaemon {
             if (ended.isPresent()) {
                 return ended.get();
             }
-            requests.add(FormatRequest.newBuilder().setId(id).setSource(source).build());
+            requests.add(scope.request(id, source));
             return reply.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (final TimeoutException _) {
             final var refused = refused("javafmt did not respond within " + timeout.toSeconds() + "s");

@@ -12,11 +12,11 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 class InProcessFormatter {
-    JavafmtBinary.Outcome format(final String source) {
+    JavafmtBinary.Outcome format(final String source, final FileScope scope) {
         if (Thread.currentThread().isInterrupted()) {
             return new JavafmtBinary.Outcome.Cancelled();
         }
-        final var result = Javafmt.formatWithResult(source);
+        final var result = Javafmt.formatWithResult(source, scope.config(), scope.projectFile());
         if (Thread.currentThread().isInterrupted()) {
             return new JavafmtBinary.Outcome.Cancelled();
         }
@@ -37,6 +37,7 @@ class InProcessFormatter {
         return switch (diagnostic) {
             case io.javafmt.Diagnostic.ParseError _ -> Kind.KIND_PARSE;
             case io.javafmt.Diagnostic.LintError _ -> Kind.KIND_LINT;
+            case io.javafmt.Diagnostic.ConfigError _ -> Kind.KIND_CONFIG;
             case io.javafmt.Diagnostic.InternalError _ -> Kind.KIND_INTERNAL;
             case io.javafmt.Diagnostic.Warning _ -> Kind.KIND_WARNING;
         };

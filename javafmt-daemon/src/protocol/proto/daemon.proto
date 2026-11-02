@@ -11,6 +11,8 @@ option java_outer_classname = "DaemonProto";
 message FormatRequest {
   uint32 id = 1 [(buf.validate.field).required = true];
   optional string source = 2 [(buf.validate.field).required = true];
+  optional string path = 3;
+  optional string classpath = 4;
 }
 
 message FormatReply {
@@ -46,4 +48,5 @@ enum Kind {
   KIND_INTERNAL = 3;
   KIND_WARNING = 4;
   KIND_CLI = 5;
+  KIND_CONFIG = 6;
 }

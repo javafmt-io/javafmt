@@ -31,7 +31,7 @@ final class LoopRenderer {
                 ? new Doc.Text(";")
                 : CommentDocs.withSeparator(node.getCondition(), UnaryOperator.identity(), ";", recursor);
         final var pieces = Stream.of(
-                Stream.<Doc>of(new Doc.Text("for (")), initializers, Stream.<Doc>of(new Doc.Text(" "), condition),
+                Stream.<Doc>of(new Doc.Text("for (")), initializers, Stream.of(new Doc.Text(" "), condition),
                 node.getUpdate().isEmpty() ? Stream.<Doc>empty() : Stream.<Doc>of(new Doc.Text(" ")), commaSeparated(node.getUpdate(), "", recursor))
                 .flatMap(Function.identity())
                 .toList();
@@ -41,7 +41,9 @@ final class LoopRenderer {
     private Doc joinedOnOneLine(final List<Doc> pieces) {
         return pieces.stream()
                 .reduce(
-                        (joined, piece) -> Doc.endsWithLineComment(joined)
+                        (
+                                joined,
+                                piece) -> Doc.endsWithLineComment(joined)
                                 ? Doc.concat(joined, Doc.HARD_LINE, withoutLeadingSpace(piece))
                                 : Doc.concat(joined, piece))
                 .orElseThrow();
@@ -102,7 +104,8 @@ final class LoopRenderer {
                 IntStream.range(0, trees.size())
                         .mapToObj(
                                 i -> CommentDocs.withSeparator(
-                                        trees.get(i), BlockRenderer::stripTrailingSemicolonDoc, i + 1 < trees.size() ? "," : afterTheLast, recursor)));
+                                        trees.get(i), BlockRenderer::stripTrailingSemicolonDoc, i + 1 < trees.size() ? "," : afterTheLast,
+                                        recursor)));
     }
 
     private Stream<Doc> spaced(final Stream<Doc> elements) {
@@ -128,6 +131,6 @@ final class LoopRenderer {
         return Doc.concatOf(
                 Stream.of(
                         BlockRenderer.opened(new Doc.Text("do"), node.getStatement(), recursor), statements.stream().map(Doc::indentedLine),
-                        Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("} while "), recursor.scan(node.getCondition()), new Doc.Text(";"))));
+                        Stream.of(Doc.HARD_LINE, new Doc.Text("} while "), recursor.scan(node.getCondition()), new Doc.Text(";"))));
     }
 }

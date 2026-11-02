@@ -47,12 +47,10 @@ final class FakeRelease implements AutoCloseable {
     }
 
     static FakeRelease servingAfter(final CountDownLatch go, final Map<String, byte[]> assets) throws IOException {
-        return new FakeRelease(
-                assets,
-                (exchange, body) -> {
-                    await(go);
-                    sendAll(exchange, body);
-                });
+        return new FakeRelease(assets, (exchange, body) -> {
+            await(go);
+            sendAll(exchange, body);
+        });
     }
 
     static FakeRelease tricklingAfterHalf(final CountDownLatch halfway, final Map<String, byte[]> assets) throws IOException {

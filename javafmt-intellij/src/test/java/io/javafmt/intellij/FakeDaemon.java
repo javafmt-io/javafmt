@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class FakeDaemon {
+    static final String SCOPE_PROBE = "class Probe {}";
+
     static final Map<String, FormatReply> CANNED = Map.of(
             "class Foo { int x; }", reply("class Foo {\n    int x;\n}\n"), "class A { int x; }", reply("class A {\n    int x;\n}\n"),
             "class B { int x; }", reply("class B {\n    int x;\n}\n"), "class Warned { int x; }",
@@ -72,10 +74,10 @@ public final class FakeDaemon {
     }
 
     private static FormatReply answer(final FormatRequest request) {
-        return CANNED.getOrDefault(request.getSource(), reply(request.getSource()))
-                .toBuilder()
-                .setId(request.getId())
-                .build();
+        final var canned = request.getSource().equals(SCOPE_PROBE)
+                ? reply(request.hasClasspath() ? "analyzed" : "parse-only")
+                : CANNED.getOrDefault(request.getSource(), reply(request.getSource()));
+        return canned.toBuilder().setId(request.getId()).build();
     }
 
     private static FormatReply reply(final String output, final Diagnostic... diagnostics) {

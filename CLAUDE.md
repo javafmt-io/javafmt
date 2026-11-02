@@ -70,7 +70,7 @@ first use after a clean build.
 ## What the build checks
 
 - Every javac lint warning, Error Prone finding and Javadoc warning fails the build (`-Xlint:all -Werror`, and doclint with `-Werror`).
-- Spotless runs javafmt on every Java file under each module's `src/`, tests included, with the `--analyze` rewrites turned on. `gradle build` runs `spotlessCheck`, so run `gradle spotlessApply` before committing. The lint pass rewrites code as well as layout, so expect javafmt to change what you wrote; `docs/rules.md` lists every rewrite.
+- Spotless runs javafmt on every Java file under each module's `src/`, tests included, with the compile classpath, so the rewrites that need it run too. `gradle build` runs `spotlessCheck`, so run `gradle spotlessApply` before committing. The lint pass rewrites code as well as layout, so expect javafmt to change what you wrote; `docs/rules.md` lists every rewrite.
 
 ## Formatting rules (what javafmt enforces)
 

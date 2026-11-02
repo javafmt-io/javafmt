@@ -26,6 +26,20 @@ describe('encodeRequest', () => {
         expect(Buffer.from(encodeRequest(1, 'class A{}')).toString('hex')).toBe(fixture('requests.hex')[0]);
     });
 
+    it('carries the path and the classpath, an empty classpath included, only when given', () => {
+        const decoded = (bytes: Uint8Array) => {
+            const peek = sizeDelimitedPeek(bytes);
+            if (peek.eof) {
+                throw new Error('no whole request was written');
+            }
+            return fromBinary(FormatRequestSchema, bytes.subarray(peek.offset, peek.offset + peek.size));
+        };
+        const analyzed = decoded(encodeRequest(1, 'class A{}', { path: '/repo/A.java', classpath: '' }));
+        expect([analyzed.path, analyzed.classpath]).toEqual(['/repo/A.java', '']);
+        const parseOnly = decoded(encodeRequest(1, 'class A{}', {}));
+        expect([parseOnly.path, parseOnly.classpath]).toEqual([undefined, undefined]);
+    });
+
     it('writes a request that keeps the protocol rules', () => {
         const bytes = encodeRequest(1, '');
         const peek = sizeDelimitedPeek(bytes);

@@ -41,7 +41,7 @@ final class MethodRenderer {
      * array types — and any comment inside it survives.
      */
     private Stream<Doc> returnTypeDoc(final MethodTree node, final Recursor recursor) {
-        return node.getReturnType() == null ? Stream.<Doc>empty() : Stream.of(recursor.scan(node.getReturnType()), new Doc.Text(" "));
+        return node.getReturnType() == null ? Stream.empty() : Stream.of(recursor.scan(node.getReturnType()), new Doc.Text(" "));
     }
 
     Doc buildLeading(final Doc modifiers, final List<? extends TypeParameterTree> typeParams, final Doc afterTypeParams, final Recursor recursor) {
