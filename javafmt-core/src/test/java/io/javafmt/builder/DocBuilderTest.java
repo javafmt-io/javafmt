@@ -122,61 +122,6 @@ class DocBuilderTest {
                 .hasMessageContaining("<synthetic-OTHER-node>");
     }
 
-    private record SyntheticCompilationUnit(CompilationUnitTree real, Tree declaration) implements CompilationUnitTree {
-        @Override
-        public List<? extends AnnotationTree> getPackageAnnotations() {
-            return List.of();
-        }
-
-        @Override
-        @org.jspecify.annotations.Nullable
-        public ExpressionTree getPackageName() {
-            return null;
-        }
-
-        @Override
-        @org.jspecify.annotations.Nullable
-        public PackageTree getPackage() {
-            return null;
-        }
-
-        @Override
-        public List<? extends ImportTree> getImports() {
-            return List.of();
-        }
-
-        @Override
-        public List<? extends Tree> getTypeDecls() {
-            return List.of(declaration);
-        }
-
-        @Override
-        @org.jspecify.annotations.Nullable
-        public ModuleTree getModule() {
-            return null;
-        }
-
-        @Override
-        public LineMap getLineMap() {
-            return real.getLineMap();
-        }
-
-        @Override
-        public JavaFileObject getSourceFile() {
-            return real.getSourceFile();
-        }
-
-        @Override
-        public Kind getKind() {
-            return Kind.COMPILATION_UNIT;
-        }
-
-        @Override
-        public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
-            return visitor.visitCompilationUnit(this, data);
-        }
-    }
-
     @Nested
     class StatementSmoke {
         @Test
@@ -277,6 +222,61 @@ class DocBuilderTest {
         void aFieldWithJavadocIsSeparatedLikeAMethod() {
             assertThat(format("class Foo { int x;\n/** why */\n int y;\n int z; }"))
                     .isEqualTo("class Foo {\n    int x;\n\n    /** why */\n    int y;\n\n    int z;\n}");
+        }
+    }
+
+    private record SyntheticCompilationUnit(CompilationUnitTree real, Tree declaration) implements CompilationUnitTree {
+        @Override
+        public List<? extends AnnotationTree> getPackageAnnotations() {
+            return List.of();
+        }
+
+        @Override
+        @org.jspecify.annotations.Nullable
+        public ExpressionTree getPackageName() {
+            return null;
+        }
+
+        @Override
+        @org.jspecify.annotations.Nullable
+        public PackageTree getPackage() {
+            return null;
+        }
+
+        @Override
+        public List<? extends ImportTree> getImports() {
+            return List.of();
+        }
+
+        @Override
+        public List<? extends Tree> getTypeDecls() {
+            return List.of(declaration);
+        }
+
+        @Override
+        @org.jspecify.annotations.Nullable
+        public ModuleTree getModule() {
+            return null;
+        }
+
+        @Override
+        public LineMap getLineMap() {
+            return real.getLineMap();
+        }
+
+        @Override
+        public JavaFileObject getSourceFile() {
+            return real.getSourceFile();
+        }
+
+        @Override
+        public Kind getKind() {
+            return Kind.COMPILATION_UNIT;
+        }
+
+        @Override
+        public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
+            return visitor.visitCompilationUnit(this, data);
         }
     }
 }

@@ -123,7 +123,10 @@ public final class LintEngine {
 
     private List<LintResult> withWarnings(final List<LintResult> editing, final LintContext context) {
         return IntStream.range(0, rules.size())
-                .mapToObj(i -> rules.get(i) instanceof WarningRule warning ? new LintResult(List.of(), warning.warnings(context.forRule(warning))) : editing.get(i))
+                .mapToObj(
+                        i -> rules.get(i) instanceof WarningRule warning
+                                ? new LintResult(List.of(), warning.warnings(context.forRule(warning)))
+                                : editing.get(i))
                 .toList();
     }
 

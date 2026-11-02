@@ -17,7 +17,7 @@ final class BlockRenderer {
     List<Doc> blockStatements(final StatementTree statement, final Recursor recursor) {
         if (statement instanceof BlockTree block) {
             final var statementDocs = statementDocs(block.getStatements(), recursor);
-            final var tailDocs = recursor.trailingInside(block).stream().<Doc>map(CommentDocs::renderComment);
+            final var tailDocs = recursor.trailingInside(block).stream().map(CommentDocs::renderComment);
             return Stream.concat(statementDocs, tailDocs).toList();
         }
         recursor.emitWarning("added braces around single-statement body", statement);
@@ -74,7 +74,7 @@ final class BlockRenderer {
      * its first statement, which is not where the author left them.
      */
     Doc buildBlock(final Doc opening, final List<CommentToken> braceLine, final List<Doc> statements, final List<CommentToken> trailing) {
-        final var all = Stream.concat(statements.stream(), trailing.stream().<Doc>map(CommentDocs::renderComment)).toList();
+        final var all = Stream.concat(statements.stream(), trailing.stream().map(CommentDocs::renderComment)).toList();
         if (all.isEmpty() && braceLine.isEmpty()) {
             return Doc.concat(opening, new Doc.Text("}"));
         }

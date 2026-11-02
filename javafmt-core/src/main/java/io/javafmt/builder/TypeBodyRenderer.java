@@ -24,11 +24,7 @@ final class TypeBodyRenderer {
      *     no member to hang off, so nothing else would emit them and the file would come back
      *     refused — or, with verification off, silently short a comment.
      */
-    Doc withBody(final ClassTree node,
-                 final Doc header,
-                 final List<Member> members,
-                 final List<CommentToken> tail,
-                 final Recursor recursor) {
+    Doc withBody(final ClassTree node, final Doc header, final List<Member> members, final List<CommentToken> tail, final Recursor recursor) {
         final var modifiers = node.getModifiers();
         final var braceLine = recursor.braceLine(node);
         if (members.isEmpty() && tail.isEmpty() && braceLine.isEmpty()) {
@@ -38,8 +34,8 @@ final class TypeBodyRenderer {
                 modifiers,
                 Doc.concatOf(
                         Stream.of(
-                                Stream.of(header, new Doc.Text(" {")), BlockRenderer.braceLineComments(braceLine), separated(members, recursor), tailLines(tail),
-                                Doc.closeBrace())),
+                                Stream.of(header, new Doc.Text(" {")), BlockRenderer.braceLineComments(braceLine), separated(members, recursor),
+                                tailLines(tail), Doc.closeBrace())),
                 recursor);
     }
 

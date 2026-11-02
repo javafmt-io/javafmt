@@ -32,12 +32,10 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
         enterChain(spine);
         try {
             spine.forEach(
-                    operator -> at(
-                            operator,
-                            () -> {
-                                visitBinaryOperator(operator, p);
-                                return null;
-                            }));
+                    operator -> at(operator, () -> {
+                        visitBinaryOperator(operator, p);
+                        return null;
+                    }));
             final var innermost = spine.getLast();
             var result = at(innermost, () -> scan(innermost.getLeftOperand(), p));
             for (final var operator : spine.reversed()) {

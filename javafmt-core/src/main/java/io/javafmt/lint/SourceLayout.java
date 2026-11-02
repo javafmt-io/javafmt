@@ -24,7 +24,6 @@ final class SourceLayout {
         return CommentScanner.withoutComments(source).strip().replaceAll("\\s+", " ");
     }
 
-
     /** Whether {@code width} characters starting at column {@code column} stay inside the line. */
     boolean fits(final int column, final int width) {
         return column + width <= LINE_WIDTH;

@@ -255,7 +255,9 @@ class VarRetypingCheck {
 
     record Shift(NavigableMap<Integer, Integer> movedFromStart, NavigableMap<Integer, Integer> movedFromEnd) {
         Shift(final List<LintEdit> edits) {
-            this(movedFrom(edits, edit -> isInsertion(edit) ? edit.start() : edit.end()), movedFrom(edits, edit -> isInsertion(edit) ? edit.start() + 1 : edit.end()));
+            this(
+                    movedFrom(edits, edit -> isInsertion(edit) ? edit.start() : edit.end()),
+                    movedFrom(edits, edit -> isInsertion(edit) ? edit.start() + 1 : edit.end()));
         }
 
         int start(final int offset) {
@@ -271,7 +273,8 @@ class VarRetypingCheck {
         }
 
         private static NavigableMap<Integer, Integer> movedFrom(final List<LintEdit> edits, final ToIntFunction<LintEdit> from) {
-            final TreeMap<Integer, Integer> byOffset = edits.stream().collect(Collectors.toMap(from::applyAsInt, Shift::delta, Integer::sum, TreeMap::new));
+            final TreeMap<Integer, Integer> byOffset = edits.stream()
+                    .collect(Collectors.toMap(from::applyAsInt, Shift::delta, Integer::sum, TreeMap::new));
             final var offsets = byOffset.keySet().stream().mapToInt(Integer::intValue).toArray();
             final var totals = byOffset.values().stream().mapToInt(Integer::intValue).toArray();
             Arrays.parallelPrefix(totals, Integer::sum);

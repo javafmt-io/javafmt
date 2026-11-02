@@ -17,11 +17,10 @@ class VersionGateTest {
     @Test
     void aConclusiveProbeIsAskedOnce(@TempDir final Path dir) throws IOException {
         final var probes = new AtomicInteger();
-        final var gate = new VersionGate(
-                _ -> {
-                    probes.incrementAndGet();
-                    return new JavafmtBinary.VersionProbe.Reported("javafmt 999.0.0");
-                });
+        final var gate = new VersionGate(_ -> {
+            probes.incrementAndGet();
+            return new JavafmtBinary.VersionProbe.Reported("javafmt 999.0.0");
+        });
         final var binary = binary(dir);
         assertThat(List.of(gate.isSupported(binary), gate.isSupported(binary))).containsExactly(Optional.of(true), Optional.of(true));
         assertThat(probes).hasValue(1);
@@ -30,11 +29,10 @@ class VersionGateTest {
     @Test
     void aBinaryThatFailsTheProbeIsRememberedAsUnsupported(@TempDir final Path dir) throws IOException {
         final var probes = new AtomicInteger();
-        final var gate = new VersionGate(
-                _ -> {
-                    probes.incrementAndGet();
-                    return new JavafmtBinary.VersionProbe.Failed();
-                });
+        final var gate = new VersionGate(_ -> {
+            probes.incrementAndGet();
+            return new JavafmtBinary.VersionProbe.Failed();
+        });
         final var binary = binary(dir);
         assertThat(List.of(gate.isSupported(binary), gate.isSupported(binary))).containsExactly(Optional.of(false), Optional.of(false));
         assertThat(probes).hasValue(1);

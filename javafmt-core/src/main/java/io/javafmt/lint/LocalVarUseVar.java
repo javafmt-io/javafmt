@@ -102,7 +102,9 @@ public final class LocalVarUseVar implements LintRule {
         final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
         final var verified = unproven.isEmpty()
                 ? List.<Proposal>of()
-                : context.attributionFor(LocalVarUseVar.class).map(attribution -> VarRetypingCheck.verified(unit, attribution, proven, unproven)).orElse(List.of());
+                : context.attributionFor(LocalVarUseVar.class)
+                        .map(attribution -> VarRetypingCheck.verified(unit, attribution, proven, unproven))
+                        .orElse(List.of());
         return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream()).flatMap(proposal -> proposal.edits().stream()).toList());
     }
 

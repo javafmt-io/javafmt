@@ -108,7 +108,12 @@ class BinaryExpressionRendererTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"final var ok = a.longMethodName(arg1) && b.anotherLongMethod(arg2, arg3, arg4);", "return a && b && c;", "final var ok = tree != null && !(tree instanceof BinaryTree) && !(tree instanceof MethodInvocationTree) && !(tree instanceof LambdaTree);"})
+    @ValueSource(
+            strings = {
+                    "final var ok = a.longMethodName(arg1) && b.anotherLongMethod(arg2, arg3, arg4);",
+                    "return a && b && c;",
+                    "final var ok = tree != null && !(tree instanceof BinaryTree) && !(tree instanceof MethodInvocationTree) && !(tree instanceof LambdaTree);"
+            })
     void logicalChainThatFitsTheLine_staysFlat(final String statement) {
         final var source = "class X {\n    boolean ok(Object a, Object b, Object tree) {\n        " + statement + "\n    }\n}";
         assertThat(format(source)).isEqualTo(source);

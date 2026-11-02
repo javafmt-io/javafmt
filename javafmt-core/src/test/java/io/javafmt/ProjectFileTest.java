@@ -74,7 +74,8 @@ class ProjectFileTest {
         Files.writeString(dir.resolve(".git"), "gitdir: ../elsewhere\n");
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=RedundantTypeArguments\n");
         final var source = Files.createDirectories(dir.resolve("src")).resolve("Order.java");
-        assertThat(ProjectFile.forFile(source)).isEqualTo(new ProjectFile.Settings(dir.resolve(".javafmt").toString(), Set.of("RedundantTypeArguments")));
+        assertThat(ProjectFile.forFile(source))
+                .isEqualTo(new ProjectFile.Settings(dir.resolve(".javafmt").toString(), Set.of("RedundantTypeArguments")));
     }
 
     @Test
@@ -99,7 +100,8 @@ class ProjectFileTest {
 
     @Test
     void theSkippedRulesKeepOneOrderSoTheSerializedFormIsStable() {
-        final var settings = (ProjectFile.Settings) ProjectFile.parse(LOCATION, "analyze.skip=RedundantTypeArguments, ExplodeStarImports, LocalVarUseVar\n");
+        final var settings = (ProjectFile.Settings) ProjectFile.parse(
+                LOCATION, "analyze.skip=RedundantTypeArguments, ExplodeStarImports, LocalVarUseVar\n");
         assertThat(settings.analyzeSkip()).containsExactly("ExplodeStarImports", "LocalVarUseVar", "RedundantTypeArguments");
     }
 

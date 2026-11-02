@@ -111,7 +111,8 @@ public final class TreeFacts {
         final var annotations = modifiers.getAnnotations();
         final var index = IntStream.range(0, annotations.size()).filter(i -> annotations.get(i) == annotation).findFirst().orElse(-1);
         return IntStream.rangeClosed(0, index)
-                .anyMatch(i -> writtenBetween(i == 0 ? unit.startOf(modifiers) : unit.endOf(annotations.get(i - 1)), unit.startOf(annotations.get(i))));
+                .anyMatch(
+                        i -> writtenBetween(i == 0 ? unit.startOf(modifiers) : unit.endOf(annotations.get(i - 1)), unit.startOf(annotations.get(i))));
     }
 
     public boolean startsAfter(final Tree node, final Tree other) {

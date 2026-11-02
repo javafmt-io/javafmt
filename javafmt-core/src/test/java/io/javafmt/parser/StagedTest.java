@@ -19,14 +19,12 @@ class StagedTest {
     void mapAllHandsTheBatchOnlyTheOkValuesAndLinesTheResultsBackUp() {
         final var seen = new AtomicReference<List<String>>();
         final List<Staged<String>> items = List.of(new Staged.Ok<>("a"), new Staged.Failed<>(FAILURE), new Staged.Ok<>("c"));
-        final var results = Staged.mapAll(
-                items,
-                values -> {
-                    seen.set(values);
-                    return values.stream()
-                            .<Staged<Integer>>map(v -> new Staged.Ok<>(v.charAt(0) - 'a'))
-                            .toList();
-                });
+        final var results = Staged.mapAll(items, values -> {
+            seen.set(values);
+            return values.stream()
+                    .<Staged<Integer>>map(v -> new Staged.Ok<>(v.charAt(0) - 'a'))
+                    .toList();
+        });
         assertThat(seen.get()).containsExactly("a", "c");
         assertThat(results).containsExactly(new Staged.Ok<>(0), new Staged.Failed<>(FAILURE), new Staged.Ok<>(2));
     }
@@ -34,7 +32,7 @@ class StagedTest {
     @Test
     void mapAllKeepsAFailureTheBatchReturnsForAnOkValue() {
         final List<Staged<String>> items = List.of(new Staged.Ok<>("a"), new Staged.Ok<>("b"));
-        final var results = Staged.mapAll(items, _ -> List.<Staged<String>>of(new Staged.Ok<>("A"), new Staged.Failed<>(FAILURE)));
+        final var results = Staged.mapAll(items, _ -> List.of(new Staged.Ok<>("A"), new Staged.Failed<>(FAILURE)));
         assertThat(results).containsExactly(new Staged.Ok<>("A"), new Staged.Failed<>(FAILURE));
     }
 

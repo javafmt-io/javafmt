@@ -56,15 +56,16 @@ final class ModifierRenderer {
                         recursor));
     }
 
-    Doc annotationsAfterTypeParameters(final ModifiersTree modifiers, final List<? extends TypeParameterTree> typeParameters, final Recursor recursor) {
+    Doc annotationsAfterTypeParameters(final ModifiersTree modifiers,
+                                       final List<? extends TypeParameterTree> typeParameters,
+                                       final Recursor recursor) {
         return annotationsDoc(annotations(modifiers, a -> followsTypeParameters(a, typeParameters, recursor)), recursor);
     }
 
     private List<? extends AnnotationTree> declarationAnnotations(final ModifiersTree modifiers,
                                                                   final List<? extends TypeParameterTree> typeParameters,
                                                                   final Recursor recursor) {
-        return annotations(
-                modifiers, a -> !recursor.followsAModifierKeyword(modifiers, a) && !followsTypeParameters(a, typeParameters, recursor));
+        return annotations(modifiers, a -> !recursor.followsAModifierKeyword(modifiers, a) && !followsTypeParameters(a, typeParameters, recursor));
     }
 
     private List<? extends AnnotationTree> annotations(final ModifiersTree modifiers, final Predicate<AnnotationTree> placed) {
@@ -117,7 +118,8 @@ final class ModifierRenderer {
      */
     Preamble preambleOf(final ModifiersTree modifiers, final List<? extends TypeParameterTree> typeParameters, final Recursor recursor) {
         return new Preamble(
-                modifiersDoc(modifiers, typeParameters, recursor), declarationAnnotations(modifiers, typeParameters, recursor), recursor.tail(modifiers));
+                modifiersDoc(modifiers, typeParameters, recursor), declarationAnnotations(modifiers, typeParameters, recursor),
+                recursor.tail(modifiers));
     }
 
     /** {@link #preambleOf} with the caller's own answer to "do these render inline". */
@@ -133,7 +135,8 @@ final class ModifierRenderer {
     }
 
     Doc prependOwnLineAnnotations(final ModifiersTree modifiers, final Doc doc, final Recursor recursor) {
-        return prependOwnLineAnnotations(declarationAnnotations(modifiers, List.of(), recursor), CommentDocs.prepend(recursor.tail(modifiers), doc), recursor);
+        return prependOwnLineAnnotations(
+                declarationAnnotations(modifiers, List.of(), recursor), CommentDocs.prepend(recursor.tail(modifiers), doc), recursor);
     }
 
     Doc prependOwnLineAnnotations(final List<? extends AnnotationTree> annotations, final Doc doc, final Recursor recursor) {

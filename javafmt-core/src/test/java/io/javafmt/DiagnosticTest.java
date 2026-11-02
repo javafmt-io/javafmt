@@ -44,7 +44,8 @@ class DiagnosticTest {
         final var unknown = new Position.Unknown();
         return Stream.of(
                 Arguments.of(new Diagnostic.ParseError("m", unknown), "parse", "error"),
-                Arguments.of(new Diagnostic.LintError("m", unknown), "lint", "error"), Arguments.of(new Diagnostic.ConfigError("m", unknown), "config", "error"),
+                Arguments.of(new Diagnostic.LintError("m", unknown), "lint", "error"),
+                Arguments.of(new Diagnostic.ConfigError("m", unknown), "config", "error"),
                 Arguments.of(new Diagnostic.InternalError("m", unknown), "internal", "error"),
                 Arguments.of(new Diagnostic.Warning("m", unknown), "warning", "warning"));
     }

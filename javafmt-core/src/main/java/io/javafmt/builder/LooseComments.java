@@ -22,7 +22,9 @@ final class LooseComments {
         final var insertions = unit.loose()
                 .stream()
                 .sorted(Comparator.comparingInt(CommentToken::start))
-                .map(c -> new Insertion(significantBefore[c.start()], c, source.substring(source.lastIndexOf('\n', c.start() - 1) + 1, c.start()).isBlank()))
+                .map(
+                        c -> new Insertion(
+                                significantBefore[c.start()], c, source.substring(source.lastIndexOf('\n', c.start() - 1) + 1, c.start()).isBlank()))
                 .toList();
         return new Weaver(insertions).transform(doc);
     }

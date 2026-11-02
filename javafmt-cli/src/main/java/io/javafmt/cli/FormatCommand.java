@@ -21,7 +21,22 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.Callable;
 
-@Command( name = "javafmt", mixinStandardHelpOptions = true, versionProvider = FormatCommand.Version.class, showAtFileInUsageHelp = true, showEndOfOptionsDelimiterInUsageHelp = true, description = { "Formats Java source in place. With no paths, or with '-', reads from stdin and writes the result to stdout.", "Directories are searched recursively for .java files.", }, exitCodeListHeading = "%nExit Codes:%n", exitCodeList = { "0:nothing to do", "1:a file would be reformatted, or could not be formatted", "2:bad usage, a file could not be read or written, or javafmt failed or ran out of memory", })
+@Command(
+        name = "javafmt",
+        mixinStandardHelpOptions = true,
+        versionProvider = FormatCommand.Version.class,
+        showAtFileInUsageHelp = true,
+        showEndOfOptionsDelimiterInUsageHelp = true,
+        description = {
+                "Formats Java source in place. With no paths, or with '-', reads from stdin and writes the result to stdout.",
+                "Directories are searched recursively for .java files.",
+        },
+        exitCodeListHeading = "%nExit Codes:%n",
+        exitCodeList = {
+                "0:nothing to do",
+                "1:a file would be reformatted, or could not be formatted",
+                "2:bad usage, a file could not be read or written, or javafmt failed or ran out of memory",
+        })
 final class FormatCommand implements Callable<Integer> {
     private static final Path STDIN = Path.of("-");
 
@@ -41,13 +56,20 @@ final class FormatCommand implements Callable<Integer> {
     @Option(names = "--check", description = "Do not write anything; exit 1 if any file would be reformatted.")
     private boolean check;
 
-    @Option(names = "--daemon", description = "Serve length-delimited protobuf format requests from stdin until it closes, one reply each on stdout. For editor integrations.")
+    @Option(
+            names = "--daemon",
+            description =
+                    "Serve length-delimited protobuf format requests from stdin until it closes, one reply each on stdout. For editor integrations.")
     private boolean daemon;
 
     @Option(names = "--json", description = "With --daemon, speak protobuf's JSON mapping instead, one message per line. For debugging.")
     private boolean json;
 
-    @Option( names = "--diagnostics", paramLabel = "<format>", defaultValue = "text", description = "Diagnostic format on stderr: text, or json for NDJSON. Default: ${DEFAULT-VALUE}.")
+    @Option(
+            names = "--diagnostics",
+            paramLabel = "<format>",
+            defaultValue = "text",
+            description = "Diagnostic format on stderr: text, or json for NDJSON. Default: ${DEFAULT-VALUE}.")
     private DiagnosticsFormat diagnostics = DiagnosticsFormat.TEXT;
 
     @Option(names = "--exclude", paramLabel = "<glob>", description = "Skip paths matching the glob. Repeatable.")
@@ -58,7 +80,10 @@ final class FormatCommand implements Callable<Integer> {
 
     private OptionalInt threads = OptionalInt.empty();
 
-    @Option( names = "--ratchet-from", paramLabel = "<ref>", description = "Only format files that differ from where HEAD branched off this git ref: changed, staged and untracked files.")
+    @Option(
+            names = "--ratchet-from",
+            paramLabel = "<ref>",
+            description = "Only format files that differ from where HEAD branched off this git ref: changed, staged and untracked files.")
     private Optional<String> ratchetFrom = Optional.empty();
 
     @Option(names = "--cache", paramLabel = "<file>", description = "Skip files unchanged since the last run recorded in this file.")
@@ -85,7 +110,10 @@ final class FormatCommand implements Callable<Integer> {
         this.workingDirectory = workingDirectory;
     }
 
-    @Option( names = "--threads", paramLabel = "<n>", description = "Files, or with --daemon requests, to format concurrently. Default: the CPU count, or for --daemon the CPU count up to 4.")
+    @Option(
+            names = "--threads",
+            paramLabel = "<n>",
+            description = "Files, or with --daemon requests, to format concurrently. Default: the CPU count, or for --daemon the CPU count up to 4.")
     void setThreads(final int threads) {
         if (threads <= 0) {
             throw new ParameterException(spec.commandLine(), "--threads must be a positive integer, but was: " + threads);

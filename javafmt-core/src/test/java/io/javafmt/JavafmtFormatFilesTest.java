@@ -36,12 +36,10 @@ class JavafmtFormatFilesTest {
         assertThat(results.get(0)).isEqualTo(new FileResult.UpToDate(cached));
         assertThat(results.get(1)).isEqualTo(new FileResult.Formatted(dirty, UNFORMATTED, Javafmt.formatWithResult(UNFORMATTED)));
         assertThat(results.get(2))
-                .isInstanceOfSatisfying(
-                        FileResult.Unreadable.class,
-                        unreadable -> {
-                            assertThat(unreadable.path()).isEqualTo(missing);
-                            assertThat(unreadable.error()).isInstanceOf(NoSuchFileException.class);
-                        });
+                .isInstanceOfSatisfying(FileResult.Unreadable.class, unreadable -> {
+                    assertThat(unreadable.path()).isEqualTo(missing);
+                    assertThat(unreadable.error()).isInstanceOf(NoSuchFileException.class);
+                });
         assertThat(results.get(3)).isEqualTo(new FileResult.Formatted(empty, "", new FormatResult("", List.of())));
     }
 

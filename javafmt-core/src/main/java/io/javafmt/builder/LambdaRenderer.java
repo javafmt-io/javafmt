@@ -6,8 +6,6 @@ import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
-import java.util.List;
-
 @UtilityClass
 final class LambdaRenderer {
     Doc render(final LambdaExpressionTree node, final Recursor recursor) {

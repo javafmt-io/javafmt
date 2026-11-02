@@ -42,12 +42,10 @@ class JavaParserTest {
     void attributionReportsEveryErrorInTheUnitWithItsOffset() {
         final var body = IntStream.range(0, 150).mapToObj(i -> "int n" + i + " = \"x\";").collect(Collectors.joining(" "));
         final var source = "class Invoices { void settle() { " + body + " } }";
-        final var errors = JavaParser.attributing(
-                "",
-                session -> {
-                    final var attributed = session.attribute(source);
-                    return attributed.attribution().errorsIn(attributed.unit().tree());
-                });
+        final var errors = JavaParser.attributing("", session -> {
+            final var attributed = session.attribute(source);
+            return attributed.attribution().errorsIn(attributed.unit().tree());
+        });
         assertThat(errors).hasSize(150);
         assertThat(errors.getFirst().offset()).isEqualTo(source.indexOf("\"x\""));
         assertThat(errors.getFirst().message()).contains("incompatible types");
@@ -55,14 +53,11 @@ class JavaParserTest {
 
     @Test
     void reattributingReusesTheSessionOfTheOriginalAttribution() {
-        final var sessions = JavaParser.attributing(
-                "",
-                session -> {
-                    final var original = session.attribute("class A { java.util.List<String> xs = java.util.List.of(); }");
-                    final var reattributed = JavaParser.reattribute(
-                            "class A { java.util.List<String> ys = java.util.List.of(); }", original.attribution());
-                    return List.of(session, original.attribution().session(), reattributed.attribution().session());
-                });
+        final var sessions = JavaParser.attributing("", session -> {
+            final var original = session.attribute("class A { java.util.List<String> xs = java.util.List.of(); }");
+            final var reattributed = JavaParser.reattribute("class A { java.util.List<String> ys = java.util.List.of(); }", original.attribution());
+            return List.of(session, original.attribution().session(), reattributed.attribution().session());
+        });
         assertThat(sessions).allSatisfy(s -> assertThat(s).isSameAs(sessions.getFirst()));
     }
 
@@ -73,14 +68,12 @@ class JavaParserTest {
         final var first = new AtomicReference<StandardJavaFileManager>();
         final var holder = Thread.ofPlatform()
                 .start(
-                        () -> JavaParser.attributing(
-                                "",
-                                session -> {
-                                    first.set(session.fileManager());
-                                    held.countDown();
-                                    awaitUninterruptibly(release);
-                                    return session;
-                                }));
+                        () -> JavaParser.attributing("", session -> {
+                            first.set(session.fileManager());
+                            held.countDown();
+                            awaitUninterruptibly(release);
+                            return session;
+                        }));
         held.await();
         final var second = JavaParser.attributing("", session -> session.fileManager());
         release.countDown();
@@ -254,15 +247,13 @@ class JavaParserTest {
 
     @Test
     void attribute_emptyClasspath_returnsServices() {
-        JavaParser.attributing(
-                "",
-                session -> {
-                    final var attribution = session.attribute("class Foo {}").attribution();
-                    assertThat(attribution.trees()).isNotNull();
-                    assertThat(attribution.types()).isNotNull();
-                    assertThat(attribution.elements()).isNotNull();
-                    return attribution;
-                });
+        JavaParser.attributing("", session -> {
+            final var attribution = session.attribute("class Foo {}").attribution();
+            assertThat(attribution.trees()).isNotNull();
+            assertThat(attribution.types()).isNotNull();
+            assertThat(attribution.elements()).isNotNull();
+            return attribution;
+        });
     }
 
     @Test
@@ -309,7 +300,7 @@ class JavaParserTest {
 
     @Test
     void attribute_batchEmpty_returnsEmpty() {
-        final var outcomes = JavaParser.attributing("", session -> session.attribute(List.<String>of()));
+        final var outcomes = JavaParser.attributing("", session -> session.attribute(List.of()));
         assertThat(outcomes).isEmpty();
     }
 

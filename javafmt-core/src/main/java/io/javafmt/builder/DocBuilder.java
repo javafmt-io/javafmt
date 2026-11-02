@@ -293,20 +293,20 @@ public final class DocBuilder {
         final var hasPackage = node.getPackageName() != null;
         final var packageAnnotations = node.getPackageAnnotations()
                 .stream()
-                .<Doc>flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
+                .flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
         // The blank line after the package declaration normally comes from the import section. With
         // no imports there is no import section, and the first type ran straight into the package.
         final var packageSeparator = node.getImports().isEmpty() ? Stream.<Doc>of(Doc.HARD_LINE) : Stream.<Doc>empty();
         final var pkgStream = node.getPackage() == null
                 ? Stream.<Doc>empty()
-                : Stream.concat(Stream.<Doc>of(packageLine(node.getPackage()), Doc.HARD_LINE), packageSeparator);
+                : Stream.concat(Stream.of(packageLine(node.getPackage()), Doc.HARD_LINE), packageSeparator);
         final var module = node.getModule();
-        final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.<Doc>ofNullable(scan(module)).stream();
+        final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.ofNullable(scan(module)).stream();
         final var typeDeclarationsStream = Doc.intersperse(
                 Doc.BLANK_LINE,
                 node.getTypeDecls()
                         .stream()
-                        .<Doc>flatMap(declaration -> Optional.<Doc>ofNullable(scan(declaration)).stream()));
+                        .flatMap(declaration -> Optional.ofNullable(scan(declaration)).stream()));
         return Doc.concatOf(
                 Stream.of(
                         CommentDocs.fileHeaderStream(unit.fileHeader()), packageAnnotations, pkgStream,
@@ -345,7 +345,7 @@ public final class DocBuilder {
     private Doc visitBlock(final BlockTree node) {
         final var statements = node.getStatements()
                 .stream()
-                .<Doc>flatMap(s -> Optional.ofNullable(scan(s)).stream())
+                .flatMap(s -> Optional.ofNullable(scan(s)).stream())
                 .toList();
         return BlockRenderer.buildBlock(new Doc.Text("{"), attacher.braceLine(node), statements, attacher.trailingInside(node));
     }

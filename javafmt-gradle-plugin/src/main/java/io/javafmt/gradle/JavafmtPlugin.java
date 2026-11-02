@@ -110,26 +110,22 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             final var name = sourceSet.getName();
             final var suffix = name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
             final var format = project.getTasks()
-                    .register(
-                            FORMAT + suffix, JavafmtFormat.class,
-                            task -> {
-                                describe(task, GROUP, "Formats the " + name + " Java sources with javafmt.");
-                                configure(task, sourceSet);
-                            });
+                    .register(FORMAT + suffix, JavafmtFormat.class, task -> {
+                        describe(task, GROUP, "Formats the " + name + " Java sources with javafmt.");
+                        configure(task, sourceSet);
+                    });
             final var check = project.getTasks()
-                    .register(
-                            CHECK + suffix, JavafmtCheck.class,
-                            task -> {
-                                describe(
-                                        task, LifecycleBasePlugin.VERIFICATION_GROUP,
-                                        "Checks that the " + name + " Java sources are formatted with javafmt.");
-                                configure(task, sourceSet);
-                                task.getMarker().set(project.getLayout().getBuildDirectory().file("javafmt/" + name + ".checked"));
-                                task.getOutputs().upToDateWhen(new RatchetFromSet(false));
-                                task.getOutputs()
-                                        .doNotCacheIf("The files ratchetFrom selects depend on the state of the git repository.", new RatchetFromSet(true));
-                                task.mustRunAfter(format);
-                            });
+                    .register(CHECK + suffix, JavafmtCheck.class, task -> {
+                        describe(
+                                task, LifecycleBasePlugin.VERIFICATION_GROUP,
+                                "Checks that the " + name + " Java sources are formatted with javafmt.");
+                        configure(task, sourceSet);
+                        task.getMarker().set(project.getLayout().getBuildDirectory().file("javafmt/" + name + ".checked"));
+                        task.getOutputs().upToDateWhen(new RatchetFromSet(false));
+                        task.getOutputs()
+                                .doNotCacheIf("The files ratchetFrom selects depend on the state of the git repository.", new RatchetFromSet(true));
+                        task.mustRunAfter(format);
+                    });
             checkAll.configure(task -> task.dependsOn(check));
             formatAll.configure(task -> task.dependsOn(format));
         }

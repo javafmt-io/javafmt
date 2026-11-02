@@ -72,7 +72,18 @@ class JavafmtFormatAllTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"1, 4, 16", "10, 4, 16", "100, 4, 16", "100, 1, 64", "512, 4, 32", "1000, 4, 63", "4096, 4, 64", "640, 8, 40", "640, 18, 40", "128, 0, 64"})
+    @CsvSource({
+            "1, 4, 16",
+            "10, 4, 16",
+            "100, 4, 16",
+            "100, 1, 64",
+            "512, 4, 32",
+            "1000, 4, 63",
+            "4096, 4, 64",
+            "640, 8, 40",
+            "640, 18, 40",
+            "128, 0, 64"
+    })
     void chunksAreSizedSoEveryChunkWorkerGetsAboutFour(final int files, final int threads, final int expected) {
         assertThat(BatchFormatter.chunkSize(files, threads)).isEqualTo(expected);
     }
@@ -168,11 +179,9 @@ class JavafmtFormatAllTest {
     @Test
     void aOneFileChunkThatFailsComesBackUnchangedWithAnInternalError() {
         final var sources = List.of("class A {}\n", "class B {}\n");
-        final var results = formatChunkFailingWhenBatched(
-                sources,
-                _ -> {
-                    throw new IllegalStateException("every chunk fails");
-                });
+        final var results = formatChunkFailingWhenBatched(sources, _ -> {
+            throw new IllegalStateException("every chunk fails");
+        });
         assertThat(outputsOf(results)).isEqualTo(sources);
         assertThat(results).allSatisfy(r -> assertThat(r.diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class));
     }
@@ -218,14 +227,12 @@ class JavafmtFormatAllTest {
 
     private static List<FormatResult> formatChunkFailingWhenBatched(final List<String> sources,
                                                                     final Function<List<String>, List<BatchFormatter.Prepared>> parser) {
-        return BatchFormatter.formatChunk(
-                sources, JavafmtConfig.defaults(), BatchFormatter.Renderer.INLINE,
-                chunk -> {
-                    if (chunk.size() > 1) {
-                        throw new IllegalStateException("the whole chunk failed");
-                    }
-                    return parser.apply(chunk);
-                });
+        return BatchFormatter.formatChunk(sources, JavafmtConfig.defaults(), BatchFormatter.Renderer.INLINE, chunk -> {
+            if (chunk.size() > 1) {
+                throw new IllegalStateException("the whole chunk failed");
+            }
+            return parser.apply(chunk);
+        });
     }
 
     private static List<String> analyzeSensitiveSources() {

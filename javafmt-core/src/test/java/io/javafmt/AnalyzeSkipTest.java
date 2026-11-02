@@ -114,8 +114,7 @@ class AnalyzeSkipTest {
         assertThat(result.diagnostics())
                 .singleElement()
                 .isInstanceOfSatisfying(
-                        Diagnostic.ConfigError.class,
-                        error -> assertThat(error.message()).contains("/repository/.javafmt", "FinalParameters"));
+                        Diagnostic.ConfigError.class, error -> assertThat(error.message()).contains("/repository/.javafmt", "FinalParameters"));
     }
 
     @Test
@@ -140,11 +139,9 @@ class AnalyzeSkipTest {
         final var results = Javafmt.formatFiles(List.of(source), JavafmtConfig.defaults(), FormatCache.noop(), 1);
         assertThat(results)
                 .singleElement()
-                .isInstanceOfSatisfying(
-                        FileResult.Formatted.class,
-                        formatted -> {
-                            assertThat(formatted.changed()).isFalse();
-                            assertThat(formatted.result().errors()).singleElement().isInstanceOf(Diagnostic.ConfigError.class);
-                        });
+                .isInstanceOfSatisfying(FileResult.Formatted.class, formatted -> {
+                    assertThat(formatted.changed()).isFalse();
+                    assertThat(formatted.result().errors()).singleElement().isInstanceOf(Diagnostic.ConfigError.class);
+                });
     }
 }

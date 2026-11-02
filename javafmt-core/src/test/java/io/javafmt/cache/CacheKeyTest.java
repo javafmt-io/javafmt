@@ -33,8 +33,8 @@ class CacheKeyTest {
         final var skipping = new ProjectFile.Settings("/repository/.javafmt", Set.of("LocalVarUseVar"));
         final var elsewhere = new ProjectFile.Settings("/other/.javafmt", Set.of("LocalVarUseVar"));
         final var keys = Stream.of(
-                List.<ProjectFile>of(), List.<ProjectFile>of(new ProjectFile.Settings("/repository/.javafmt", Set.of())), List.<ProjectFile>of(skipping),
-                List.<ProjectFile>of(elsewhere), List.<ProjectFile>of(skipping, elsewhere))
+                List.<ProjectFile>of(), List.<ProjectFile>of(new ProjectFile.Settings("/repository/.javafmt", Set.of())),
+                List.<ProjectFile>of(skipping), List.<ProjectFile>of(elsewhere), List.<ProjectFile>of(skipping, elsewhere))
                 .map(projectFiles -> CacheKey.of(config, projectFiles).fingerprint())
                 .toList();
         assertThat(keys).doesNotHaveDuplicates();

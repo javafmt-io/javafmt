@@ -91,7 +91,8 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
                 .toList();
         if (!problems.isEmpty()) {
             return new Invalid(
-                    location, location + ": " + ANALYZE_SKIP + ": " + String.join("; ", problems) + ". The rules that use the classpath are "
+                    location,
+                    location + ": " + ANALYZE_SKIP + ": " + String.join("; ", problems) + ". The rules that use the classpath are "
                             + String.join(", ", analysisRules));
         }
         return new Settings(location, skipped);

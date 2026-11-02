@@ -42,13 +42,30 @@ class UnusedVariableShouldBeUnnamedTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "try { run(); } catch (IllegalStateException e) { log(e); }", "use(x -> x);", "for (var item : items) { use(item); }", "var used = compute(); use(used);", "try (var lock = acquire()) { use(lock); }", "if (o instanceof String s) { use(s); }", "int unassigned; log();", "int a = 1, b = 2;", "for (int i = 0; ; ) { log(); }", "var _ = compute();", "String names[] = new String[] {\"a\"};", "int grid [][] = new int[1][1];", "var captured = compute(); use(() -> captured);", "var shadowed = compute(); use(shadowed -> shadowed);", "var called = compute(); called();", })
+    @ValueSource(
+            strings = {
+                    "try { run(); } catch (IllegalStateException e) { log(e); }",
+                    "use(x -> x);",
+                    "for (var item : items) { use(item); }",
+                    "var used = compute(); use(used);",
+                    "try (var lock = acquire()) { use(lock); }",
+                    "if (o instanceof String s) { use(s); }",
+                    "int unassigned; log();",
+                    "int a = 1, b = 2;",
+                    "for (int i = 0; ; ) { log(); }",
+                    "var _ = compute();",
+                    "String names[] = new String[] {\"a\"};",
+                    "int grid [][] = new int[1][1];",
+                    "var captured = compute(); use(() -> captured);",
+                    "var shadowed = compute(); use(shadowed -> shadowed);",
+                    "var called = compute(); called();",
+            })
     void aVariableThatIsUsedOrCannotBeUnnamedIsLeftAlone(final String body) {
         assertThat(fix(inMethod(body))).isEqualTo(inMethod(body));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "class C { int unusedField = 1; }", "class C { void m(String unusedParameter) {} }", "record R(int unusedComponent) {}", })
+    @ValueSource(strings = {"class C { int unusedField = 1; }", "class C { void m(String unusedParameter) {} }", "record R(int unusedComponent) {}",})
     void fieldsParametersAndRecordComponentsAreLeftAlone(final String source) {
         assertThat(fix(source)).isEqualTo(source);
     }

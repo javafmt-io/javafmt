@@ -72,7 +72,8 @@ final class ExpressionRenderers {
         if (ownLine.isEmpty()) {
             return Doc.endsWithLineComment(before) ? Doc.HARD_LINE : Doc.LINE;
         }
-        return Doc.concatOf(Stream.of(ownLine.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))), Stream.of(Doc.HARD_LINE)));
+        return Doc.concatOf(
+                Stream.of(ownLine.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))), Stream.of(Doc.HARD_LINE)));
     }
 
     private boolean isLogical(final BinaryTree node) {
@@ -100,7 +101,9 @@ final class ExpressionRenderers {
         final var tail = IntStream.range(0, spine.size())
                 .<Doc>mapToObj(
                         i -> new Doc.Indent(
-                                Doc.concat(breakBeforeOperator(docs.get(i), recursor.tail(spine.get(i))), new Doc.Text(operator + " "), docs.get(i + 1))));
+                                Doc.concat(
+                                        breakBeforeOperator(docs.get(i), recursor.tail(spine.get(i))), new Doc.Text(operator + " "),
+                                        docs.get(i + 1))));
         final var contents = new Doc.Concat(Stream.concat(Stream.of(docs.getFirst()), tail));
         final var authorBroke = !recursor.inCompactContext() && operands.stream().limit(operands.size() - 1).anyMatch(recursor::isFollowedByNewline);
         return MethodChainRenderer.chainGroup(contents, authorBroke);
@@ -203,13 +206,18 @@ final class ExpressionRenderers {
         final var beforeTheBrace = braceOnItsOwnLine ? Stream.of(beforeBrace, Doc.HARD_LINE) : Stream.of(beforeBrace);
         if (initializers.isEmpty()) {
             return Doc.concatOf(
-                    Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, beforeTheBrace, Stream.of(emptyInitializer(brace, recursor.interior(node)))));
+                    Stream.of(
+                            prefix, dims, sizelessBrackets, implicitBrackets, beforeTheBrace,
+                            Stream.of(emptyInitializer(brace, recursor.interior(node)))));
         }
         final var elements = WrappableList.blockOf(brace, "}", separatedElements(node, initializers, recursor.hasTrailingComma(node), recursor));
         return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, beforeTheBrace, Stream.of(elements)));
     }
 
-    private List<WrappableList.Element> separatedElements(final Tree list, final List<? extends Tree> items, final boolean trailingComma, final Recursor recursor) {
+    private List<WrappableList.Element> separatedElements(final Tree list,
+                                                          final List<? extends Tree> items,
+                                                          final boolean trailingComma,
+                                                          final Recursor recursor) {
         return IntStream.range(0, items.size()).mapToObj(i -> separatedElement(list, items, i, trailingComma, recursor)).toList();
     }
 

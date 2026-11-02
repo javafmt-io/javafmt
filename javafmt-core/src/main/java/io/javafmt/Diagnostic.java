@@ -9,7 +9,8 @@ import java.util.Objects;
  * {@link FormatResult} rather than thrown, so a caller formatting many files can collect every
  * diagnostic without a failure in one file aborting the rest.
  */
-public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.LintError, Diagnostic.ConfigError, Diagnostic.InternalError, Diagnostic.Warning {
+public sealed interface Diagnostic
+        permits Diagnostic.ParseError, Diagnostic.LintError, Diagnostic.ConfigError, Diagnostic.InternalError, Diagnostic.Warning {
     /** A human-readable description of the issue. */
     String message();
 

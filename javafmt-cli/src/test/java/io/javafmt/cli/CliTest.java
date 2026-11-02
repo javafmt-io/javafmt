@@ -194,7 +194,7 @@ class CliTest {
             Files.createDirectories(target.getParent() == null ? dir : target.getParent());
             Files.writeString(target, unformatted);
         }
-        final var arguments = Stream.<String>concat(
+        final var arguments = Stream.concat(
                 excludes.stream().flatMap(g -> Stream.of("--exclude", g)), filenames.stream().map(n -> dir.resolve(n).toString()))
                 .toArray(String[]::new);
         final var run = run(arguments);

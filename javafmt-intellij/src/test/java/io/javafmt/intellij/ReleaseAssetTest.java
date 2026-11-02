@@ -16,7 +16,12 @@ class ReleaseAssetTest {
     private static final String HASH = "a".repeat(64);
 
     @ParameterizedTest
-    @CsvSource({ "Mac OS X, aarch64, javafmt-1.2.3-darwin-arm64", "Linux, amd64, javafmt-1.2.3-linux-x64", "Linux, x86_64, javafmt-1.2.3-linux-x64", "Windows 11, amd64, javafmt-1.2.3-win32-x64.exe", })
+    @CsvSource({
+            "Mac OS X, aarch64, javafmt-1.2.3-darwin-arm64",
+            "Linux, amd64, javafmt-1.2.3-linux-x64",
+            "Linux, x86_64, javafmt-1.2.3-linux-x64",
+            "Windows 11, amd64, javafmt-1.2.3-win32-x64.exe",
+    })
     void theAssetIsNamedAfterTheVersionAndTheIdesPlatform(final String osName, final String osArch, final String name) {
         assertThat(ReleaseAsset.forPlatform("1.2.3", osName, osArch, Map.of(name, HASH))).isEqualTo(new ReleaseAsset.Published(name, HASH));
     }

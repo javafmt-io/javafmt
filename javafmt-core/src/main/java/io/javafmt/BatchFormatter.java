@@ -278,7 +278,8 @@ final class BatchFormatter {
         try {
             final var source = Files.readString(path, StandardCharsets.UTF_8);
             final var absolute = path.toAbsolutePath();
-            final var projectFile = projectFiles.computeIfAbsent(Objects.requireNonNullElse(absolute.getParent(), absolute), ProjectFile::forDirectory);
+            final var projectFile = projectFiles.computeIfAbsent(
+                    Objects.requireNonNullElse(absolute.getParent(), absolute), ProjectFile::forDirectory);
             if (projectFile instanceof ProjectFile.Invalid invalid) {
                 return new FileRead.Done(new FileResult.Formatted(path, source, FormatStages.configErrorResult(source, invalid)));
             }
@@ -353,7 +354,9 @@ final class BatchFormatter {
         return scatter(
                 results.size(), failed,
                 IntStream.range(0, failed.size())
-                        .mapToObj(k -> FormatStages.withDiagnostics(retried.get(k), List.of(FormatStages.classpathFailureWarning(results.get(failed.get(k))))))
+                        .mapToObj(
+                                k -> FormatStages.withDiagnostics(
+                                        retried.get(k), List.of(FormatStages.classpathFailureWarning(results.get(failed.get(k))))))
                         .toList(),
                 results::get);
     }
