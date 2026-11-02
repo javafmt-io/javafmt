@@ -29,6 +29,9 @@ final class FieldRenderer {
     }
 
     private Doc withInitializer(final Doc head, final Doc initializer, final List<CommentToken> beforeTerminator) {
-        return Doc.concat(head, new Doc.Text(" = "), CommentDocs.closeAfter(initializer, beforeTerminator, ";"));
+        final var value = CommentDocs.closeAfter(initializer, beforeTerminator, ";");
+        final var beside = Doc.concat(new Doc.Text(" = "), value);
+        final var below = Doc.concat(new Doc.Text(" ="), Doc.continuationIndent(Doc.concat(Doc.HARD_LINE, value)));
+        return Doc.concat(head, new Doc.Choice(beside, below, Doc.Choice.Fit.FIRST_BREAK));
     }
 }

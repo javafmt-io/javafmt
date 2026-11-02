@@ -285,7 +285,7 @@ public sealed interface Doc
             this(preferred, fallback, Fit.EVERY_LINE);
         }
 
-        public enum Fit { EVERY_LINE, OPENING_LINE }
+        public enum Fit { EVERY_LINE, OPENING_LINE, FIRST_BREAK }
     }
 
     record Fill(List<Doc> parts) implements Doc {

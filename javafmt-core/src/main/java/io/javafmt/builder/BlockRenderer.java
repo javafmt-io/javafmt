@@ -85,6 +85,12 @@ final class BlockRenderer {
         if (doc instanceof Doc.Text(var value) && value.endsWith(";")) {
             return new Doc.Text(value.substring(0, value.length() - 1));
         }
+        if (doc instanceof Doc.Choice(var preferred, var fallback, var fit)) {
+            return new Doc.Choice(stripTrailingSemicolonDoc(preferred), stripTrailingSemicolonDoc(fallback), fit);
+        }
+        if (doc instanceof Doc.Indent(var contents)) {
+            return new Doc.Indent(stripTrailingSemicolonDoc(contents));
+        }
         if (doc instanceof Doc.Concat(var parts) && !parts.isEmpty()) {
             final var last = parts.getLast();
             final var stripped = stripTrailingSemicolonDoc(last);
