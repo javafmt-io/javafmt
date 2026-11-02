@@ -34,6 +34,22 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @Test
+    void aCStyleArrayLocalBecomesVarOnceArrayTypeStyleHasMovedItsBrackets() {
+        final var source = """
+                class Fixture {
+
+                    void test() {
+                        String parts[] = "a,b".split(",");
+                        System.out.println(parts.length);
+                    }
+                }
+                """;
+        final var result = Javafmt.formatWithResult(source, ANALYZE);
+        assertThat(result.errors()).isEmpty();
+        assertThat(result.output()).contains("final var parts = \"a,b\".split(\",\");");
+    }
+
+    @Test
     void factoryWithDifferentReceiverRewrites() {
         // The narrow same-receiver pattern doesn't fire (receiver Collections != List), so the
         // analyze path is the only thing that can rewrite this.
@@ -201,7 +217,7 @@ class LocalVarUseVarAnalyzeTest {
     @Test
     void existingNarrowNewMatchStillFiresUnderAnalyze() {
         // ArrayList<X> x = new ArrayList<X>() — the narrow new-match pattern should still
-        // rewrite to var even when --analyze is on.
+        // rewrite to var even when there is a classpath.
         final var source = """
                 import java.util.ArrayList;
                 class Fixture {

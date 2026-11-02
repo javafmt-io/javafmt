@@ -6,6 +6,7 @@ import lombok.experimental.UtilityClass;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 /**
  * The entry point for formatting Java source with javafmt. {@link #format} and
@@ -39,9 +40,14 @@ public final class Javafmt {
 
     /** Formats {@code source}, returning both the output and any diagnostics raised. */
     public FormatResult formatWithResult(final String source, final JavafmtConfig config) {
+        return formatWithResult(source, config, ProjectFile.none());
+    }
+
+    public FormatResult formatWithResult(final String source, final JavafmtConfig config, final ProjectFile projectFile) {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(config, "config");
-        return BatchFormatter.formatOne(source, config);
+        Objects.requireNonNull(projectFile, "projectFile");
+        return BatchFormatter.formatOne(source, config, projectFile);
     }
 
     /**
@@ -61,11 +67,13 @@ public final class Javafmt {
      * straight through without occupying a parse slot, which lets callers keep placeholder entries
      * for files they resolved some other way (a cache hit, or a read error) and stay index-aligned.
      *
-     * <p>With {@link JavafmtConfig.Analysis.Attributed} the run does <em>not</em> chunk: every
-     * source is attributed in one task so that cross-file references resolve. Splitting the run
-     * would leave a type declared in one chunk unresolvable from another, and rules that key on
-     * resolved symbols — {@code ExplodeStarImports} in particular — deliberately do nothing when a
-     * name will not resolve. Peak memory is therefore proportional to the whole run.
+     * <p>With {@link JavafmtConfig.Analysis.Attributed} the sources are attributed in batches of at
+     * most 128 sources and a few megabytes, one batch per javac task, so that peak memory stays
+     * bounded however large the run. Names declared in one batch resolve from the other sources of
+     * that batch only; rules that key on resolved symbols — {@code ExplodeStarImports} in particular
+     * — deliberately do nothing when a name will not resolve. The batches depend on the number of
+     * sources rather than on what formatting does to them, so formatting the output again changes
+     * nothing.
      *
      * @param threads how many chunks format in parallel; values below 1 are treated as 1
      */
@@ -80,5 +88,12 @@ public final class Javafmt {
         Objects.requireNonNull(config, "config");
         Objects.requireNonNull(cache, "cache");
         return BatchFormatter.formatFiles(paths, config, cache, threads);
+    }
+
+    public Stream<FileResult> formatFilesLazily(final List<Path> paths, final JavafmtConfig config, final FormatCache cache, final int threads) {
+        Objects.requireNonNull(paths, "paths");
+        Objects.requireNonNull(config, "config");
+        Objects.requireNonNull(cache, "cache");
+        return BatchFormatter.formatFilesLazily(paths, config, cache, threads);
     }
 }

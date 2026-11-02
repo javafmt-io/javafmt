@@ -56,7 +56,7 @@ public final class RedundantTypeArguments implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        final var attribution = context.attribution();
+        final var attribution = context.attributionFor(RedundantTypeArguments.class);
         final var edits = new ArrayList<LintEdit>();
         final var witnessCalls = new ArrayList<WitnessCall>();
         new ChainPathScanner<Void, Void>() {
@@ -75,6 +75,11 @@ public final class RedundantTypeArguments implements LintRule {
         }.scan(new TreePath(unit.tree()), null);
         attribution.ifPresent(a -> dropRedundantWitnesses(unit, a, witnessCalls, edits));
         return LintResult.ofEdits(edits);
+    }
+
+    @Override
+    public boolean usesAnalysis() {
+        return true;
     }
 
     private static Optional<LintEdit> tryDiamondify(final NewClassTree node, final TreePath path, final LintContext context) {
@@ -104,6 +109,7 @@ public final class RedundantTypeArguments implements LintRule {
         }
         if (parent.getLeaf() instanceof VariableTree var
             && var.getInitializer() == node
+            && Declarations.writesItsType(var, context.unit())
             && var.getType() instanceof ParameterizedTypeTree targetPt) {
             if (LocalVarUseVar.rewritesInitializer(parent, context)) {
                 return Optional.empty();
@@ -181,7 +187,7 @@ public final class RedundantTypeArguments implements LintRule {
         while (gt < src.length() && Character.isWhitespace(src.charAt(gt))) {
             gt++;
         }
-        if (gt >= src.length() || src.charAt(gt) != '>') {
+        if (gt >= src.length() || src.charAt(gt) != '>' || src.substring(lt, gt).indexOf('@') >= 0) {
             return Optional.empty();
         }
         final var nameStart = methodNameStart(node, unit);

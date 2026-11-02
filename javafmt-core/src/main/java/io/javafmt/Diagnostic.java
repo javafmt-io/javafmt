@@ -4,11 +4,12 @@ import java.util.Objects;
 
 /**
  * One issue raised while formatting a source: a parse failure, a lint rule that could not
- * rewrite the source, an internal javafmt error, or a non-fatal warning. Attached to a
+ * rewrite the source, a project file javafmt cannot use, an internal javafmt error, or a non-fatal
+ * warning. Attached to a
  * {@link FormatResult} rather than thrown, so a caller formatting many files can collect every
  * diagnostic without a failure in one file aborting the rest.
  */
-public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.LintError, Diagnostic.InternalError, Diagnostic.Warning {
+public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.LintError, Diagnostic.ConfigError, Diagnostic.InternalError, Diagnostic.Warning {
     /** A human-readable description of the issue. */
     String message();
 
@@ -24,6 +25,7 @@ public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.Lin
         return switch (this) {
             case ParseError _ -> "parse";
             case LintError _ -> "lint";
+            case ConfigError _ -> "config";
             case InternalError _ -> "internal";
             case Warning _ -> "warning";
         };
@@ -67,6 +69,12 @@ public sealed interface Diagnostic permits Diagnostic.ParseError, Diagnostic.Lin
     /** A lint rule rejected the source and could not rewrite it. */
     record LintError(String message, Position position) implements Diagnostic {
         public LintError {
+            requireParts(message, position);
+        }
+    }
+
+    record ConfigError(String message, Position position) implements Diagnostic {
+        public ConfigError {
             requireParts(message, position);
         }
     }

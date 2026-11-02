@@ -19,15 +19,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 class JavafmtFixtureTest {
+    private static final JavafmtConfig WITH_THE_CLASSPATH = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
+
     static Stream<Arguments> fixtures() throws URISyntaxException, IOException {
-        final var fixturesRoot = JavafmtFixtureTest.class.getClassLoader().getResource("test-fixtures");
+        return fixturesUnder("test-fixtures");
+    }
+
+    static Stream<Arguments> fixturesWithTheClasspath() throws URISyntaxException, IOException {
+        return fixturesUnder("test-fixtures/with-classpath");
+    }
+
+    private static Stream<Arguments> fixturesUnder(final String resource) throws URISyntaxException, IOException {
+        final var fixturesRoot = JavafmtFixtureTest.class.getClassLoader().getResource(resource);
         if (fixturesRoot == null) {
             return Stream.empty();
         }
         final var root = Paths.get(fixturesRoot.toURI());
         try (final var listing = Files.list(root)) {
             return listing.filter(Files::isDirectory)
-                    .filter(dir -> !dir.getFileName().toString().equals("idempotent"))
+                    .filter(dir -> !dir.getFileName().toString().equals("idempotent") && !dir.getFileName().toString().equals("with-classpath"))
                     .flatMap(JavafmtFixtureTest::variants)
                     .sorted(Comparator.comparing(a -> ((String) a.get()[0])))
                     .toList()
@@ -108,6 +118,16 @@ class JavafmtFixtureTest {
     }
 
     @ParameterizedTest(name = "{0}")
+    @MethodSource("fixturesWithTheClasspath")
+    void fixtureWithTheClasspath(final String name, final String input, final String expected) {
+        final var formatted = formatVerified(name, input, WITH_THE_CLASSPATH);
+        assertThat(formatted.stripTrailing()).isEqualTo(expected);
+        assertThat(formatVerified(name, formatted, WITH_THE_CLASSPATH)).isEqualTo(formatted);
+        assertWellFormed(name, formatted);
+        assertStillCompiles(name, input, formatted);
+    }
+
+    @ParameterizedTest(name = "{0}")
     @MethodSource("idempotentFixtures")
     void idempotent(final String name, final String source) {
         final var formatted = formatVerified(name, source);
@@ -122,10 +142,14 @@ class JavafmtFixtureTest {
      * unexplained diff against {@code expected.java}.
      */
     private static String formatVerified(final String name, final String source) {
-        final var result = Javafmt.formatWithResult(source, JavafmtConfig.defaults().withVerifyOutput(true));
+        return formatVerified(name, source, JavafmtConfig.defaults());
+    }
+
+    private static String formatVerified(final String name, final String source, final JavafmtConfig config) {
+        final var result = Javafmt.formatWithResult(source, config.withVerifyOutput(true));
         final var internal = result.diagnostics()
                 .stream()
-                .filter(d -> d instanceof Diagnostic.InternalError)
+                .filter(d -> d instanceof Diagnostic.InternalError || d.message().startsWith("formatting with the classpath failed"))
                 .map(Diagnostic::message)
                 .toList();
         assertThat(internal)

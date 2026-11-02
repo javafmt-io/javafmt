@@ -32,6 +32,11 @@ public abstract class JavafmtTask extends DefaultTask {
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSources();
 
+    @InputFiles
+    @IgnoreEmptyDirectories
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract ConfigurableFileCollection getProjectFiles();
+
     @Input
     public abstract Property<Boolean> getAnalyze();
 

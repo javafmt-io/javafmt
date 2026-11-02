@@ -7,7 +7,8 @@ What javafmt enforces is in [docs/rules.md](docs/rules.md), and why in [docs/int
 ```mermaid
 flowchart LR
     src["Source text"] --> enc["SourceEncoding<br/>strip BOM, normalize to LF"]
-    enc --> parse["Parser<br/>javac's com.sun.source.tree<br/>attribution only with --analyze"]
+    enc --> parse["Parser<br/>javac's com.sun.source.tree<br/>attributed when there is a classpath"]
+    project[".javafmt<br/>analyze.skip"] --> lint
     parse --> lint["LintEngine<br/>auto-fixes to a fixed point,<br/>re-parsing each rewrite; warnings"]
     lint --> build["DocBuilder<br/>AST to Wadler-Lindig Doc"]
     build --> print["Printer<br/>width 150"]

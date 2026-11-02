@@ -53,9 +53,19 @@ export const mockStatusItem = {
     dispose: jest.fn(),
 };
 
+export const mockOutputChannel = {
+    info: jest.fn(),
+    dispose: jest.fn(),
+};
+
 export const window = {
     showInformationMessage: jest.fn(),
     showErrorMessage: jest.fn(),
+    createOutputChannel: jest.fn(() => mockOutputChannel),
+};
+
+export const extensions = {
+    getExtension: jest.fn((_id: string): unknown => undefined),
 };
 
 export const workspace = {

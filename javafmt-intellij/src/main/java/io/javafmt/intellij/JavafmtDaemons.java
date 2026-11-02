@@ -18,7 +18,7 @@ public final class JavafmtDaemons implements Disposable {
         return project.getService(JavafmtDaemons.class);
     }
 
-    JavafmtBinary.Outcome format(final BinaryIdentity binary, final String source) {
+    JavafmtBinary.Outcome format(final BinaryIdentity binary, final String source, final FileScope scope) {
         Objects.requireNonNull(binary, "binary");
         final Optional<JavafmtDaemon> daemon;
         try {
@@ -26,7 +26,7 @@ public final class JavafmtDaemons implements Disposable {
         } catch (final ExecutionException e) {
             return new JavafmtBinary.Outcome.Refused("could not run " + binary.path() + ": " + e.getMessage(), false);
         }
-        return daemon.map(running -> running.format(source)).orElseGet(JavafmtBinary.Outcome.Cancelled::new);
+        return daemon.map(running -> running.format(source, scope)).orElseGet(JavafmtBinary.Outcome.Cancelled::new);
     }
 
     synchronized void stop() {

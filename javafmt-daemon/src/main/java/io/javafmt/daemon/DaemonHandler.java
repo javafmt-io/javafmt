@@ -2,18 +2,32 @@ package io.javafmt.daemon;
 
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
+import io.javafmt.ProjectFile;
 import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.FormatReply;
+import io.javafmt.daemon.protocol.FormatRequest;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
 import lombok.experimental.UtilityClass;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+
 @UtilityClass
 final class DaemonHandler {
-    FormatReply handle(final int id, final String source) {
-        final var result = Javafmt.formatWithResult(source, JavafmtConfig.defaults());
+    FormatReply handle(final FormatRequest request) {
+        final ProjectFile projectFile;
+        try {
+            projectFile = request.hasPath() ? ProjectFile.forFile(Path.of(request.getPath())) : ProjectFile.none();
+        } catch (final InvalidPathException e) {
+            return failure(request.getId(), request.getSource(), Kind.KIND_CLI, "path: " + e.getMessage());
+        }
+        final var config = request.hasClasspath()
+                ? JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(request.getClasspath()))
+                : JavafmtConfig.defaults();
+        final var result = Javafmt.formatWithResult(request.getSource(), config, projectFile);
         return FormatReply.newBuilder()
-                .setId(id)
+                .setId(request.getId())
                 .setOutput(result.output())
                 .addAllDiagnostics(result.diagnostics().stream().map(DaemonHandler::diagnostic).toList())
                 .build();
@@ -41,6 +55,7 @@ final class DaemonHandler {
         return switch (diagnostic) {
             case io.javafmt.Diagnostic.ParseError _ -> Kind.KIND_PARSE;
             case io.javafmt.Diagnostic.LintError _ -> Kind.KIND_LINT;
+            case io.javafmt.Diagnostic.ConfigError _ -> Kind.KIND_CONFIG;
             case io.javafmt.Diagnostic.InternalError _ -> Kind.KIND_INTERNAL;
             case io.javafmt.Diagnostic.Warning _ -> Kind.KIND_WARNING;
         };

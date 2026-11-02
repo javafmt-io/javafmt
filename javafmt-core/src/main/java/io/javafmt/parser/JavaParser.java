@@ -9,6 +9,7 @@ import io.javafmt.Position;
 import lombok.experimental.UtilityClass;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -70,6 +72,8 @@ public final class JavaParser {
     public final boolean HAS_JAVAC_INTERNAL_ACCESS = computeHasJavacInternalAccess();
 
     private final JavaCompiler COMPILER = lookupCompiler();
+
+    private final Pattern OUT_OF_MEMORY = Pattern.compile("java\\.lang\\.OutOfMemoryError(?:: ([^\\r\\n]*))?");
 
     private final Queue<StandardJavaFileManager> IDLE_FILE_MANAGERS = new ConcurrentLinkedQueue<>();
 
@@ -162,6 +166,13 @@ public final class JavaParser {
         return like.session().attribute(source);
     }
 
+    void rethrowOutOfMemory(final String compilerOutput) {
+        final var reported = OUT_OF_MEMORY.matcher(compilerOutput);
+        if (reported.find()) {
+            throw Optional.ofNullable(reported.group(1)).map(OutOfMemoryError::new).orElseGet(OutOfMemoryError::new);
+        }
+    }
+
     List<Staged<AttributedUnit>> attributeBatch(final List<String> sources, final AttributionSession session) {
         final var classpath = session.classpath();
         final var classpathOptions = classpath.isEmpty() ? List.<String>of() : List.of("-classpath", classpath);
@@ -173,8 +184,10 @@ public final class JavaParser {
         } catch (final IOException e) {
             throw new AssertionError(e);
         } catch (final RuntimeException e) {
+            rethrowOutOfMemory(batch.compilerOutput().toString());
             return attributeIndividually(sources, session, e);
         }
+        rethrowOutOfMemory(batch.compilerOutput().toString());
         final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), session, attributionErrors(batch));
         final var positions = attribution.trees().getSourcePositions();
         return IntStream.range(0, batch.stripped().size())
@@ -294,16 +307,18 @@ public final class JavaParser {
                 .<JavaFileObject>mapToObj(i -> new InMemoryJavaFileObject(stripped.get(i), i))
                 .toList();
         final var diagnostics = new DiagnosticCollector<JavaFileObject>();
-        final var task = (JavacTask) COMPILER.getTask(null, fileManager, diagnostics, options, null, fileObjects);
+        final var compilerOutput = new StringWriter();
+        final var task = (JavacTask) COMPILER.getTask(compilerOutput, fileManager, diagnostics, options, null, fileObjects);
         final Iterable<? extends CompilationUnitTree> trees;
         try {
             trees = task.parse();
         } catch (final IOException e) {
             throw new AssertionError(e);
         }
+        rethrowOutOfMemory(compilerOutput.toString());
         final var treeByUri = treeByUri(trees);
         final var errorsByUri = errorsByUri(diagnostics, fileObjects.getFirst().toUri());
-        return new ParsedBatch(stripped, fileObjects, treeByUri, errorsByUri, diagnostics, task);
+        return new ParsedBatch(stripped, fileObjects, treeByUri, errorsByUri, diagnostics, task, compilerOutput);
     }
 
     /**
@@ -361,7 +376,8 @@ public final class JavaParser {
                                Map<URI, CompilationUnitTree> treeByUri,
                                Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri,
                                DiagnosticCollector<JavaFileObject> diagnostics,
-                               JavacTask task) {}
+                               JavacTask task,
+                               StringWriter compilerOutput) {}
 
     private static final class InMemoryJavaFileObject extends SimpleJavaFileObject {
         private final String source;

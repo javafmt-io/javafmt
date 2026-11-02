@@ -9,6 +9,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 
 @UtilityClass
@@ -25,14 +27,29 @@ public final class Cli {
      *     harness never has a terminal.
      */
     int run(final String[] arguments, final InputStream in, final PrintStream out, final PrintStream err, final boolean stdinIsATerminal) {
+        return run(arguments, in, out, err, stdinIsATerminal, Path.of("").toAbsolutePath());
+    }
+
+    int run(final String[] arguments,
+            final InputStream in,
+            final PrintStream out,
+            final PrintStream err,
+            final boolean stdinIsATerminal,
+            final Path workingDirectory) {
         final var outWriter = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8), true);
         final var errWriter = new PrintWriter(new OutputStreamWriter(err, StandardCharsets.UTF_8), true);
         try {
-            return new CommandLine(new FormatCommand(in, out, err, stdinIsATerminal)).setCaseInsensitiveEnumValuesAllowed(true)
+            return new CommandLine(new FormatCommand(in, out, err, stdinIsATerminal, workingDirectory)).setCaseInsensitiveEnumValuesAllowed(true)
                     .setOut(outWriter)
                     .setErr(errWriter)
                     .setExecutionExceptionHandler(Cli::reportInternalError)
                     .execute(arguments);
+        } catch (final OutOfMemoryError e) {
+            errWriter.println(
+                    "javafmt: out of memory (" + Objects.requireNonNullElse(e.getMessage(), "heap exhausted")
+                            + "). Every file written before this is complete and every other file is unchanged."
+                            + " Run javafmt with a larger heap (-Xmx) or on fewer files at a time.");
+            return INTERNAL_ERROR;
         } finally {
             outWriter.flush();
             errWriter.flush();

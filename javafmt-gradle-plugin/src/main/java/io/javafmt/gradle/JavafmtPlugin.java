@@ -18,11 +18,14 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public abstract class JavafmtPlugin implements Plugin<Project> {
@@ -36,11 +39,13 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
 
     private static final int ENGINE_JAVA_VERSION = 25;
 
+    private static final String PROJECT_FILE = ".javafmt";
+
     @Override
     public void apply(final Project project) {
         final var extension = project.getExtensions().create("javafmt", JavafmtExtension.class);
         extension.getExcludes().convention(List.of());
-        extension.getAnalyze().convention(false);
+        extension.getAnalyze().convention(true);
         extension.getMaxHeapSize().convention("1g");
         final var workerSlot = project.getGradle()
                 .getSharedServices()
@@ -132,6 +137,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
         private void configure(final JavafmtTask task, final SourceSet sourceSet) {
             final var toolchains = project.getExtensions().getByType(JavaToolchainService.class);
             task.getSources().from(project.provider(() -> javaSources(sourceSet)));
+            task.getProjectFiles().from(project.provider(() -> projectFiles(sourceSet)));
             task.getAnalyze().set(extension.getAnalyze());
             task.getRatchetFrom().set(extension.getRatchetFrom());
             task.getAnalysisClasspath().from(extension.getAnalyze().map(analyze -> analyze ? sourceSet.getCompileClasspath() : List.of()));
@@ -146,15 +152,41 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             task.getFormatTaskPath().set(project.getPath().equals(":") ? ":" + FORMAT : project.getPath() + ":" + FORMAT);
         }
 
-        private List<ConfigurableFileTree> javaSources(final SourceSet sourceSet) {
+        private List<Path> sourceDirectories(final SourceSet sourceSet) {
             final var buildDirectory = project.getLayout().getBuildDirectory().get().getAsFile().toPath();
-            final var projectDirectory = project.getProjectDir().toPath();
-            final var excludes = extension.getExcludes().get();
             return sourceSet.getJava()
                     .getSrcDirs()
                     .stream()
                     .map(File::toPath)
                     .filter(directory -> !directory.startsWith(buildDirectory))
+                    .toList();
+        }
+
+        private List<Object> projectFiles(final SourceSet sourceSet) {
+            final var directories = sourceDirectories(sourceSet);
+            return Stream.concat(
+                    directories.stream()
+                            .flatMap(SourceSetTasks::upToTheRepositoryRoot)
+                            .distinct()
+                            .map(directory -> directory.resolve(PROJECT_FILE).toFile()),
+                    directories.stream().map(directory -> project.fileTree(directory, tree -> tree.include("**/" + PROJECT_FILE))))
+                    .toList();
+        }
+
+        private static Stream<Path> upToTheRepositoryRoot(final Path directory) {
+            final var ancestors = Stream.iterate(directory.toAbsolutePath().normalize(), Objects::nonNull, Path::getParent).toList();
+            final var root = IntStream.range(0, ancestors.size())
+                    .filter(i -> Files.exists(ancestors.get(i).resolve(".git")))
+                    .findFirst()
+                    .orElse(ancestors.size() - 1);
+            return ancestors.subList(0, root + 1).stream();
+        }
+
+        private List<ConfigurableFileTree> javaSources(final SourceSet sourceSet) {
+            final var projectDirectory = project.getProjectDir().toPath();
+            final var excludes = extension.getExcludes().get();
+            return sourceDirectories(sourceSet)
+                    .stream()
                     .map(
                             directory -> project.fileTree(
                                     directory,

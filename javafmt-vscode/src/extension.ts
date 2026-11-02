@@ -2,12 +2,25 @@ import * as vscode from 'vscode';
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Diagnostic, FormatReply, Kind, Severity, decodeReplies, encodeRequest } from './protocol';
+import { Diagnostic, FileScope, FormatReply, Kind, Severity, decodeReplies, encodeRequest } from './protocol';
 
 type PendingRequest = {
     resolve: (reply: FormatReply) => void;
     reject: (err: Error) => void;
 };
+
+type JavaExtensionApi = {
+    serverMode?: string;
+    getClasspaths?: (uri: string, options: { scope: 'runtime' | 'test' }) => Promise<{ classpaths: string[]; modulepaths: string[] }>;
+    isTestFile?: (uri: string) => Promise<boolean>;
+    onDidClasspathUpdate?: vscode.Event<vscode.Uri>;
+    onDidProjectsImport?: vscode.Event<vscode.Uri[]>;
+    onDidProjectsDelete?: vscode.Event<vscode.Uri[]>;
+};
+
+type ClasspathSource = Required<Pick<JavaExtensionApi, 'getClasspaths' | 'isTestFile'>>;
+
+type Classpath = { classpath: string } | { missing: string };
 
 let extensionContext: vscode.ExtensionContext;
 let daemon: child_process.ChildProcess | null = null;
@@ -15,13 +28,27 @@ const pending = new Map<number, PendingRequest>();
 let lastId = 0;
 let diagnosticCollection: vscode.DiagnosticCollection;
 let statusItem: vscode.LanguageStatusItem;
+let output: vscode.LogOutputChannel;
 let reportedMissingBinary = false;
+let reportedMissingClasspath = false;
+const classpaths = new Map<string, Promise<Classpath>>();
+let watchedJavaExtension: JavaExtensionApi | undefined;
 
 const REQUEST_TIMEOUT_MS = 10_000;
+
+const CLASSPATH_TIMEOUT_MS = 2_000;
+
+const JAVA_EXTENSION_ID = 'redhat.java';
 
 export function activate(context: vscode.ExtensionContext): void {
     extensionContext = context;
     reportedMissingBinary = false;
+    reportedMissingClasspath = false;
+    classpaths.clear();
+    watchedJavaExtension = undefined;
+
+    output = vscode.window.createOutputChannel('javafmt', { log: true });
+    extensionContext.subscriptions.push(output);
 
     diagnosticCollection = vscode.languages.createDiagnosticCollection('javafmt');
     extensionContext.subscriptions.push(diagnosticCollection);
@@ -112,9 +139,13 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
     }
     setStatus('formatting');
     const source = doc.getText();
+    const file = doc.uri.scheme === 'file' ? doc.uri.fsPath : undefined;
+    const lookup = file === undefined ? undefined : classpathFor(doc.uri);
+    const classpath = lookup === undefined ? undefined : await lookup;
+    if (!daemon) return [];
     let reply: FormatReply;
     try {
-        reply = await sendRequest(source);
+        reply = await sendRequest(source, { path: file, classpath });
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setStatus('error', message);
@@ -278,7 +309,86 @@ export function resolveDaemonCommand(binaryPath: string, env: DaemonEnvironment)
     return { command: found, args: ['--daemon'] };
 }
 
-function sendRequest(source: string): Promise<FormatReply> {
+function classpathFor(uri: vscode.Uri): Promise<string | undefined> | undefined {
+    const java = javaExtension();
+    if ('missing' in java) {
+        reportMissingClasspath(java.missing);
+        return undefined;
+    }
+    const directory = path.dirname(uri.fsPath);
+    const lookup = classpaths.get(directory) ?? lookUpClasspath(java.source, uri);
+    classpaths.set(directory, lookup);
+    return within(lookup, CLASSPATH_TIMEOUT_MS).then((found) => {
+        if ('missing' in found) {
+            reportMissingClasspath(found.missing);
+            return undefined;
+        }
+        reportedMissingClasspath = false;
+        return found.classpath;
+    });
+}
+
+function javaExtension(): { source: ClasspathSource } | { missing: string } {
+    const extension = vscode.extensions.getExtension<JavaExtensionApi | undefined>(JAVA_EXTENSION_ID);
+    if (!extension) {
+        return { missing: `the Java extension (${JAVA_EXTENSION_ID}) is not installed` };
+    }
+    const api = extension.exports;
+    if (!extension.isActive || !api) {
+        return { missing: `the Java extension (${JAVA_EXTENSION_ID}) is not active` };
+    }
+    if (api.serverMode !== 'Standard') {
+        return { missing: `the Java extension runs its language server in ${api.serverMode ?? 'an unknown'} mode, which has no classpath` };
+    }
+    const { getClasspaths, isTestFile } = api;
+    if (!getClasspaths || !isTestFile) {
+        return { missing: `this version of the Java extension (${JAVA_EXTENSION_ID}) does not give classpaths to other extensions` };
+    }
+    watchClasspathChanges(api);
+    return { source: { getClasspaths, isTestFile } };
+}
+
+function watchClasspathChanges(api: JavaExtensionApi): void {
+    if (watchedJavaExtension === api) {
+        return;
+    }
+    watchedJavaExtension = api;
+    [api.onDidClasspathUpdate, api.onDidProjectsImport, api.onDidProjectsDelete].forEach((event) => {
+        if (event) {
+            extensionContext.subscriptions.push(event(() => classpaths.clear()));
+        }
+    });
+}
+
+async function lookUpClasspath(source: ClasspathSource, uri: vscode.Uri): Promise<Classpath> {
+    try {
+        const scope = (await source.isTestFile(uri.toString())) ? 'test' : 'runtime';
+        const found = await source.getClasspaths(uri.toString(), { scope });
+        return { classpath: [...found.classpaths, ...found.modulepaths].join(path.delimiter) };
+    } catch (err) {
+        return { missing: `the Java extension could not give the classpath of ${uri.fsPath}: ${err instanceof Error ? err.message : String(err)}` };
+    }
+}
+
+function within(lookup: Promise<Classpath>, timeoutMs: number): Promise<Classpath> {
+    return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve({ missing: `the Java extension did not give the classpath within ${timeoutMs / 1000}s` }), timeoutMs);
+        void lookup.then((found) => {
+            clearTimeout(timer);
+            resolve(found);
+        });
+    });
+}
+
+function reportMissingClasspath(reason: string): void {
+    if (reportedMissingClasspath) {
+        return;
+    }
+    reportedMissingClasspath = true;
+    output.info(`javafmt formats without the classpath, so the rules that need it do not run: ${reason}`);
+}
+
+function sendRequest(source: string, scope: FileScope): Promise<FormatReply> {
     const proc = daemon!;
     return new Promise((resolve, reject) => {
         lastId = lastId >= 0xffffffff ? 1 : lastId + 1;
@@ -300,6 +410,6 @@ function sendRequest(source: string): Promise<FormatReply> {
                 reject(err);
             },
         });
-        proc.stdin!.write(encodeRequest(id, source));
+        proc.stdin!.write(encodeRequest(id, source, scope));
     });
 }

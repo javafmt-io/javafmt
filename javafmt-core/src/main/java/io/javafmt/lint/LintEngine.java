@@ -26,10 +26,10 @@ import java.util.stream.Stream;
  *
  * <p>The initial context's attribution (if any) is held only for the first iteration. Once
  * the engine re-parses to apply an edit, the new tree no longer matches the original
- * attribution's tree paths, so subsequent iterations run with a parse-only context. This
- * is acceptable until the catalog gains rules that need attribution after an edit; at that
- * point the engine will split into a parse-only fixpoint loop followed by a single attributed
- * pass (per the {@code --analyze} design's "edit ordering" decision).
+ * attribution's tree paths, so subsequent iterations run with a parse-only context. A rewrite
+ * that needs attribution and only becomes possible after such an edit is left to the caller,
+ * which attributes the rewritten source again and lints it until an attributed pass makes no
+ * edits.
  *
  * <p>Two rules can legitimately want the same span in the same iteration — {@code ModifierOrder}
  * and {@code RedundantModifier} on one modifier list, {@code MultipleVariableDeclarations} and
@@ -108,7 +108,7 @@ public final class LintEngine {
      */
     private void applyRound(final FileState state, final boolean lastRound) {
         final var editing = rules.stream()
-                .map(r -> r instanceof WarningRule ? LintResult.EMPTY : r.apply(state.context))
+                .map(r -> r instanceof WarningRule ? LintResult.EMPTY : r.apply(state.context.forRule(r)))
                 .toList();
         final var edits = mergeAcrossRules(editing);
         final var results = edits.isEmpty() || lastRound ? withWarnings(editing, state.context) : editing;
@@ -123,7 +123,7 @@ public final class LintEngine {
 
     private List<LintResult> withWarnings(final List<LintResult> editing, final LintContext context) {
         return IntStream.range(0, rules.size())
-                .mapToObj(i -> rules.get(i) instanceof WarningRule warning ? new LintResult(List.of(), warning.warnings(context)) : editing.get(i))
+                .mapToObj(i -> rules.get(i) instanceof WarningRule warning ? new LintResult(List.of(), warning.warnings(context.forRule(warning))) : editing.get(i))
                 .toList();
     }
 

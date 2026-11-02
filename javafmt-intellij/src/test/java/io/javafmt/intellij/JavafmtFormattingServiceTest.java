@@ -284,6 +284,22 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     @Test
+    public void testAFileInAModuleIsSentWithTheClasspath(@TempDir final Path dir) throws IOException {
+        enableJavafmtWithFakeBinary(dir);
+        final var file = myFixture.configureByText("Probe.java", FakeDaemon.SCOPE_PROBE);
+        reformat(file);
+        assertThat(file.getText()).isEqualTo("analyzed");
+    }
+
+    @Test
+    public void testAScratchFileIsSentWithoutAClasspath(@TempDir final Path dir) throws IOException {
+        enableJavafmtWithFakeBinary(dir);
+        final var file = scratchFile("Probe.java", FakeDaemon.SCOPE_PROBE);
+        reformat(file);
+        assertThat(file.getText()).isEqualTo("parse-only");
+    }
+
+    @Test
     public void testSelectionReformatGoesToIntellijsOwnFormatter(@TempDir final Path dir) throws IOException {
         enableJavafmtWithFakeBinary(dir);
         final var file = myFixture.configureByText("Foo.java", "class Foo {\nint x;\n}\n");

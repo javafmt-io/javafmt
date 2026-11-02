@@ -82,7 +82,7 @@ public final class OracleCorpus {
         final var violations = CheckstyleOracle.run(formatted, checkClassName, checkProperties);
         assertThat(violations)
                 .as(
-                        "javafmt --analyze output for corpus file '%s' should have zero %s violations; output:%n%s", name, simpleName(checkClassName),
+                        "javafmt output with a classpath for file '%s' should have zero %s violations; output:%n%s", name, simpleName(checkClassName),
                         formatted)
                 .isEmpty();
     }

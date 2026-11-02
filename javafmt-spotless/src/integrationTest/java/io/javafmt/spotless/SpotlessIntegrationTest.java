@@ -9,10 +9,12 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,10 +35,14 @@ class SpotlessIntegrationTest {
     /** Formats cleanly but trips the warning-only {@code AvoidStarImport} rule. */
     private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n    List<String> xs;\n}\n";
 
-    private static final String DEFAULT_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create()";
+    private static final String TYPE_WITNESS_SOURCE = "import java.util.stream.Stream;\n\nclass Witness {\n    Stream<String> names = Stream.<String>of(\"a\");\n}\n";
+
+    private static final String DEFAULT_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(projectDir)";
+
+    private static final String CLASSPATH_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(io.javafmt.JavafmtConfig.defaults(), sourceSets.main.compileClasspath.asPath, projectDir)";
 
     /** Takes its version from a project property, so a run can pretend javafmt was upgraded. */
-    private static final String PINNED_STEP = "io.javafmt.spotless.VersionPinnedSteps.create(project.findProperty('javafmtVersion') ?: '1.0.0')";
+    private static final String PINNED_STEP = "io.javafmt.spotless.VersionPinnedSteps.create(project.findProperty('javafmtVersion') ?: '1.0.0', projectDir)";
 
     @Test
     void spotlessApplyFormatsJavaSourcesWithJavafmt(@TempDir final Path dir) throws IOException {
@@ -82,6 +88,41 @@ class SpotlessIntegrationTest {
                 .doesNotContain("problems were found");
         assertThat(Files.readString(source)).isEqualTo(Fixtures.FORMATTED_FOO);
         assertThat(build(dir, "spotlessApply", "--configuration-cache").getOutput()).contains("Reusing configuration cache");
+    }
+
+    @Test
+    void aLargeSourceSetFormatsWithTheClasspathInASmallGradleDaemon(@TempDir final Path dir) throws IOException {
+        writeProject(dir, CLASSPATH_STEP);
+        Files.writeString(dir.resolve("gradle.properties"), "org.gradle.jvmargs=-Xmx384m\n");
+        IntStream.range(0, 100).forEach(i -> writeGenerated(dir, i));
+        final var result = build(dir, "spotlessApply");
+        assertThat(outcomeOf(result, ":spotlessJavaApply")).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(result.getOutput()).doesNotContain("OutOfMemoryError");
+    }
+
+    private static void writeGenerated(final Path dir, final int index) {
+        final var source = IntStream.range(0, 2000)
+                .mapToObj(method -> "\n    int compute%d(final int seed) {\n        return seed * %d;\n    }\n".formatted(method, method))
+                .collect(Collectors.joining("", "package orders;\n\nfinal class Order%d {".formatted(index), "}\n"));
+        try {
+            writeSource(dir, "orders/Order" + index + ".java", source);
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Test
+    void aStepGivenTheClasspathRunsTheRulesThatNeedItAndRerunsWhenANestedProjectFileChanges(@TempDir final Path dir) throws IOException {
+        writeProject(dir, CLASSPATH_STEP);
+        final var source = writeSource(dir, "Witness.java", TYPE_WITNESS_SOURCE);
+        final var projectFile = source.resolveSibling(".javafmt");
+        Files.writeString(projectFile, "analyze.skip=RedundantTypeArguments\n");
+        build(dir, "spotlessApply", "--configuration-cache");
+        assertThat(Files.readString(source)).contains("Stream.<String>of");
+        assertThat(outcomeOf(build(dir, "spotlessApply", "--configuration-cache"), ":spotlessJava")).isEqualTo(TaskOutcome.UP_TO_DATE);
+        Files.writeString(projectFile, "");
+        build(dir, "spotlessApply", "--configuration-cache");
+        assertThat(Files.readString(source)).contains("Stream.of(").doesNotContain("Stream.<String>of");
     }
 
     @Test

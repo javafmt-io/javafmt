@@ -19,14 +19,21 @@ import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -77,6 +84,14 @@ class VarRetypingCheck {
                 .toList();
     }
 
+    private Scope scopeOf(final LocalVarUseVar.Proposal proposal, final ParsedUnit unit, final Shift shift) {
+        return new Scope(shift.start(unit.startOf(proposal.scope())), shift.end(unit.endOf(proposal.scope())));
+    }
+
+    private boolean inAnyScope(final List<Scope> scopes, final long offset) {
+        return scopes.stream().anyMatch(scope -> offset >= scope.start() && offset < scope.end());
+    }
+
     private boolean inScope(final LocalVarUseVar.Proposal proposal, final long offset, final ParsedUnit unit, final Shift shift) {
         return offset >= shift.start(unit.startOf(proposal.scope())) && offset < shift.end(unit.endOf(proposal.scope()));
     }
@@ -107,9 +122,10 @@ class VarRetypingCheck {
         final var after = expressionsOf(rewritten.unit(), Set.of())
                 .stream()
                 .collect(Collectors.toMap(path -> key(path.getLeaf(), rewritten.unit()), path -> path, (first, _) -> first));
+        final var scopes = unproven.stream().map(proposal -> scopeOf(proposal, unit, shift)).toList();
         final var changed = expressionsOf(unit, retypedDeclarations)
                 .stream()
-                .filter(path -> unproven.stream().anyMatch(proposal -> inScope(proposal, shift.start(unit.startOf(path.getLeaf())), unit, shift)))
+                .filter(path -> inAnyScope(scopes, shift.start(unit.startOf(path.getLeaf()))))
                 .filter(
                         path -> !matches(
                                 path, after.get(shiftedKey(path.getLeaf(), unit, shift)), attribution, rewritten.attribution(), retypedVariables))
@@ -235,21 +251,34 @@ class VarRetypingCheck {
 
     private record Key(Tree.Kind kind, long start, long end) {}
 
-    private record Shift(List<LintEdit> edits) {
+    private record Scope(int start, int end) {}
+
+    record Shift(NavigableMap<Integer, Integer> movedFromStart, NavigableMap<Integer, Integer> movedFromEnd) {
+        Shift(final List<LintEdit> edits) {
+            this(movedFrom(edits, edit -> isInsertion(edit) ? edit.start() : edit.end()), movedFrom(edits, edit -> isInsertion(edit) ? edit.start() + 1 : edit.end()));
+        }
+
         int start(final int offset) {
-            return offset
-                    + edits.stream()
-                            .filter(edit -> isInsertion(edit) ? edit.start() <= offset : edit.end() <= offset)
-                            .mapToInt(Shift::delta)
-                            .sum();
+            return offset + movedBy(movedFromStart, offset);
         }
 
         int end(final int offset) {
-            return offset
-                    + edits.stream()
-                            .filter(edit -> isInsertion(edit) ? edit.start() < offset : edit.end() <= offset)
-                            .mapToInt(Shift::delta)
-                            .sum();
+            return offset + movedBy(movedFromEnd, offset);
+        }
+
+        private static int movedBy(final NavigableMap<Integer, Integer> movedFrom, final int offset) {
+            return Optional.ofNullable(movedFrom.floorEntry(offset)).map(Map.Entry::getValue).orElse(0);
+        }
+
+        private static NavigableMap<Integer, Integer> movedFrom(final List<LintEdit> edits, final ToIntFunction<LintEdit> from) {
+            final TreeMap<Integer, Integer> byOffset = edits.stream().collect(Collectors.toMap(from::applyAsInt, Shift::delta, Integer::sum, TreeMap::new));
+            final var offsets = byOffset.keySet().stream().mapToInt(Integer::intValue).toArray();
+            final var totals = byOffset.values().stream().mapToInt(Integer::intValue).toArray();
+            Arrays.parallelPrefix(totals, Integer::sum);
+            final TreeMap<Integer, Integer> cumulative = IntStream.range(0, offsets.length)
+                    .boxed()
+                    .collect(Collectors.toMap(i -> offsets[i], i -> totals[i], Integer::sum, TreeMap::new));
+            return Collections.unmodifiableNavigableMap(cumulative);
         }
 
         private static boolean isInsertion(final LintEdit edit) {

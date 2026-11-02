@@ -9,6 +9,6 @@ class JavafmtFormatterTest {
     fun `creating the step does not read formatter jars that have not been built yet`(@TempDir dir: File) {
         val unbuilt = dir.resolve("javafmt-spotless.jar")
 
-        assertThatCode { JavafmtFormatter.step(listOf(unbuilt)) }.doesNotThrowAnyException()
+        assertThatCode { JavafmtFormatter.step(listOf(unbuilt), emptyList()) { 25 } }.doesNotThrowAnyException()
     }
 }
