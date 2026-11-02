@@ -12,11 +12,12 @@ package io.javafmt.lint;
  * edit, it should emit a {@link io.javafmt.Diagnostic.Warning} instead and leave the
  * source alone.
  *
- * <p>Rules opt in to type-aware checks by inspecting {@link LintContext#attribution()};
- * a present {@link io.javafmt.parser.Attribution} means the caller passed {@code --analyze}
- * plus a classpath, and the rule may use {@code Trees}/{@code Types}/{@code Elements} for
- * resolved type information. When absent, the rule must either fall back to a textual
- * heuristic or skip the deeper check entirely.
+ * <p>Rules opt in to type-aware checks by inspecting {@link LintContext#attributionFor(Class)};
+ * a present {@link io.javafmt.parser.Attribution} means the caller passed a classpath and the
+ * project file does not list the rule under {@code analyze.skip}, and the rule may use
+ * {@code Trees}/{@code Types}/{@code Elements} for resolved type information. When absent, the
+ * rule must either fall back to a textual heuristic or skip the deeper check entirely. A rule
+ * that does this returns {@code true} from {@link #usesAnalysis()}.
  */
 public interface LintRule {
     default String name() {
@@ -24,4 +25,8 @@ public interface LintRule {
     }
 
     LintResult apply(LintContext context);
+
+    default boolean usesAnalysis() {
+        return false;
+    }
 }

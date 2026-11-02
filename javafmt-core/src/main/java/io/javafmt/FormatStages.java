@@ -10,6 +10,7 @@ import lombok.experimental.UtilityClass;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -41,9 +42,27 @@ final class FormatStages {
 
     Diagnostic attributionWarning(final RuntimeException cause) {
         return new Diagnostic.Warning(
-                "--analyze requested but attribution failed (" + cause.getClass().getSimpleName() + ": " + cause.getMessage()
+                "a classpath was given but attribution failed (" + cause.getClass().getSimpleName() + ": " + cause.getMessage()
                         + "); formatted without the rules that need resolved types",
                 new Position.Unknown());
+    }
+
+    Diagnostic classpathFailureWarning(final FormatResult failed) {
+        return new Diagnostic.Warning(
+                "formatting with the classpath failed (" + failed.errors().stream().map(Diagnostic::message).collect(Collectors.joining("; "))
+                        + "); formatted without the rules that need resolved types",
+                new Position.Unknown());
+    }
+
+    Diagnostic attributedNonConvergenceWarning(final int passes) {
+        return new Diagnostic.Warning(
+                "lint with the classpath did not reach a fixed point after " + passes
+                        + " passes; formatting continued on the partially linted source",
+                new Position.Unknown());
+    }
+
+    FormatResult configErrorResult(final String source, final ProjectFile.Invalid invalid) {
+        return new FormatResult(source, List.of(new Diagnostic.ConfigError(invalid.problem(), new Position.Unknown())));
     }
 
     LintEngine lintEngine(final JavafmtConfig config) {

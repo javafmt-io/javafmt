@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+import io.javafmt.JavafmtConfig;
 import io.javafmt.daemon.protocol.Diagnostic;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -74,12 +75,19 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
         return "javafmt";
     }
 
-    static String timing(final String fileName, final JavafmtApplicationSettings.Engine engine, final Duration took) {
-        final var label = switch (engine) {
+    static String timing(final String fileName,
+                         final JavafmtApplicationSettings.Engine engine,
+                         final JavafmtConfig.Analysis analysis,
+                         final Duration took) {
+        final var engineLabel = switch (engine) {
             case IN_PROCESS -> "in-process";
             case NATIVE -> "native";
         };
-        return "javafmt: formatted " + fileName + " in " + took.toMillis() + " ms (" + label + ")";
+        final var analysisLabel = switch (analysis) {
+            case JavafmtConfig.Analysis.Attributed _ -> "analyzed";
+            case JavafmtConfig.Analysis.ParseOnly _ -> "parse-only";
+        };
+        return "javafmt: formatted " + fileName + " in " + took.toMillis() + " ms (" + engineLabel + ", " + analysisLabel + ")";
     }
 
     /**
@@ -154,12 +162,13 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             final var project = context.getProject();
             final var fileName = context.getContainingFile().getName();
             final var content = request.getDocumentText();
+            final var scope = Optional.ofNullable(context.getVirtualFile()).map(file -> FileScope.of(project, file)).orElseGet(FileScope::none);
             final var engine = JavafmtApplicationSettings.getInstance().getEngine();
             final var outcome = switch (engine) {
-                case IN_PROCESS -> Optional.of(timed(fileName, engine, () -> InProcessFormatter.format(content)));
+                case IN_PROCESS -> Optional.of(timed(fileName, engine, scope, () -> InProcessFormatter.format(content, scope)));
                 case NATIVE ->
                     supportedBinary(project)
-                            .map(binary -> timed(fileName, engine, () -> JavafmtDaemons.getInstance(project).format(binary, content)));
+                            .map(binary -> timed(fileName, engine, scope, () -> JavafmtDaemons.getInstance(project).format(binary, content, scope)));
             };
             if (outcome.isEmpty()) {
                 request.onTextReady(content);
@@ -180,11 +189,12 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
         private static JavafmtBinary.Outcome timed(final String fileName,
                                                    final JavafmtApplicationSettings.Engine engine,
+                                                   final FileScope scope,
                                                    final Supplier<JavafmtBinary.Outcome> formatter) {
             final var start = System.nanoTime();
             final var outcome = formatter.get();
             if (!(outcome instanceof JavafmtBinary.Outcome.Cancelled)) {
-                LOG.info(timing(fileName, engine, Duration.ofNanos(System.nanoTime() - start)));
+                LOG.info(timing(fileName, engine, scope.analysis(), Duration.ofNanos(System.nanoTime() - start)));
             }
             return outcome;
         }

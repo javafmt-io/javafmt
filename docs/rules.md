@@ -65,7 +65,7 @@ import static java.util.Objects.requireNonNull;
 ```
 
 - Module imports (`import module M;`) come first, in their own group before the other groups.
-- Wildcard imports are left in place with a warning (`AvoidStarImport`), and expanded only by `ExplodeStarImports` under `--analyze`.
+- Wildcard imports are left in place with a warning (`AvoidStarImport`), and expanded only by `ExplodeStarImports`, which needs the classpath.
 - When a file has no `java.*` import, the blank line between groups 1 and 3 stays single.
 - Unused imports are removed. Module imports are never removed as unused, because they implicitly bring in many types.
 
@@ -235,7 +235,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `FinalParameters` | Adds `final` to every parameter of a method or constructor that has a body, after any annotations. Methods without a body (abstract, native, and non-default interface methods) are left alone, because `final` means nothing there. Lambda parameters stay bare. Reassigned parameters trigger a warning. |
 | `FinalCatchParameter` | Adds `final` to every `catch` parameter, after any annotations: `catch (final RuntimeException e)`. Never when the body reassigns it. |
 | `FinalForEachVariable` | Adds `final` to the for-each variable: `for (final var x : xs)`. Never when the loop body reassigns it. |
-| `LocalVarUseVar` | Replaces the declared type of a local with `var` when the source shows the type stays the same: an unqualified `new` of exactly the declared type, whether or not the local is reassigned; and, for a local that is never reassigned, an unqualified diamond of the declared class, which gains the declared type arguments, a cast to the declared type, or a literal of the declared type. With `--analyze` it also rewrites a factory call that carries the declared type arguments as its witness when javac gives the call exactly the declared type, and a wider declaration such as `List<String> xs = new ArrayList<String>()`, or any other initializer, when javac confirms every use of the local is unchanged. Lambdas, method references, `null` and array initializers keep their declared type, and so does a reassigned local unless its initializer is an unqualified `new` of exactly the declared type. A qualified `new` such as `outer.new Inner()` names a member of the outer object's type, which can differ from the declared `Inner`, so it is rewritten only with `--analyze` and only when every use stays the same. With FinalLocalVariable the result is `final var`. |
+| `LocalVarUseVar` | Replaces the declared type of a local with `var` when the source shows the type stays the same: an unqualified `new` of exactly the declared type, whether or not the local is reassigned; and, for a local that is never reassigned, an unqualified diamond of the declared class, which gains the declared type arguments, a cast to the declared type, or a literal of the declared type. With the classpath it also rewrites a factory call that carries the declared type arguments as its witness when javac gives the call exactly the declared type, and a wider declaration such as `List<String> xs = new ArrayList<String>()`, or any other initializer, when javac confirms every use of the local is unchanged. Lambdas, method references, `null` and array initializers keep their declared type, and so does a reassigned local unless its initializer is an unqualified `new` of exactly the declared type. A qualified `new` such as `outer.new Inner()` names a member of the outer object's type, which can differ from the declared `Inner`, so it is rewritten only with the classpath and only when every use stays the same. With FinalLocalVariable the result is `final var`. |
 | `ArrayTrailingComma` | Adds a trailing comma to non-empty array initializers. Empty `{}` initializers are skipped, and so are arrays inside an annotation. |
 | `DefaultComesLast` | Moves `default` last in arrow switches. A colon-form switch is rewritten only when `default` has its own terminating body and is not part of a label group; otherwise it warns. |
 | `ModifierOrder` | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. Annotations in front of the keywords stay there. An annotation written among or after the keywords goes after them on a field, variable, parameter, constructor, or method that returns a value, and in front of them on a class, interface, enum, record, or `void` method. |
@@ -249,8 +249,8 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `NewlineAtEndOfFile` | Ends the file with exactly one line ending, in the file's own style. |
 | `ExplicitInitialization` | Strips redundant default field initializers: `int x = 0;` becomes `int x;`, `Object o = null;` becomes `Object o;`, `boolean b = false;` becomes `boolean b;`. Skipped when the class has a superclass, because the superclass constructor may call an override that assigns the field and `= 0` is then a real write, and when a comment sits inside the text being deleted. |
 | `EnumTrailingComma` | Adds a trailing comma after the last constant when the constants do not fit on one line and go one per line. Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
-| `ExplodeStarImports` | Replaces a wildcard import with explicit imports for the members the file references. Only runs with `--analyze`, and leaves every wildcard alone if any name in the file fails to resolve. |
-| `RedundantTypeArguments` | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically, apart from spacing and comments. With `--analyze` it also drops type witnesses on generic method calls when javac infers the same type without them. |
+| `ExplodeStarImports` | Replaces a wildcard import with explicit imports for the members the file references. Needs the classpath, and leaves every wildcard alone if any name in the file fails to resolve. |
+| `RedundantTypeArguments` | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically, apart from spacing and comments. With the classpath it also drops type witnesses on generic method calls when javac infers the same type without them. A witness that carries a type annotation, such as `Stream.<@Nullable T>iterate(...)`, is kept. |
 | `RedundantSuperCall` | Removes a no-argument `super()` as the first statement of a constructor body. A comment written inside its parentheses stays where the call was. |
 | `MemberOrder` | Moves nested types other than JUnit `@Nested` classes to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
 | `UnusedVariableShouldBeUnnamed` | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Only fires when the source targets Java 22 or later; the integrations read the target release from the build. |
@@ -258,6 +258,22 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 ### Warning-only rules
 
 `FallThrough`, `EqualsHashCode`, `MissingSwitchDefault`, `EmptyBlock`, `AvoidStarImport`, `HideUtilityClassConstructor`, `CovariantEquals`, `StringLiteralEquality`.
+
+### Rules that need the classpath
+
+`ExplodeStarImports`, and the parts of `LocalVarUseVar` and `RedundantTypeArguments` described above as needing the classpath, use javac's resolved types. They run whenever the integration knows the compile classpath of the file: the CLI with `--classpath`, the Gradle plugin by default, the Spotless step when it is given one, the IntelliJ plugin for every file in a module, and the VS Code extension when Red Hat's Java extension gives it the classpath (see [Getting started](./intro.md)). Without a classpath, or with `--no-analyze` or `analyze = false`, they are skipped and every other rule runs as usual.
+
+The classpath may be incomplete or out of date. A rewrite that depends on a name javac cannot resolve is not made, and a file javac gives up on because of such a name is formatted without these rules. If javac fails on a file for any other reason, or formatting it with the classpath fails, the file is formatted without these rules and a warning says why.
+
+Besides the classpath, a name resolves from the other files formatted in the same run. javafmt attributes a run in batches of up to 128 files, taken in order and cut where the directory changes when it can, and halves a batch with more than 4 MB of source, so its memory stays bounded however many files it formats; a name declared in a file of another batch resolves only through the classpath. The batches depend on the files and not on what formatting does to them, so formatting the same files again changes nothing, and a run formats them the same way on every machine. When a rewrite makes another one possible, javafmt attributes the rewritten files again before it finishes.
+
+A `.javafmt` file can turn any of these rules off for the files below it:
+
+```properties
+analyze.skip=ExplodeStarImports, LocalVarUseVar
+```
+
+A skipped rule behaves exactly as it does without a classpath, so the parts of `LocalVarUseVar` and `RedundantTypeArguments` that need no classpath keep running. javafmt reads the first `.javafmt` it finds walking up from the formatted file's directory, and stops at the directory that contains `.git`. `analyze.skip` is the only setting. An unknown setting, or a name that is not one of the three rules above, is an error: javafmt leaves every file the project file applies to unchanged and says which name is wrong.
 
 ### Out of scope
 

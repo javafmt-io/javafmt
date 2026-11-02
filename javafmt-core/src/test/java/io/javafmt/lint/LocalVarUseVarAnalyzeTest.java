@@ -34,6 +34,22 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @Test
+    void aCStyleArrayLocalBecomesVarOnceArrayTypeStyleHasMovedItsBrackets() {
+        final var source = """
+                class Fixture {
+
+                    void test() {
+                        String parts[] = "a,b".split(",");
+                        System.out.println(parts.length);
+                    }
+                }
+                """;
+        final var result = Javafmt.formatWithResult(source, ANALYZE);
+        assertThat(result.errors()).isEmpty();
+        assertThat(result.output()).contains("final var parts = \"a,b\".split(\",\");");
+    }
+
+    @Test
     void factoryWithDifferentReceiverRewrites() {
         // The narrow same-receiver pattern doesn't fire (receiver Collections != List), so the
         // analyze path is the only thing that can rewrite this.
@@ -201,7 +217,7 @@ class LocalVarUseVarAnalyzeTest {
     @Test
     void existingNarrowNewMatchStillFiresUnderAnalyze() {
         // ArrayList<X> x = new ArrayList<X>() — the narrow new-match pattern should still
-        // rewrite to var even when --analyze is on.
+        // rewrite to var even when there is a classpath.
         final var source = """
                 import java.util.ArrayList;
                 class Fixture {
@@ -218,13 +234,11 @@ class LocalVarUseVarAnalyzeTest {
 
     /** The edits alone, so these tests pin the rewrite and not the renderer's comment placement. */
     private static String rewrittenWithAttribution(final String source) {
-        return JavaParser.attributing(
-                "",
-                session -> {
-                    final var attributed = session.attribute(source);
-                    final var result = new LocalVarUseVar().apply(LintContext.attributed(attributed));
-                    return LintEngine.applyEdits(attributed.unit().source(), result.edits());
-                });
+        return JavaParser.attributing("", session -> {
+            final var attributed = session.attribute(source);
+            final var result = new LocalVarUseVar().apply(LintContext.attributed(attributed));
+            return LintEngine.applyEdits(attributed.unit().source(), result.edits());
+        });
     }
 
     @Test
@@ -386,13 +400,54 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @ParameterizedTest
-    @CsvSource( delimiter = '|', value = { "List<String> xs = Stream.of(\"a\").toList(); record(xs);    | var xs = Stream.of(\"a\").toList();", "CharSequence text = describe(); record(text.length());      | var text = describe();", "String name = describe(); show(name);                       | var name = describe();", "long total = size(); record(total);                         | var total = size();", "List<String> lines = new ArrayList<>(); record(lines);      | var lines = new ArrayList<String>();", "Box<String> box = Box.plain(); show(box);                  | var box = Box.<String>plain();", "List<String> xs = List.<String>of(); record(xs);            | var xs = List.<String>of();", "Box<String> box = Box.<String>sealed(); record(box);       | var box = Box.<String>sealed();", "Box<String> box = Box.sealed(); record(box);               | var box = Box.<String>sealed();", "List<String> lines = new ArrayList<String>(); record(lines.size()); | var lines = new ArrayList<String>();", "Collection<String> all = new ArrayList<String>(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = new ArrayList<String>(); var rows = Stream.of(all).toList();", "Collection<String> all = names(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = names(); var rows = Stream.of(all).toList();", "List<Object> xs = List.of(\"a\"); record(xs);               | var xs = List.<Object>of(\"a\");", })
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                    "List<String> xs = Stream.of(\"a\").toList(); record(xs);    | var xs = Stream.of(\"a\").toList();",
+                    "CharSequence text = describe(); record(text.length());      | var text = describe();",
+                    "String name = describe(); show(name);                       | var name = describe();",
+                    "long total = size(); record(total);                         | var total = size();",
+                    "List<String> lines = new ArrayList<>(); record(lines);      | var lines = new ArrayList<String>();",
+                    "Box<String> box = Box.plain(); show(box);                  | var box = Box.<String>plain();",
+                    "List<String> xs = List.<String>of(); record(xs);            | var xs = List.<String>of();",
+                    "Box<String> box = Box.<String>sealed(); record(box);       | var box = Box.<String>sealed();",
+                    "Box<String> box = Box.sealed(); record(box);               | var box = Box.<String>sealed();",
+                    "List<String> lines = new ArrayList<String>(); record(lines.size()); | var lines = new ArrayList<String>();",
+                    "Collection<String> all = new ArrayList<String>(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = new ArrayList<String>(); var rows = Stream.of(all).toList();",
+                    "Collection<String> all = names(); List<Collection<String>> rows = Stream.of(all).toList(); record(rows); | Collection<String> all = names(); var rows = Stream.of(all).toList();",
+                    "List<Object> xs = List.of(\"a\"); record(xs);               | var xs = List.<Object>of(\"a\");",
+            })
     void aLocalWhoseUsesStayTheSameBecomesVar(final String body, final String expected) {
         assertThat(rewrittenWithAttribution(ledger(body))).contains(expected);
     }
 
     @ParameterizedTest
-    @ValueSource( strings = { "Collection<Object> xs = List.of(\"a\"); record(xs);", "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);", "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);", "Object label = flag ? \"a\" : \"b\"; show(label);", "List<String> lines = flag ? new ArrayList<>() : new ArrayList<>(); record(lines.get(0).length());", "Box<String> box = Box.sealed(); show(box);", "Box<String> box = Box.<String>sealed(); show(box);", "Box<String> box = Box.<String>raw(); record(box.first().length());", "Box<String> box = Box.<String>of(untypedNames()); record(box.first().length());", "CharSequence text = describe(); show(text);", "Entry entry = refund(); record(entry.label);", "long total = count(); record(total);", "Object value = flag ? \"a\" : 1; record(value);", "CharSequence text = describe(); text = other; record(text);", "String note = null; record(note);", "Runnable task = () -> {}; task.run();", "Function<String, Integer> length = String::length; record(length);", "int[] slots = {1}; record(slots);", "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);", "long cents = 1; record(cents);", "Integer boxed = count(); record(boxed);", "Line line = branch().new Line(); show(line);", "Line line = branch().new Line(); line = new Line(); record(line);", })
+    @ValueSource(
+            strings = {
+                    "Collection<Object> xs = List.of(\"a\"); record(xs);",
+                    "Collection<Integer> ids = new ArrayList<>(List.of(5, 7, 1)); ids.remove(1); record(ids);",
+                    "String label = switch (count()) { case 1 -> \"one\"; default -> \"many\"; }; record(label);",
+                    "Object label = flag ? \"a\" : \"b\"; show(label);",
+                    "List<String> lines = flag ? new ArrayList<>() : new ArrayList<>(); record(lines.get(0).length());",
+                    "Box<String> box = Box.sealed(); show(box);",
+                    "Box<String> box = Box.<String>sealed(); show(box);",
+                    "Box<String> box = Box.<String>raw(); record(box.first().length());",
+                    "Box<String> box = Box.<String>of(untypedNames()); record(box.first().length());",
+                    "CharSequence text = describe(); show(text);",
+                    "Entry entry = refund(); record(entry.label);",
+                    "long total = count(); record(total);",
+                    "Object value = flag ? \"a\" : 1; record(value);",
+                    "CharSequence text = describe(); text = other; record(text);",
+                    "String note = null; record(note);",
+                    "Runnable task = () -> {}; task.run();",
+                    "Function<String, Integer> length = String::length; record(length);",
+                    "int[] slots = {1}; record(slots);",
+                    "Comparator<String> order = new Comparator<>() { public int compare(String a, String b) { return 0; } }; record(order);",
+                    "long cents = 1; record(cents);",
+                    "Integer boxed = count(); record(boxed);",
+                    "Line line = branch().new Line(); show(line);",
+                    "Line line = branch().new Line(); line = new Line(); record(line);",
+            })
     void aLocalWhoseUsesWouldChangeKeepsItsType(final String body) {
         assertThat(rewrittenWithAttribution(ledger(body))).contains(body).doesNotContain("var ");
     }
@@ -410,7 +465,13 @@ class LocalVarUseVarAnalyzeTest {
     }
 
     @ParameterizedTest
-    @CsvSource( delimiter = '|', value = { "List<Object> xs = List.<Object>of(\"a\");                   | final var xs = List.<Object>of(\"a\");", "List<Object> xs = List.of(\"a\");                           | final var xs = List.<Object>of(\"a\");", "List<Object> xs = Collections.<Object>singletonList(\"a\"); | final List<Object> xs = Collections.singletonList(\"a\");", })
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                    "List<Object> xs = List.<Object>of(\"a\");                   | final var xs = List.<Object>of(\"a\");",
+                    "List<Object> xs = List.of(\"a\");                           | final var xs = List.<Object>of(\"a\");",
+                    "List<Object> xs = Collections.<Object>singletonList(\"a\"); | final List<Object> xs = Collections.singletonList(\"a\");",
+            })
     void aWitnessTheVarRewriteNeedsIsNeverDropped(final String declaration, final String expected) {
         final var source = """
                 import java.util.Collections;

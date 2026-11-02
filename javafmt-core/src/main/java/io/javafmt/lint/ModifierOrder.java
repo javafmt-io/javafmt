@@ -95,7 +95,8 @@ public final class ModifierOrder implements LintRule {
         }
         final var keywords = canonicalOrder.stream().map(Modifier::toString);
         final var rewritten = typed
-                ? Stream.of(scan.annotationsBeforeTheKeywords().stream(), scan.comments().stream(), keywords, scan.annotationsAfterAKeyword().stream())
+                ? Stream.of(
+                        scan.annotationsBeforeTheKeywords().stream(), scan.comments().stream(), keywords, scan.annotationsAfterAKeyword().stream())
                 : Stream.of(
                         scan.annotationsBeforeTheKeywords().stream(), scan.annotationsAfterAKeyword().stream(), scan.comments().stream(), keywords);
         return Optional.of(new LintEdit(scan.start(), scan.lastItemEnd(), rewritten.flatMap(part -> part).collect(Collectors.joining(" "))));

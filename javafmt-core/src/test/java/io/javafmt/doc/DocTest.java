@@ -111,7 +111,7 @@ class DocTest {
 
         @Test
         void streamConstructor_emptyStream_producesEmptyConcat() {
-            assertThat(new Doc.Concat(Stream.<Doc>of()).parts()).isEmpty();
+            assertThat(new Doc.Concat(Stream.of()).parts()).isEmpty();
         }
     }
 
@@ -203,7 +203,7 @@ class DocTest {
 
         @Test
         void singleSeparator_emptyStream_isEmpty() {
-            assertThat(Doc.intersperse(SEP, Stream.<Doc>of()).toList()).isEmpty();
+            assertThat(Doc.intersperse(SEP, Stream.of()).toList()).isEmpty();
         }
 
         @Test
@@ -233,7 +233,7 @@ class DocTest {
 
         @Test
         void listSeparator_emptyStream_isEmpty() {
-            assertThat(Doc.intersperse(List.of(S1, S2), Stream.<Doc>of()).toList()).isEmpty();
+            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of()).toList()).isEmpty();
         }
 
         @Test
@@ -253,7 +253,7 @@ class DocTest {
 
         @Test
         void listSeparator_emptyList_returnsPartsUnchanged() {
-            assertThat(Doc.intersperse(List.<Doc>of(), Stream.of(A, B, C)).toList()).containsExactly(A, B, C);
+            assertThat(Doc.intersperse(List.of(), Stream.of(A, B, C)).toList()).containsExactly(A, B, C);
         }
 
         @Test

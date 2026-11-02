@@ -36,7 +36,7 @@ class FinalCatchParameterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "catch (final IOException e) {}", "catch (IOException e) { e = null; }", "catch (@Annotated final IOException e) {}", })
+    @ValueSource(strings = {"catch (final IOException e) {}", "catch (IOException e) { e = null; }", "catch (@Annotated final IOException e) {}",})
     void aFinalOrReassignedCatchParameterIsLeftAlone(final String catchClause) {
         assertThat(fix(inMethod(catchClause))).isEqualTo(inMethod(catchClause));
     }

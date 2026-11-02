@@ -161,7 +161,7 @@ class RedundantTypeArgumentsAnalyzeTest {
 
     @Test
     void fastPathStillFiresUnderAnalyze() {
-        // Constructor diamond rewrite must still apply when --analyze is on.
+        // Constructor diamond rewrite must still apply when there is a classpath.
         final var source = """
                 import java.util.ArrayList;
                 import java.util.List;
@@ -212,5 +212,27 @@ class RedundantTypeArgumentsAnalyzeTest {
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("Stream.<Object>of(\"a\")");
+    }
+
+    @Test
+    void witnessCarryingATypeAnnotationIsKept() {
+        final var source = """
+                import java.lang.annotation.ElementType;
+                import java.lang.annotation.Target;
+                import java.util.stream.Stream;
+
+                class Fixture {
+
+                    @Target(ElementType.TYPE_USE)
+                    @interface Maybe {}
+
+                    void test() {
+                        final Stream<String> s = Stream.<@Maybe String>of("a");
+                        System.out.println(s);
+                    }
+                }
+                """;
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
+        assertThat(formatted).contains("Stream.<@Maybe String>of(\"a\")");
     }
 }

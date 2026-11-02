@@ -13,8 +13,8 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class JavafmtEngine {
@@ -24,55 +24,51 @@ public final class JavafmtEngine {
         final var sources = request.files().stream().map(File::toPath).sorted().toList();
         final var paths = request.ratchetFrom().map(ref -> GitRatchet.since(ref, root).keep(sources)).orElse(sources);
         final var threads = request.threads();
-        final var results = request.analysisClasspath()
-                .map(
-                        classpath -> withParseOnlyFallback(
-                                Javafmt.formatFiles(
-                                        paths, JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)),
-                                        FormatCache.noop(), threads),
-                                threads))
-                .orElseGet(() -> Javafmt.formatFiles(paths, JavafmtConfig.defaults(), FormatCache.noop(), threads));
-        final var formatted = results.stream()
-                .flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty())
-                .toList();
-        final var changed = formatted.stream().filter(FileResult.Formatted::changed).toList();
-        if (request.write()) {
-            changed.forEach(file -> SourceFiles.write(file.path(), file.result().output()));
-        }
+        final var config = request.analysisClasspath()
+                .map(classpath -> JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)))
+                .orElseGet(JavafmtConfig::defaults);
+        final var summaries = summaries(root, paths, config, threads, request.write());
         return new Outcome(
-                changed.stream().map(file -> source(root, file.path())).toList(),
-                Stream.concat(
-                        results.stream()
-                                .flatMap(result -> result instanceof FileResult.Unreadable u ? Stream.of(u) : Stream.empty())
-                                .map(u -> unreadable(source(root, u.path()), "cannot read: " + u.error().getMessage())),
-                        findings(root, formatted, file -> file.result().errors()))
-                        .toList(),
-                findings(root, formatted, file -> file.result().warnings()).toList());
+                summaries.stream().flatMap(summary -> summary.changed().stream()).toList(),
+                summaries.stream().flatMap(summary -> summary.errors().stream()).toList(),
+                summaries.stream().flatMap(summary -> summary.warnings().stream()).toList());
+    }
+
+    private static List<Summary> summaries(final Path root,
+                                           final List<Path> paths,
+                                           final JavafmtConfig config,
+                                           final int threads,
+                                           final boolean write) {
+        try (final var results = Javafmt.formatFilesLazily(paths, config, FormatCache.noop(), threads)) {
+            return results.map(result -> summary(root, result, write)).toList();
+        }
+    }
+
+    private static Summary summary(final Path root, final FileResult result, final boolean write) {
+        return switch (result) {
+            case FileResult.UpToDate _ -> new Summary(Optional.empty(), List.of(), List.of());
+            case FileResult.Unreadable(var path, var error) ->
+                new Summary(Optional.empty(), List.of(unreadable(source(root, path), "cannot read: " + error.getMessage())), List.of());
+            case FileResult.Formatted formatted -> {
+                if (write && formatted.changed()) {
+                    SourceFiles.write(formatted.path(), formatted.result().output());
+                }
+                yield new Summary(
+                        formatted.changed() ? Optional.of(source(root, formatted.path())) : Optional.empty(),
+                        findings(root, formatted, file -> file.result().errors()).toList(),
+                        findings(root, formatted, file -> file.result().warnings()).toList());
+            }
+        };
     }
 
     private static Outcome.Finding unreadable(final Outcome.Source source, final String message) {
         return new Outcome.Finding(source, 0, 0, message, source.display() + ": error: " + message);
     }
 
-    private static List<FileResult> withParseOnlyFallback(final List<FileResult> attributed, final int threads) {
-        final var failed = attributed.stream()
-                .filter(result -> result instanceof FileResult.Formatted f && f.result().hasErrors())
-                .map(FileResult::path)
-                .toList();
-        if (failed.isEmpty()) {
-            return attributed;
-        }
-        final var retried = Javafmt.formatFiles(failed, JavafmtConfig.defaults(), FormatCache.noop(), threads)
-                .stream()
-                .collect(Collectors.toMap(FileResult::path, Function.identity()));
-        return attributed.stream().map(result -> retried.getOrDefault(result.path(), result)).toList();
-    }
-
     private static Stream<Outcome.Finding> findings(final Path root,
-                                                    final List<FileResult.Formatted> formatted,
+                                                    final FileResult.Formatted file,
                                                     final Function<FileResult.Formatted, Collection<Diagnostic>> diagnostics) {
-        return formatted.stream()
-                .flatMap(file -> diagnostics.apply(file).stream().map(diagnostic -> finding(source(root, file.path()), diagnostic)));
+        return diagnostics.apply(file).stream().map(diagnostic -> finding(source(root, file.path()), diagnostic));
     }
 
     private static Outcome.Finding finding(final Outcome.Source source, final Diagnostic diagnostic) {
@@ -83,6 +79,8 @@ public final class JavafmtEngine {
     private static Outcome.Source source(final Path root, final Path path) {
         return new Outcome.Source(path.toAbsolutePath().toString(), path.startsWith(root) ? root.relativize(path).toString() : path.toString());
     }
+
+    private record Summary(Optional<Outcome.Source> changed, List<Outcome.Finding> errors, List<Outcome.Finding> warnings) {}
 
     private JavafmtEngine() {}
 }

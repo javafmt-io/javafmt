@@ -43,6 +43,10 @@ public final class ArrayTypeStyle implements LintRule {
                 });
     }
 
+    static boolean isCStyle(final VariableTree node, final ParsedUnit unit) {
+        return fixFor(node, unit).isPresent();
+    }
+
     private static Optional<LintEdit> fixFor(final VariableTree node, final ParsedUnit unit) {
         if (!(node.getType() instanceof ArrayTypeTree)) {
             return Optional.empty();

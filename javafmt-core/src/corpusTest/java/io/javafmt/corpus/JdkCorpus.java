@@ -22,7 +22,7 @@ final class JdkCorpus {
     private static final String MODULE = "java.base";
 
     static List<Entry> load(final Path srcZip) {
-        try (var zip = FileSystems.newFileSystem(srcZip, Map.<String, Object>of())) {
+        try (var zip = FileSystems.newFileSystem(srcZip, Map.of())) {
             return Stream.of(zip.getPath(MODULE))
                     .filter(Files::isDirectory)
                     .flatMap(JdkCorpus::javaFilesUnder)

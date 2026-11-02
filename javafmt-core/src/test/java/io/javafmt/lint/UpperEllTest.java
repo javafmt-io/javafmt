@@ -9,7 +9,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class UpperEllTest {
     @ParameterizedTest
-    @ValueSource(strings = {"class Fixture { long x = 1l; }", "class Fixture { long x = 0l; }", "class Fixture { long x = 100_000l; }", "class Fixture { long x = 0xDEADl; }"})
+    @ValueSource(
+            strings = {
+                    "class Fixture { long x = 1l; }",
+                    "class Fixture { long x = 0l; }",
+                    "class Fixture { long x = 100_000l; }",
+                    "class Fixture { long x = 0xDEADl; }"
+            })
     void lowercaseLSuffixGetsReplacedWithUppercase(final String src) {
         final var unit = JavaParser.parseUnit(src);
         final var result = new UpperEll().apply(LintContext.parseOnly(unit));
@@ -19,7 +25,13 @@ class UpperEllTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"class Fixture { long x = 1L; }", "class Fixture { long x = 0L; }", "class Fixture { long x = 100_000L; }", "class Fixture { int x = 1; }"})
+    @ValueSource(
+            strings = {
+                    "class Fixture { long x = 1L; }",
+                    "class Fixture { long x = 0L; }",
+                    "class Fixture { long x = 100_000L; }",
+                    "class Fixture { int x = 1; }"
+            })
     void upperLSuffixOrNonLongLiteralProducesNoEdits(final String src) {
         final var unit = JavaParser.parseUnit(src);
         final var result = new UpperEll().apply(LintContext.parseOnly(unit));

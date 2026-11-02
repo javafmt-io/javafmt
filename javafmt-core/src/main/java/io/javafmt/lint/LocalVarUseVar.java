@@ -23,6 +23,7 @@ import com.sun.source.util.TreePath;
 import io.javafmt.parser.Attribution;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ChainScanner;
+import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
 import java.util.List;
@@ -101,8 +102,15 @@ public final class LocalVarUseVar implements LintRule {
         final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
         final var verified = unproven.isEmpty()
                 ? List.<Proposal>of()
-                : context.attribution().map(attribution -> VarRetypingCheck.verified(unit, attribution, proven, unproven)).orElse(List.of());
+                : context.attributionFor(LocalVarUseVar.class)
+                        .map(attribution -> VarRetypingCheck.verified(unit, attribution, proven, unproven))
+                        .orElse(List.of());
         return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream()).flatMap(proposal -> proposal.edits().stream()).toList());
+    }
+
+    @Override
+    public boolean usesAnalysis() {
+        return true;
     }
 
     static boolean rewritesInitializer(final TreePath varPath, final LintContext context) {
@@ -122,7 +130,7 @@ public final class LocalVarUseVar implements LintRule {
         if (reassigned) {
             return Optional.empty();
         }
-        return context.attribution()
+        return context.attributionFor(LocalVarUseVar.class)
                 .flatMap(
                         attribution -> unprovenEdits(node, path, attribution, context)
                                 .map(edits -> new Proposal(path, edits, false, keepsItsTypeWithoutTarget(node, path, attribution))));
@@ -167,10 +175,12 @@ public final class LocalVarUseVar implements LintRule {
     private static boolean isCandidate(final TreePath path, final ParsedUnit unit) {
         return path.getLeaf() instanceof VariableTree node
             && isLocalBlock(path)
-            && node.getType() != null
+            && Declarations.writesItsType(node, unit)
+            && CommentScanner.scan(unit.sourceOf(node.getType())).isEmpty()
             && node.getInitializer() != null
             && node.getModifiers().getAnnotations().isEmpty()
             && !isVarType(node, unit)
+            && !ArrayTypeStyle.isCStyle(node, unit)
             && !MultipleVariableDeclarations.isPartOfDeclarationGroup(path, unit);
     }
 
@@ -369,7 +379,12 @@ public final class LocalVarUseVar implements LintRule {
     private static Optional<LintEdit> replaceTypeEdit(final VariableTree node, final ParsedUnit unit) {
         final var typeStart = unit.startOf(node.getType());
         final var typeEnd = unit.endOf(node.getType());
-        return typeStart >= 0 && typeEnd > typeStart ? Optional.of(new LintEdit(typeStart, typeEnd, "var")) : Optional.empty();
+        return typeStart >= 0 && typeEnd > typeStart ? Optional.of(typeToVar(typeStart, typeEnd, unit)) : Optional.empty();
+    }
+
+    private static LintEdit typeToVar(final int typeStart, final int typeEnd, final ParsedUnit unit) {
+        final var source = unit.source();
+        return new LintEdit(typeStart, typeEnd, typeEnd < source.length() && Character.isJavaIdentifierPart(source.charAt(typeEnd)) ? "var " : "var");
     }
 
     private static List<LintEdit> staticFactoryEdits(final VariableTree node,
@@ -395,7 +410,7 @@ public final class LocalVarUseVar implements LintRule {
         if (!call.getTypeArguments().isEmpty()) {
             return typeArgumentsMatchTextually(pt.getTypeArguments(), call.getTypeArguments(), unit)
                 && (!proven || callHasTheDeclaredType(node, call, path, context))
-                    ? List.of(new LintEdit(typeStart, typeEnd, "var"))
+                    ? List.of(typeToVar(typeStart, typeEnd, unit))
                     : List.of();
         }
         if (proven || !witnessFitsTheMethod(call, path, context, pt.getTypeArguments().size())) {
@@ -410,14 +425,14 @@ public final class LocalVarUseVar implements LintRule {
             return List.of();
         }
         final var witness = src.substring(rawEnd, typeEnd);
-        return List.of(new LintEdit(typeStart, typeEnd, "var"), LintEdit.insert(namePos, witness));
+        return List.of(typeToVar(typeStart, typeEnd, unit), LintEdit.insert(namePos, witness));
     }
 
     private static boolean callHasTheDeclaredType(final VariableTree node,
                                                   final MethodInvocationTree call,
                                                   final TreePath path,
                                                   final LintContext context) {
-        return context.attribution()
+        return context.attributionFor(LocalVarUseVar.class)
                 .filter(attribution -> {
                     final var callType = attribution.trees().getTypeMirror(new TreePath(path, call));
                     final var declaredType = attribution.trees().getTypeMirror(new TreePath(path, node.getType()));
@@ -438,7 +453,7 @@ public final class LocalVarUseVar implements LintRule {
                                                 final TreePath path,
                                                 final LintContext context,
                                                 final int witnessCount) {
-        return context.attribution()
+        return context.attributionFor(LocalVarUseVar.class)
                 .map(attribution -> attribution.trees().getElement(new TreePath(new TreePath(path, call), call.getMethodSelect())))
                 .filter(ExecutableElement.class::isInstance)
                 .map(ExecutableElement.class::cast)

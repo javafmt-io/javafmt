@@ -78,15 +78,13 @@ class PrinterTest {
         static Stream<Arguments> lineStarts() {
             return Stream.of(
                     Arguments.of("mid line", new Doc.Concat(List.of(new Doc.Text("a "), Doc.LINE_START, new Doc.Text("b"))), "a\nb"),
-                    Arguments.of("at a line start", new Doc.Concat(List.of(new Doc.Text("a"), Doc.HARD_LINE, Doc.LINE_START, new Doc.Text("b"))), "a\nb"),
                     Arguments.of(
-                            "indented",
-                            new Doc.Indent(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE_START, new Doc.Text("b")))),
-                            "a\n    b"),
+                            "at a line start", new Doc.Concat(List.of(new Doc.Text("a"), Doc.HARD_LINE, Doc.LINE_START, new Doc.Text("b"))), "a\nb"),
+                    Arguments.of(
+                            "indented", new Doc.Indent(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE_START, new Doc.Text("b")))), "a\n    b"),
                     Arguments.of(
                             "inside a group that would fit",
-                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE, Doc.LINE_START, new Doc.Text("b")))),
-                            "a\nb"));
+                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE, Doc.LINE_START, new Doc.Text("b")))), "a\nb"));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -266,7 +264,7 @@ class PrinterTest {
         @Test
         void fill_packsAsManyItemsPerLineAsFit() {
             final var items = IntStream.rangeClosed(1, 7).mapToObj(i -> String.valueOf(i).repeat(30)).toList();
-            final var doc = new Doc.Fill(Doc.intersperse(Doc.LINE, items.stream().<Doc>map(Doc.Text::new)).toList());
+            final var doc = new Doc.Fill(Doc.intersperse(Doc.LINE, items.stream().map(Doc.Text::new)).toList());
             final var expected = String.join(" ", items.subList(0, 3)) + "\n" + String.join(" ", items.subList(3, 6)) + "\n" + items.getLast();
             assertThat(new Printer(100).print(doc)).isEqualTo(expected);
         }

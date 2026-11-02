@@ -3,6 +3,8 @@ package io.javafmt.spotless;
 import com.diffplug.spotless.FormatterStep;
 import io.javafmt.JavafmtConfig;
 
+import java.io.File;
+
 /**
  * Builds a step pinned to a chosen javafmt version, for the generated TestKit build to call.
  *
@@ -14,8 +16,8 @@ import io.javafmt.JavafmtConfig;
  * formatter is not.
  */
 public final class VersionPinnedSteps {
-    public static FormatterStep create(final String formatterVersion) {
-        return JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), "", formatterVersion);
+    public static FormatterStep create(final String formatterVersion, final File projectDirectory) {
+        return JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), projectDirectory, formatterVersion);
     }
 
     private VersionPinnedSteps() {}

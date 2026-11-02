@@ -116,7 +116,8 @@ final class SwitchExpressionRenderer {
     }
 
     private Doc renderColonForm(final Doc prefixDoc, final CaseTree node, final Recursor recursor) {
-        final var prefix = Doc.concatOf(Stream.of(Stream.of(prefixDoc, new Doc.Text(":")), BlockRenderer.braceLineComments(recursor.braceLine(node))));
+        final var prefix = Doc.concatOf(
+                Stream.of(Stream.of(prefixDoc, new Doc.Text(":")), BlockRenderer.braceLineComments(recursor.braceLine(node))));
         final var statements = node.getStatements()
                 .stream()
                 .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())

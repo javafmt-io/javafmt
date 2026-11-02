@@ -15,8 +15,8 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Slf4j
 @UtilityClass
@@ -36,7 +36,7 @@ public final class Daemon {
     void serve(final Wire wire,
                final InputStream in,
                final OutputStream out,
-               final BiFunction<Integer, String, FormatReply> handler,
+               final Function<FormatRequest, FormatReply> handler,
                final Consumer<Error> fatal) {
         serve(wire, in, out, DEFAULT_THREADS, handler, fatal);
     }
@@ -45,7 +45,7 @@ public final class Daemon {
                final InputStream in,
                final OutputStream out,
                final int threads,
-               final BiFunction<Integer, String, FormatReply> handler,
+               final Function<FormatRequest, FormatReply> handler,
                final Consumer<Error> fatal) {
         Objects.requireNonNull(wire, "wire");
         Objects.requireNonNull(in, "in");
@@ -64,7 +64,7 @@ public final class Daemon {
     private void respond(final Wire wire,
                          final byte[] frame,
                          final Replies replies,
-                         final BiFunction<Integer, String, FormatReply> handler,
+                         final Function<FormatRequest, FormatReply> handler,
                          final Consumer<Error> fatal) {
         try {
             reply(wire, frame, handler).map(wire::encode).ifPresent(replies::write);
@@ -75,7 +75,7 @@ public final class Daemon {
         }
     }
 
-    private Optional<FormatReply> reply(final Wire wire, final byte[] frame, final BiFunction<Integer, String, FormatReply> handler) {
+    private Optional<FormatReply> reply(final Wire wire, final byte[] frame, final Function<FormatRequest, FormatReply> handler) {
         final FormatRequest request;
         try {
             request = wire.decode(frame, FormatRequest.newBuilder()).build();
@@ -90,12 +90,12 @@ public final class Daemon {
         return Optional.of(answer(request, handler));
     }
 
-    private FormatReply answer(final FormatRequest request, final BiFunction<Integer, String, FormatReply> handler) {
+    private FormatReply answer(final FormatRequest request, final Function<FormatRequest, FormatReply> handler) {
         if (!request.hasSource()) {
             return DaemonHandler.failure(request.getId(), "", Kind.KIND_CLI, "source: value is required");
         }
         try {
-            return handler.apply(request.getId(), request.getSource());
+            return handler.apply(request);
         } catch (final RuntimeException e) {
             return DaemonHandler.failure(
                     request.getId(), request.getSource(), Kind.KIND_INTERNAL, e.getClass().getSimpleName() + ": " + e.getMessage());

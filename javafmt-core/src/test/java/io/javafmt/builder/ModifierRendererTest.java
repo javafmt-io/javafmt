@@ -44,13 +44,14 @@ class ModifierRendererTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "class Foo {\n    public @Nullable String find() {\n        return null;\n    }\n}",
-        "class Foo {\n    public static <T> @Nullable T first() {\n        return null;\n    }\n}",
-        "class Foo {\n    private final @Nullable String name;\n}",
-        "class Foo {\n    void accept(final @Nullable String name) {}\n}",
-        "public @Deprecated class Foo {}"
-    })
+    @ValueSource(
+            strings = {
+                    "class Foo {\n    public @Nullable String find() {\n        return null;\n    }\n}",
+                    "class Foo {\n    public static <T> @Nullable T first() {\n        return null;\n    }\n}",
+                    "class Foo {\n    private final @Nullable String name;\n}",
+                    "class Foo {\n    void accept(final @Nullable String name) {}\n}",
+                    "public @Deprecated class Foo {}"
+            })
     void anAnnotationWrittenAfterTheModifiersStaysThere(final String source) {
         assertThat(format(source)).isEqualTo(source);
     }

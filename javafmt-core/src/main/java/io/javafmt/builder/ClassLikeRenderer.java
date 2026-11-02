@@ -17,7 +17,8 @@ import java.util.stream.Stream;
 @UtilityClass
 final class ClassLikeRenderer {
     Doc render(final ClassTree node, final String keyword, final Recursor recursor) {
-        final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text(keyword + " " + node.getSimpleName()));
+        final var prefix = Doc.concat(
+                ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text(keyword + " " + node.getSimpleName()));
         final var isInterface = node.getKind() == Tree.Kind.INTERFACE;
         final var superclass = isInterface ? null : node.getExtendsClause();
         final var interfaces = node.getImplementsClause();
@@ -58,12 +59,18 @@ final class ClassLikeRenderer {
 
     Doc buildTypeList(final String keyword, final List<? extends Tree> types, final Recursor recursor) {
         final var rendered = IntStream.range(0, types.size())
-                .mapToObj(i -> i < types.size() - 1 ? typeAndComma(types.get(i), types.get(i + 1), recursor) : new WrappableList.Element(recursor.scan(types.get(i)), false))
+                .mapToObj(
+                        i -> i < types.size() - 1
+                                ? typeAndComma(types.get(i), types.get(i + 1), recursor)
+                                : new WrappableList.Element(recursor.scan(types.get(i)), false))
                 .toList();
         final var typesInterior = new Doc.Concat(
                 IntStream.range(0, rendered.size())
                         .boxed()
-                        .flatMap(i -> i == 0 ? Stream.of(rendered.get(i).doc()) : Stream.of(rendered.get(i - 1).endsItsLine() ? Doc.HARD_LINE : Doc.LINE, rendered.get(i).doc()))
+                        .flatMap(
+                                i -> i == 0
+                                        ? Stream.of(rendered.get(i).doc())
+                                        : Stream.of(rendered.get(i - 1).endsItsLine() ? Doc.HARD_LINE : Doc.LINE, rendered.get(i).doc()))
                         .toList());
         return Doc.continuationIndent(Doc.concat(Doc.LINE, new Doc.Text(keyword), new Doc.Group(new Doc.Indent(typesInterior))));
     }

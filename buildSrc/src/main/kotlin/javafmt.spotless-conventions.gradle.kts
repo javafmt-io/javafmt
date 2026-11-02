@@ -52,10 +52,11 @@ configure<SpotlessExtension> {
         // We resolve the formatter jars at configuration time and bake their
         // absolute paths into the spotless step's serializable state. The step
         // then builds an isolated `URLClassLoader` over those paths and calls
-        // `JavafmtFormatterStep.applyWithAnalyze(String, String)` reflectively,
+        // `JavafmtFormatterStep.apply(String, File, String, int)` reflectively,
         // which enables attribution-dependent lint rules (RedundantTypeArguments
-        // witness-drop, LocalVarUseVar widening path). If the classpath is
-        // unavailable the step falls back to parse-only formatting per file.
+        // witness-drop, LocalVarUseVar widening path) and honours the `.javafmt`
+        // project file for each file. If the classpath is unavailable the step
+        // formats without those rules.
         //
         // We combine compileClasspath (external deps) with the project's own
         // compiled classes so javac can resolve internal types during attribution.
@@ -75,7 +76,15 @@ configure<SpotlessExtension> {
 }
 
 // Make the spotless tasks rebuild the javafmt-spotless jar (and its transitive
-// :javafmt-core jar) before running.
+// :javafmt-core jar) before running, and run again when a `.javafmt` project
+// file that applies to this project or one under its sources changes.
+val javafmtProjectFiles = generateSequence(projectDir) { it.parentFile }
+    .takeWhile { it != rootDir.parentFile }
+    .map { it.resolve(".javafmt") }
+    .toList()
 tasks.matching { it.name.startsWith("spotless") }.configureEach {
     inputs.files(javafmtFormatterRuntime).withNormalizer(org.gradle.api.tasks.ClasspathNormalizer::class.java)
+    inputs.files(javafmtProjectFiles, fileTree("src") { include("**/.javafmt") })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("javafmtProjectFiles")
 }

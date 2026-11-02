@@ -32,9 +32,7 @@ final class RecordRenderer {
                                 .toList(),
                         ")");
         final var prefixAndComponents = Doc.concatOf(
-                Stream.of(
-                        Stream.of(prefix), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor),
-                        Stream.of(componentListDoc)));
+                Stream.of(Stream.of(prefix), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor), Stream.of(componentListDoc)));
         final var fullHeader = ClassLikeRenderer.buildTypeDeclarationHeader(
                 prefixAndComponents, null, node.getImplementsClause(), false, List.of(), recursor);
         final var headerDoc = new Doc.Group(fullHeader);
@@ -52,6 +50,7 @@ final class RecordRenderer {
     }
 
     private Doc componentDoc(final VariableTree comp, final Recursor recursor) {
-        return Doc.concat(ModifierRenderer.annotationsDoc(comp.getModifiers().getAnnotations(), recursor), MethodRenderer.typeAndName(comp, recursor));
+        return Doc.concat(
+                ModifierRenderer.annotationsDoc(comp.getModifiers().getAnnotations(), recursor), MethodRenderer.typeAndName(comp, recursor));
     }
 }

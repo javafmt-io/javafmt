@@ -25,6 +25,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CliTest {
+    private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
+
     @Test
     void stdinNoArguments_formatsAndWritesToStdout() {
         final var run = runStdin(Fixtures.UNFORMATTED_FOO);
@@ -192,7 +194,7 @@ class CliTest {
             Files.createDirectories(target.getParent() == null ? dir : target.getParent());
             Files.writeString(target, unformatted);
         }
-        final var arguments = Stream.<String>concat(
+        final var arguments = Stream.concat(
                 excludes.stream().flatMap(g -> Stream.of("--exclude", g)), filenames.stream().map(n -> dir.resolve(n).toString()))
                 .toArray(String[]::new);
         final var run = run(arguments);
@@ -227,42 +229,78 @@ class CliTest {
     }
 
     @Test
-    void analyzeFlag_withoutClasspath_failsWithUsefulMessage() {
-        final var run = run("--analyze");
-        assertThat(run.exit()).isEqualTo(2);
-        assertThat(run.err()).contains("--analyze").contains("--classpath");
-    }
-
-    @Test
-    void analyzeFlag_withClasspath_formatsFileSuccessfully(@TempDir final Path dir) throws Exception {
-        final var a = dir.resolve("A.java");
-        Files.writeString(a, Fixtures.UNFORMATTED_A);
-        final var run = run("--analyze", "--classpath", "", a.toString());
+    void aClasspathTurnsOnTheRulesThatNeedIt(@TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
+        final var run = run("--classpath", "", file.toString());
         assertThat(run.exit()).as("err=%s", run.err()).isZero();
-        // No attributed rules yet, so the output matches the parse-only path.
-        assertThat(Files.readString(a)).isEqualTo(Fixtures.FORMATTED_A);
+        assertThat(Files.readString(file)).contains("import java.util.List;").doesNotContain("java.util.*");
     }
 
     @Test
-    void analyzeFlag_withClasspath_producesIdenticalOutputToParseOnly(@TempDir final Path dir) throws Exception {
-        final var src = "class Foo { int x = 1; }";
-        final var withoutAnalyze = dir.resolve("WithoutAnalyze.java");
-        final var withAnalyze = dir.resolve("WithAnalyze.java");
-        Files.writeString(withoutAnalyze, src);
-        Files.writeString(withAnalyze, src);
-        run(withoutAnalyze.toString());
-        run("--analyze", "--classpath", "", withAnalyze.toString());
-        assertThat(Files.readString(withAnalyze)).isEqualTo(Files.readString(withoutAnalyze));
+    void withoutAClasspathTheRulesThatNeedOneDoNotRun(@TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
+        assertThat(run(file.toString()).exit()).isZero();
+        assertThat(Files.readString(file)).contains("import java.util.*;");
     }
 
     @Test
-    void analyzeFlag_readsTheClasspathFromAnArgumentFile(@TempDir final Path dir) throws Exception {
+    void noAnalyzeTurnsTheRulesThatNeedAClasspathOffThoughOneIsGiven(@TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
+        assertThat(run("--no-analyze", "--classpath", "", file.toString()).exit()).isZero();
+        assertThat(Files.readString(file)).contains("import java.util.*;");
+    }
+
+    @Test
+    void theClasspathCanComeFromAnArgumentFile(@TempDir final Path dir) throws Exception {
         final var argumentFile = dir.resolve("classpath.txt");
         Files.writeString(argumentFile, "--classpath " + dir);
-        final var a = dir.resolve("A.java");
-        Files.writeString(a, Fixtures.UNFORMATTED_A);
-        final var run = run("--analyze", "@" + argumentFile, a.toString());
+        final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
+        final var run = run("@" + argumentFile, file.toString());
         assertThat(run.exit()).as("err=%s", run.err()).isZero();
+        assertThat(Files.readString(file)).contains("import java.util.List;");
+    }
+
+    @Test
+    void aProjectFileSkipsTheRulesItNamesForTheFilesBelowIt(@TempDir final Path dir) throws Exception {
+        Files.createDirectories(dir.resolve(".git"));
+        Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
+        final var file = Files.writeString(Files.createDirectories(dir.resolve("src")).resolve("Order.java"), STAR_IMPORT);
+        assertThat(run("--classpath", "", file.toString()).exit()).isZero();
+        assertThat(Files.readString(file)).contains("import java.util.*;");
+    }
+
+    @Test
+    void anInvalidProjectFileFailsTheFilesItGovernsAndSaysWhy(@TempDir final Path dir) throws Exception {
+        Files.createDirectories(dir.resolve(".git"));
+        Files.writeString(dir.resolve(".javafmt"), "analyze.skip=FinalParameters\n");
+        final var file = Files.writeString(dir.resolve("Order.java"), Fixtures.UNFORMATTED_FOO);
+        final var run = run(file.toString());
+        assertThat(run.exit()).isEqualTo(1);
+        assertThat(run.err()).contains("Order.java: error: ", ".javafmt", "FinalParameters");
+        assertThat(Files.readString(file)).isEqualTo(Fixtures.UNFORMATTED_FOO);
+    }
+
+    @Test
+    void stdinUsesTheProjectFileOfTheWorkingDirectory(@TempDir final Path dir) throws Exception {
+        Files.createDirectories(dir.resolve(".git"));
+        Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
+        final var run = runStdinIn(dir, STAR_IMPORT, "--classpath", "");
+        assertThat(run.exit()).as("err=%s", run.err()).isZero();
+        assertThat(run.out()).contains("import java.util.*;");
+        assertThat(runStdinIn(dir.getRoot(), STAR_IMPORT, "--classpath", "").out()).contains("import java.util.List;");
+    }
+
+    @Test
+    void editingTheProjectFileInvalidatesTheCache(@TempDir final Path dir) throws Exception {
+        Files.createDirectories(dir.resolve(".git"));
+        Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
+        final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
+        final var cache = dir.resolve("javafmt.cache");
+        assertThat(run("--cache", cache.toString(), "--classpath", "", file.toString()).exit()).isZero();
+        assertThat(Files.readString(file)).contains("import java.util.*;");
+        Files.writeString(dir.resolve(".javafmt"), "");
+        assertThat(run("--cache", cache.toString(), "--classpath", "", file.toString()).exit()).isZero();
+        assertThat(Files.readString(file)).contains("import java.util.List;");
     }
 
     @Test
@@ -361,7 +399,8 @@ class CliTest {
         assertThat(run.out())
                 .contains("Usage: javafmt")
                 .contains("--check")
-                .contains("--analyze")
+                .contains("--classpath")
+                .contains("--no-analyze")
                 .contains("--exclude")
                 .contains("--ratchet-from")
                 .contains("Exit Codes:");
@@ -373,6 +412,27 @@ class CliTest {
         final var run = run(flag);
         assertThat(run.exit()).isZero();
         assertThat(run.out()).isEqualTo("javafmt " + io.javafmt.JavafmtVersion.VERSION + System.lineSeparator());
+    }
+
+    @Test
+    void runningOutOfMemoryIsExitTwoWithAMessageThatSaysWhatToDo() {
+        final var exhausted = new InputStream() {
+            @Override
+            public int read() {
+                throw new OutOfMemoryError("Java heap space");
+            }
+
+            @Override
+            public int read(final byte[] b, final int off, final int length) {
+                throw new OutOfMemoryError("Java heap space");
+            }
+        };
+        final var run = runStdin(exhausted);
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err())
+                .contains("javafmt: out of memory (Java heap space)")
+                .contains("-Xmx")
+                .doesNotContain("\tat ");
     }
 
     @Test
@@ -545,12 +605,12 @@ class CliTest {
     }
 
     @Test
-    void aCacheFromAPlainRunIsNotReusedByAnAnalyzeRun(@TempDir final Path dir) throws Exception {
+    void aCacheFromAPlainRunIsNotReusedByARunWithAClasspath(@TempDir final Path dir) throws Exception {
         final var file = dir.resolve("Warned.java");
         Files.writeString(file, EQUALS_WITHOUT_HASHCODE);
         final var cache = dir.resolve("javafmt.cache");
         assertThat(run("--cache", cache.toString(), file.toString()).exit()).isZero();
-        final var analyzed = run("--cache", cache.toString(), "--analyze", "--classpath", "", file.toString());
+        final var analyzed = run("--cache", cache.toString(), "--classpath", "", file.toString());
         assertThat(analyzed.exit()).isZero();
         assertThat(analyzed.err()).contains("warning: class overrides equals(Object) but not hashCode()");
     }
@@ -705,6 +765,15 @@ class CliTest {
 
     private static Run runStdin(final String stdin, final String... arguments) {
         return runStdin(new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)), arguments);
+    }
+
+    private static Run runStdinIn(final Path workingDirectory, final String stdin, final String... arguments) {
+        final var out = new ByteArrayOutputStream();
+        final var err = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+                arguments, new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)), new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8), false, workingDirectory);
+        return new Run(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 
     private static Run runStdin(final InputStream in, final String... arguments) {

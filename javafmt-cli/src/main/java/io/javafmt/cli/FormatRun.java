@@ -8,6 +8,7 @@ import io.javafmt.GitRatchetException;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.PathFilter;
+import io.javafmt.ProjectFile;
 import io.javafmt.SourceFiles;
 import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -81,10 +83,10 @@ final class FormatRun {
      * formatted source — printing it there would corrupt a {@code javafmt --check < F.java > out}
      * pipeline, so silence plus the exit code is the whole contract.
      */
-    int runStdin(final Arguments parsed, final InputStream in, final PrintStream out, final PrintStream err) {
+    int runStdin(final Arguments parsed, final ProjectFile projectFile, final InputStream in, final PrintStream out, final PrintStream err) {
         try {
             final var source = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            final var result = Javafmt.formatWithResult(source, parsed.config());
+            final var result = Javafmt.formatWithResult(source, parsed.config(), projectFile);
             reportDiagnostics(parsed.jsonDiagnostics() ? "" : "<stdin>", result, parsed, err);
             if (result.hasErrors()) {
                 out.print(result.output());
@@ -144,7 +146,7 @@ final class FormatRun {
 
     private int runFiles(final Arguments parsed, final PrintStream err) {
         final var cache = parsed.cacheFile.<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed))).orElseGet(FormatCache::noop);
-        final var outcomes = outcomesOf(Javafmt.formatFiles(parsed.files, parsed.config(), cache, parsed.threads), parsed, cache);
+        final var outcomes = outcomesOf(parsed, cache);
         outcomes.stream()
                 .flatMap(outcome -> outcome.report().stream())
                 .forEach(err::println);
@@ -155,25 +157,37 @@ final class FormatRun {
         return worstExit;
     }
 
-    private List<FileOutcome> outcomesOf(final List<FileResult> files, final Arguments parsed, final FormatCache cache) {
+    private List<FileOutcome> outcomesOf(final Arguments parsed, final FormatCache cache) {
         try (
+                final var files = Javafmt.formatFilesLazily(parsed.files, parsed.config(), cache, parsed.threads);
                 final var pool = Executors.newFixedThreadPool(
                         Math.max(1, parsed.threads), Thread.ofPlatform().name("javafmt-write-", 0).daemon(true).factory())) {
-            return files.stream()
-                    .map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics()), pool))
+            return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics()), pool))
                     .toList()
                     .stream()
-                    .map(CompletableFuture::join)
+                    .map(FormatRun::joined)
                     .toList();
         }
     }
 
+    private <T> T joined(final CompletableFuture<T> future) {
+        try {
+            return future.join();
+        } catch (final CompletionException e) {
+            if (e.getCause() instanceof Error error) {
+                throw error;
+            }
+            throw e;
+        }
+    }
+
     /**
-     * The configuration a cache entry was written under. {@code --analyze} and its classpath
-     * change what a file formats to, so entries from a plain run must not be reused by one.
+     * The configuration a cache entry was written under. The classpath and the project files that
+     * govern the files change what a file formats to, so entries from a run without them must not
+     * be reused by one with them.
      */
     private CacheKey cacheKey(final Arguments parsed) {
-        return CacheKey.of(parsed.config());
+        return CacheKey.of(parsed.config(), ProjectFile.forFiles(parsed.files));
     }
 
     /**

@@ -28,7 +28,7 @@ final class VerbatimEmitter {
      * {@code sourceColumn}. Returns the column after the last emitted line.
      */
     int emit(final StringBuilder sb, final int col, final String value, final int sourceColumn) {
-        final int firstNewline = value.indexOf('\n');
+        final var firstNewline = value.indexOf('\n');
         if (firstNewline < 0) {
             sb.append(value);
             return col + value.length();
@@ -37,8 +37,8 @@ final class VerbatimEmitter {
             sb.append(value);
             return tailColumn(value);
         }
-        final int requestedShift = col - sourceColumn;
-        final int actualShift = requestedShift < 0
+        final var requestedShift = col - sourceColumn;
+        final var actualShift = requestedShift < 0
                 ? Math.max(requestedShift, col - minLeadingWhitespaceAfterFirstLine(value, firstNewline))
                 : requestedShift;
         sb.append(value, 0, firstNewline);
@@ -46,8 +46,8 @@ final class VerbatimEmitter {
         int lastLineStart = sb.length();
         int i = firstNewline + 1;
         while (i < value.length()) {
-            final int newline = value.indexOf('\n', i);
-            final int lineEnd = newline < 0 ? value.length() : newline;
+            final var newline = value.indexOf('\n', i);
+            final var lineEnd = newline < 0 ? value.length() : newline;
             appendShiftedLine(sb, value, i, lineEnd, actualShift);
             if (newline < 0) {
                 break;
@@ -64,7 +64,7 @@ final class VerbatimEmitter {
      * last line. Caller ensures {@code value} contains at least one {@code '\n'}.
      */
     private int tailColumn(final String value) {
-        final int lastNewline = value.lastIndexOf('\n');
+        final var lastNewline = value.lastIndexOf('\n');
         return value.length() - lastNewline - 1;
     }
 
@@ -80,13 +80,13 @@ final class VerbatimEmitter {
         int min = Integer.MAX_VALUE;
         int i = firstNewline + 1;
         while (i <= value.length()) {
-            final int newline = value.indexOf('\n', i);
-            final int lineEnd = newline < 0 ? value.length() : newline;
+            final var newline = value.indexOf('\n', i);
+            final var lineEnd = newline < 0 ? value.length() : newline;
             int whitespace = 0;
             while (i + whitespace < lineEnd && value.charAt(i + whitespace) == ' ') {
                 whitespace++;
             }
-            final boolean isBlank = i + whitespace == lineEnd;
+            final var isBlank = i + whitespace == lineEnd;
             if (!isBlank) {
                 min = Math.min(min, whitespace);
             }
@@ -111,7 +111,7 @@ final class VerbatimEmitter {
             sb.append(value, start, end);
         } else if (shift < 0) {
             int skip = 0;
-            final int maxSkip = -shift;
+            final var maxSkip = -shift;
             while (skip < maxSkip && start + skip < end && value.charAt(start + skip) == ' ') {
                 skip++;
             }

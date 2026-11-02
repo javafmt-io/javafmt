@@ -44,11 +44,11 @@ The plugin adds a format and a check task for every source set (`javafmtFormatMa
 ```kotlin
 javafmt {
     excludes = listOf("src/main/java/gen/**", "**/Generated*.java")
-    analyze = true
+    analyze = false
 }
 ```
 
-`excludes` takes Ant-style patterns, matched against each source file's path relative to the project directory. A source directory outside the project directory is matched the same way, so its paths start with `../`. `analyze` (off by default) passes the source set's compile classpath to javafmt, which turns on the lint rules that need resolved types. `maxHeapSize` (default `1g`) and `jvmArgs` configure the worker JVM. `ratchetFrom` limits both tasks to the files changed since a git ref (see [Adopting javafmt gradually](#adopting-javafmt-gradually)).
+`excludes` takes Ant-style patterns, matched against each source file's path relative to the project directory. A source directory outside the project directory is matched the same way, so its paths start with `../`. `analyze` (on by default) passes each source set's compile classpath to javafmt, which turns on the [rules that need the classpath](./rules.md#rules-that-need-the-classpath); `false` formats without them. With `analyze` on, Gradle builds the projects on the compile classpath before it checks, and a check reads every file of the source set whenever one of them changes, since a change in one file can change how names in another resolve. `maxHeapSize` (default `1g`) and `jvmArgs` configure the worker JVM. `ratchetFrom` limits both tasks to the files changed since a git ref (see [Adopting javafmt gradually](#adopting-javafmt-gradually)).
 
 The plugin needs Gradle 9.1 or newer, the first release that supports Java 25 toolchains. It loads in any Gradle daemon JVM, but javafmt itself runs in a worker process on a Java 25 toolchain. If Gradle can't find one, `javafmtCheck` and `javafmtFormat` fail and say so. Either install a JDK 25, or let Gradle download one by adding the Foojay resolver to the `plugins` block of `settings.gradle.kts`. The error message names the exact line to add, with the resolver version the plugin was tested against:
 
@@ -73,29 +73,22 @@ plugins {
 
 spotless {
     java {
-        addStep(io.javafmt.spotless.JavafmtFormatterStep.create())
-    }
-}
-```
-
-Use `addStep(…create())`, not `custom("javafmt") { … }`. A `custom` step's up-to-date key is the integer you pass to `bumpThisNumberIfACustomStepChanges`, so upgrading javafmt would leave `spotlessCheck` passing on stale formatting. `create()` keys on the javafmt version, so an upgrade reformats.
-
-`JavafmtFormatterStep.create(JavafmtConfig)` takes a configuration instead of the defaults. To skip files, use Spotless's own `targetExclude("src/main/java/gen/**")` in Gradle or `<excludes>` in the Spotless Maven plugin; the step formats and lints every file Spotless hands it.
-
-`create(JavafmtConfig, String)` additionally passes a compile classpath, which turns on the lint rules that need resolved types (redundant type witnesses, star-import explosion). These are the rules javafmt applies to its own source:
-
-```kotlin
-spotless {
-    java {
         addStep(
             io.javafmt.spotless.JavafmtFormatterStep.create(
                 io.javafmt.JavafmtConfig.defaults(),
                 sourceSets["main"].compileClasspath.asPath,
+                projectDir,
             ),
         )
     }
 }
 ```
+
+The compile classpath turns on the [rules that need the classpath](./rules.md#rules-that-need-the-classpath), the same rules the Gradle plugin runs by default. Names the classpath cannot resolve, such as test dependencies when you pass the main classpath, only stop the rewrites that would need them. Every `create` takes the project directory. Spotless's up-to-date check covers the `.javafmt` [project file](#project-file) that applies to it and every `.javafmt` below it, so changing, adding or removing one formats the files again. Like a directory argument to the CLI, the search skips `build`, `generated`, `node_modules`, `out` and `target` directories. `JavafmtFormatterStep.create(projectDir)` formats without the classpath, and `create(JavafmtConfig, projectDir)` takes a configuration instead of the defaults.
+
+Use `addStep(…create(…))`, not `custom("javafmt") { … }`. A `custom` step's up-to-date key is the integer you pass to `bumpThisNumberIfACustomStepChanges`, so upgrading javafmt would leave `spotlessCheck` passing on stale formatting. `create` keys on the javafmt version, so an upgrade reformats.
+
+To skip files, use Spotless's own `targetExclude("src/main/java/gen/**")` in Gradle or `<excludes>` in the Spotless Maven plugin; the step formats and lints every file Spotless hands it.
 
 ### VS Code
 
@@ -111,11 +104,15 @@ javafmt is VS Code's Java document formatter, so *Format Document* and VS Code's
 
 If another Java extension also offers a formatter, add `"editor.defaultFormatter": "javafmt.javafmt"` to the same block.
 
+With Red Hat's [Language Support for Java](https://marketplace.visualstudio.com/items?itemName=redhat.java) (`redhat.java`) installed, javafmt asks it for each file's classpath, the test classpath for test sources, and runs the [rules that need the classpath](./rules.md#rules-that-need-the-classpath), as the Gradle plugin does in CI. Without that extension, while its language server runs in lightweight mode, or when it does not answer within two seconds, javafmt formats without those rules and says so once in the *javafmt* output channel. The `.javafmt` [project file](#project-file) applies either way, and a problem in it shows in the *Problems* panel.
+
 ### IntelliJ IDEA
 
 Search **javafmt** in *Settings -> Plugins -> Marketplace*. It needs IntelliJ IDEA 2026.2 or later. Turn it on per project under *Settings -> Tools -> javafmt*.
 
-The plugin formats inside the IDE by default. *Formatter (all projects): Native javafmt binary* uses the [`javafmt` binary](#cli) instead, for every project in the IDE: the path set there, else a `javafmt` on `PATH`, else the matching binary downloaded from the GitHub release. Each format's duration goes to `idea.log`, so the two can be compared.
+The plugin formats inside the IDE by default. *Formatter (all projects): Native javafmt binary* uses the [`javafmt` binary](#cli) instead, for every project in the IDE: the path set there, else a `javafmt` on `PATH`, else the matching binary downloaded from the GitHub release. Each format's duration goes to `idea.log`, with the engine and whether the file was formatted with the classpath, so the two can be compared.
+
+Either way, the plugin formats each file with the compile classpath of its module, the test classpath for test sources, and runs the [rules that need the classpath](./rules.md#rules-that-need-the-classpath), as the Gradle plugin does in CI. The classpath includes the module's compiled classes, so names declared in the project resolve once it has been built. A file outside every module, such as a scratch file, is formatted without those rules. The `.javafmt` [project file](#project-file) applies too; when it is invalid, the file is left as it was and a notification names the project file and the problem.
 
 ### CLI
 
@@ -125,7 +122,10 @@ Grab a platform binary from [GitHub Releases](https://github.com/javafmt-io/java
 javafmt MyClass.java          # rewrites in place
 javafmt --check MyClass.java  # non-zero exit if anything needs reformatting
 echo "class X{}" | javafmt    # stdin -> stdout
+javafmt --classpath "$CLASSPATH" src/main/java
 ```
+
+`--classpath` takes the compile classpath of the files you format, as `javac -classpath` does, and turns on the [rules that need the classpath](./rules.md#rules-that-need-the-classpath). `--classpath @classpath.txt` reads it from a file. `--no-analyze` turns those rules off for one run even when `--classpath` is given, and without `--classpath` they do not run.
 
 ## Adopting javafmt gradually
 
@@ -173,12 +173,24 @@ Spotless has its own `ratchetFrom`, which works the same way for the javafmt ste
 spotless {
     ratchetFrom("origin/main")
     java {
-        addStep(io.javafmt.spotless.JavafmtFormatterStep.create())
+        addStep(io.javafmt.spotless.JavafmtFormatterStep.create(projectDir))
     }
 }
 ```
 
 In CI, fetch enough history for the merge base to exist: a shallow clone of one commit has no merge base with `origin/main`.
+
+## Project file
+
+A `.javafmt` file at the root of the repository turns off rules that need the classpath, by name:
+
+```properties
+analyze.skip=ExplodeStarImports, LocalVarUseVar
+```
+
+Every integration reads it: the CLI, the Gradle plugin, the Spotless step, the Maven plugin and the editor plugins. For each file it formats, javafmt walks up from the file's directory and uses the first `.javafmt` it finds, stopping at the directory that contains `.git`. A subproject can have its own `.javafmt`, which then applies instead of the one at the root. The CLI reading from stdin uses the `.javafmt` found from the working directory.
+
+A skipped rule does what it does without a classpath, so `LocalVarUseVar` and `RedundantTypeArguments` keep the rewrites they can prove from the source alone. `analyze.skip` is the only setting. A misspelled setting, or a name that is not a rule that needs the classpath, fails every file the project file applies to, and the error names the project file and the wrong name. Changing the file invalidates the CLI's `--cache`, the Gradle plugin's up-to-date checks and build cache entries, and the Spotless step's up-to-date state.
 
 ## What it enforces
 
@@ -196,7 +208,7 @@ With `--diagnostics=json`, stderr switches from human-readable text to NDJSON: o
 {"kind":"internal","message":"dropped token ';'","file":"Foo.java","line":3,"col":9}
 ```
 
-- `kind` is one of `parse`, `lint`, `internal`, `warning`, `cli`. Only `internal` means javafmt itself is at fault. Every other kind is a problem in your own source (`parse`, `lint`, `warning`) or a message from the CLI layer (`cli`), such as a file that couldn't be read.
+- `kind` is one of `parse`, `lint`, `config`, `internal`, `warning`, `cli`. Only `internal` means javafmt itself is at fault. Every other kind is a problem in your own source (`parse`, `lint`, `warning`), a problem in a `.javafmt` project file (`config`), or a message from the CLI layer (`cli`), such as a file that couldn't be read.
 - `file` is omitted when the input came from stdin.
 - `line` and `col` are `0` when the position is unknown.
 - When formatting from stdin fails, stdout still receives the original source unchanged, and the error goes to stderr.
