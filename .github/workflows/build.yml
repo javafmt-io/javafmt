@@ -37,7 +37,7 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Cache node_modules and VS Code test binary
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             javafmt-vscode/node_modules
