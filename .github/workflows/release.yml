@@ -37,14 +37,14 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download native binaries
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: native-*
           path: build/release-assets/native
           merge-multiple: true
 
       - name: Download VS Code extensions
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: vsix-*
           path: build/release-assets/vsix
@@ -164,7 +164,7 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download native checksums
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: release-checksums
           path: build/release-assets/native
@@ -221,7 +221,7 @@ jobs:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download VS Code extensions
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: vsix-*
           path: build/release-assets/vsix
