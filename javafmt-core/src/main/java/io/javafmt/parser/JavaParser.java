@@ -188,7 +188,8 @@ public final class JavaParser {
             return attributeIndividually(sources, session, e);
         }
         rethrowOutOfMemory(batch.compilerOutput().toString());
-        final var attribution = new Attribution(Trees.instance(task), task.getTypes(), task.getElements(), session, attributionErrors(batch));
+        final var attribution = new Attribution(
+                Trees.instance(task), task.getTypes(), task.getElements(), session, attributionErrors(batch), batch.stripped());
         final var positions = attribution.trees().getSourcePositions();
         return IntStream.range(0, batch.stripped().size())
                 .mapToObj(i -> resolve(batch, i, positions).map(unit -> new AttributedUnit(unit, attribution)))

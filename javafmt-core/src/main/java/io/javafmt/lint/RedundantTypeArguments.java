@@ -53,13 +53,28 @@ import javax.lang.model.type.TypeKind;
  * argument position, and neither is a context this rule looks at. {@code LintCompileSafetyTest}
  * holds that argument to account.
  */
-public final class RedundantTypeArguments implements LintRule {
+public final class RedundantTypeArguments implements RewriteVerifyingRule {
     @Override
     public LintResult apply(final LintContext context) {
-        final var unit = context.unit();
-        final var attribution = context.attributionFor(RedundantTypeArguments.class);
         final var edits = new ArrayList<LintEdit>();
         final var witnessCalls = new ArrayList<WitnessCall>();
+        scan(context, edits, witnessCalls);
+        context.attributionFor(RedundantTypeArguments.class).ifPresent(a -> dropRedundantWitnesses(context, a, witnessCalls, edits));
+        return LintResult.ofEdits(edits);
+    }
+
+    @Override
+    public Optional<String> rewriteToVerify(final LintContext context) {
+        if (context.attributionFor(RedundantTypeArguments.class).isEmpty()) {
+            return Optional.empty();
+        }
+        final var witnessCalls = new ArrayList<WitnessCall>();
+        scan(context, new ArrayList<>(), witnessCalls);
+        return witnessCalls.isEmpty() ? Optional.empty() : Optional.of(stripAllWitnesses(context.unit().source(), sortedByWitness(witnessCalls)));
+    }
+
+    private static void scan(final LintContext context, final List<LintEdit> edits, final List<WitnessCall> witnessCalls) {
+        final var unit = context.unit();
         new ChainPathScanner<Void, Void>() {
             @Override
             public Void visitNewClass(final NewClassTree node, final Void p) {
@@ -74,8 +89,10 @@ public final class RedundantTypeArguments implements LintRule {
                 }
             }
         }.scan(new TreePath(unit.tree()), null);
-        attribution.ifPresent(a -> dropRedundantWitnesses(unit, a, witnessCalls, edits));
-        return LintResult.ofEdits(edits);
+    }
+
+    private static List<WitnessCall> sortedByWitness(final List<WitnessCall> candidates) {
+        return candidates.stream().sorted(Comparator.comparingInt(WitnessCall::witnessStart)).toList();
     }
 
     @Override
@@ -230,16 +247,15 @@ public final class RedundantTypeArguments implements LintRule {
      * {@code Types.isSameType} (different javac sessions), so we compare
      * {@code TypeMirror.toString()} representations.
      */
-    private static void dropRedundantWitnesses(final ParsedUnit unit,
+    private static void dropRedundantWitnesses(final LintContext context,
                                                final Attribution attribution,
                                                final List<WitnessCall> candidates,
                                                final List<LintEdit> edits) {
         if (candidates.isEmpty()) {
             return;
         }
-        final var sorted = candidates.stream()
-                .sorted(Comparator.comparingInt(WitnessCall::witnessStart))
-                .toList();
+        final var unit = context.unit();
+        final var sorted = sortedByWitness(candidates);
         final var originalTypeStrings = sorted.stream()
                 .map(c -> attribution.trees().getTypeMirror(c.path()))
                 .map(t -> t == null || t.getKind() == TypeKind.ERROR ? null : t.toString())
@@ -247,7 +263,7 @@ public final class RedundantTypeArguments implements LintRule {
         final var modifiedSource = stripAllWitnesses(unit.source(), sorted);
         final AttributedUnit reattributed;
         try {
-            reattributed = JavaParser.reattribute(modifiedSource, attribution);
+            reattributed = context.reattributed(modifiedSource, attribution);
         } catch (final RuntimeException e) {
             if (attribution.session().hasEnded()) {
                 throw e;

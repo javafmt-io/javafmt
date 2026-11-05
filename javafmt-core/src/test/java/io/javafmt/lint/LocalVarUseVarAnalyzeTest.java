@@ -8,10 +8,37 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LocalVarUseVarAnalyzeTest {
     private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
+
+    @Test
+    void aLocalInAMethodThatNamesATypeFromAnotherFileOfTheBatchBecomesVar() {
+        final var query = """
+                package p;
+
+                class Query {
+                    <T> T value(final String name, final Class<T> type) {
+                        return type.cast(name);
+                    }
+
+                    Declared declared() {
+                        String text = value("count", String.class);
+                        return new Declared(text);
+                    }
+                }
+                """;
+        final var declared = """
+                package p;
+
+                record Declared(String text) {}
+                """;
+        final var results = Javafmt.formatAll(List.of(query, declared), ANALYZE, 1);
+        assertThat(results.getFirst().output()).contains("final var text = value(\"count\", String.class);");
+    }
 
     @Test
     void chainInitializerWithMatchingInferredTypeBecomesVar() {
