@@ -40,9 +40,7 @@ public final class HideUtilityClassConstructor implements WarningRule {
     }
 
     private static boolean isUtilityCandidate(final ClassTree node) {
-        if (node.getKind() != Tree.Kind.CLASS
-            || node.getModifiers().getFlags().contains(Modifier.ABSTRACT)
-            || node.getExtendsClause() != null) {
+        if (node.getKind() != Tree.Kind.CLASS || node.getModifiers().getFlags().contains(Modifier.ABSTRACT) || node.getExtendsClause() != null) {
             return false;
         }
         var hasStaticApi = false;
@@ -74,8 +72,7 @@ public final class HideUtilityClassConstructor implements WarningRule {
     }
 
     private static boolean hasPrivateConstructor(final ClassTree node) {
-        return node.getMembers()
-                .stream()
+        return node.getMembers().stream()
                 .filter(HideUtilityClassConstructor::isConstructor)
                 .map(MethodTree.class::cast)
                 .anyMatch(m -> m.getModifiers().getFlags().contains(Modifier.PRIVATE));

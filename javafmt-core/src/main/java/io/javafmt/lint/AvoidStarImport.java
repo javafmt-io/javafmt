@@ -15,9 +15,7 @@ public final class AvoidStarImport implements WarningRule {
     @Override
     public List<Diagnostic> warnings(final LintContext context) {
         final var unit = context.unit();
-        return unit.tree()
-                .getImports()
-                .stream()
+        return unit.tree().getImports().stream()
                 .filter(i -> !i.isStatic() && Declarations.isStarImport(i))
                 .<Diagnostic>map(i -> new Diagnostic.Warning(MESSAGE, unit.positionOf(i)))
                 .toList();

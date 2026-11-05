@@ -56,14 +56,13 @@ class JavafmtBinaryTest {
                 "#!/bin/sh\ntrap '' TERM\necho $$ > '" + pidFile + ".tmp'\nmv '" + pidFile + ".tmp' '" + pidFile + "'\nwhile :; do sleep 1; done\n");
         final var caller = Thread.currentThread();
         final var interruptedAt = new CompletableFuture<Instant>();
-        final var interrupter = Thread.ofPlatform()
-                .start(() -> {
-                    while (!Files.exists(pidFile)) {
-                        LockSupport.parkNanos(Duration.ofMillis(10).toNanos());
-                    }
-                    interruptedAt.complete(Instant.now());
-                    caller.interrupt();
-                });
+        final var interrupter = Thread.ofPlatform().start(() -> {
+            while (!Files.exists(pidFile)) {
+                LockSupport.parkNanos(Duration.ofMillis(10).toNanos());
+            }
+            interruptedAt.complete(Instant.now());
+            caller.interrupt();
+        });
         try {
             assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
             assertThat(Duration.between(interruptedAt.join(), Instant.now())).isLessThan(Duration.ofSeconds(2));

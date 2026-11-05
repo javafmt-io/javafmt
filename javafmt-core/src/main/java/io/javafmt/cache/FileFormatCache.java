@@ -126,8 +126,7 @@ public final class FileFormatCache implements FormatCache {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            final var body = hashByPath.entrySet()
-                    .stream()
+            final var body = hashByPath.entrySet().stream()
                     .filter(FileFormatCache::stillExists)
                     .sorted(Map.Entry.comparingByKey())
                     .map(e -> e.getValue() + " " + e.getKey())

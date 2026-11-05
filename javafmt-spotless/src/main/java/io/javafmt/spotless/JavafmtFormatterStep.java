@@ -111,11 +111,7 @@ public final class JavafmtFormatterStep {
 
         @Override
         public List<Lint> lint(final String content, final @Nullable File file) {
-            return Javafmt.formatWithResult(content, config, projectFileFor(file))
-                    .warnings()
-                    .stream()
-                    .map(JavafmtFormatterStep::toLint)
-                    .toList();
+            return Javafmt.formatWithResult(content, config, projectFileFor(file)).warnings().stream().map(JavafmtFormatterStep::toLint).toList();
         }
     }
 

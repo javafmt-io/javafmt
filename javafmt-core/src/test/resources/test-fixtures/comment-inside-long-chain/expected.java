@@ -3,8 +3,6 @@ class Fixture {
         value.first() // about first
                 .second()
                 .third();
-        value.first() /* about first */
-                .second()
-                .third();
+        value.first() /* about first */ .second().third();
     }
 }

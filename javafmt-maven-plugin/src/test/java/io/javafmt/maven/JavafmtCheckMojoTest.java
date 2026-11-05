@@ -103,9 +103,7 @@ class JavafmtCheckMojoTest {
         Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
         final var cacheFile = cacheDir.resolve("javafmt.cache");
         final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
-        assertThatThrownBy(mojo::execute)
-                .isInstanceOf(MojoExecutionException.class)
-                .hasMessageContaining(file.toString());
+        assertThatThrownBy(mojo::execute).isInstanceOf(MojoExecutionException.class).hasMessageContaining(file.toString());
     }
 
     @Test
@@ -121,9 +119,7 @@ class JavafmtCheckMojoTest {
     @Test
     void checkGoalWithAnUnknownRatchetRefFailsAndNamesTheRef(@TempDir final Path dir) {
         final var mojo = new JavafmtCheckMojo(projectInRepositoryWithAnEditedFile(dir), List.of(), Optional.empty(), Optional.of("no-such-branch"));
-        assertThatThrownBy(mojo::execute)
-                .isInstanceOf(MojoExecutionException.class)
-                .hasMessage("javafmt: unknown git ref: no-such-branch");
+        assertThatThrownBy(mojo::execute).isInstanceOf(MojoExecutionException.class).hasMessage("javafmt: unknown git ref: no-such-branch");
     }
 
     @Test

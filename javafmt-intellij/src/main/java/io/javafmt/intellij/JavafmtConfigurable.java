@@ -103,20 +103,19 @@ public final class JavafmtConfigurable implements Configurable {
         binaryStatus.setForeground(UIUtil.getContextHelpForeground());
         binaryStatus.setText("checking…");
         final var generation = statusGeneration.incrementAndGet();
-        AppExecutorUtil.getAppExecutorService()
-                .execute(() -> {
-                    final var status = describeBinary(configured);
-                    // A later refresh may have started while this probe was running; only the newest one
-                    // is allowed to write the label, or a slow probe would overwrite a fresher answer.
-                    ApplicationManager.getApplication()
-                            .invokeLater(
-                                    () -> {
-                                        if (generation == statusGeneration.get()) {
-                                            binaryStatus.setText(status);
-                                        }
-                                    },
-                                    ModalityState.any());
-                });
+        AppExecutorUtil.getAppExecutorService().execute(() -> {
+            final var status = describeBinary(configured);
+            // A later refresh may have started while this probe was running; only the newest one
+            // is allowed to write the label, or a slow probe would overwrite a fresher answer.
+            ApplicationManager.getApplication()
+                    .invokeLater(
+                            () -> {
+                                if (generation == statusGeneration.get()) {
+                                    binaryStatus.setText(status);
+                                }
+                            },
+                            ModalityState.any());
+        });
     }
 
     private static String describeBinary(final String configuredPath) {

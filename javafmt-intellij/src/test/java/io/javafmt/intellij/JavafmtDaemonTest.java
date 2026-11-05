@@ -59,12 +59,7 @@ class JavafmtDaemonTest {
     void aRequestCarriesTheFilesPathAndItsClasspath(final String classpath, @TempDir final Path dir) throws Exception {
         final var sent = dir.resolve("sent");
         final var file = dir.resolve("Order.java");
-        final var expected = FormatRequest.newBuilder()
-                .setId(1)
-                .setSource("class Order {}")
-                .setPath(file.toString())
-                .setClasspath(classpath)
-                .build();
+        final var expected = FormatRequest.newBuilder().setId(1).setSource("class Order {}").setPath(file.toString()).setClasspath(classpath).build();
         final var bytes = new ByteArrayOutputStream();
         expected.writeDelimitedTo(bytes);
         final var daemon = start(script(dir, "head -c " + bytes.size() + " > '" + sent + "'\n" + reply(1, "class Order {}\n") + "cat > /dev/null\n"));

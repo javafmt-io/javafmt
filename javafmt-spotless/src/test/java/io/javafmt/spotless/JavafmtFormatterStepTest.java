@@ -35,8 +35,7 @@ class JavafmtFormatterStepTest {
 
     @Test
     void applyOnValidSourceReturnsFormattedOutput() {
-        assertThat(JavafmtFormatterStep.apply(Fixtures.UNFORMATTED_FOO))
-                .isEqualTo(Fixtures.FORMATTED_FOO);
+        assertThat(JavafmtFormatterStep.apply(Fixtures.UNFORMATTED_FOO)).isEqualTo(Fixtures.FORMATTED_FOO);
     }
 
     @Test
@@ -70,16 +69,13 @@ class JavafmtFormatterStepTest {
     @Test
     void createFormatsValidJava() throws Exception {
         final var step = JavafmtFormatterStep.create(project.toFile());
-        assertThat(step.format(Fixtures.UNFORMATTED_FOO, null))
-                .isEqualTo(Fixtures.FORMATTED_FOO);
+        assertThat(step.format(Fixtures.UNFORMATTED_FOO, null)).isEqualTo(Fixtures.FORMATTED_FOO);
     }
 
     @Test
     void createThrowsOnParseError() {
         final var step = JavafmtFormatterStep.create(project.toFile());
-        assertThatThrownBy(() -> step.format("class {", null))
-                .isInstanceOf(Exception.class)
-                .hasMessageMatching("(?s).*\\d+:\\d+.*");
+        assertThatThrownBy(() -> step.format("class {", null)).isInstanceOf(Exception.class).hasMessageMatching("(?s).*\\d+:\\d+.*");
     }
 
     @Test
@@ -120,9 +116,7 @@ class JavafmtFormatterStepTest {
         final var withAnalysis = JavafmtFormatterStep.create(JavafmtConfig.defaults(), System.getProperty("java.class.path"), dir.toFile())
                 .format(TYPE_WITNESS_SOURCE, null);
         assertThat(withoutAnalysis).contains("Stream.<String>of");
-        assertThat(withAnalysis)
-                .contains("Stream.of")
-                .doesNotContain("Stream.<String>of");
+        assertThat(withAnalysis).contains("Stream.of").doesNotContain("Stream.<String>of");
     }
 
     @Test

@@ -127,9 +127,7 @@ final class FormatRun {
         final var found = parsed.files.stream()
                 .map(path -> Files.isDirectory(path) ? javaFilesUnder(path, parsed) : new SourceFiles.Discovery(List.of(path), List.of()))
                 .toList();
-        found.stream()
-                .flatMap(discovery -> discovery.unreadable().stream())
-                .forEach(u -> reportUnreadable(u, parsed.jsonDiagnostics(), err));
+        found.stream().flatMap(discovery -> discovery.unreadable().stream()).forEach(u -> reportUnreadable(u, parsed.jsonDiagnostics(), err));
         final var expanded = found.stream().flatMap(discovery -> discovery.files().stream()).toList();
         return new Expansion(parsed.withFiles(expanded), found.stream().anyMatch(d -> !d.unreadable().isEmpty()));
     }
@@ -147,9 +145,7 @@ final class FormatRun {
     private int runFiles(final Arguments parsed, final PrintStream err) {
         final var cache = parsed.cacheFile.<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed))).orElseGet(FormatCache::noop);
         final var outcomes = outcomesOf(parsed, cache);
-        outcomes.stream()
-                .flatMap(outcome -> outcome.report().stream())
-                .forEach(err::println);
+        outcomes.stream().flatMap(outcome -> outcome.report().stream()).forEach(err::println);
         final var worstExit = outcomes.stream().mapToInt(FileOutcome::exitCode).max().orElse(0);
         if (worstExit <= 1) {
             persistCache(cache, parsed.jsonDiagnostics(), err);
@@ -220,8 +216,7 @@ final class FormatRun {
                                               final boolean checkOnly,
                                               final FormatCache cache,
                                               final boolean json) {
-        final var reported = result.diagnostics()
-                .stream()
+        final var reported = result.diagnostics().stream()
                 .map(d -> json ? JsonDiagnostics.line(path.toString(), d) : d.describe(path.toString()))
                 .toList();
         if (result.hasErrors()) {
@@ -268,8 +263,7 @@ final class FormatRun {
     }
 
     private void reportDiagnostics(final String name, final FormatResult result, final Arguments parsed, final PrintStream err) {
-        result.diagnostics()
-                .forEach(d -> err.println(parsed.jsonDiagnostics() ? JsonDiagnostics.line(name, d) : d.describe(name)));
+        result.diagnostics().forEach(d -> err.println(parsed.jsonDiagnostics() ? JsonDiagnostics.line(name, d) : d.describe(name)));
     }
 
     /** A directory argument replaced by its contents, and whether anything under it was unreadable. */

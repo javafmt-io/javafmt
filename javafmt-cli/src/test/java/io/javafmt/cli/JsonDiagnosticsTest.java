@@ -44,8 +44,7 @@ class JsonDiagnosticsTest {
 
     @Test
     void blankFileOmitsTheFileMember() {
-        assertThat(JsonDiagnostics.line("", new Diagnostic.Warning("m", new Position.Unknown())))
-                .doesNotContain("\"file\"");
+        assertThat(JsonDiagnostics.line("", new Diagnostic.Warning("m", new Position.Unknown()))).doesNotContain("\"file\"");
     }
 
     @Test
@@ -58,8 +57,6 @@ class JsonDiagnosticsTest {
     void messagesAreEscapedSoTheLineStaysParseable() {
         final var nasty = "quote \" backslash \\ newline \n tab \t control ";
         final var rendered = JsonDiagnostics.line("", new Diagnostic.Warning(nasty, new Position.Unknown()));
-        assertThat(rendered)
-                .contains("quote \\\" backslash \\\\ newline \\n tab \\t control \\u0001")
-                .doesNotContain("\n");
+        assertThat(rendered).contains("quote \\\" backslash \\\\ newline \\n tab \\t control \\u0001").doesNotContain("\n");
     }
 }

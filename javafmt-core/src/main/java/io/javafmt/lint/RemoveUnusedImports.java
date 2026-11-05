@@ -84,8 +84,7 @@ public final class RemoveUnusedImports implements LintRule {
      * mentions all count — the point is only ever to keep an import, never to remove one.
      */
     private static Set<String> namesMentionedInComments(final String source) {
-        return CommentScanner.scan(source)
-                .stream()
+        return CommentScanner.scan(source).stream()
                 .flatMap(comment -> IDENTIFIER.matcher(comment.text()).results())
                 .map(MatchResult::group)
                 .collect(Collectors.toUnmodifiableSet());

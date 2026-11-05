@@ -90,10 +90,7 @@ public final class UnusedVariableShouldBeUnnamed implements LintRule {
     }
 
     private static boolean bracketsFollow(final String source, final int from) {
-        return IntStream.range(from, source.length())
-                .filter(i -> !Character.isWhitespace(source.charAt(i)))
-                .findFirst()
-                .stream()
+        return IntStream.range(from, source.length()).filter(i -> !Character.isWhitespace(source.charAt(i))).findFirst().stream()
                 .anyMatch(i -> source.charAt(i) == '[');
     }
 

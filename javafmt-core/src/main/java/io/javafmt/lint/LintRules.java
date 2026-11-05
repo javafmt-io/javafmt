@@ -38,11 +38,7 @@ public final class LintRules {
             .flatMap(List::stream)
             .toList();
 
-    private final List<String> ANALYSIS_RULE_NAMES = DEFAULTS.stream()
-            .filter(LintRule::usesAnalysis)
-            .map(LintRule::name)
-            .sorted()
-            .toList();
+    private final List<String> ANALYSIS_RULE_NAMES = DEFAULTS.stream().filter(LintRule::usesAnalysis).map(LintRule::name).sorted().toList();
 
     private final Set<String> RULE_NAMES = DEFAULTS.stream().map(LintRule::name).collect(Collectors.toUnmodifiableSet());
 

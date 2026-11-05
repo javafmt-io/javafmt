@@ -109,23 +109,18 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
         void register(final SourceSet sourceSet) {
             final var name = sourceSet.getName();
             final var suffix = name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
-            final var format = project.getTasks()
-                    .register(FORMAT + suffix, JavafmtFormat.class, task -> {
-                        describe(task, GROUP, "Formats the " + name + " Java sources with javafmt.");
-                        configure(task, sourceSet);
-                    });
-            final var check = project.getTasks()
-                    .register(CHECK + suffix, JavafmtCheck.class, task -> {
-                        describe(
-                                task, LifecycleBasePlugin.VERIFICATION_GROUP,
-                                "Checks that the " + name + " Java sources are formatted with javafmt.");
-                        configure(task, sourceSet);
-                        task.getMarker().set(project.getLayout().getBuildDirectory().file("javafmt/" + name + ".checked"));
-                        task.getOutputs().upToDateWhen(new RatchetFromSet(false));
-                        task.getOutputs()
-                                .doNotCacheIf("The files ratchetFrom selects depend on the state of the git repository.", new RatchetFromSet(true));
-                        task.mustRunAfter(format);
-                    });
+            final var format = project.getTasks().register(FORMAT + suffix, JavafmtFormat.class, task -> {
+                describe(task, GROUP, "Formats the " + name + " Java sources with javafmt.");
+                configure(task, sourceSet);
+            });
+            final var check = project.getTasks().register(CHECK + suffix, JavafmtCheck.class, task -> {
+                describe(task, LifecycleBasePlugin.VERIFICATION_GROUP, "Checks that the " + name + " Java sources are formatted with javafmt.");
+                configure(task, sourceSet);
+                task.getMarker().set(project.getLayout().getBuildDirectory().file("javafmt/" + name + ".checked"));
+                task.getOutputs().upToDateWhen(new RatchetFromSet(false));
+                task.getOutputs().doNotCacheIf("The files ratchetFrom selects depend on the state of the git repository.", new RatchetFromSet(true));
+                task.mustRunAfter(format);
+            });
             checkAll.configure(task -> task.dependsOn(check));
             formatAll.configure(task -> task.dependsOn(format));
         }
@@ -150,12 +145,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
 
         private List<Path> sourceDirectories(final SourceSet sourceSet) {
             final var buildDirectory = project.getLayout().getBuildDirectory().get().getAsFile().toPath();
-            return sourceSet.getJava()
-                    .getSrcDirs()
-                    .stream()
-                    .map(File::toPath)
-                    .filter(directory -> !directory.startsWith(buildDirectory))
-                    .toList();
+            return sourceSet.getJava().getSrcDirs().stream().map(File::toPath).filter(directory -> !directory.startsWith(buildDirectory)).toList();
         }
 
         private List<Object> projectFiles(final SourceSet sourceSet) {
@@ -181,8 +171,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
         private List<ConfigurableFileTree> javaSources(final SourceSet sourceSet) {
             final var projectDirectory = project.getProjectDir().toPath();
             final var excludes = extension.getExcludes().get();
-            return sourceDirectories(sourceSet)
-                    .stream()
+            return sourceDirectories(sourceSet).stream()
                     .map(
                             directory -> project.fileTree(
                                     directory,

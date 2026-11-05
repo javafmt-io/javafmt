@@ -19,8 +19,7 @@ final class LooseComments {
         }
         final var source = unit.source();
         final var significantBefore = significantBefore(source);
-        final var insertions = unit.loose()
-                .stream()
+        final var insertions = unit.loose().stream()
                 .sorted(Comparator.comparingInt(CommentToken::start))
                 .map(
                         c -> new Insertion(

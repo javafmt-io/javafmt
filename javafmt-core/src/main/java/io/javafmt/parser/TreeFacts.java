@@ -50,10 +50,7 @@ public final class TreeFacts {
         if (ctorStart < 0) {
             return false;
         }
-        return ctor.getParameters()
-                .stream()
-                .mapToInt(unit::startOf)
-                .anyMatch(pos -> pos >= 0 && pos < ctorStart);
+        return ctor.getParameters().stream().mapToInt(unit::startOf).anyMatch(pos -> pos >= 0 && pos < ctorStart);
     }
 
     /**
@@ -85,11 +82,7 @@ public final class TreeFacts {
         }
         // A trailing comment belongs to the declaration it follows, so the gap starts after it —
         // otherwise `int x = 1; // note` followed by a blank line reads as no blank line at all.
-        final var from = unit.trailingOf(before)
-                .stream()
-                .mapToInt(CommentToken::end)
-                .max()
-                .orElse(declared);
+        final var from = unit.trailingOf(before).stream().mapToInt(CommentToken::end).max().orElse(declared);
         final var leading = unit.leadingOf(after);
         final var until = leading.isEmpty() ? to : Math.min(to, leading.getFirst().start());
         return newlinesIn(unit.source(), from, Math.max(from, until)) > 1;

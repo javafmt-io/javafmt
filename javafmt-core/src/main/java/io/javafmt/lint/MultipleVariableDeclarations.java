@@ -70,9 +70,7 @@ public final class MultipleVariableDeclarations implements LintRule {
             }
             final var typeStart = unit.startOf(firstVar.getType());
             var j = i + 1;
-            while (j < statements.size()
-                && statements.get(j) instanceof VariableTree nextVar
-                && unit.startOf(nextVar.getType()) == typeStart) {
+            while (j < statements.size() && statements.get(j) instanceof VariableTree nextVar && unit.startOf(nextVar.getType()) == typeStart) {
                 j++;
             }
             if (j - i >= 2) {
@@ -120,9 +118,7 @@ public final class MultipleVariableDeclarations implements LintRule {
             return List.of();
         }
         final var prefix = "\n" + indent + sharedModifiersAndElementType + " ";
-        return separators.stream()
-                .flatMap(comma -> Stream.of(new LintEdit(comma, comma + 1, ";"), prefixEdit(src, comma, spanEnd, prefix)))
-                .toList();
+        return separators.stream().flatMap(comma -> Stream.of(new LintEdit(comma, comma + 1, ";"), prefixEdit(src, comma, spanEnd, prefix))).toList();
     }
 
     /**

@@ -87,9 +87,7 @@ class DaemonTest {
                     throw new OutOfMemoryError("simulated");
                 },
                 fatal::set);
-        assertThat(fatal.get())
-                .isInstanceOf(OutOfMemoryError.class)
-                .hasMessage("simulated");
+        assertThat(fatal.get()).isInstanceOf(OutOfMemoryError.class).hasMessage("simulated");
         assertThat(out.toByteArray()).isEmpty();
     }
 
@@ -98,9 +96,7 @@ class DaemonTest {
     void noMoreRequestsFormatAtOnceThanTheDaemonHasThreads(final int threads) {
         final var running = new AtomicInteger();
         final var mostAtOnce = new AtomicInteger();
-        final var requests = IntStream.rangeClosed(1, 6)
-                .mapToObj(id -> delimited(request(id, "class A {}")))
-                .reduce(new byte[0], DaemonTest::concat);
+        final var requests = IntStream.rangeClosed(1, 6).mapToObj(id -> delimited(request(id, "class A {}"))).reduce(new byte[0], DaemonTest::concat);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY, new ByteArrayInputStream(requests), out, threads,
@@ -187,18 +183,13 @@ class DaemonTest {
         final var request = FormatRequest.newBuilder().setId(4).build();
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request)), out);
-        assertThat(replies(out))
-                .singleElement()
-                .satisfies(reply -> {
-                    assertThat(reply.getDiagnosticsList())
-                            .extracting(Diagnostic::getKind, Diagnostic::getMessage)
-                            .containsExactlyElementsOf(
-                                    DaemonFixtures.violations(request)
-                                            .stream()
-                                            .map(violation -> tuple(Kind.KIND_CLI, "source: " + violation))
-                                            .toList());
-                    assertThat(DaemonFixtures.violations(reply)).isEmpty();
-                });
+        assertThat(replies(out)).singleElement().satisfies(reply -> {
+            assertThat(reply.getDiagnosticsList())
+                    .extracting(Diagnostic::getKind, Diagnostic::getMessage)
+                    .containsExactlyElementsOf(
+                            DaemonFixtures.violations(request).stream().map(violation -> tuple(Kind.KIND_CLI, "source: " + violation)).toList());
+            assertThat(DaemonFixtures.violations(reply)).isEmpty();
+        });
     }
 
     @Test

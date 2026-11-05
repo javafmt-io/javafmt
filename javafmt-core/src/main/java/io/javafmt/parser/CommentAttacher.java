@@ -45,9 +45,7 @@ final class CommentAttacher {
      * Orders slots so the innermost slot fires first when two slots enclose the same comment: by
      * ascending {@code hi}, then by {@link Reach}, then ascending {@code lo}.
      */
-    private static final Comparator<Slot> SLOT_ORDER = Comparator.comparingLong(Slot::hi)
-            .thenComparing(Slot::reach)
-            .thenComparingLong(Slot::lo);
+    private static final Comparator<Slot> SLOT_ORDER = Comparator.comparingLong(Slot::hi).thenComparing(Slot::reach).thenComparingLong(Slot::lo);
 
     ParsedUnit attach(final CompilationUnitTree tree, final String source, final SourcePositions positions, final List<CommentToken> comments) {
         if (comments.isEmpty()) {
@@ -292,16 +290,11 @@ final class CommentAttacher {
     }
 
     private boolean isAttachmentSite(final Tree t) {
-        return t instanceof ClassTree
-            || t instanceof MethodTree
-            || t instanceof VariableTree
-            || t instanceof BlockTree;
+        return t instanceof ClassTree || t instanceof MethodTree || t instanceof VariableTree || t instanceof BlockTree;
     }
 
     private boolean isRecordComponent(final boolean isRecord, final Tree member) {
-        return isRecord
-            && member instanceof VariableTree v
-            && !v.getModifiers().getFlags().contains(Modifier.STATIC);
+        return isRecord && member instanceof VariableTree v && !v.getModifiers().getFlags().contains(Modifier.STATIC);
     }
 
     private enum Kind { FILE_HEADER, FILE_FOOTER, LEADING, INTERIOR, TAIL, BRACE_LINE, BEFORE_BRACE, LOOSE }
@@ -409,15 +402,13 @@ final class CommentAttacher {
             collect(node, members(node, isRecord), true, node.getKind() == Tree.Kind.ENUM);
             collectAnnotations(node.getModifiers());
             collectHeaderBraceLine(node, isRecord);
-            members(node, isRecord)
-                    .stream()
+            members(node, isRecord).stream()
                     .flatMap(member -> member instanceof VariableTree v && !isEnumConstant(v) ? Stream.of(v.getModifiers()) : Stream.empty())
                     .forEach(this::collectAnnotations);
             if (isRecord) {
                 collect(node, recordComponents(node), false);
                 collectBeforeClosingParenthesis(node, recordComponents(node), Kind.LOOSE);
-                recordComponents(node)
-                        .stream()
+                recordComponents(node).stream()
                         .flatMap(component -> component instanceof VariableTree v ? Stream.of(v.getModifiers()) : Stream.empty())
                         .forEach(modifiers -> collectAnnotations(modifiers, false));
             }
@@ -434,8 +425,7 @@ final class CommentAttacher {
         public Void visitBlock(final BlockTree node, final Void p) {
             collect(node, node.getStatements(), true);
             collectBraceLine(node, pos.getStartPosition(cu, node), node.getStatements().stream().map(statement -> (Tree) statement).toList());
-            node.getStatements()
-                    .stream()
+            node.getStatements().stream()
                     .flatMap(statement -> statement instanceof VariableTree v ? Stream.of(v.getModifiers()) : Stream.empty())
                     .forEach(this::collectAnnotations);
             return super.visitBlock(node, null);
@@ -1053,8 +1043,7 @@ final class CommentAttacher {
         }
 
         private List<Tree> members(final ClassTree ct, final boolean isRecord) {
-            return ct.getMembers()
-                    .stream()
+            return ct.getMembers().stream()
                     .filter(CommentAttacher::isAttachmentSite)
                     .filter(m -> pos.getStartPosition(cu, m) >= 0)
                     .filter(m -> !isRecordComponent(isRecord, m))
@@ -1064,8 +1053,7 @@ final class CommentAttacher {
         }
 
         private List<Tree> recordComponents(final ClassTree ct) {
-            return ct.getMembers()
-                    .stream()
+            return ct.getMembers().stream()
                     .filter(m -> isRecordComponent(true, m))
                     .filter(m -> pos.getStartPosition(cu, m) >= 0)
                     .sorted(Comparator.comparingLong(t -> pos.getStartPosition(cu, t)))

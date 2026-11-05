@@ -149,8 +149,7 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     }
 
     private JComponent findByName(final JavafmtConfigurable ignoredConfigurable, final String name) {
-        return UIUtil.findComponentsOfType(form, JComponent.class)
-                .stream()
+        return UIUtil.findComponentsOfType(form, JComponent.class).stream()
                 .filter(component -> name.equals(component.getName()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no component named " + name + " in the javafmt settings form"));

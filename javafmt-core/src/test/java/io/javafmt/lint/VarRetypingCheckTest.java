@@ -19,11 +19,10 @@ class VarRetypingCheckTest {
                 .map(start -> random.nextBoolean() ? LintEdit.insert(start, "final ") : new LintEdit(start, start + random.nextInt(8), "var"))
                 .toList();
         final var shift = new VarRetypingCheck.Shift(edits);
-        IntStream.range(0, 1100)
-                .forEach(offset -> {
-                    assertThat(shift.start(offset)).as("start of %d", offset).isEqualTo(offset + movedBy(edits, offset, true));
-                    assertThat(shift.end(offset)).as("end of %d", offset).isEqualTo(offset + movedBy(edits, offset, false));
-                });
+        IntStream.range(0, 1100).forEach(offset -> {
+            assertThat(shift.start(offset)).as("start of %d", offset).isEqualTo(offset + movedBy(edits, offset, true));
+            assertThat(shift.end(offset)).as("end of %d", offset).isEqualTo(offset + movedBy(edits, offset, false));
+        });
     }
 
     private static int movedBy(final List<LintEdit> edits, final int offset, final boolean start) {

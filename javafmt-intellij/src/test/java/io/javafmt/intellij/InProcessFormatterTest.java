@@ -35,17 +35,15 @@ class InProcessFormatterTest {
     @Test
     void unparseableSourceComesBackUnchangedWithAParseError() {
         final var broken = "class Broken { int x = ; }";
-        assertThat(InProcessFormatter.format(broken, FileScope.none()))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
-                    assertThat(formatted.output()).isEqualTo(broken);
-                    assertThat(formatted.hasFailure()).isTrue();
-                    assertThat(formatted.diagnostics())
-                            .allSatisfy(diagnostic -> {
-                                assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_PARSE);
-                                assertThat(diagnostic.getSeverity()).isEqualTo(Severity.SEVERITY_ERROR);
-                                assertThat(diagnostic.getLine()).isPositive();
-                            });
-                });
+        assertThat(InProcessFormatter.format(broken, FileScope.none())).isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
+            assertThat(formatted.output()).isEqualTo(broken);
+            assertThat(formatted.hasFailure()).isTrue();
+            assertThat(formatted.diagnostics()).allSatisfy(diagnostic -> {
+                assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_PARSE);
+                assertThat(diagnostic.getSeverity()).isEqualTo(Severity.SEVERITY_ERROR);
+                assertThat(diagnostic.getLine()).isPositive();
+            });
+        });
     }
 
     @Test
@@ -53,13 +51,11 @@ class InProcessFormatterTest {
         assertThat(InProcessFormatter.format("import java.util.*;\n\nclass A {\n    List<String> names;\n}\n", FileScope.none()))
                 .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.hasFailure()).isFalse();
-                    assertThat(formatted.diagnostics())
-                            .singleElement()
-                            .satisfies(diagnostic -> {
-                                assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_WARNING);
-                                assertThat(diagnostic.getSeverity()).isEqualTo(Severity.SEVERITY_WARNING);
-                                assertThat(diagnostic.getMessage()).isNotBlank();
-                            });
+                    assertThat(formatted.diagnostics()).singleElement().satisfies(diagnostic -> {
+                        assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_WARNING);
+                        assertThat(diagnostic.getSeverity()).isEqualTo(Severity.SEVERITY_WARNING);
+                        assertThat(diagnostic.getMessage()).isNotBlank();
+                    });
                 });
     }
 
@@ -97,12 +93,10 @@ class InProcessFormatterTest {
                 .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.output()).isEqualTo(STAR_IMPORT);
                     assertThat(formatted.hasFailure()).isTrue();
-                    assertThat(formatted.diagnostics())
-                            .singleElement()
-                            .satisfies(diagnostic -> {
-                                assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_CONFIG);
-                                assertThat(diagnostic.getMessage()).contains(".javafmt", "FinalParameters");
-                            });
+                    assertThat(formatted.diagnostics()).singleElement().satisfies(diagnostic -> {
+                        assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_CONFIG);
+                        assertThat(diagnostic.getMessage()).contains(".javafmt", "FinalParameters");
+                    });
                 });
     }
 

@@ -125,10 +125,7 @@ class JavafmtPluginFunctionalTest {
         build.write(FOO, Fixtures.UNFORMATTED_FOO);
         final var output = build.fail("javafmtCheck").getOutput();
         final var wentWrong = output.substring(output.lastIndexOf("* What went wrong:"), output.lastIndexOf("* Try:"));
-        assertThat(wentWrong.lines().map(String::strip).filter(line -> line.contains("Foo.java")).toList())
-                .hasSize(2)
-                .first()
-                .isEqualTo(FOO);
+        assertThat(wentWrong.lines().map(String::strip).filter(line -> line.contains("Foo.java")).toList()).hasSize(2).first().isEqualTo(FOO);
     }
 
     @Test

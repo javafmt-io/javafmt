@@ -30,8 +30,7 @@ public final class ExplicitInitialization implements LintRule {
                 edits -> new ChainScanner<>() {
                     @Override
                     public Void visitClass(final ClassTree node, final Void p) {
-                        node.getMembers()
-                                .stream()
+                        node.getMembers().stream()
                                 .flatMap(
                                         m -> m instanceof VariableTree field && isRewritableField(field, node)
                                                 ? removeDefaultInitializer(field, unit).stream()
@@ -113,8 +112,7 @@ public final class ExplicitInitialization implements LintRule {
             return Optional.empty();
         }
         final var src = unit.source();
-        final var comments = CommentScanner.scan(src.substring(declarationStart, initializerEnd))
-                .stream()
+        final var comments = CommentScanner.scan(src.substring(declarationStart, initializerEnd)).stream()
                 .map(c -> new Span(declarationStart + c.start(), declarationStart + c.end()))
                 .toList();
         var eqPos = initializerStart - 1;

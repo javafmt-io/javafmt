@@ -51,11 +51,10 @@ class FinalParametersTest {
             }
             """;
         final var result = Javafmt.formatWithResult(src);
-        assertThat(result.diagnostics())
-                .anySatisfy(d -> {
-                    assertThat(d).isInstanceOf(Diagnostic.Warning.class);
-                    assertThat(d.message()).contains("reassigned");
-                });
+        assertThat(result.diagnostics()).anySatisfy(d -> {
+            assertThat(d).isInstanceOf(Diagnostic.Warning.class);
+            assertThat(d.message()).contains("reassigned");
+        });
     }
 
     @Test

@@ -24,9 +24,7 @@ record TestBuild(Path dir) {
 
     static final String MINIMUM_GRADLE_VERSION = System.getProperty("javafmt.test.minimumGradleVersion", "");
 
-    private static final Optional<String> COVERAGE_AGENT = ManagementFactory.getRuntimeMXBean()
-            .getInputArguments()
-            .stream()
+    private static final Optional<String> COVERAGE_AGENT = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
             .filter(argument -> argument.startsWith("-javaagent:") && argument.contains("jacocoagent"))
             .findFirst()
             .map(
@@ -113,9 +111,7 @@ record TestBuild(Path dir) {
                 .withProjectDir(dir.toFile())
                 .withPluginClasspath()
                 .withEnvironment(
-                        System.getenv()
-                                .entrySet()
-                                .stream()
+                        System.getenv().entrySet().stream()
                                 .filter(variable -> !variable.getKey().startsWith("JAVA_HOME"))
                                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
                 .withArguments(Stream.concat(Stream.of("--stacktrace", "--no-watch-fs"), Stream.of(arguments)).toList())

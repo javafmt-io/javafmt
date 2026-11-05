@@ -27,10 +27,7 @@ class MultipleVariableDeclarationsTest {
 
     @Test
     void threeVariablesAreSplit() {
-        assertThat(split(inMethod("int a, b, c;")))
-                .contains("int a;")
-                .contains("int b;")
-                .contains("int c;");
+        assertThat(split(inMethod("int a, b, c;"))).contains("int a;").contains("int b;").contains("int c;");
     }
 
     @Test
@@ -38,9 +35,7 @@ class MultipleVariableDeclarationsTest {
         // `double a,t;` split into `doublet;`, which does not parse: the copied prefix ends at the
         // type and the source supplied the separating space. java/lang/FdLibm.java writes it this
         // way twice and javafmt refused the file.
-        assertThat(split(inMethod("double a,t;")))
-                .contains("double a;")
-                .contains("double t;");
+        assertThat(split(inMethod("double a,t;"))).contains("double a;").contains("double t;");
     }
 
     @Test
@@ -48,16 +43,12 @@ class MultipleVariableDeclarationsTest {
         // The comment sits after the comma, so swallowing the whitespace up to the next name carried
         // it onto the copied prefix: `private static final double // 3.06e-17[] T = {`, which does
         // not parse. java/lang/FdLibm.java writes every one of its constant tables this way.
-        assertThat(split(inMethod("int a = 1,  // one\n        b = 2;")))
-                .contains("int a = 1;  // one")
-                .contains("int b = 2;");
+        assertThat(split(inMethod("int a = 1,  // one\n        b = 2;"))).contains("int a = 1;  // one").contains("int b = 2;");
     }
 
     @Test
     void initializerPreservedWhenSplitting() {
-        assertThat(split(inMethod("int a, b = 5;")))
-                .contains("int a;")
-                .contains("int b = 5;");
+        assertThat(split(inMethod("int a, b = 5;"))).contains("int a;").contains("int b = 5;");
     }
 
     @Test
@@ -68,30 +59,22 @@ class MultipleVariableDeclarationsTest {
 
     @Test
     void cStyleArraySuffixesStayWithTheirOwnDeclarator() {
-        assertThat(split(inMethod("int a[], b[];")))
-                .contains("int a[];")
-                .contains("int b[];");
+        assertThat(split(inMethod("int a[], b[];"))).contains("int a[];").contains("int b[];");
     }
 
     @Test
     void cStyleSuffixOnOnlyOneDeclaratorIsNotSpreadToTheOthers() {
-        assertThat(split(inMethod("int a, b[];")))
-                .contains("int a;")
-                .contains("int b[];");
+        assertThat(split(inMethod("int a, b[];"))).contains("int a;").contains("int b[];");
     }
 
     @Test
     void javaStyleBaseDimensionsAreKeptOnEveryDeclarator() {
-        assertThat(split(inMethod("int[] a, b[];")))
-                .contains("int[] a;")
-                .contains("int[] b[];");
+        assertThat(split(inMethod("int[] a, b[];"))).contains("int[] a;").contains("int[] b[];");
     }
 
     @Test
     void fieldMultipleDeclarationsSplit() {
-        assertThat(split("class Fixture {\n    int x, y;\n}\n"))
-                .contains("int x;")
-                .contains("int y;");
+        assertThat(split("class Fixture {\n    int x, y;\n}\n")).contains("int x;").contains("int y;");
     }
 
     @Test
@@ -99,20 +82,13 @@ class MultipleVariableDeclarationsTest {
         // The rule used to decline here, because it rebuilt the declaration from modifiers, type,
         // names and initializers and had nowhere to put the comment. Eleven files of java.base then
         // reached the renderer as groups it could not print, and came back refused.
-        assertThat(split(inMethod("int a = 1, /* keep me */ b = 2;")))
-                .contains("int a = 1;")
-                .contains("/* keep me */")
-                .contains("b = 2;");
+        assertThat(split(inMethod("int a = 1, /* keep me */ b = 2;"))).contains("int a = 1;").contains("/* keep me */").contains("b = 2;");
     }
 
     @Test
     void aCommentBeforeEachDeclaratorSurvivesTheSplit() {
         final var source = "class Fixture {\n    static final byte\n        /* first */\n        A = 0,\n        /* second */\n        B = 1;\n}\n";
-        assertThat(split(source))
-                .contains("/* first */")
-                .contains("/* second */")
-                .contains("A = 0;")
-                .contains("B = 1;");
+        assertThat(split(source)).contains("/* first */").contains("/* second */").contains("A = 0;").contains("B = 1;");
     }
 
     @Test
@@ -127,30 +103,22 @@ class MultipleVariableDeclarationsTest {
     void aCommentBetweenTheTypeAndTheFirstNameDoesNotStopTheSplit() {
         // That comment belongs to the first declarator, not to the shared prefix, so it travels
         // with it. Reading it as neither left eleven files of java.base unsplit.
-        assertThat(split(inMethod("int /* which */ a = 1, b = 2;")))
-                .contains("/* which */")
-                .contains("int b = 2;");
+        assertThat(split(inMethod("int /* which */ a = 1, b = 2;"))).contains("/* which */").contains("int b = 2;");
     }
 
     @Test
     void aCommaInsideTheTypeArgumentsIsNotASeparator() {
         // `Node<K, V> first, e;` has two commas and only the second separates anything.
-        assertThat(split(inMethod("Node<K, V> first, e;")))
-                .contains("Node<K, V> first;")
-                .contains("Node<K, V> e;");
+        assertThat(split(inMethod("Node<K, V> first, e;"))).contains("Node<K, V> first;").contains("Node<K, V> e;");
     }
 
     @Test
     void aCommaInsideAnInitializerIsNotASeparator() {
-        assertThat(split(inMethod("int a = f(1, 2), b = 3;")))
-                .contains("int a = f(1, 2);")
-                .contains("int b = 3;");
+        assertThat(split(inMethod("int a = f(1, 2), b = 3;"))).contains("int a = f(1, 2);").contains("int b = 3;");
     }
 
     @Test
     void aCommaInsideACommentIsNotASeparator() {
-        assertThat(split(inMethod("int a = 1 /* one, two */, b = 2;")))
-                .contains("int a = 1 /* one, two */;")
-                .contains("int b = 2;");
+        assertThat(split(inMethod("int a = 1 /* one, two */, b = 2;"))).contains("int a = 1 /* one, two */;").contains("int b = 2;");
     }
 }

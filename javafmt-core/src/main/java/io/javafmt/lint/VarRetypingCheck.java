@@ -110,13 +110,10 @@ class VarRetypingCheck {
                                final Shift shift,
                                final List<LocalVarUseVar.Proposal> proposals,
                                final List<LocalVarUseVar.Proposal> unproven) {
-        final var knownErrors = attribution.errorsIn(unit.tree())
-                .stream()
+        final var knownErrors = attribution.errorsIn(unit.tree()).stream()
                 .map(error -> new AttributionError(error.offset() < 0 ? -1 : shift.start((int) error.offset()), normalized(error.message())))
                 .collect(Collectors.toSet());
-        final var newErrors = rewritten.attribution()
-                .errorsIn(rewritten.unit().tree())
-                .stream()
+        final var newErrors = rewritten.attribution().errorsIn(rewritten.unit().tree()).stream()
                 .map(error -> new AttributionError(error.offset() < 0 ? -1 : error.offset(), normalized(error.message())))
                 .filter(Predicate.not(knownErrors::contains))
                 .map(AttributionError::offset);
@@ -127,12 +124,10 @@ class VarRetypingCheck {
         final var retypedDeclarations = proposals.stream()
                 .map(LocalVarUseVar.Proposal::variable)
                 .collect(Collectors.toCollection(() -> Collections.<Tree>newSetFromMap(new IdentityHashMap<>())));
-        final var after = expressionsOf(rewritten.unit(), Set.of())
-                .stream()
+        final var after = expressionsOf(rewritten.unit(), Set.of()).stream()
                 .collect(Collectors.toMap(path -> key(path.getLeaf(), rewritten.unit()), path -> path, (first, _) -> first));
         final var scopes = unproven.stream().map(proposal -> scopeOf(proposal, unit, shift)).toList();
-        final var changed = expressionsOf(unit, retypedDeclarations)
-                .stream()
+        final var changed = expressionsOf(unit, retypedDeclarations).stream()
                 .filter(path -> inAnyScope(scopes, shift.start(unit.startOf(path.getLeaf()))))
                 .filter(
                         path -> !matches(
@@ -182,8 +177,7 @@ class VarRetypingCheck {
         }
         final var ownerAfter = afterAttribution.elements().getTypeElement(overriddenOwner.getQualifiedName());
         return ownerAfter != null
-            && ElementFilter.methodsIn(ownerAfter.getEnclosedElements())
-                    .stream()
+            && ElementFilter.methodsIn(ownerAfter.getEnclosedElements()).stream()
                     .filter(method -> method.toString().equals(overridden.toString()))
                     .anyMatch(method -> afterAttribution.elements().overrides(overrider, method, overriderOwner));
     }

@@ -137,11 +137,9 @@ public final class SourceFiles {
          * though an unreadable directory were empty.
          */
         public List<Path> filesOrThrow() {
-            unreadable.stream()
-                    .findFirst()
-                    .ifPresent(u -> {
-                        throw new UncheckedIOException("Failed to walk " + u.path(), u.error());
-                    });
+            unreadable.stream().findFirst().ifPresent(u -> {
+                throw new UncheckedIOException("Failed to walk " + u.path(), u.error());
+            });
             return files;
         }
     }
@@ -167,9 +165,7 @@ public final class SourceFiles {
 
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attributes) {
-            final var pruned = applyDefaultExcludes
-                && !dir.equals(root)
-                && PathFilter.isDefaultExcludedDirectory(dir);
+            final var pruned = applyDefaultExcludes && !dir.equals(root) && PathFilter.isDefaultExcludedDirectory(dir);
             return pruned ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
         }
 

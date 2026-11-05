@@ -21,9 +21,7 @@ class EnumTrailingCommaTest {
 
     @Test
     void anEnumTooWideForOneLineGetsATrailingComma() {
-        assertThat(lint(WIDE).edits())
-                .singleElement()
-                .satisfies(edit -> assertThat(edit.replacement()).isEqualTo(","));
+        assertThat(lint(WIDE).edits()).singleElement().satisfies(edit -> assertThat(edit.replacement()).isEqualTo(","));
     }
 
     @Test

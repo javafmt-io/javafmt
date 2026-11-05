@@ -113,9 +113,7 @@ public final class ArrayTypeStyle implements LintRule {
             end--;
         }
         var start = end;
-        while (start >= 2
-            && typeSrc.charAt(start - 1) == ']'
-            && bracketOpensAt(typeSrc, start - 2)) {
+        while (start >= 2 && typeSrc.charAt(start - 1) == ']' && bracketOpensAt(typeSrc, start - 2)) {
             start -= 2;
             while (start > 0 && Character.isWhitespace(typeSrc.charAt(start - 1))) {
                 start--;

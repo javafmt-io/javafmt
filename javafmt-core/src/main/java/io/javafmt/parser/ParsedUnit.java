@@ -108,10 +108,7 @@ public record ParsedUnit(CompilationUnitTree tree,
                 node.getModifiers().getAnnotations(), node.getTypeParameters(), node.getImplementsClause(), node.getPermitsClause(),
                 node.getExtendsClause() == null ? List.<Tree>of() : List.of(node.getExtendsClause()))
                 .flatMap(List::stream);
-        final var searchFrom = headerParts.mapToInt(this::endOf)
-                .filter(e -> e >= 0)
-                .max()
-                .orElseGet(() -> startOf(node));
+        final var searchFrom = headerParts.mapToInt(this::endOf).filter(e -> e >= 0).max().orElseGet(() -> startOf(node));
         return searchFrom < 0 ? -1 : source.indexOf('{', searchFrom);
     }
 

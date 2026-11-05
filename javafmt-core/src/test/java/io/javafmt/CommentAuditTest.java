@@ -79,13 +79,8 @@ class CommentAuditTest {
         final var before = CommentScanner.scan(SOURCE);
         final var formatted = Javafmt.format(SOURCE);
         final var afterTexts = CommentScanner.scan(formatted).stream().map(CommentToken::text).toList();
-        final var missing = before.stream()
-                .map(CommentToken::text)
-                .filter(t -> !afterTexts.contains(t))
-                .toList();
-        assertThat(missing)
-                .as("comments lost when formatting:%n%s", formatted)
-                .isEmpty();
+        final var missing = before.stream().map(CommentToken::text).filter(t -> !afterTexts.contains(t)).toList();
+        assertThat(missing).as("comments lost when formatting:%n%s", formatted).isEmpty();
     }
 
     /**
@@ -143,9 +138,7 @@ class CommentAuditTest {
     @MethodSource("enumsWithCommentedConstants")
     void aCommentPastAnEnumConstantsCommaStaysOnItsLine(final String name, final String source, final List<String> expected) {
         final var formatted = Javafmt.format(source);
-        assertThat(formatted)
-                .as("%s:%n%s", name, formatted)
-                .contains(expected.toArray(String[]::new));
+        assertThat(formatted).as("%s:%n%s", name, formatted).contains(expected.toArray(String[]::new));
     }
 
     static Stream<Arguments> enumsWithCommentedConstants() {
@@ -244,20 +237,14 @@ class CommentAuditTest {
         final var formatted = Javafmt.format(input);
         final var before = CommentScanner.scan(input);
         final var after = CommentScanner.scan(formatted);
-        assertThat(after)
-                .as("comment count must not change for fixture %s%n--- formatted ---%n%s", name, formatted)
-                .hasSameSizeAs(before);
+        assertThat(after).as("comment count must not change for fixture %s%n--- formatted ---%n%s", name, formatted).hasSameSizeAs(before);
         for (var i = 0; i < before.size(); i++) {
             final var src = before.get(i);
             final var dst = after.get(i);
             final var srcLines = src.text().split("\n", -1);
             final var dstLines = dst.text().split("\n", -1);
-            assertThat(dstLines.length)
-                    .as("comment #%d line count must not change (text=%s)", i, src.text())
-                    .isEqualTo(srcLines.length);
-            assertThat(dstLines[0])
-                    .as("comment #%d first line must not change", i)
-                    .isEqualTo(srcLines[0]);
+            assertThat(dstLines.length).as("comment #%d line count must not change (text=%s)", i, src.text()).isEqualTo(srcLines.length);
+            assertThat(dstLines[0]).as("comment #%d first line must not change", i).isEqualTo(srcLines[0]);
             assertThat(continuationShape(dstLines))
                     .as("comment #%d continuation line shape must be preserved%n--- formatted ---%n%s", i, formatted)
                     .isEqualTo(continuationShape(srcLines));
@@ -328,12 +315,8 @@ class CommentAuditTest {
         final var lines = formatted.split("\n", -1);
         final var xLine = lineContaining(lines, "int x;");
         final var yLine = lineContaining(lines, "int y;");
-        assertThat(xLine)
-                .as("trailing comment must stay on the same line as `int x;` in:%n%s", formatted)
-                .contains("// suffix");
-        assertThat(yLine)
-                .as("trailing comment must not migrate to leading of `int y;` in:%n%s", formatted)
-                .doesNotContain("// suffix");
+        assertThat(xLine).as("trailing comment must stay on the same line as `int x;` in:%n%s", formatted).contains("// suffix");
+        assertThat(yLine).as("trailing comment must not migrate to leading of `int y;` in:%n%s", formatted).doesNotContain("// suffix");
     }
 
     @Test
@@ -351,18 +334,10 @@ class CommentAuditTest {
         final var lines = formatted.split("\n", -1);
         final var docLineIndex = indexOfLineContaining(lines, "/** doc on y */");
         final var yLineIndex = indexOfLineContaining(lines, "int y;");
-        assertThat(docLineIndex)
-                .as("javadoc must appear in:%n%s", formatted)
-                .isNotNegative();
-        assertThat(yLineIndex)
-                .as("`int y;` must appear in:%n%s", formatted)
-                .isNotNegative();
-        assertThat(docLineIndex)
-                .as("javadoc must remain on a line before `int y;` in:%n%s", formatted)
-                .isLessThan(yLineIndex);
-        assertThat(lines[docLineIndex])
-                .as("javadoc must not piggyback onto `int x;` in:%n%s", formatted)
-                .doesNotContain("int x;");
+        assertThat(docLineIndex).as("javadoc must appear in:%n%s", formatted).isNotNegative();
+        assertThat(yLineIndex).as("`int y;` must appear in:%n%s", formatted).isNotNegative();
+        assertThat(docLineIndex).as("javadoc must remain on a line before `int y;` in:%n%s", formatted).isLessThan(yLineIndex);
+        assertThat(lines[docLineIndex]).as("javadoc must not piggyback onto `int x;` in:%n%s", formatted).doesNotContain("int x;");
     }
 
     @Test
@@ -379,19 +354,11 @@ class CommentAuditTest {
         final var lines = formatted.split("\n", -1);
         final var openIndex = indexOfLineContaining(lines, "void m() {");
         final var commentIndex = indexOfLineContaining(lines, "// pure interior");
-        assertThat(openIndex)
-                .as("opening brace of `m` must appear in:%n%s", formatted)
-                .isNotNegative();
-        assertThat(commentIndex)
-                .as("interior comment must appear in:%n%s", formatted)
-                .isNotNegative();
-        assertThat(commentIndex)
-                .as("interior comment must stay inside the method body in:%n%s", formatted)
-                .isGreaterThan(openIndex);
+        assertThat(openIndex).as("opening brace of `m` must appear in:%n%s", formatted).isNotNegative();
+        assertThat(commentIndex).as("interior comment must appear in:%n%s", formatted).isNotNegative();
+        assertThat(commentIndex).as("interior comment must stay inside the method body in:%n%s", formatted).isGreaterThan(openIndex);
         final var closeIndex = indexOfFirstLineEqualingFrom(lines, commentIndex, "    }");
-        assertThat(closeIndex)
-                .as("closing brace of `m` must follow the interior comment in:%n%s", formatted)
-                .isNotNegative();
+        assertThat(closeIndex).as("closing brace of `m` must follow the interior comment in:%n%s", formatted).isNotNegative();
     }
 
     private static String lineContaining(final String[] lines, final String needle) {

@@ -197,14 +197,11 @@ public final class JavaParser {
     }
 
     private Map<URI, List<AttributionError>> attributionErrors(final ParsedBatch batch) {
-        return errorsByUri(batch.diagnostics(), batch.fileObjects().getFirst().toUri())
-                .entrySet()
-                .stream()
+        return errorsByUri(batch.diagnostics(), batch.fileObjects().getFirst().toUri()).entrySet().stream()
                 .collect(
                         Collectors.toMap(
                                 Map.Entry::getKey,
-                                entry -> entry.getValue()
-                                        .stream()
+                                entry -> entry.getValue().stream()
                                         .map(d -> new AttributionError(d.getStartPosition(), d.getMessage(Locale.ROOT)))
                                         .toList()));
     }
@@ -220,9 +217,7 @@ public final class JavaParser {
         if (sources.size() == 1) {
             return List.of(new Staged.Failed<>(batchFailure));
         }
-        return sources.stream()
-                .map(source -> attributeBatch(List.of(source), session).getFirst())
-                .toList();
+        return sources.stream().map(source -> attributeBatch(List.of(source), session).getFirst()).toList();
     }
 
     /**
@@ -232,8 +227,7 @@ public final class JavaParser {
      */
     private Map<URI, List<javax.tools.Diagnostic<? extends JavaFileObject>>> errorsByUri(final DiagnosticCollector<JavaFileObject> diagnostics,
                                                                                          final URI fallbackUri) {
-        return diagnostics.getDiagnostics()
-                .stream()
+        return diagnostics.getDiagnostics().stream()
                 .filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR)
                 .collect(
                         Collectors.groupingBy(d -> {
@@ -263,12 +257,8 @@ public final class JavaParser {
     }
 
     private ParseException toParseException(final List<javax.tools.Diagnostic<? extends JavaFileObject>> errors) {
-        final var message = errors.stream()
-                .map(d -> d.getMessage(Locale.ROOT))
-                .collect(Collectors.joining("; "));
-        final var asDiagnostics = errors.stream()
-                .<Diagnostic>map(d -> new Diagnostic.ParseError(d.getMessage(Locale.ROOT), positionOf(d)))
-                .toList();
+        final var message = errors.stream().map(d -> d.getMessage(Locale.ROOT)).collect(Collectors.joining("; "));
+        final var asDiagnostics = errors.stream().<Diagnostic>map(d -> new Diagnostic.ParseError(d.getMessage(Locale.ROOT), positionOf(d))).toList();
         return new ParseException(message, asDiagnostics);
     }
 
@@ -288,9 +278,7 @@ public final class JavaParser {
         try {
             final var batch = parseBatch(sources, fileManager, TASK_OPTIONS);
             final var positions = Trees.instance(batch.task()).getSourcePositions();
-            return IntStream.range(0, batch.stripped().size())
-                    .mapToObj(i -> resolve(batch, i, positions))
-                    .toList();
+            return IntStream.range(0, batch.stripped().size()).mapToObj(i -> resolve(batch, i, positions)).toList();
         } finally {
             IDLE_FILE_MANAGERS.offer(fileManager);
         }
@@ -364,9 +352,7 @@ public final class JavaParser {
         final var offset = d.getStartPosition();
         final var line = d.getLineNumber();
         final var column = d.getColumnNumber();
-        if (offset == javax.tools.Diagnostic.NOPOS
-            || line == javax.tools.Diagnostic.NOPOS
-            || column == javax.tools.Diagnostic.NOPOS) {
+        if (offset == javax.tools.Diagnostic.NOPOS || line == javax.tools.Diagnostic.NOPOS || column == javax.tools.Diagnostic.NOPOS) {
             return new Position.Unknown();
         }
         return new Position.At((int) line, (int) column, (int) offset);

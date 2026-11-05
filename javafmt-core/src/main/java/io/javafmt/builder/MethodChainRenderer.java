@@ -9,15 +9,15 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @UtilityClass
 final class MethodChainRenderer {
-    /**
-     * In compact context (e.g. an operand of a broken logical chain), the author-broke
-     * heuristic below is skipped — only a hard newline inside the chain forces a break.
-     */
+    private final Set<String> STREAMS = Set.of("stream", "parallelStream");
+
     Doc render(final MethodInvocationTree node, final Recursor recursor) {
         final var calls = Stream.<@Nullable MethodInvocationTree>iterate(
                 node, Objects::nonNull,
@@ -33,17 +33,25 @@ final class MethodChainRenderer {
                 .map(call -> call == node ? link(call, recursor) : withTrailingComments(link(call, recursor), recursor.trailing(call)))
                 .toList()
                 .reversed();
-        final var tail = new Doc.Concat(
-                IntStream.range(1, links.size())
-                        .boxed()
-                        .flatMap(i -> Stream.of(links.get(i - 1).endsTheLine() ? Doc.HARD_LINE : Doc.SOFT_LINE, links.get(i).doc())));
-        final var contents = Doc.concat(links.getFirst().doc(), Doc.continuationIndent(tail));
-        final var authorBroke = !recursor.inCompactContext() && authorBrokeChain(calls, recursor);
-        final var broken = chainGroup(contents, authorBroke);
-        if (authorBroke || !hugsLastLink(links)) {
+        final var headEnd = streamHeadEnd(calls.reversed(), links);
+        final var broken = headEnd == 0
+                ? chainGroup(Doc.concat(links.getFirst().doc(), Doc.continuationIndent(tail(links, 1, MethodChainRenderer::separatorAfter))))
+                : new Doc.Group(
+                        new Doc.IfBreak(
+                                new Doc.Choice(brokenAfter(links, headEnd), brokenAfter(links, 0), Doc.Choice.Fit.OPENING_LINE), joined(links)),
+                        Doc.flatWidthOrBreak(joined(links)) < 0);
+        if (!hugsLastLink(links)) {
             return broken;
         }
-        return new Doc.Choice(new Doc.Concat(links.stream().map(Link::doc)), broken, Doc.Choice.Fit.OPENING_LINE);
+        return new Doc.Choice(joined(links), broken, Doc.Choice.Fit.OPENING_LINE);
+    }
+
+    private int streamHeadEnd(final List<MethodInvocationTree> calls, final List<Link> links) {
+        final var stream = IntStream.range(1, calls.size())
+                .filter(i -> calls.get(i).getMethodSelect() instanceof MemberSelectTree ms && STREAMS.contains(ms.getIdentifier().toString()))
+                .findFirst()
+                .orElse(0);
+        return links.subList(0, stream).stream().anyMatch(Link::endsTheLine) ? 0 : stream;
     }
 
     private boolean hugsLastLink(final List<Link> links) {
@@ -51,19 +59,35 @@ final class MethodChainRenderer {
             && links.subList(0, links.size() - 1).stream().noneMatch(link -> link.endsTheLine() || Doc.flatWidthOrBreak(link.doc()) < 0);
     }
 
-    Doc chainGroup(final Doc contents, final boolean authorBroke) {
-        return new Doc.Group(contents, authorBroke || Doc.flatWidthOrBreak(contents) < 0);
+    Doc chainGroup(final Doc contents) {
+        return new Doc.Group(contents, Doc.flatWidthOrBreak(contents) < 0);
     }
 
-    /**
-     * Returns true if the author placed any {@code .} token of the chain on a new line. Checks
-     * {@link Recursor#isFollowedByNewline} on each receiver expression — if the source has a
-     * newline between a receiver and its trailing {@code .}, that's an explicit multi-line layout
-     * the formatter should preserve.
-     */
-    private boolean authorBrokeChain(final List<MethodInvocationTree> calls, final Recursor recursor) {
-        return calls.stream()
-                .anyMatch(call -> call.getMethodSelect() instanceof MemberSelectTree ms && recursor.isFollowedByNewline(ms.getExpression()));
+    private Doc brokenAfter(final List<Link> links, final int headEnd) {
+        return Doc.concat(joined(links.subList(0, headEnd + 1)), Doc.continuationIndent(tail(links, headEnd + 1, _ -> Doc.HARD_LINE)));
+    }
+
+    private Doc tail(final List<Link> links, final int from, final Function<Link, Doc> separator) {
+        return new Doc.Concat(
+                IntStream.range(from, links.size()).boxed().flatMap(i -> Stream.of(separator.apply(links.get(i - 1)), links.get(i).doc())).toList());
+    }
+
+    private Doc separatorAfter(final Link link) {
+        if (link.endsTheLine()) {
+            return Doc.HARD_LINE;
+        }
+        return link.endsWithComment() ? Doc.LINE : Doc.SOFT_LINE;
+    }
+
+    private Doc joined(final List<Link> links) {
+        return new Doc.Concat(
+                IntStream.range(0, links.size())
+                        .boxed()
+                        .flatMap(
+                                i -> i > 0 && links.get(i - 1).endsWithComment()
+                                        ? Stream.of(new Doc.Text(" "), links.get(i).doc())
+                                        : Stream.of(links.get(i).doc()))
+                        .toList());
     }
 
     private Link link(final MethodInvocationTree call, final Recursor recursor) {
@@ -75,13 +99,13 @@ final class MethodChainRenderer {
             final var arguments = CallArguments.render(call, call.getArguments(), recursor);
             final var callSuffix = Doc.concat(head, arguments.doc());
             if (ms.getExpression() instanceof MethodInvocationTree) {
-                return new Link(callSuffix, false, arguments.hugsLastArgument());
+                return new Link(callSuffix, false, false, arguments.hugsLastArgument());
             }
-            return new Link(Doc.concat(recursor.scan(ms.getExpression()), callSuffix), false, arguments.hugsLastArgument());
+            return new Link(Doc.concat(recursor.scan(ms.getExpression()), callSuffix), false, false, arguments.hugsLastArgument());
         }
         final var head = new Doc.Concat(Stream.concat(typeArguments(call, recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
         final var arguments = CallArguments.render(call, call.getArguments(), recursor);
-        return new Link(Doc.concat(head, arguments.doc()), false, arguments.hugsLastArgument());
+        return new Link(Doc.concat(head, arguments.doc()), false, false, arguments.hugsLastArgument());
     }
 
     /**
@@ -96,7 +120,7 @@ final class MethodChainRenderer {
         return new Link(
                 Doc.concatOf(
                         Stream.of(Stream.of(link.doc()), comments.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))))),
-                comments.stream().anyMatch(c -> c.text().startsWith("//")), false);
+                comments.stream().anyMatch(c -> c.text().startsWith("//")), true, false);
     }
 
     private Stream<Doc> typeArguments(final MethodInvocationTree mit, final Recursor recursor) {
@@ -114,5 +138,5 @@ final class MethodChainRenderer {
      * comment closes the line, so the link after it has to start a new one however the enclosing
      * group prints.
      */
-    private record Link(Doc doc, boolean endsTheLine, boolean hugsLastArgument) {}
+    private record Link(Doc doc, boolean endsTheLine, boolean endsWithComment, boolean hugsLastArgument) {}
 }

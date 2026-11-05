@@ -36,8 +36,7 @@ public final class EmptyStatement implements LintRule {
                 edits -> new ChainScanner<>() {
                     @Override
                     public Void visitBlock(final BlockTree node, final Void p) {
-                        node.getStatements()
-                                .stream()
+                        node.getStatements().stream()
                                 .filter(EmptyStatementTree.class::isInstance)
                                 .filter(s -> unit.startOf(s) >= 0 && unit.endOf(s) > unit.startOf(s))
                                 .forEach(s -> edits.add(new LintEdit(unit.startOf(s), unit.endOf(s), "")));
@@ -99,8 +98,7 @@ public final class EmptyStatement implements LintRule {
         if (bodyOpen < 0 || classEnd <= bodyOpen) {
             return Stream.empty();
         }
-        final var memberSpans = node.getMembers()
-                .stream()
+        final var memberSpans = node.getMembers().stream()
                 .filter(m -> unit.startOf(m) >= 0 && unit.endOf(m) > unit.startOf(m))
                 .map(m -> new int[] {unit.startOf(m), unit.endOf(m),})
                 .sorted(Comparator.comparingInt(span -> span[0]))

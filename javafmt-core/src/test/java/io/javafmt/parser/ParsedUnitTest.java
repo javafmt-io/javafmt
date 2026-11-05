@@ -26,9 +26,7 @@ class ParsedUnitTest {
         final var truncated = new ParsedUnit(
                 parsed.tree(), "class", parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
                 new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
-        assertThatThrownBy(() -> truncated.sourceSpanOf(cls))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("CLASS");
+        assertThatThrownBy(() -> truncated.sourceSpanOf(cls)).isInstanceOf(IllegalStateException.class).hasMessageContaining("CLASS");
     }
 
     @Test

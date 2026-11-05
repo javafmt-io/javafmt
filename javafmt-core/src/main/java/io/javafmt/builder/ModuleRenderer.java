@@ -43,16 +43,15 @@ final class ModuleRenderer {
     }
 
     private Stream<Doc> bodyStream(final List<? extends DirectiveTree> directives, final Recursor recursor) {
-        return IntStream.range(0, directives.size())
-                .mapToObj(i -> {
-                    final var d = directives.get(i);
-                    final var doc = recursor.attach(d, renderDirective(d));
-                    final var indented = Doc.indentedLine(doc);
-                    if (i > 0 && directives.get(i - 1).getKind() != d.getKind()) {
-                        return Doc.concat(Doc.HARD_LINE, indented);
-                    }
-                    return indented;
-                });
+        return IntStream.range(0, directives.size()).mapToObj(i -> {
+            final var d = directives.get(i);
+            final var doc = recursor.attach(d, renderDirective(d));
+            final var indented = Doc.indentedLine(doc);
+            if (i > 0 && directives.get(i - 1).getKind() != d.getKind()) {
+                return Doc.concat(Doc.HARD_LINE, indented);
+            }
+            return indented;
+        });
     }
 
     private Doc renderDirective(final DirectiveTree directive) {

@@ -12,20 +12,17 @@ class RedundantSuperCallTest {
 
     @Test
     void regularConstructor_removesNoArgumentSuperCall() {
-        assertThat(format("class Foo { Foo() { super(); } }"))
-                .isEqualTo("class Foo {\n    Foo() {}\n}\n");
+        assertThat(format("class Foo { Foo() { super(); } }")).isEqualTo("class Foo {\n    Foo() {}\n}\n");
     }
 
     @Test
     void regularConstructor_withOtherStatements_removesOnlySuperCall() {
-        assertThat(format("class Foo { Foo() { super(); doSetup(); } }"))
-                .isEqualTo("class Foo {\n    Foo() {\n        doSetup();\n    }\n}\n");
+        assertThat(format("class Foo { Foo() { super(); doSetup(); } }")).isEqualTo("class Foo {\n    Foo() {\n        doSetup();\n    }\n}\n");
     }
 
     @Test
     void recordCompactConstructor_removesInjectedSuperCall() {
-        assertThat(format("record Foo(int x) { public Foo { super(); } }"))
-                .isEqualTo("record Foo(int x) {\n    public Foo {}\n}\n");
+        assertThat(format("record Foo(int x) { public Foo { super(); } }")).isEqualTo("record Foo(int x) {\n    public Foo {}\n}\n");
     }
 
     @Test
@@ -43,8 +40,7 @@ class RedundantSuperCallTest {
     @Test
     void superNotFirstStatement_isPreserved() {
         // super() after another statement is already a compile error, but we don't touch it
-        assertThat(format("class Foo { Foo() { doSetup(); } }"))
-                .isEqualTo("class Foo {\n    Foo() {\n        doSetup();\n    }\n}\n");
+        assertThat(format("class Foo { Foo() { doSetup(); } }")).isEqualTo("class Foo {\n    Foo() {\n        doSetup();\n    }\n}\n");
     }
 
     @Test

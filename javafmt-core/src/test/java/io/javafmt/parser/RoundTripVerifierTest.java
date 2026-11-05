@@ -95,8 +95,7 @@ class RoundTripVerifierTest {
         // a multiset saw nothing.
         final var before = "class A {\n    Object v(int n) {\n        return new int[n][];\n    }\n}\n";
         final var after = "class A {\n    Object v(int n) {\n        return new int[][n];\n    }\n}\n";
-        assertThat(RoundTripVerifier.verify(before, after))
-                .hasValueSatisfying(message -> assertThat(message).contains("diverges at token"));
+        assertThat(RoundTripVerifier.verify(before, after)).hasValueSatisfying(message -> assertThat(message).contains("diverges at token"));
         assertThat(RoundTripVerifier.firstDifferingOffset(before, after)).isPresent();
     }
 

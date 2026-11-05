@@ -337,12 +337,10 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
             reformat(file);
             reformat(file);
             assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
-            assertThat(notifications)
-                    .singleElement()
-                    .satisfies(notification -> {
-                        assertThat(notification.getType()).isEqualTo(NotificationType.INFORMATION);
-                        assertThat(notification.getContent()).contains("downloading");
-                    });
+            assertThat(notifications).singleElement().satisfies(notification -> {
+                assertThat(notification.getType()).isEqualTo(NotificationType.INFORMATION);
+                assertThat(notification.getContent()).contains("downloading");
+            });
             go.countDown();
             assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Installed.class);
             assertThat(release.requests()).isEqualTo(1);

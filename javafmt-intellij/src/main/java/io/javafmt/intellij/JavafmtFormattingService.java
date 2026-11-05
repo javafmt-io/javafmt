@@ -107,17 +107,11 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
     }
 
     private static String describe(final JavafmtBinary.Outcome.Formatted formatted) {
-        return formatted.diagnostics()
-                .stream()
-                .map(Diagnostic::getMessage)
-                .collect(Collectors.joining("\n"));
+        return formatted.diagnostics().stream().map(Diagnostic::getMessage).collect(Collectors.joining("\n"));
     }
 
     private static void notifyUser(final Project project, final NotificationType type, final String message) {
-        NotificationGroupManager.getInstance()
-                .getNotificationGroup(NOTIFICATION_GROUP)
-                .createNotification("javafmt", message, type)
-                .notify(project);
+        NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP).createNotification("javafmt", message, type).notify(project);
     }
 
     /**

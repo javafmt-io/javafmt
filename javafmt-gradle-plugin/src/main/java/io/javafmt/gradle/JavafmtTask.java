@@ -81,15 +81,14 @@ public abstract class JavafmtTask extends DefaultTask {
         final var executable = getLauncher().get().getExecutablePath().getAsFile();
         final var maxHeapSize = getMaxHeapSize().get();
         final var jvmArgs = getJvmArgs().get();
-        final var queue = getWorkerExecutor()
-                .processIsolation(spec -> {
-                    spec.getClasspath().from(engine);
-                    spec.forkOptions(fork -> {
-                        fork.setExecutable(executable);
-                        fork.setMaxHeapSize(maxHeapSize);
-                        fork.jvmArgs(jvmArgs);
-                    });
-                });
+        final var queue = getWorkerExecutor().processIsolation(spec -> {
+            spec.getClasspath().from(engine);
+            spec.forkOptions(fork -> {
+                fork.setExecutable(executable);
+                fork.setMaxHeapSize(maxHeapSize);
+                fork.jvmArgs(jvmArgs);
+            });
+        });
         queue.submit(JavafmtAction.class, parameters -> {
             parameters.getFiles().from(files);
             parameters.getAnalyze().set(getAnalyze());

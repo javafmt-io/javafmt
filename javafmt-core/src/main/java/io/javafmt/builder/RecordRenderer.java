@@ -14,11 +14,7 @@ import javax.lang.model.element.Modifier;
 final class RecordRenderer {
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("record " + node.getSimpleName()));
-        final var components = node.getMembers()
-                .stream()
-                .filter(RecordRenderer::isRecordComponent)
-                .map(m -> (VariableTree) m)
-                .toList();
+        final var components = node.getMembers().stream().filter(RecordRenderer::isRecordComponent).map(m -> (VariableTree) m).toList();
         final var bodyMemberStream = node.getMembers().stream().filter(m -> !isRecordComponent(m));
         final var className = node.getSimpleName().toString();
         final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);

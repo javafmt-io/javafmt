@@ -1,10 +1,7 @@
 class Fixture {
     Object chain(final Project project, final SourceSet sourceSet) {
         return project.provider(
-                () -> sourceSet.getJava()
-                        .getSourceDirectories()
-                        .getFiles()
-                        .stream()
+                () -> sourceSet.getJava().getSourceDirectories().getFiles().stream()
                         .filter(file -> file.exists())
                         .map(file -> file.toPath())
                         .toList());

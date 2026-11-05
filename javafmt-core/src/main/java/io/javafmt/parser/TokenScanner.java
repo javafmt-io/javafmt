@@ -59,9 +59,7 @@ public final class TokenScanner {
 
     private int tokenEnd(final String source, final int start, final int n, final char c) {
         if (c == '"') {
-            return start + 2 < n
-                && source.charAt(start + 1) == '"'
-                && source.charAt(start + 2) == '"'
+            return start + 2 < n && source.charAt(start + 1) == '"' && source.charAt(start + 2) == '"'
                     ? endOfTextBlock(source, start, n)
                     : endOfStringLiteral(source, start, n);
         }
@@ -128,9 +126,7 @@ public final class TokenScanner {
     }
 
     private boolean isHexPrefix(final String source, final int start, final int n) {
-        return start + 1 < n
-            && source.charAt(start) == '0'
-            && (source.charAt(start + 1) == 'x' || source.charAt(start + 1) == 'X');
+        return start + 1 < n && source.charAt(start) == '0' && (source.charAt(start + 1) == 'x' || source.charAt(start + 1) == 'X');
     }
 
     /**
@@ -145,9 +141,7 @@ public final class TokenScanner {
      */
     private boolean signContinuesExponent(final String source, final char c, final int i, final int n, final boolean hex) {
         final var isMarker = hex ? c == 'p' || c == 'P' : c == 'e' || c == 'E';
-        return isMarker
-            && i + 1 < n
-            && (source.charAt(i + 1) == '+' || source.charAt(i + 1) == '-');
+        return isMarker && i + 1 < n && (source.charAt(i + 1) == '+' || source.charAt(i + 1) == '-');
     }
 
     private int endOfStringLiteral(final String source, final int open, final int n) {

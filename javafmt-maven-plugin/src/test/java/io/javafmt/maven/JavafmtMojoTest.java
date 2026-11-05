@@ -26,9 +26,7 @@ class JavafmtMojoTest {
         Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
         final var mojo = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.empty());
         mojo.execute();
-        assertThat(Files.readString(file, StandardCharsets.UTF_8))
-                .isEqualTo(Javafmt.format(UNFORMATTED))
-                .isNotEqualTo(UNFORMATTED);
+        assertThat(Files.readString(file, StandardCharsets.UTF_8)).isEqualTo(Javafmt.format(UNFORMATTED)).isNotEqualTo(UNFORMATTED);
     }
 
     @Test
@@ -53,9 +51,7 @@ class JavafmtMojoTest {
 
     @Test
     void formatGoal_formatsMultipleFilesInParallel(@TempDir final Path srcDir) throws Exception {
-        final var files = java.util.stream.IntStream.range(0, 8)
-                .mapToObj(i -> srcDir.resolve("F" + i + ".java"))
-                .toList();
+        final var files = java.util.stream.IntStream.range(0, 8).mapToObj(i -> srcDir.resolve("F" + i + ".java")).toList();
         for (final var file : files) {
             Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
         }
@@ -127,9 +123,7 @@ class JavafmtMojoTest {
         final var mojo = new JavafmtMojo(buildProject(srcDir), List.of("**/input.java"), Optional.empty());
         mojo.execute();
         assertThat(Files.readString(fixture, StandardCharsets.UTF_8)).isEqualTo(UNFORMATTED);
-        assertThat(Files.readString(normal, StandardCharsets.UTF_8))
-                .isEqualTo(Javafmt.format(UNFORMATTED))
-                .isNotEqualTo(UNFORMATTED);
+        assertThat(Files.readString(normal, StandardCharsets.UTF_8)).isEqualTo(Javafmt.format(UNFORMATTED)).isNotEqualTo(UNFORMATTED);
     }
 
     @Test
@@ -151,9 +145,7 @@ class JavafmtMojoTest {
         final var normal = srcDir.resolve("Normal.java");
         Files.writeString(normal, UNFORMATTED, StandardCharsets.UTF_8);
         final var mojo = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.empty());
-        assertThatThrownBy(mojo::execute)
-                .isInstanceOf(MojoExecutionException.class)
-                .hasMessage("javafmt: I/O error: Failed to read " + unreadable);
+        assertThatThrownBy(mojo::execute).isInstanceOf(MojoExecutionException.class).hasMessage("javafmt: I/O error: Failed to read " + unreadable);
         assertThat(Files.readString(normal, StandardCharsets.UTF_8)).isEqualTo(UNFORMATTED);
     }
 

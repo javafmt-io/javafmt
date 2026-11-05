@@ -233,8 +233,6 @@ class ChainScannerTest {
     }
 
     private static String describe(final TreePath path) {
-        return StreamSupport.stream(path.spliterator(), false)
-                .map(tree -> tree.getKind().toString())
-                .collect(Collectors.joining(" < "));
+        return StreamSupport.stream(path.spliterator(), false).map(tree -> tree.getKind().toString()).collect(Collectors.joining(" < "));
     }
 }

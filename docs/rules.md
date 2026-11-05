@@ -144,11 +144,12 @@ Lambda parameters are never `final`.
 
 ## Method chains
 
-- Break before each `.` when the chain does not fit in 150 characters, or when the author already put a `.` on its own line. A chain that contains a multi-line text block always breaks.
+- A chain that fits in 150 characters goes on one line, however the author broke it. One that does not breaks before each `.`. A chain that contains a multi-line text block always breaks.
+- When a chain breaks, its first line runs up to and including its first `.stream()` or `.parallelStream()` call, and each call after that goes on its own line.
 - A chain whose last call ends in a block-bodied lambda stays on one line up to the lambda's `{` when that fits (see Lambdas). Any other part that spans several lines, such as a block lambda in an earlier call, breaks the chain before every `.`.
 - Continuation indent is 8 spaces past the statement. Dots are not aligned with each other.
 - The first call of a chain stays on the line of its receiver (`orders.stream()`, `return Shipments.builder()`).
-- `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters or when the author already broke them.
+- `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters. One that fits goes on one line, however the author broke it.
 
 ## Enums
 

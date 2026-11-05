@@ -83,9 +83,7 @@ final class Modifiers {
 
     /** A {@code .} only continues the name when another name part follows it. */
     private boolean isDotBetweenNameParts(final String source, final int pos) {
-        return source.charAt(pos) == '.'
-            && pos + 1 < source.length()
-            && Character.isJavaIdentifierStart(source.charAt(pos + 1));
+        return source.charAt(pos) == '.' && pos + 1 < source.length() && Character.isJavaIdentifierStart(source.charAt(pos + 1));
     }
 
     private int skipLiteral(final String source, final int open, final char quote) {

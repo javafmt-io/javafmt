@@ -73,9 +73,7 @@ final class TypeBodyRenderer {
         if (wantsBlankLine || previousWantedBlankLine) {
             return true;
         }
-        return previous.tree() != null
-            && member.tree() != null
-            && recursor.blankLineBetween(previous.tree(), member.tree());
+        return previous.tree() != null && member.tree() != null && recursor.blankLineBetween(previous.tree(), member.tree());
     }
 
     private boolean wantsBlankLineAround(final Member member, final Recursor recursor) {
@@ -89,9 +87,7 @@ final class TypeBodyRenderer {
     /** The member-collect pipeline all three type renderers repeat. */
     List<Member> renderMembers(final Stream<? extends Tree> memberStream, final String className, final Recursor recursor) {
         return memberStream.flatMap(
-                m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor))
-                        .map(doc -> new Member(m, doc))
-                        .stream())
+                m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor)).map(doc -> new Member(m, doc)).stream())
                 .toList();
     }
 

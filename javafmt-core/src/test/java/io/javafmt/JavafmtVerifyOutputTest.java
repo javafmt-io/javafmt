@@ -53,9 +53,7 @@ class JavafmtVerifyOutputTest {
     void withVerificationOnTheLostCommentBecomesAnInternalError() {
         final var config = JavafmtConfig.defaults().withVerifyOutput(true);
         final var result = BatchFormatter.formatParsed(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
-        assertThat(result.diagnostics())
-                .singleElement()
-                .isInstanceOf(Diagnostic.InternalError.class);
+        assertThat(result.diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class);
         assertThat(result.diagnostics().getFirst().message()).contains("comment");
     }
 
@@ -83,10 +81,7 @@ class JavafmtVerifyOutputTest {
         final var source = "class Fixture {\n    void m(int n) {\n        String s = \"hi\";\n        if (n > 0) log(s);\n    }\n\n    void log(String s) {}\n}\n";
         final var result = Javafmt.formatWithResult(source, config);
         assertThat(result.diagnostics()).noneMatch(d -> d instanceof Diagnostic.InternalError);
-        assertThat(result.output())
-                .contains("void m(final int n)")
-                .contains("final var s = \"hi\";")
-                .contains("if (n > 0) {");
+        assertThat(result.output()).contains("void m(final int n)").contains("final var s = \"hi\";").contains("if (n > 0) {");
     }
 
     private static final String SUPER_CALL_WITH_NOTE = "class Fixture {\n    Fixture() {\n        super(); // keep this\n    }\n}\n";

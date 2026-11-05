@@ -19,11 +19,7 @@ final class EnumRenderer {
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("enum " + node.getSimpleName()));
         final var headerDoc = ClassLikeRenderer.buildTypeDeclarationHeader(prefix, null, node.getImplementsClause(), false, List.of(), recursor);
-        final var constants = node.getMembers()
-                .stream()
-                .filter(m -> isConstant(m, recursor))
-                .map(m -> (VariableTree) m)
-                .toList();
+        final var constants = node.getMembers().stream().filter(m -> isConstant(m, recursor)).map(m -> (VariableTree) m).toList();
         final var className = node.getSimpleName().toString();
         final var bodyMemberStream = node.getMembers().stream().filter(m -> !isConstant(m, recursor));
         final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);
@@ -127,9 +123,7 @@ final class EnumRenderer {
      * arrives on {@code interior} instead, and the trailing separator has already written it there.
      */
     private Stream<Doc> commentsAfterTheLastConstant(final ClassTree node, final Recursor recursor) {
-        return recursor.tail(node)
-                .stream()
-                .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
+        return recursor.tail(node).stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
     }
 
     /**

@@ -40,9 +40,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("Stream.of(1, 2, 3);")
-                .doesNotContain("<Integer>of");
+        assertThat(formatted).contains("Stream.of(1, 2, 3);").doesNotContain("<Integer>of");
     }
 
     @Test
@@ -95,9 +93,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("Optional.of(\"hi\")")
-                .doesNotContain("<String>of");
+        assertThat(formatted).contains("Optional.of(\"hi\")").doesNotContain("<String>of");
     }
 
     @Test
@@ -147,9 +143,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("var dropMe = Stream.of(1, 2);")
-                .contains("var keepMe = Stream.<Number>of(1, 2);");
+        assertThat(formatted).contains("var dropMe = Stream.of(1, 2);").contains("var keepMe = Stream.<Number>of(1, 2);");
     }
 
     @Test
@@ -165,9 +159,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("Map.of(\"a\", 1)")
-                .doesNotContain("<String, Integer>of");
+        assertThat(formatted).contains("Map.of(\"a\", 1)").doesNotContain("<String, Integer>of");
     }
 
     @Test
@@ -232,9 +224,7 @@ class RedundantTypeArgumentsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("Stream.of(\"a\").count()")
-                .doesNotContain("<String>of");
+        assertThat(formatted).contains("Stream.of(\"a\").count()").doesNotContain("<String>of");
     }
 
     @Test

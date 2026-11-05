@@ -27,9 +27,7 @@ public final class MissingSwitchDefault implements WarningRule {
     }
 
     private static boolean hasDefault(final SwitchTree node) {
-        return node.getCases()
-                .stream()
-                .anyMatch(c -> c.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree));
+        return node.getCases().stream().anyMatch(c -> c.getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree));
     }
 
     /**
@@ -38,8 +36,7 @@ public final class MissingSwitchDefault implements WarningRule {
      */
     private static boolean allLabelsArePatterns(final SwitchTree node) {
         return !node.getCases().isEmpty()
-            && node.getCases()
-                    .stream()
+            && node.getCases().stream()
                     .allMatch(c -> !c.getLabels().isEmpty() && c.getLabels().stream().allMatch(PatternCaseLabelTree.class::isInstance));
     }
 }

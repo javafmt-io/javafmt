@@ -50,8 +50,7 @@ final class BinaryInstaller {
     Optional<Path> installed() {
         return switch (asset) {
             case ReleaseAsset.Published published ->
-                Optional.of(installDir.resolve(published.name()))
-                        .filter(path -> Files.isRegularFile(path) && Files.isExecutable(path));
+                Optional.of(installDir.resolve(published.name())).filter(path -> Files.isRegularFile(path) && Files.isExecutable(path));
             case ReleaseAsset.Unpublished _ -> Optional.empty();
         };
     }
@@ -60,9 +59,7 @@ final class BinaryInstaller {
         return switch (asset) {
             case ReleaseAsset.Unpublished unpublished -> new Installation.Failed(unpublished.reason());
             case ReleaseAsset.Published published ->
-                installed()
-                        .<Installation>map(Installation.Installed::new)
-                        .orElseGet(() -> download(published, indicator));
+                installed().<Installation>map(Installation.Installed::new).orElseGet(() -> download(published, indicator));
         };
     }
 

@@ -36,9 +36,7 @@ class JavafmtTest {
     @MethodSource("blankInputs")
     void formatOnBlankInputIsIdempotent(final String input, final String label) {
         final var first = Javafmt.format(input).stripTrailing();
-        assertThat(Javafmt.format(first).stripTrailing().stripTrailing())
-                .as("idempotent for %s", label)
-                .isEqualTo(first);
+        assertThat(Javafmt.format(first).stripTrailing().stripTrailing()).as("idempotent for %s", label).isEqualTo(first);
     }
 
     static Stream<Arguments> blankInputs() {
@@ -130,9 +128,7 @@ class JavafmtTest {
             final var crlf = "class A {\r\n    int x;\r\n}\r\n";
             final var lf = "class B {\n    int y;\n}\n";
             final var results = Javafmt.formatAll(java.util.List.of(crlf, lf), JavafmtConfig.defaults(), 2);
-            assertThat(results.getFirst().output())
-                    .isEqualTo(Javafmt.format(crlf))
-                    .contains("\r\n");
+            assertThat(results.getFirst().output()).isEqualTo(Javafmt.format(crlf)).contains("\r\n");
             assertThat(results.get(1).output()).isEqualTo(lf).doesNotContain("\r");
         }
 

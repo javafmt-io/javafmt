@@ -112,9 +112,7 @@ public final class JavafmtBinary {
      */
     public static boolean isSupportedVersion(final String versionOutput) {
         Objects.requireNonNull(versionOutput, "versionOutput");
-        return numericVersion(versionOutput)
-                .map(reported -> compare(reported, MINIMUM_VERSION) >= 0)
-                .orElse(false);
+        return numericVersion(versionOutput).map(reported -> compare(reported, MINIMUM_VERSION) >= 0).orElse(false);
     }
 
     /** The lowest javafmt version this plugin will drive, as its {@code --version} line reports it. */

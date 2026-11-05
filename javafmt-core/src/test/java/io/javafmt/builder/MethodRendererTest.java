@@ -234,8 +234,7 @@ class MethodRendererTest {
 
         @Test
         void withParams_rendersLikeMethod() {
-            assertThat(format("class Foo { Foo(int x) { this.x = x; } }"))
-                    .isEqualTo("class Foo {\n    Foo(int x) {\n        this.x = x;\n    }\n}");
+            assertThat(format("class Foo { Foo(int x) { this.x = x; } }")).isEqualTo("class Foo {\n    Foo(int x) {\n        this.x = x;\n    }\n}");
         }
 
         @Test
