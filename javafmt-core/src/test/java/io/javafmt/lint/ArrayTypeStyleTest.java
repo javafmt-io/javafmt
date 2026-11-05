@@ -2,6 +2,8 @@ package io.javafmt.lint;
 
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -144,5 +146,20 @@ class ArrayTypeStyleTest {
             }
             """);
         assertThat(new ArrayTypeStyle().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+            delimiter = '|',
+            value = {
+                    "byte sub[/* size */];|byte[] sub /* size */;",
+                    "byte sub[]/* inner */[];|byte[][] sub /* inner */;",
+                    "byte sub /* array */ [];|byte[] sub /* array */;",
+                    "byte sub /* sub */ [];|byte[] sub /* sub */;"
+            })
+    void aCommentAmongTheCStyleBracketsMovesAfterTheName(final String declaration, final String expected) {
+        final var unit = JavaParser.parseUnit("class Fixture {\n    " + declaration + "\n}\n");
+        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("    " + expected + "\n");
     }
 }

@@ -79,8 +79,11 @@ final class PrintEngine {
                 case Doc.Align(var contents) -> stack.push(new Frame(column, frame.mode(), contents));
                 case Doc.Choice(var preferred, var fallback, var fit) -> {
                     final var preferredFrame = new Frame(frame.indent(), frame.mode(), preferred);
-                    final var fits = frame.mode() == Mode.FLAT || fits(preferredFrame, column, lineWidth, stack, work, reachOf(fit));
-                    stack.push(fits ? preferredFrame : new Frame(frame.indent(), frame.mode(), fallback));
+                    final var fallbackFrame = new Frame(frame.indent(), frame.mode(), fallback);
+                    final var fits = frame.mode() == Mode.FLAT
+                        || fits(preferredFrame, column, lineWidth, stack, work, reachOf(fit))
+                        || (fit == Doc.Choice.Fit.FIRST_BREAK && !fits(fallbackFrame, column, lineWidth, stack, work, Reach.NEXT_LINE_FIRST_BREAK));
+                    stack.push(fits ? preferredFrame : fallbackFrame);
                 }
                 case Doc.Concat(var parts) -> {
                     for (var index = parts.size() - 1; index >= 0; index--) {
@@ -171,6 +174,7 @@ final class PrintEngine {
         return switch (fit) {
             case EVERY_LINE -> Reach.EVERY_LINE;
             case OPENING_LINE -> Reach.OPENING_LINE;
+            case FIRST_BREAK -> Reach.FIRST_BREAK;
         };
     }
 
@@ -181,6 +185,7 @@ final class PrintEngine {
                          final ArrayDeque<Frame> work,
                          final Reach reach) {
         var column = startColumn;
+        var effectiveReach = reach;
         work.clear();
         work.push(candidate);
         final var iterator = upcoming.iterator();
@@ -220,11 +225,14 @@ final class PrintEngine {
             }
             if (frame.doc() instanceof Doc.HardLine || frame.doc() instanceof Doc.LineStart) {
                 lineCommentEnded = false;
-                if (consumedCandidate || reach == Reach.OPENING_LINE) {
+                if (consumedCandidate || effectiveReach == Reach.OPENING_LINE || effectiveReach == Reach.FIRST_BREAK) {
                     return true;
                 }
-                if (reach == Reach.FIRST_LINE) {
+                if (effectiveReach == Reach.FIRST_LINE) {
                     return false;
+                }
+                if (effectiveReach == Reach.NEXT_LINE_FIRST_BREAK) {
+                    effectiveReach = Reach.FIRST_BREAK;
                 }
                 column = frame.indent();
                 continue;
@@ -237,7 +245,7 @@ final class PrintEngine {
                 }
                 case Doc.BlockComment(var lines, var _) -> {
                     column += lines.getFirst().length();
-                    if (reach == Reach.FIRST_LINE && column <= lineWidth) {
+                    if (effectiveReach == Reach.FIRST_LINE && column <= lineWidth) {
                         return consumedCandidate;
                     }
                 }
@@ -245,10 +253,10 @@ final class PrintEngine {
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
                 case Doc.HardLine _, Doc.LineStart _ -> {}
                 case Doc.Line _, Doc.SoftLine _ -> {
-                    if (consumedCandidate || reach == Reach.FIRST_LINE) {
+                    if (consumedCandidate || effectiveReach == Reach.FIRST_LINE || effectiveReach == Reach.FIRST_BREAK) {
                         return true;
                     }
-                    if (reach == Reach.OPENING_LINE) {
+                    if (effectiveReach == Reach.OPENING_LINE) {
                         return false;
                     }
                     column = frame.indent();
@@ -256,7 +264,11 @@ final class PrintEngine {
                 case Doc.Indent(var contents) -> work.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> work.push(new Frame(column, frame.mode(), contents));
                 case Doc.Group(var contents, var preferBreak) -> {
-                    if (preferBreak && !consumedCandidate && reach != Reach.EVERY_LINE) {
+                    if (effectiveReach == Reach.FIRST_BREAK && !consumedCandidate) {
+                        work.push(new Frame(frame.indent(), Mode.BREAK, contents));
+                        continue;
+                    }
+                    if (preferBreak && !consumedCandidate && effectiveReach != Reach.EVERY_LINE) {
                         return false;
                     }
                     work.push(new Frame(frame.indent(), Mode.FLAT, contents));
@@ -360,7 +372,7 @@ final class PrintEngine {
 
     private enum Mode { FLAT, BREAK }
 
-    private enum Reach { FIRST_LINE, OPENING_LINE, EVERY_LINE }
+    private enum Reach { FIRST_LINE, OPENING_LINE, EVERY_LINE, FIRST_BREAK, NEXT_LINE_FIRST_BREAK }
 
     private record Pending(Doc doc, boolean grouped) {}
 

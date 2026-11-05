@@ -60,7 +60,14 @@ final class BlockRenderer {
     }
 
     Stream<Doc> braceLineComments(final List<CommentToken> braceLine) {
-        return braceLine.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)));
+        final var beside = IntStream.range(0, braceLine.size())
+                .filter(i -> braceLine.get(i).text().startsWith("//"))
+                .findFirst()
+                .orElse(braceLine.size() - 1)
+                + 1;
+        return Stream.concat(
+                braceLine.subList(0, beside).stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
+                braceLine.subList(beside, braceLine.size()).stream().map(c -> Doc.indentedLine(CommentDocs.renderComment(c))));
     }
 
     private List<CommentToken> braceLineOf(final StatementTree body, final Recursor recursor) {
@@ -84,6 +91,12 @@ final class BlockRenderer {
     Doc stripTrailingSemicolonDoc(final Doc doc) {
         if (doc instanceof Doc.Text(var value) && value.endsWith(";")) {
             return new Doc.Text(value.substring(0, value.length() - 1));
+        }
+        if (doc instanceof Doc.Choice(var preferred, var fallback, var fit)) {
+            return new Doc.Choice(stripTrailingSemicolonDoc(preferred), stripTrailingSemicolonDoc(fallback), fit);
+        }
+        if (doc instanceof Doc.Indent(var contents)) {
+            return new Doc.Indent(stripTrailingSemicolonDoc(contents));
         }
         if (doc instanceof Doc.Concat(var parts) && !parts.isEmpty()) {
             final var last = parts.getLast();

@@ -169,12 +169,13 @@ public final class BenchmarkCorpus {
         }
         """;
 
-    public static final String DEEP_NESTING = "package demo;\n\nimport java.util.List;\n\nclass DeepNesting {\n\n    Object nested(final List<Object> list) {\n"
+    public static final String DEEP_NESTING =
+            "package demo;\n\nimport java.util.List;\n\nclass DeepNesting {\n\n    Object nested(final List<Object> list) {\n"
             + "        return "
-            + "list.stream().map(q -> ".repeat(150)
-            + "q"
-            + ").toList()".repeat(150)
-            + ";\n    }\n}\n";
+                    + "list.stream().map(q -> ".repeat(150)
+                    + "q"
+                    + ").toList()".repeat(150)
+                    + ";\n    }\n}\n";
 
     public static final String DEEP_TWO_LINK_NESTING = "package demo;\n\nimport java.util.List;\n\nclass DeepTwoLinkNesting {\n\n"
             + "    Object nested(final List<Object> list) {\n        return "

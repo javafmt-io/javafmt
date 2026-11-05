@@ -575,7 +575,8 @@ class CliTest {
         }
     }
 
-    private static final String EQUALS_WITHOUT_HASHCODE = "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
+    private static final String EQUALS_WITHOUT_HASHCODE =
+            "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
 
     @Test
     void aFileArgumentReportsTheWarningsStdinModeReports(@TempDir final Path dir) throws Exception {

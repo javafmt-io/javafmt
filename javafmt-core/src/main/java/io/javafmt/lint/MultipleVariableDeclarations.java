@@ -82,6 +82,14 @@ public final class MultipleVariableDeclarations implements LintRule {
         }
     }
 
+    private static String withoutComments(final String text) {
+        final var comments = CommentScanner.scan(text);
+        final var kept = IntStream.rangeClosed(0, comments.size())
+                .mapToObj(i -> text.substring(i == 0 ? 0 : comments.get(i - 1).end(), i == comments.size() ? text.length() : comments.get(i).start()))
+                .toList();
+        return String.join(" ", kept);
+    }
+
     private static List<LintEdit> buildEdits(final List<VariableTree> group, final ParsedUnit unit) {
         final var first = group.getFirst();
         final var last = group.getLast();
@@ -104,12 +112,7 @@ public final class MultipleVariableDeclarations implements LintRule {
         if (baseDims < 0) {
             return List.of();
         }
-        final var sharedModifiersAndElementType = src.substring(groupStart, elementTypeEnd) + "[]".repeat(baseDims);
-        if (!CommentScanner.scan(sharedModifiersAndElementType).isEmpty()) {
-            // The prefix is written once per declaration, so a comment inside it would be copied
-            // along with it and the file would come back with the comment several times over.
-            return List.of();
-        }
+        final var sharedModifiersAndElementType = withoutComments(src.substring(groupStart, elementTypeEnd)) + "[]".repeat(baseDims);
         final var separators = separatorCommas(group, unit, src, groupStart, spanEnd);
         if (separators.size() != group.size() - 1) {
             // The declarators and the commas disagree, so something in this span is not what it

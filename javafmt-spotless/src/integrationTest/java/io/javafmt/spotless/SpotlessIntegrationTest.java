@@ -35,14 +35,16 @@ class SpotlessIntegrationTest {
     /** Formats cleanly but trips the warning-only {@code AvoidStarImport} rule. */
     private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n    List<String> xs;\n}\n";
 
-    private static final String TYPE_WITNESS_SOURCE = "import java.util.stream.Stream;\n\nclass Witness {\n    Stream<String> names = Stream.<String>of(\"a\");\n}\n";
+    private static final String TYPE_WITNESS_SOURCE =
+            "import java.util.stream.Stream;\n\nclass Witness {\n    Stream<String> names = Stream.<String>of(\"a\");\n}\n";
 
     private static final String DEFAULT_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(projectDir)";
 
     private static final String CLASSPATH_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(io.javafmt.JavafmtConfig.defaults(), sourceSets.main.compileClasspath.asPath, projectDir)";
 
     /** Takes its version from a project property, so a run can pretend javafmt was upgraded. */
-    private static final String PINNED_STEP = "io.javafmt.spotless.VersionPinnedSteps.create(project.findProperty('javafmtVersion') ?: '1.0.0', projectDir)";
+    private static final String PINNED_STEP =
+            "io.javafmt.spotless.VersionPinnedSteps.create(project.findProperty('javafmtVersion') ?: '1.0.0', projectDir)";
 
     @Test
     void spotlessApplyFormatsJavaSourcesWithJavafmt(@TempDir final Path dir) throws IOException {

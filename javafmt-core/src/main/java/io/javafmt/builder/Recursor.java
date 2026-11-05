@@ -17,6 +17,8 @@ interface Recursor extends LeadingCommentAttacher {
 
     Doc scanBeforeComments(Tree node, UnaryOperator<Doc> adjust);
 
+    Doc scanLeavingTrailing(Tree node, UnaryOperator<Doc> adjust);
+
     @Nullable
     Doc scanNullable(Tree node);
 

@@ -43,6 +43,8 @@ final class LooseComments {
         return counts;
     }
 
+    private static final String OPENERS = "<([";
+
     private record Insertion(int significantBefore, CommentToken comment, boolean ownLine) {}
 
     private static final class Weaver {
@@ -52,18 +54,23 @@ final class LooseComments {
 
         private int count;
 
+        private boolean spaceBeforeCode;
+
         Weaver(final List<Insertion> insertions) {
             this.insertions = insertions;
         }
 
         Doc transform(final Doc doc) {
-            if (next >= insertions.size()) {
+            if (next >= insertions.size() && !spaceBeforeCode) {
                 return doc;
             }
             return switch (doc) {
                 case Doc.Text(var text) -> text(doc, text);
                 case Doc.Verbatim(var text, var _) -> atom(doc, significantBefore(text)[text.length()]);
-                case Doc.BlockComment _, Doc.Line _, Doc.SoftLine _, Doc.HardLine _, Doc.LineStart _ -> doc;
+                case Doc.BlockComment _, Doc.Line _, Doc.SoftLine _, Doc.HardLine _, Doc.LineStart _ -> {
+                    spaceBeforeCode = false;
+                    yield doc;
+                }
                 case Doc.Indent(var inner) -> new Doc.Indent(transform(inner));
                 case Doc.Align(var inner) -> new Doc.Align(transform(inner));
                 case Doc.Group(var inner, var preferBreak) -> new Doc.Group(transform(inner), preferBreak);
@@ -83,14 +90,18 @@ final class LooseComments {
         private List<Doc> branches(final Doc first, final Doc second) {
             final var startNext = next;
             final var startCount = count;
+            final var startSpace = spaceBeforeCode;
             final var firstWoven = transform(first);
             final var endNext = next;
             final var endCount = count;
+            final var endSpace = spaceBeforeCode;
             next = startNext;
             count = startCount;
+            spaceBeforeCode = startSpace;
             final var secondWoven = transform(second);
             next = endNext;
             count = endCount;
+            spaceBeforeCode = endSpace;
             return List.of(firstWoven, secondWoven);
         }
 
@@ -98,15 +109,19 @@ final class LooseComments {
             final var parts = new ArrayList<Doc>(ownLineCommentsDue());
             parts.add(doc);
             count += significant;
-            parts.addAll(sameLineCommentsDue(true));
+            spaceBeforeCode = false;
+            parts.addAll(sameLineCommentsDue(true, true));
             return parts.size() == 1 ? doc : new Doc.Concat(parts);
         }
 
-        private Doc text(final Doc doc, final String text) {
-            final var stripped = text.stripLeading();
+        private Doc text(final Doc doc, final String original) {
+            final var stripped = original.stripLeading();
             if (stripped.startsWith("//") || stripped.startsWith("/*")) {
+                spaceBeforeCode = false;
                 return doc;
             }
+            final var text = spaceBeforeCode && !original.isEmpty() && startsCode(original.charAt(0)) ? " " + original : original;
+            spaceBeforeCode = spaceBeforeCode && original.isEmpty();
             final var parts = new ArrayList<Doc>();
             final var inComment = insideComments(text);
             var from = 0;
@@ -121,16 +136,18 @@ final class LooseComments {
                     from = i;
                 }
                 count++;
-                final var codeFollows = i + 1 < text.length() && !Character.isWhitespace(text.charAt(i + 1));
-                final var sameLine = sameLineCommentsDue(!codeFollows);
+                final var atEnd = i + 1 == text.length();
+                final var codeFollows = !atEnd && !Character.isWhitespace(text.charAt(i + 1));
+                final var sameLine = sameLineCommentsDue(!codeFollows, OPENERS.indexOf(text.charAt(i)) < 0);
                 if (!sameLine.isEmpty()) {
                     parts.add(new Doc.Text(text.substring(from, i + 1)));
                     parts.addAll(sameLine);
                     from = i + 1;
+                    spaceBeforeCode = atEnd && !insertions.get(next - 1).comment().text().startsWith("//");
                 }
             }
             if (parts.isEmpty()) {
-                return doc;
+                return text.equals(original) ? doc : new Doc.Text(text);
             }
             parts.add(new Doc.Text(text.substring(from)));
             return new Doc.Concat(parts);
@@ -147,11 +164,17 @@ final class LooseComments {
             return parts;
         }
 
-        private List<Doc> sameLineCommentsDue(final boolean spaceFollows) {
+        private boolean startsCode(final char character) {
+            return Character.isJavaIdentifierPart(character) || character == '@' || character == '"' || character == '\'';
+        }
+
+        private List<Doc> sameLineCommentsDue(final boolean spaceFollows, final boolean spaceBefore) {
             final var parts = new ArrayList<Doc>();
             while (next < insertions.size() && !insertions.get(next).ownLine() && insertions.get(next).significantBefore() == count) {
                 final var comment = insertions.get(next).comment();
-                parts.add(new Doc.Text(" "));
+                if (spaceBefore || !parts.isEmpty() || comment.text().startsWith("//")) {
+                    parts.add(new Doc.Text(" "));
+                }
                 parts.add(CommentDocs.renderComment(comment));
                 if (!spaceFollows && !comment.text().startsWith("//")) {
                     parts.add(new Doc.Text(" "));
