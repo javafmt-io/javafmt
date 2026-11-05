@@ -5,6 +5,8 @@ import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -41,6 +43,28 @@ class RedundantTypeArgumentsAnalyzeTest {
         assertThat(formatted)
                 .contains("Stream.of(1, 2, 3);")
                 .doesNotContain("<Integer>of");
+    }
+
+    @Test
+    void aWitnessNamingATypeFromAnotherFileOfTheBatchIsDropped() {
+        final var query = """
+                package p;
+
+                import java.util.List;
+
+                class Query {
+                    List<Declared> all() {
+                        return List.<Declared>of(new Declared("a"));
+                    }
+                }
+                """;
+        final var declared = """
+                package p;
+
+                record Declared(String text) {}
+                """;
+        final var results = Javafmt.formatAll(List.of(query, declared), ANALYZE, 1);
+        assertThat(results.getFirst().output()).contains("return List.of(new Declared(\"a\"));");
     }
 
     @Test

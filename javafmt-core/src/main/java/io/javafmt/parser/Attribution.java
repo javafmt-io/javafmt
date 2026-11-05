@@ -23,13 +23,19 @@ import javax.lang.model.util.Types;
  * <p>{@code errors} holds every error javac reported while attributing, keyed by the URI of the
  * source it came from.
  */
-public record Attribution(Trees trees, Types types, Elements elements, AttributionSession session, Map<URI, List<AttributionError>> errors) {
+public record Attribution(Trees trees,
+                          Types types,
+                          Elements elements,
+                          AttributionSession session,
+                          Map<URI, List<AttributionError>> errors,
+                          List<String> batch) {
     public Attribution {
         Objects.requireNonNull(trees, "trees");
         Objects.requireNonNull(types, "types");
         Objects.requireNonNull(elements, "elements");
         Objects.requireNonNull(session, "session");
         errors = Map.copyOf(Objects.requireNonNull(errors, "errors"));
+        batch = List.copyOf(Objects.requireNonNull(batch, "batch"));
     }
 
     public List<AttributionError> errorsIn(final CompilationUnitTree unit) {

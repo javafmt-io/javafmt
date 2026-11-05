@@ -68,7 +68,7 @@ import javax.lang.model.type.TypeMirror;
  * candidate. An annotated local keeps its type too, since a type-use annotation cannot sit on
  * {@code var}.
  */
-public final class LocalVarUseVar implements LintRule {
+public final class LocalVarUseVar implements RewriteVerifyingRule {
     private static final Map<String, Integer> DIAMOND_TARGET_ARITY = Map.ofEntries(
             Map.entry("Iterable", 1), Map.entry("Collection", 1), Map.entry("SequencedCollection", 1), Map.entry("List", 1), Map.entry("Set", 1),
             Map.entry("SequencedSet", 1), Map.entry("SortedSet", 1), Map.entry("NavigableSet", 1), Map.entry("Queue", 1), Map.entry("Deque", 1),
@@ -87,9 +87,32 @@ public final class LocalVarUseVar implements LintRule {
 
     @Override
     public LintResult apply(final LintContext context) {
-        final var unit = context.unit();
+        final var proposals = proposalsIn(context);
+        final var proven = proposals.stream().filter(Proposal::proven).toList();
+        final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
+        final var verified = unproven.isEmpty()
+                ? List.<Proposal>of()
+                : context.attributionFor(LocalVarUseVar.class)
+                        .map(attribution -> VarRetypingCheck.verified(context, attribution, proven, unproven))
+                        .orElse(List.of());
+        return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream()).flatMap(proposal -> proposal.edits().stream()).toList());
+    }
+
+    @Override
+    public Optional<String> rewriteToVerify(final LintContext context) {
+        if (context.attributionFor(LocalVarUseVar.class).isEmpty()) {
+            return Optional.empty();
+        }
+        final var proposals = proposalsIn(context);
+        final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
+        return unproven.isEmpty()
+                ? Optional.empty()
+                : Optional.of(VarRetypingCheck.rewrittenSource(context.unit(), proposals.stream().filter(Proposal::proven).toList(), unproven));
+    }
+
+    private static List<Proposal> proposalsIn(final LintContext context) {
         final var reassignments = new ReassignmentDetector();
-        final var proposals = LintScan.<Proposal>collect(
+        return LintScan.collect(
                 context,
                 sink -> new ChainPathScanner<>() {
                     @Override
@@ -98,14 +121,6 @@ public final class LocalVarUseVar implements LintRule {
                         return super.visitVariable(node, null);
                     }
                 });
-        final var proven = proposals.stream().filter(Proposal::proven).toList();
-        final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
-        final var verified = unproven.isEmpty()
-                ? List.<Proposal>of()
-                : context.attributionFor(LocalVarUseVar.class)
-                        .map(attribution -> VarRetypingCheck.verified(unit, attribution, proven, unproven))
-                        .orElse(List.of());
-        return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream()).flatMap(proposal -> proposal.edits().stream()).toList());
     }
 
     @Override

@@ -9,11 +9,16 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,6 +48,21 @@ class JavafmtPluginFunctionalTest {
         assertThat(outcome(result, ":javafmtFormatTest")).isEqualTo(TaskOutcome.SUCCESS);
         assertThat(build.read(FOO)).isEqualTo(Fixtures.FORMATTED_FOO);
         assertThat(build.read(FOO_TEST)).isEqualTo(Fixtures.FORMATTED_A.replace("class A", "class FooTest"));
+    }
+
+    @Test
+    void siblingProjectsThatLoadThePluginInSeparateClassloadersBothFormat(@TempDir final Path dir) {
+        final var build = new TestBuild(dir);
+        build.gradleProperties(List.of());
+        build.write("settings.gradle", "rootProject.name = 'demo'\ninclude 'one', 'two'\n");
+        build.write("extra/.keep", "");
+        build.write("one/build.gradle", appliedFromItsOwnClasspath(List.of()));
+        build.write("two/build.gradle", appliedFromItsOwnClasspath(List.of(dir.resolve("extra").toString())));
+        build.write("one/" + FOO, Fixtures.UNFORMATTED_FOO);
+        build.write("two/" + FOO, Fixtures.UNFORMATTED_FOO);
+        build.run("javafmtFormat");
+        assertThat(build.read("one/" + FOO)).isEqualTo(Fixtures.FORMATTED_FOO);
+        assertThat(build.read("two/" + FOO)).isEqualTo(Fixtures.FORMATTED_FOO);
     }
 
     @Test
@@ -407,5 +427,23 @@ class JavafmtPluginFunctionalTest {
 
     private static TaskOutcome outcome(final BuildResult result, final String path) {
         return Objects.requireNonNull(result.task(path), path).getOutcome();
+    }
+
+    private static String appliedFromItsOwnClasspath(final List<String> extra) {
+        final var classpath = Stream.concat(pluginClasspath().stream(), extra.stream())
+                .map(path -> "'" + path.replace('\\', '/') + "'")
+                .collect(Collectors.joining(", "));
+        return "buildscript {\n    dependencies {\n        classpath files(" + classpath
+                + ")\n    }\n}\n\napply plugin: 'java'\napply plugin: 'io.javafmt'\n";
+    }
+
+    private static List<String> pluginClasspath() {
+        final var properties = new Properties();
+        try (final var metadata = JavafmtPluginFunctionalTest.class.getClassLoader().getResourceAsStream("plugin-under-test-metadata.properties")) {
+            properties.load(Objects.requireNonNull(metadata, "plugin-under-test-metadata.properties"));
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return List.of(properties.getProperty("implementation-classpath").split(File.pathSeparator));
     }
 }

@@ -2,6 +2,8 @@ package io.javafmt.lint;
 
 import io.javafmt.Diagnostic;
 import io.javafmt.Position;
+import io.javafmt.parser.AttributedUnit;
+import io.javafmt.parser.Attribution;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParseException;
 import io.javafmt.parser.ParsedUnit;
@@ -9,8 +11,11 @@ import io.javafmt.parser.Staged;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -77,7 +82,7 @@ public final class LintEngine {
      */
     public List<Staged<Outcome>> lintAll(final List<LintContext> contexts) {
         Objects.requireNonNull(contexts, "contexts");
-        final var states = contexts.stream().map(FileState::new).toList();
+        final var states = withAttributedRewrites(contexts).stream().map(FileState::new).toList();
         for (var round = 0; round < MAX_ITERATIONS; round++) {
             final var active = states.stream().filter(FileState::isActive).toList();
             if (active.isEmpty()) {
@@ -90,6 +95,53 @@ public final class LintEngine {
         states.stream().filter(FileState::isActive).forEach(FileState::truncate);
         reparseConvergedAttributedFiles(states);
         return states.stream().map(FileState::result).toList();
+    }
+
+    private List<LintContext> withAttributedRewrites(final List<LintContext> contexts) {
+        final var rewrites = rules.stream()
+                .filter(RewriteVerifyingRule.class::isInstance)
+                .map(RewriteVerifyingRule.class::cast)
+                .flatMap(rule -> attributedRewrites(rule, contexts))
+                .collect(
+                        Collectors.groupingBy(
+                                AttributedRewrite::index, Collectors.toMap(AttributedRewrite::source, AttributedRewrite::unit, (first, _) -> first)));
+        return IntStream.range(0, contexts.size())
+                .mapToObj(i -> contexts.get(i).withAttributedRewrites(rewrites.getOrDefault(i, Map.of())))
+                .toList();
+    }
+
+    private static Stream<AttributedRewrite> attributedRewrites(final RewriteVerifyingRule rule, final List<LintContext> contexts) {
+        final var wanted = IntStream.range(0, contexts.size())
+                .boxed()
+                .flatMap(i -> rule.rewriteToVerify(contexts.get(i).forRule(rule)).map(source -> new Rewrite(i, source)).stream())
+                .collect(
+                        Collectors.groupingBy(
+                                rewrite -> contexts.get(rewrite.index()).attribution().orElseThrow(), IdentityHashMap::new, Collectors.toList()));
+        return wanted.entrySet().stream().flatMap(batch -> attributedTogether(batch.getKey(), batch.getValue(), contexts));
+    }
+
+    private static Stream<AttributedRewrite> attributedTogether(final Attribution attribution,
+                                                                final List<Rewrite> rewrites,
+                                                                final List<LintContext> contexts) {
+        final var batch = attribution.batch();
+        final var replacements = rewrites.stream()
+                .collect(Collectors.toMap(rewrite -> contexts.get(rewrite.index()).unit().source(), Rewrite::source, (first, _) -> first));
+        final List<Staged<AttributedUnit>> attributed;
+        try {
+            attributed = attribution.session().attribute(batch.stream().map(source -> replacements.getOrDefault(source, source)).toList());
+        } catch (final RuntimeException e) {
+            if (attribution.session().hasEnded()) {
+                throw e;
+            }
+            return Stream.empty();
+        }
+        return rewrites.stream()
+                .flatMap(rewrite -> {
+                    final var position = batch.indexOf(contexts.get(rewrite.index()).unit().source());
+                    return position >= 0 && attributed.get(position) instanceof Staged.Ok<AttributedUnit>(var unit)
+                            ? Stream.of(new AttributedRewrite(rewrite.index(), rewrite.source(), unit))
+                            : Stream.empty();
+                });
     }
 
     /**
@@ -220,6 +272,10 @@ public final class LintEngine {
             throw new IllegalStateException("edit end " + edit.end() + " exceeds source length " + source.length());
         }
     }
+
+    private record Rewrite(int index, String source) {}
+
+    private record AttributedRewrite(int index, String source, AttributedUnit unit) {}
 
     /** One file's progress through the rounds. Mutable by nature: it is a loop variable per file. */
     private static final class FileState {

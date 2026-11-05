@@ -5,6 +5,8 @@ import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
+import org.gradle.api.services.BuildService;
+import org.gradle.api.services.BuildServiceParameters;
 import org.gradle.api.tasks.CompileClasspath;
 import org.gradle.api.tasks.IgnoreEmptyDirectories;
 import org.gradle.api.tasks.Input;
@@ -60,7 +62,7 @@ public abstract class JavafmtTask extends DefaultTask {
     public abstract ListProperty<String> getJvmArgs();
 
     @Internal
-    public abstract Property<JavafmtWorkerSlot> getWorkerSlot();
+    public abstract Property<BuildService<BuildServiceParameters.None>> getWorkerSlot();
 
     @Internal
     public abstract DirectoryProperty getEngineDirectory();

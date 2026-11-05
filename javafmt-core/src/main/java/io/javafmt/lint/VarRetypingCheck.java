@@ -13,7 +13,6 @@ import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.Attribution;
 import io.javafmt.parser.AttributionError;
 import io.javafmt.parser.ChainPathScanner;
-import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
@@ -47,22 +46,31 @@ import javax.lang.model.util.ElementFilter;
 class VarRetypingCheck {
     private final Pattern CAPTURE_NUMBER = Pattern.compile("capture#\\d+");
 
-    List<LocalVarUseVar.Proposal> verified(final ParsedUnit unit,
+    List<LocalVarUseVar.Proposal> verified(final LintContext context,
                                            final Attribution attribution,
                                            final List<LocalVarUseVar.Proposal> proven,
                                            final List<LocalVarUseVar.Proposal> unproven) {
-        final var accepted = accepted(unit, attribution, proven, unproven);
+        final var accepted = accepted(context, attribution, proven, unproven);
         return unproven.stream().filter(proposal -> proposal.keepsItsTypeWithoutTarget() || accepted.contains(proposal)).toList();
     }
 
-    private List<LocalVarUseVar.Proposal> accepted(final ParsedUnit unit,
+    String rewrittenSource(final ParsedUnit unit, final List<LocalVarUseVar.Proposal> proven, final List<LocalVarUseVar.Proposal> unproven) {
+        return LintEngine.applyEdits(unit.source(), editsOf(proven, unproven));
+    }
+
+    private List<LintEdit> editsOf(final List<LocalVarUseVar.Proposal> proven, final List<LocalVarUseVar.Proposal> unproven) {
+        return Stream.concat(proven.stream(), unproven.stream()).flatMap(proposal -> proposal.edits().stream()).toList();
+    }
+
+    private List<LocalVarUseVar.Proposal> accepted(final LintContext context,
                                                    final Attribution attribution,
                                                    final List<LocalVarUseVar.Proposal> proven,
                                                    final List<LocalVarUseVar.Proposal> unproven) {
-        final var edits = Stream.concat(proven.stream(), unproven.stream()).flatMap(proposal -> proposal.edits().stream()).toList();
+        final var unit = context.unit();
+        final var edits = editsOf(proven, unproven);
         final AttributedUnit rewritten;
         try {
-            rewritten = JavaParser.reattribute(LintEngine.applyEdits(unit.source(), edits), attribution);
+            rewritten = context.reattributed(rewrittenSource(unit, proven, unproven), attribution);
         } catch (final RuntimeException e) {
             if (attribution.session().hasEnded()) {
                 throw e;

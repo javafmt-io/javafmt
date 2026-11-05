@@ -62,6 +62,14 @@ class JavaParserTest {
     }
 
     @Test
+    void everyAttributionOfABatchCarriesTheSourcesOfTheWholeBatch() {
+        final var sources = List.of("package p;\n\nclass A {}\n", "package p;\n\nclass B {}\n");
+        final var batches = JavaParser.attributing(
+                "", session -> session.attribute(sources).stream().map(attributed -> attributed.orElseThrow().attribution().batch()).toList());
+        assertThat(batches).containsOnly(sources);
+    }
+
+    @Test
     void concurrentSessionsOnOneClasspathNeverShareAFileManager() throws InterruptedException {
         final var held = new CountDownLatch(1);
         final var release = new CountDownLatch(1);
