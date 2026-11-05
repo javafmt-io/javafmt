@@ -88,9 +88,7 @@ final class ClassLikeRenderer {
      */
     Doc renderImplicit(final ClassTree node, final Recursor recursor) {
         final var className = node.getSimpleName().toString();
-        final var members = bodyMembers(node)
-                .flatMap(m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor)).stream())
-                .toList();
+        final var members = bodyMembers(node).flatMap(m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor)).stream()).toList();
         if (members.isEmpty()) {
             return new Doc.Text("");
         }
@@ -98,8 +96,7 @@ final class ClassLikeRenderer {
     }
 
     private Stream<? extends Tree> bodyMembers(final ClassTree node) {
-        return node.getMembers()
-                .stream()
+        return node.getMembers().stream()
                 .filter(m -> m instanceof VariableTree || m instanceof MethodTree || m instanceof ClassTree || m instanceof BlockTree);
     }
 }

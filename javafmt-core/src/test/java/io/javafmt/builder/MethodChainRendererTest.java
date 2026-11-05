@@ -3,6 +3,8 @@ package io.javafmt.builder;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -157,9 +159,7 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void authorBrokeChain_isPreservedEvenWhenItWouldFit() {
-        // Author placed each `.` on its own line; output keeps the same shape even though
-        // the chain would fit on a single line.
+    void authorBrokeChain_joinsWhenItFits() {
         final var input = """
             class Foo {
                 void test() {
@@ -172,8 +172,44 @@ class MethodChainRendererTest {
                 .isEqualTo("""
                            class Foo {
                                void test() {
-                                   result.stream()
-                                           .filter(x -> x.ok())
+                                   result.stream().filter(x -> x.ok()).toList();
+                               }
+                           }""".stripIndent());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"stream", "parallelStream"})
+    void brokenChain_keepsEverythingUpToItsStreamOnTheFirstLine(final String stream) {
+        final var input = "class Foo { void test() { final var productIds = countCompare.discrepantProducts()." + stream + "()"
+            + ".map(Audit.CountCompare.DiscrepantProduct::id).filter(Objects::nonNull).sorted(Comparator.naturalOrder()).toList(); } }";
+        assertThat(format(input))
+                .isEqualTo(
+                        """
+                        class Foo {
+                            void test() {
+                                final var productIds = countCompare.discrepantProducts().%s()
+                                        .map(Audit.CountCompare.DiscrepantProduct::id)
+                                        .filter(Objects::nonNull)
+                                        .sorted(Comparator.naturalOrder())
+                                        .toList();
+                            }
+                        }""".stripIndent()
+                                .formatted(stream));
+    }
+
+    @Test
+    void brokenChain_breaksBeforeEveryDotWhenItsStreamDoesNotFitOnTheFirstLine() {
+        final var input =
+                "class Foo { Object test() { return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, "
+                + "parsed.jsonDiagnostics(), verbose), pool)).toList().stream().map(CompletableFuture::join).toList(); } }";
+        assertThat(format(input))
+                .isEqualTo("""
+                           class Foo {
+                               Object test() {
+                                   return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics(), verbose), pool))
+                                           .toList()
+                                           .stream()
+                                           .map(CompletableFuture::join)
                                            .toList();
                                }
                            }""".stripIndent());

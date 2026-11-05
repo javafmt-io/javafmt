@@ -131,8 +131,7 @@ final class IfRenderer {
      * its own — inverts its meaning.
      */
     private Stream<Doc> elseJointParts(final IfTree node, final Recursor recursor) {
-        return recursor.tail(node)
-                .stream()
+        return recursor.tail(node).stream()
                 .flatMap(c -> Stream.of(CommentDocs.renderComment(c), c.text().startsWith("//") ? Doc.HARD_LINE : new Doc.Text(" ")));
     }
 }

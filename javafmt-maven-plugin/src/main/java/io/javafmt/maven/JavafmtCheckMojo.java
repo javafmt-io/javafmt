@@ -26,9 +26,7 @@ public final class JavafmtCheckMojo extends AbstractJavafmtMojo {
 
     @Override
     void handle(final List<FileResult.Formatted> formatted, final FormatCache formatCache) throws MojoExecutionException {
-        final var unformatted = formatted.stream()
-                .flatMap(file -> checkResult(file, formatCache).stream())
-                .toList();
+        final var unformatted = formatted.stream().flatMap(file -> checkResult(file, formatCache).stream()).toList();
         if (!unformatted.isEmpty()) {
             final var fileList = unformatted.stream().map(file -> "  " + file).collect(Collectors.joining("\n"));
             throw new MojoExecutionException("javafmt check failed: " + unformatted.size() + " file(s) not formatted:\n" + fileList);

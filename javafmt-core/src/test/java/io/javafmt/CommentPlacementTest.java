@@ -121,8 +121,7 @@ class CommentPlacementTest {
         }
 
         static boolean allows(final Probe probe, final String next, final int moved) {
-            return moved == 1
-                && Arrays.stream(values()).anyMatch(move -> move.token.equals(next) && (probe == Probe.LINE || !move.lineCommentsOnly));
+            return moved == 1 && Arrays.stream(values()).anyMatch(move -> move.token.equals(next) && (probe == Probe.LINE || !move.lineCommentsOnly));
         }
     }
 }

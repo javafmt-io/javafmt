@@ -81,9 +81,7 @@ public final class MemberOrder implements LintRule {
                 .map(m -> "\n\n" + indent + unit.source().substring(span(unit, m, bodyStart).start(), span(unit, m, bodyStart).end()))
                 .reduce("", String::concat);
         return Stream.concat(
-                movers.stream()
-                        .map(m -> span(unit, m, bodyStart))
-                        .map(s -> new LintEdit(s.start(), s.end(), "")),
+                movers.stream().map(m -> span(unit, m, bodyStart)).map(s -> new LintEdit(s.start(), s.end(), "")),
                 Stream.of(LintEdit.insert(insertAt, appended)))
                 .toList();
     }
@@ -95,11 +93,7 @@ public final class MemberOrder implements LintRule {
      * author wrote them in.
      */
     private static List<Tree> membersToMove(final ClassTree node, final List<? extends Tree> members) {
-        final var nestedTypes = members.stream()
-                .filter(ClassTree.class::isInstance)
-                .filter(m -> !isJunitNestedClass(m))
-                .<Tree>map(m -> m)
-                .toList();
+        final var nestedTypes = members.stream().filter(ClassTree.class::isInstance).filter(m -> !isJunitNestedClass(m)).<Tree>map(m -> m).toList();
         final var constructor = utilityConstructor(node, members);
         return constructor.isEmpty() ? nestedTypes : Stream.concat(nestedTypes.stream(), constructor.stream()).toList();
     }
@@ -116,10 +110,7 @@ public final class MemberOrder implements LintRule {
         if (members.stream().anyMatch(m -> isInstanceField(m) || isJunitNestedClass(m))) {
             return List.of();
         }
-        final var constructors = members.stream()
-                .filter(MemberOrder::isConstructor)
-                .map(MethodTree.class::cast)
-                .toList();
+        final var constructors = members.stream().filter(MemberOrder::isConstructor).map(MethodTree.class::cast).toList();
         if (constructors.size() != 1) {
             return List.of();
         }
@@ -130,9 +121,7 @@ public final class MemberOrder implements LintRule {
 
     private static boolean isJunitNestedClass(final Tree member) {
         return member instanceof ClassTree type
-            && type.getModifiers()
-                    .getAnnotations()
-                    .stream()
+            && type.getModifiers().getAnnotations().stream()
                     .map(a -> a.getAnnotationType().toString())
                     .anyMatch(name -> name.equals("Nested") || name.equals("org.junit.jupiter.api.Nested"));
     }
@@ -151,17 +140,12 @@ public final class MemberOrder implements LintRule {
      * before {@code bodyStart} sits in the enclosing declaration's header and stays there.
      */
     private static Span span(final ParsedUnit unit, final Tree member, final int bodyStart) {
-        final var leading = unit.leadingOf(member)
-                .stream()
+        final var leading = unit.leadingOf(member).stream()
                 .mapToInt(c -> c.start())
                 .filter(start -> start >= bodyStart)
                 .min()
                 .orElse(unit.startOf(member));
-        final var trailing = unit.trailingOf(member)
-                .stream()
-                .mapToInt(c -> c.end())
-                .max()
-                .orElse(unit.endOf(member));
+        final var trailing = unit.trailingOf(member).stream().mapToInt(c -> c.end()).max().orElse(unit.endOf(member));
         return new Span(Math.min(leading, unit.startOf(member)), Math.max(trailing, unit.endOf(member)));
     }
 

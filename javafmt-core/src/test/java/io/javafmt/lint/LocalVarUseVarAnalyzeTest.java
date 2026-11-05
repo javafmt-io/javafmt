@@ -55,9 +55,7 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("var xs = Stream.of(\"a\", \"b\").toList();")
-                .doesNotContain("List<String> xs");
+        assertThat(formatted).contains("var xs = Stream.of(\"a\", \"b\").toList();").doesNotContain("List<String> xs");
     }
 
     @Test
@@ -163,9 +161,7 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("Supplier<String> s = () -> \"x\";")
-                .doesNotContain("var s");
+        assertThat(formatted).contains("Supplier<String> s = () -> \"x\";").doesNotContain("var s");
     }
 
     @Test
@@ -185,9 +181,7 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted)
-                .contains("Supplier<String> s = Fixture::make;")
-                .doesNotContain("var s");
+        assertThat(formatted).contains("Supplier<String> s = Fixture::make;").doesNotContain("var s");
     }
 
     @Test

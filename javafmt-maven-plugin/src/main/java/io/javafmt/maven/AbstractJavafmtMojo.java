@@ -120,9 +120,7 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
     }
 
     private List<FileResult.Formatted> logErrorsAndKeepCleanFiles(final List<FileResult> results) {
-        final var formatted = results.stream()
-                .flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty())
-                .toList();
+        final var formatted = results.stream().flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty()).toList();
         formatted.forEach(f -> f.result().errors().forEach(d -> getLog().warn("javafmt: " + d.describe(f.path().toString()))));
         return formatted.stream().filter(f -> !f.result().hasErrors()).toList();
     }

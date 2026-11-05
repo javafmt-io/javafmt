@@ -68,9 +68,7 @@ class FormatResultTest {
         // The counterpart to the test below: a ParseError must keep meaning "the input is at
         // fault", so that an InternalError unambiguously means "javafmt is at fault".
         final var result = Javafmt.formatWithResult("class Fixture { void m( }");
-        assertThat(result.diagnostics())
-                .isNotEmpty()
-                .allMatch(d -> d instanceof Diagnostic.ParseError);
+        assertThat(result.diagnostics()).isNotEmpty().allMatch(d -> d instanceof Diagnostic.ParseError);
     }
 
     @Test

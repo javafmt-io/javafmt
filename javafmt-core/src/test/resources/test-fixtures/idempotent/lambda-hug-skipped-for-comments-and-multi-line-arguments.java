@@ -41,7 +41,8 @@ class Fixture {
                 });
         executor.submit(
                 invoices.stream()
-                        .filter(invoice -> invoice.isOpen())
+                        .filter(invoice -> invoice.isOpenAndOverdueForMoreThanThirtyDaysSinceTheLastReminderWasSentToTheCustomer())
+                        .map(invoice -> invoice.customerAccountNumber())
                         .toList(),
                 open -> {
                     send(open);

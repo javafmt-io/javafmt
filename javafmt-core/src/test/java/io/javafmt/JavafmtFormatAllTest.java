@@ -125,9 +125,7 @@ class JavafmtFormatAllTest {
     @Test
     void analyzeBatchMatchesTheSingleFileAnalyzePath() {
         final var sources = analyzeSensitiveSources();
-        final var individually = sources.stream()
-                .map(s -> Javafmt.formatWithResult(s, ANALYZE).output())
-                .toList();
+        final var individually = sources.stream().map(s -> Javafmt.formatWithResult(s, ANALYZE).output()).toList();
         assertThat(outputsOf(Javafmt.formatAll(sources, ANALYZE, 2))).isEqualTo(individually);
     }
 
@@ -158,18 +156,14 @@ class JavafmtFormatAllTest {
     void aParseErrorUnderAnalyzeStaysAParseError() {
         final var source = "class Broken { this is not java";
         final var analyzed = Javafmt.formatWithResult(source, ANALYZE);
-        assertThat(analyzed.diagnostics())
-                .isNotEmpty()
-                .allSatisfy(d -> assertThat(d).isInstanceOf(Diagnostic.ParseError.class));
+        assertThat(analyzed.diagnostics()).isNotEmpty().allSatisfy(d -> assertThat(d).isInstanceOf(Diagnostic.ParseError.class));
         assertThat(analyzed).isEqualTo(Javafmt.formatWithResult(source));
     }
 
     @Test
     void aFailedAnalyzeChunkIsRetriedFileByFileWithAttribution() {
         final var sources = analyzeSensitiveSources();
-        final var analyzed = sources.stream()
-                .map(s -> Javafmt.formatWithResult(s, ANALYZE).output())
-                .toList();
+        final var analyzed = sources.stream().map(s -> Javafmt.formatWithResult(s, ANALYZE).output()).toList();
         assertThat(analyzed).isNotEqualTo(sources.stream().map(Javafmt::format).toList());
         final var retried = JavaParser.attributing(
                 "", session -> formatChunkFailingWhenBatched(sources, chunk -> BatchFormatter.attributedContexts(chunk, session)));
@@ -190,9 +184,7 @@ class JavafmtFormatAllTest {
     void analyzeWithLintOffMatchesTheSingleFileAnalyzePath() {
         final var config = ANALYZE.withLint(false);
         final var sources = analyzeSensitiveSources();
-        final var individually = sources.stream()
-                .map(s -> Javafmt.formatWithResult(s, config).output())
-                .toList();
+        final var individually = sources.stream().map(s -> Javafmt.formatWithResult(s, config).output()).toList();
         assertThat(outputsOf(Javafmt.formatAll(sources, config, 2))).isEqualTo(individually);
     }
 
@@ -207,9 +199,7 @@ class JavafmtFormatAllTest {
                                         throw new LinkageError("broken class");
                                     },
                                     () -> new FormatResult("class B {}\n", List.of())));
-            assertThat(results.getFirst().diagnostics())
-                    .singleElement()
-                    .isInstanceOf(Diagnostic.InternalError.class);
+            assertThat(results.getFirst().diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class);
             assertThat(results.get(1).output()).isEqualTo("class B {}\n");
         }
     }
@@ -298,9 +288,7 @@ class JavafmtFormatAllTest {
         assertThat(failure.get()).isNull();
         assertThat(results.get().getFirst().output()).isEqualTo("class Good {}\n");
         assertThat(results.get().get(1).output()).isEqualTo(deep);
-        assertThat(results.get().get(1).diagnostics())
-                .singleElement()
-                .isInstanceOf(Diagnostic.InternalError.class);
+        assertThat(results.get().get(1).diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class);
     }
 
     private static List<String> outputsOf(final List<FormatResult> results) {

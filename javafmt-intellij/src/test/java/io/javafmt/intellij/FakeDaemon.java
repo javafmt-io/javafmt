@@ -39,13 +39,7 @@ public final class FakeDaemon {
             "class Internal {}", reply("class Internal {}", diagnostic(Severity.SEVERITY_ERROR, Kind.KIND_INTERNAL, "dropped token", 0, 0)));
 
     static Diagnostic diagnostic(final Severity severity, final Kind kind, final String message, final int line, final int column) {
-        return Diagnostic.newBuilder()
-                .setSeverity(severity)
-                .setKind(kind)
-                .setMessage(message)
-                .setLine(line)
-                .setColumn(column)
-                .build();
+        return Diagnostic.newBuilder().setSeverity(severity).setKind(kind).setMessage(message).setLine(line).setColumn(column).build();
     }
 
     public static void main(final String[] arguments) {

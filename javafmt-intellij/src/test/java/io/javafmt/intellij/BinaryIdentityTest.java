@@ -13,11 +13,10 @@ class BinaryIdentityTest {
     @Test
     void identifiesAnExistingFileByPathTimeAndSize(@TempDir final Path dir) throws IOException {
         final var file = Files.writeString(dir.resolve("javafmt"), "binary");
-        assertThat(BinaryIdentity.of(file))
-                .hasValueSatisfying(identity -> {
-                    assertThat(identity.path()).isEqualTo(file);
-                    assertThat(identity.size()).isEqualTo(6);
-                });
+        assertThat(BinaryIdentity.of(file)).hasValueSatisfying(identity -> {
+            assertThat(identity.path()).isEqualTo(file);
+            assertThat(identity.size()).isEqualTo(6);
+        });
     }
 
     @Test

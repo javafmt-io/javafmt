@@ -35,11 +35,10 @@ class JavafmtFormatFilesTest {
         assertThat(results).hasSize(4);
         assertThat(results.get(0)).isEqualTo(new FileResult.UpToDate(cached));
         assertThat(results.get(1)).isEqualTo(new FileResult.Formatted(dirty, UNFORMATTED, Javafmt.formatWithResult(UNFORMATTED)));
-        assertThat(results.get(2))
-                .isInstanceOfSatisfying(FileResult.Unreadable.class, unreadable -> {
-                    assertThat(unreadable.path()).isEqualTo(missing);
-                    assertThat(unreadable.error()).isInstanceOf(NoSuchFileException.class);
-                });
+        assertThat(results.get(2)).isInstanceOfSatisfying(FileResult.Unreadable.class, unreadable -> {
+            assertThat(unreadable.path()).isEqualTo(missing);
+            assertThat(unreadable.error()).isInstanceOf(NoSuchFileException.class);
+        });
         assertThat(results.get(3)).isEqualTo(new FileResult.Formatted(empty, "", new FormatResult("", List.of())));
     }
 
@@ -52,9 +51,7 @@ class JavafmtFormatFilesTest {
 
     @Test
     void manyFilesStayAlignedWithTheirPaths(@TempDir final Path dir) throws Exception {
-        final var paths = IntStream.range(0, 150)
-                .mapToObj(i -> dir.resolve("F" + i + ".java"))
-                .toList();
+        final var paths = IntStream.range(0, 150).mapToObj(i -> dir.resolve("F" + i + ".java")).toList();
         IntStream.range(0, paths.size()).forEach(i -> write(paths.get(i), "class F" + i + " {   }\n"));
         final var results = Javafmt.formatFiles(paths, JavafmtConfig.defaults(), FormatCache.noop(), 4);
         assertThat(results).hasSameSizeAs(paths);
@@ -68,9 +65,7 @@ class JavafmtFormatFilesTest {
 
     @Test
     void filesAreReadAndHashedOnTheFormatPoolRatherThanTheCallingThread(@TempDir final Path dir) {
-        final var paths = IntStream.range(0, 8)
-                .mapToObj(i -> dir.resolve("F" + i + ".java"))
-                .toList();
+        final var paths = IntStream.range(0, 8).mapToObj(i -> dir.resolve("F" + i + ".java")).toList();
         paths.forEach(path -> write(path, "class F {}\n"));
         final var hashingThreads = ConcurrentHashMap.<String>newKeySet();
         final var cache = new FormatCache() {
@@ -87,9 +82,7 @@ class JavafmtFormatFilesTest {
             public void save() {}
         };
         Javafmt.formatFiles(paths, JavafmtConfig.defaults(), cache, 4);
-        assertThat(hashingThreads)
-                .isNotEmpty()
-                .allSatisfy(name -> assertThat(name).startsWith("javafmt-"));
+        assertThat(hashingThreads).isNotEmpty().allSatisfy(name -> assertThat(name).startsWith("javafmt-"));
     }
 
     private static void write(final Path path, final String content) {

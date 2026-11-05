@@ -30,8 +30,7 @@ class DocBuilderDiagnosticsTest {
                 """;
         final var unit = JavaParser.parseUnit(source);
         final var built = DocBuilder.buildWithFallbacks(unit, JavafmtConfig.defaults());
-        final var braceWarnings = built.diagnostics()
-                .stream()
+        final var braceWarnings = built.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.Warning)
                 .filter(d -> d.message().contains("braces"))
                 .toList();
@@ -58,8 +57,7 @@ class DocBuilderDiagnosticsTest {
                 """;
         final var unit = JavaParser.parseUnit(source);
         final var built = DocBuilder.buildWithFallbacks(unit, JavafmtConfig.defaults());
-        final var braceWarnings = built.diagnostics()
-                .stream()
+        final var braceWarnings = built.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.Warning)
                 .filter(d -> d.message().contains("braces"))
                 .toList();
@@ -83,17 +81,15 @@ class DocBuilderDiagnosticsTest {
                 """;
         final var unit = JavaParser.parseUnit(source);
         final var built = DocBuilder.buildWithFallbacks(unit, JavafmtConfig.defaults());
-        final var braceWarnings = built.diagnostics()
-                .stream()
+        final var braceWarnings = built.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.Warning)
                 .filter(d -> d.message().contains("braces"))
                 .toList();
         assertThat(braceWarnings).hasSize(4);
-        assertThat(braceWarnings)
-                .allSatisfy(w -> {
-                    assertThat(w.position()).isInstanceOf(Position.At.class);
-                    assertThat(((Position.At) w.position()).line()).isPositive();
-                });
+        assertThat(braceWarnings).allSatisfy(w -> {
+            assertThat(w.position()).isInstanceOf(Position.At.class);
+            assertThat(((Position.At) w.position()).line()).isPositive();
+        });
     }
 
     @Test
@@ -119,9 +115,7 @@ class DocBuilderDiagnosticsTest {
                 }
                 """;
         final var built = DocBuilder.buildWithFallbacks(JavaParser.parseUnit(source), JavafmtConfig.defaults());
-        assertThat(built.diagnostics())
-                .extracting(d -> ((Position.At) d.position()).line())
-                .containsExactly(15, 13, 11);
+        assertThat(built.diagnostics()).extracting(d -> ((Position.At) d.position()).line()).containsExactly(15, 13, 11);
     }
 
     @Test
@@ -148,8 +142,7 @@ class DocBuilderDiagnosticsTest {
                 }
                 """;
         final var result = Javafmt.formatWithResult(source);
-        final var braceWarnings = result.diagnostics()
-                .stream()
+        final var braceWarnings = result.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.Warning)
                 .filter(d -> d.message().contains("braces"))
                 .toList();

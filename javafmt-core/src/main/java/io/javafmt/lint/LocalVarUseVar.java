@@ -434,9 +434,7 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         final var selectEnd = unit.endOf(mst);
         final var namePos = insertionPointBeforeMethodName(mst, selectEnd);
         final var src = unit.source();
-        if (selectEnd < 0
-            || namePos <= 0
-            || !src.startsWith(mst.getIdentifier().toString(), namePos)) {
+        if (selectEnd < 0 || namePos <= 0 || !src.startsWith(mst.getIdentifier().toString(), namePos)) {
             return List.of();
         }
         final var witness = src.substring(rawEnd, typeEnd);

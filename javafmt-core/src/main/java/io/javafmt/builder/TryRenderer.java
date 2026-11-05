@@ -19,9 +19,7 @@ final class TryRenderer {
                 ? Stream.<Doc>empty()
                 : Stream.concat(
                         Stream.concat(Stream.<Doc>of(Doc.HARD_LINE), BlockRenderer.opened(new Doc.Text("} finally"), finallyBlock, recursor)),
-                        BlockRenderer.blockStatements(finallyBlock, recursor)
-                                .stream()
-                                .map(Doc::indentedLine));
+                        BlockRenderer.blockStatements(finallyBlock, recursor).stream().map(Doc::indentedLine));
         return Doc.concatOf(
                 Stream.of(
                         Stream.concat(BlockRenderer.opened(header, node.getBlock(), recursor), tryStatements.stream().map(Doc::indentedLine)),

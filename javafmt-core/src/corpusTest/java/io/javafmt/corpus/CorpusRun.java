@@ -29,9 +29,7 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
         final var result = Javafmt.formatWithResult(entry.source(), config);
         final var millis = (System.nanoTime() - started) / 1_000_000;
         final var unparseable = result.diagnostics().stream().anyMatch(d -> d instanceof Diagnostic.ParseError);
-        final var refused = result.diagnostics()
-                .stream()
-                .anyMatch(d -> d instanceof Diagnostic.InternalError);
+        final var refused = result.diagnostics().stream().anyMatch(d -> d instanceof Diagnostic.InternalError);
         if (unparseable || refused) {
             return new FileOutcome(entry.name(), unparseable, refused, true, true, 0, millis);
         }
@@ -66,10 +64,7 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
     }
 
     List<FileOutcome> slowest(final int count) {
-        return outcomes.stream()
-                .sorted(Comparator.comparingLong(FileOutcome::millis).reversed())
-                .limit(count)
-                .toList();
+        return outcomes.stream().sorted(Comparator.comparingLong(FileOutcome::millis).reversed()).limit(count).toList();
     }
 
     /**

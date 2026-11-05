@@ -96,7 +96,7 @@ final class ExpressionRenderers {
                 .reversed();
         final var first = spine.getFirst().getLeftOperand();
         final var operands = Stream.concat(Stream.of(first), spine.stream().map(BinaryTree::getRightOperand)).toList();
-        final var docs = operands.stream().map(recursor::scanCompact).toList();
+        final var docs = operands.stream().map(recursor::scan).toList();
         final var operator = binaryOperatorText(node);
         final var tail = IntStream.range(0, spine.size())
                 .<Doc>mapToObj(
@@ -105,8 +105,7 @@ final class ExpressionRenderers {
                                         breakBeforeOperator(docs.get(i), recursor.tail(spine.get(i))), new Doc.Text(operator + " "),
                                         docs.get(i + 1))));
         final var contents = new Doc.Concat(Stream.concat(Stream.of(docs.getFirst()), tail));
-        final var authorBroke = !recursor.inCompactContext() && operands.stream().limit(operands.size() - 1).anyMatch(recursor::isFollowedByNewline);
-        return MethodChainRenderer.chainGroup(contents, authorBroke);
+        return MethodChainRenderer.chainGroup(contents);
     }
 
     Doc renderUnary(final UnaryTree node, final Recursor recursor) {
@@ -299,8 +298,7 @@ final class ExpressionRenderers {
      * turns the expression into {@code new Inner()} — a different, usually uncompilable, program.
      */
     private Stream<Doc> qualifier(final NewClassTree node, final Recursor recursor) {
-        return Optional.ofNullable(node.getEnclosingExpression())
-                .stream()
+        return Optional.ofNullable(node.getEnclosingExpression()).stream()
                 .flatMap(enclosing -> Stream.of(recursor.scan(enclosing), new Doc.Text(".")));
     }
 
@@ -358,8 +356,7 @@ final class ExpressionRenderers {
                 node, Objects::nonNull, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null)
                 .map(Objects::requireNonNull)
                 .toList();
-        return spine.reversed()
-                .stream()
+        return spine.reversed().stream()
                 .reduce(
                         recursor.scan(spine.getLast().getExpression()),
                         (receiver, select) -> {

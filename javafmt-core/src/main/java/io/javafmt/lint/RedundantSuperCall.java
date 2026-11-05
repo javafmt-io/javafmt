@@ -43,9 +43,7 @@ public final class RedundantSuperCall implements LintRule {
     }
 
     private static Optional<LintEdit> tryRemove(final MethodTree node, final ParsedUnit unit) {
-        if (!node.getName().contentEquals("<init>")
-            || node.getBody() == null
-            || node.getBody().getStatements().isEmpty()) {
+        if (!node.getName().contentEquals("<init>") || node.getBody() == null || node.getBody().getStatements().isEmpty()) {
             return Optional.empty();
         }
         final var first = node.getBody().getStatements().getFirst();

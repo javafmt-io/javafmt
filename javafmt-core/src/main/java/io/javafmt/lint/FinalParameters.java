@@ -36,11 +36,9 @@ public final class FinalParameters implements LintRule {
         final var unit = context.unit();
         final var facts = new TreeFacts(unit);
         final var reassignments = new ReassignmentDetector();
-        return methodsWithBodies(context, facts)
-                .stream()
+        return methodsWithBodies(context, facts).stream()
                 .flatMap(
-                        m -> m.getParameters()
-                                .stream()
+                        m -> m.getParameters().stream()
                                 .filter(p -> !Modifiers.hasFinal(p))
                                 .map(p -> Map.entry(p, reassignments.reassigned(m.getBody(), p.getName().toString()))))
                 .collect(

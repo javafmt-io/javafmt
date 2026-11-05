@@ -85,9 +85,7 @@ class SpotlessIntegrationTest {
         writeProject(dir, DEFAULT_STEP);
         final var source = writeSource(dir, "Foo.java", Fixtures.FORMATTED_FOO);
         final var stored = build(dir, "spotlessApply", "--configuration-cache");
-        assertThat(stored.getOutput())
-                .contains("Configuration cache entry stored.")
-                .doesNotContain("problems were found");
+        assertThat(stored.getOutput()).contains("Configuration cache entry stored.").doesNotContain("problems were found");
         assertThat(Files.readString(source)).isEqualTo(Fixtures.FORMATTED_FOO);
         assertThat(build(dir, "spotlessApply", "--configuration-cache").getOutput()).contains("Reusing configuration cache");
     }
@@ -154,10 +152,7 @@ class SpotlessIntegrationTest {
     }
 
     private static GradleRunner runner(final Path dir, final String... arguments) {
-        return GradleRunner.create()
-                .withProjectDir(dir.toFile())
-                .forwardOutput()
-                .withArguments(arguments);
+        return GradleRunner.create().withProjectDir(dir.toFile()).forwardOutput().withArguments(arguments);
     }
 
     private static TaskOutcome outcomeOf(final BuildResult result, final String taskPath) {
@@ -203,9 +198,7 @@ class SpotlessIntegrationTest {
     /** The injected classpath as a Groovy argument list of quoted paths. */
     private static String generatedBuildClasspath() {
         final var raw = System.getProperty("javafmt.generatedBuildClasspath");
-        assertThat(raw)
-                .as("the integrationTest task must pass javafmt.generatedBuildClasspath")
-                .isNotBlank();
+        assertThat(raw).as("the integrationTest task must pass javafmt.generatedBuildClasspath").isNotBlank();
         return Arrays.stream(raw.split(File.pathSeparator))
                 .filter(entry -> !entry.isBlank())
                 .map(entry -> "'" + entry.replace("\\", "\\\\") + "'")

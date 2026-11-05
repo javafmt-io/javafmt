@@ -25,16 +25,15 @@ class JavaParserTest {
     @Test
     void parsingOnManyShortLivedThreadsKeepsNoFileManagerPerThread() {
         final var before = JavaParser.idleFileManagers();
-        IntStream.range(0, 20)
-                .forEach(i -> {
-                    final var thread = Thread.ofPlatform().start(() -> JavaParser.parse("class T" + i + " {}"));
-                    try {
-                        thread.join();
-                    } catch (final InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IllegalStateException(e);
-                    }
-                });
+        IntStream.range(0, 20).forEach(i -> {
+            final var thread = Thread.ofPlatform().start(() -> JavaParser.parse("class T" + i + " {}"));
+            try {
+                thread.join();
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+        });
         assertThat(JavaParser.idleFileManagers()).isLessThanOrEqualTo(Math.max(before, 1));
     }
 
@@ -237,9 +236,7 @@ class JavaParserTest {
             package com.example;
             """;
         final var unit = JavaParser.parseUnit(source);
-        assertThat(unit.fileHeader())
-                .extracting(CommentToken::text)
-                .containsExactly("/** package summary */");
+        assertThat(unit.fileHeader()).extracting(CommentToken::text).containsExactly("/** package summary */");
     }
 
     @Test
@@ -276,10 +273,7 @@ class JavaParserTest {
         assertThat(outcomes).hasSize(3);
         assertThat(outcomes).allMatch(o -> o instanceof Staged.Ok);
         // All units share the same Attribution since they come from one JavacTask.
-        final var attributions = outcomes.stream()
-                .map(o -> o.orElseThrow().attribution())
-                .distinct()
-                .toList();
+        final var attributions = outcomes.stream().map(o -> o.orElseThrow().attribution()).distinct().toList();
         assertThat(attributions).hasSize(1);
     }
 
@@ -346,11 +340,7 @@ class JavaParserTest {
         final var cls = (ClassTree) tree.getTypeDecls().getFirst();
         // Attribution synthesizes a default constructor at the head of the member list,
         // so pick the first VariableTree rather than the first member.
-        final var field = cls.getMembers()
-                .stream()
-                .filter(VariableTree.class::isInstance)
-                .findFirst()
-                .orElseThrow();
+        final var field = cls.getMembers().stream().filter(VariableTree.class::isInstance).findFirst().orElseThrow();
         return String.valueOf(attributed.attribution().trees().getTypeMirror(com.sun.source.util.TreePath.getPath(tree, field)));
     }
 

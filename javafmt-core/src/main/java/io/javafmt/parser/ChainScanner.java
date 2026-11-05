@@ -66,9 +66,7 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
 
     @Nullable
     private R scanSelectorChain(final Tree node, final P p) {
-        final var spine = Stream.iterate(node, Objects::nonNull, ChainScanner::innerLink)
-                .map(Objects::requireNonNull)
-                .toList();
+        final var spine = Stream.iterate(node, Objects::nonNull, ChainScanner::innerLink).map(Objects::requireNonNull).toList();
         enterChain(spine);
         try {
             final var typeArguments = spine.stream()

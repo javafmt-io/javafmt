@@ -90,8 +90,6 @@ public final class DocBuilder {
 
     private final IdentityHashMap<Tree, Prerendered> prerendered = new IdentityHashMap<>();
 
-    private int compactDepth;
-
     private final Recursor recursor = new Recursor() {
         @Override
         public Doc scan(final Tree node) {
@@ -109,22 +107,6 @@ public final class DocBuilder {
         public Doc scanLeavingTrailing(final Tree node, final UnaryOperator<Doc> adjust) {
             Objects.requireNonNull(node, "node");
             return DocBuilder.this.scan(node, adjust, false);
-        }
-
-        @Override
-        public Doc scanCompact(final Tree node) {
-            Objects.requireNonNull(node, "node");
-            compactDepth++;
-            try {
-                return Objects.requireNonNull(DocBuilder.this.scan(node));
-            } finally {
-                compactDepth--;
-            }
-        }
-
-        @Override
-        public boolean inCompactContext() {
-            return compactDepth > 0;
         }
 
         @Override
@@ -304,9 +286,7 @@ public final class DocBuilder {
 
     private Doc visitCompilationUnit(final CompilationUnitTree node) {
         final var hasPackage = node.getPackageName() != null;
-        final var packageAnnotations = node.getPackageAnnotations()
-                .stream()
-                .flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
+        final var packageAnnotations = node.getPackageAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
         // The blank line after the package declaration normally comes from the import section. With
         // no imports there is no import section, and the first type ran straight into the package.
         final var packageSeparator = node.getImports().isEmpty() ? Stream.<Doc>of(Doc.HARD_LINE) : Stream.<Doc>empty();
@@ -316,10 +296,7 @@ public final class DocBuilder {
         final var module = node.getModule();
         final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.ofNullable(scan(module)).stream();
         final var typeDeclarationsStream = Doc.intersperse(
-                Doc.BLANK_LINE,
-                node.getTypeDecls()
-                        .stream()
-                        .flatMap(declaration -> Optional.ofNullable(scan(declaration)).stream()));
+                Doc.BLANK_LINE, node.getTypeDecls().stream().flatMap(declaration -> Optional.ofNullable(scan(declaration)).stream()));
         return Doc.concatOf(
                 Stream.of(
                         CommentDocs.fileHeaderStream(unit.fileHeader()), packageAnnotations, pkgStream,
@@ -356,10 +333,7 @@ public final class DocBuilder {
     }
 
     private Doc visitBlock(final BlockTree node) {
-        final var statements = node.getStatements()
-                .stream()
-                .flatMap(s -> Optional.ofNullable(scan(s)).stream())
-                .toList();
+        final var statements = node.getStatements().stream().flatMap(s -> Optional.ofNullable(scan(s)).stream()).toList();
         return BlockRenderer.buildBlock(new Doc.Text("{"), attacher.braceLine(node), statements, attacher.trailingInside(node));
     }
 

@@ -25,10 +25,7 @@ public final class JavafmtMojo extends AbstractJavafmtMojo {
 
     @Override
     void handle(final List<FileResult.Formatted> formatted, final FormatCache formatCache) {
-        final var formattedCount = formatted.stream()
-                .map(file -> processResult(file, formatCache))
-                .filter(Boolean::booleanValue)
-                .count();
+        final var formattedCount = formatted.stream().map(file -> processResult(file, formatCache)).filter(Boolean::booleanValue).count();
         final var warningCount = formatted.stream().mapToLong(file -> file.result().warnings().size()).sum();
         getLog().info("javafmt: formatted " + formattedCount + " files, " + warningCount + " warnings");
     }

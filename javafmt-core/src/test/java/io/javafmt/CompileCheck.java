@@ -60,10 +60,7 @@ public final class CompileCheck {
         } catch (final IOException e) {
             throw new IllegalStateException("compile check failed to close its file manager", e);
         }
-        final var errors = collector.getDiagnostics()
-                .stream()
-                .filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR)
-                .toList();
+        final var errors = collector.getDiagnostics().stream().filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR).toList();
         if (errors.stream().anyMatch(d -> isUnresolvable(d.getCode()))) {
             return new Outcome.Skipped("references symbols that aren't on the classpath");
         }
@@ -93,8 +90,7 @@ public final class CompileCheck {
         if (tree.getModule() != null) {
             return null;
         }
-        return tree.getTypeDecls()
-                .stream()
+        return tree.getTypeDecls().stream()
                 .flatMap(t -> t instanceof ClassTree c ? java.util.stream.Stream.of(c) : java.util.stream.Stream.empty())
                 .map(c -> c.getSimpleName().toString())
                 .filter(n -> !n.isEmpty())

@@ -109,11 +109,7 @@ public final class DefaultComesLast implements LintRule {
         final var defaultStart = unit.startOf(defaultCase);
         final var defaultEnd = unit.endOf(defaultCase);
         final var switchEnd = unit.endOf(switchNode);
-        if (defaultStart < 0
-            || defaultEnd < 0
-            || switchEnd < 0
-            || defaultEnd > switchEnd
-            || switchEnd > unit.source().length()) {
+        if (defaultStart < 0 || defaultEnd < 0 || switchEnd < 0 || defaultEnd > switchEnd || switchEnd > unit.source().length()) {
             return List.of();
         }
         final var defaultText = unit.source().substring(defaultStart, defaultEnd);

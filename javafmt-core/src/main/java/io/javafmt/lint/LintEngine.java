@@ -105,9 +105,7 @@ public final class LintEngine {
                 .collect(
                         Collectors.groupingBy(
                                 AttributedRewrite::index, Collectors.toMap(AttributedRewrite::source, AttributedRewrite::unit, (first, _) -> first)));
-        return IntStream.range(0, contexts.size())
-                .mapToObj(i -> contexts.get(i).withAttributedRewrites(rewrites.getOrDefault(i, Map.of())))
-                .toList();
+        return IntStream.range(0, contexts.size()).mapToObj(i -> contexts.get(i).withAttributedRewrites(rewrites.getOrDefault(i, Map.of()))).toList();
     }
 
     private static Stream<AttributedRewrite> attributedRewrites(final RewriteVerifyingRule rule, final List<LintContext> contexts) {
@@ -135,13 +133,12 @@ public final class LintEngine {
             }
             return Stream.empty();
         }
-        return rewrites.stream()
-                .flatMap(rewrite -> {
-                    final var position = batch.indexOf(contexts.get(rewrite.index()).unit().source());
-                    return position >= 0 && attributed.get(position) instanceof Staged.Ok<AttributedUnit>(var unit)
-                            ? Stream.of(new AttributedRewrite(rewrite.index(), rewrite.source(), unit))
-                            : Stream.empty();
-                });
+        return rewrites.stream().flatMap(rewrite -> {
+            final var position = batch.indexOf(contexts.get(rewrite.index()).unit().source());
+            return position >= 0 && attributed.get(position) instanceof Staged.Ok<AttributedUnit>(var unit)
+                    ? Stream.of(new AttributedRewrite(rewrite.index(), rewrite.source(), unit))
+                    : Stream.empty();
+        });
     }
 
     /**
@@ -159,9 +156,7 @@ public final class LintEngine {
      * on the last round before the engine gives up.
      */
     private void applyRound(final FileState state, final boolean lastRound) {
-        final var editing = rules.stream()
-                .map(r -> r instanceof WarningRule ? LintResult.EMPTY : r.apply(state.context.forRule(r)))
-                .toList();
+        final var editing = rules.stream().map(r -> r instanceof WarningRule ? LintResult.EMPTY : r.apply(state.context.forRule(r))).toList();
         final var edits = mergeAcrossRules(editing);
         final var results = edits.isEmpty() || lastRound ? withWarnings(editing, state.context) : editing;
         state.diagnostics = results.stream().flatMap(r -> r.diagnostics().stream()).toList();
@@ -192,10 +187,7 @@ public final class LintEngine {
     }
 
     private List<String> namesOfRulesWithEdits(final List<LintResult> results) {
-        return IntStream.range(0, rules.size())
-                .filter(i -> !results.get(i).edits().isEmpty())
-                .mapToObj(i -> rules.get(i).name())
-                .toList();
+        return IntStream.range(0, rules.size()).filter(i -> !results.get(i).edits().isEmpty()).mapToObj(i -> rules.get(i).name()).toList();
     }
 
     private static Diagnostic nonConvergenceWarning(final List<String> unconvergedRules) {
@@ -250,11 +242,7 @@ public final class LintEngine {
     }
 
     static String applyEdits(final String source, final List<LintEdit> edits) {
-        final var sorted = IntStream.range(0, edits.size())
-                .boxed()
-                .sorted(applicationOrder(edits))
-                .map(edits::get)
-                .toList();
+        final var sorted = IntStream.range(0, edits.size()).boxed().sorted(applicationOrder(edits)).map(edits::get).toList();
         IntStream.iterate(sorted.size() - 1, i -> i >= 0, i -> i - 1).forEach(i -> checkApplicable(source, sorted, i));
         final var out = new StringBuilder(source.length());
         IntStream.range(0, sorted.size())

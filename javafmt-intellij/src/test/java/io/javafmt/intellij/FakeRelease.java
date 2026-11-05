@@ -109,19 +109,18 @@ final class FakeRelease implements AutoCloseable {
         out.write(body, 0, half);
         out.flush();
         halfway.countDown();
-        IntStream.range(half, body.length)
-                .forEach(i -> {
-                    try {
-                        Thread.sleep(20);
-                        out.write(body[i]);
-                        out.flush();
-                    } catch (final IOException e) {
-                        throw new UncheckedIOException(e);
-                    } catch (final InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new IllegalStateException(e);
-                    }
-                });
+        IntStream.range(half, body.length).forEach(i -> {
+            try {
+                Thread.sleep(20);
+                out.write(body[i]);
+                out.flush();
+            } catch (final IOException e) {
+                throw new UncheckedIOException(e);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+        });
     }
 
     private static void await(final CountDownLatch latch) {

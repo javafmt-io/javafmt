@@ -146,9 +146,7 @@ final class TypeRenderers {
     Doc renderTypeParameter(final TypeParameterTree node, final Recursor recursor) {
         // `class Box<@Marker T>` is legal and the annotations were simply never read, so six files
         // of java.base's reference classes came back refused rather than formatted.
-        final var annotations = node.getAnnotations()
-                .stream()
-                .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
+        final var annotations = node.getAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
         final var nameDoc = (Doc) new Doc.Concat(Stream.concat(annotations, Stream.of(new Doc.Text(node.getName().toString()))));
         final var bounds = node.getBounds();
         if (bounds.isEmpty()) {
@@ -159,9 +157,7 @@ final class TypeRenderers {
     }
 
     Doc renderAnnotatedType(final AnnotatedTypeTree node, final Recursor recursor) {
-        final var annotations = node.getAnnotations()
-                .stream()
-                .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
+        final var annotations = node.getAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
         if (node.getUnderlyingType() instanceof ArrayTypeTree) {
             return renderArrayDimensions(node, recursor);
         }

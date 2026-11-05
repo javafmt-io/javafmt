@@ -137,11 +137,9 @@ class AnalyzeSkipTest {
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=Unknown\n");
         final var source = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
         final var results = Javafmt.formatFiles(List.of(source), JavafmtConfig.defaults(), FormatCache.noop(), 1);
-        assertThat(results)
-                .singleElement()
-                .isInstanceOfSatisfying(FileResult.Formatted.class, formatted -> {
-                    assertThat(formatted.changed()).isFalse();
-                    assertThat(formatted.result().errors()).singleElement().isInstanceOf(Diagnostic.ConfigError.class);
-                });
+        assertThat(results).singleElement().isInstanceOfSatisfying(FileResult.Formatted.class, formatted -> {
+            assertThat(formatted.changed()).isFalse();
+            assertThat(formatted.result().errors()).singleElement().isInstanceOf(Diagnostic.ConfigError.class);
+        });
     }
 }

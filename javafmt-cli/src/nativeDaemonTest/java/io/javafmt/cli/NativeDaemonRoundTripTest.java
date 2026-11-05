@@ -37,17 +37,12 @@ class NativeDaemonRoundTripTest {
             stdin.write(requests);
         }
         final var out = process.getInputStream().readAllBytes();
-        assertThat(process.waitFor(30, TimeUnit.SECONDS))
-                .as("daemon exited before timeout")
-                .isTrue();
+        assertThat(process.waitFor(30, TimeUnit.SECONDS)).as("daemon exited before timeout").isTrue();
         assertThat(process.exitValue()).isZero();
         return out;
     }
 
     private static Optional<Path> locateBinary() {
-        return List.of(BINARY_DIR.resolve("javafmt"), BINARY_DIR.resolve("javafmt.exe"))
-                .stream()
-                .filter(Files::isExecutable)
-                .findFirst();
+        return List.of(BINARY_DIR.resolve("javafmt"), BINARY_DIR.resolve("javafmt.exe")).stream().filter(Files::isExecutable).findFirst();
     }
 }

@@ -29,8 +29,7 @@ final class ModifierRenderer {
 
     private Doc commentsBeforeTheModifiers(final ModifiersTree modifiers, final Recursor recursor) {
         return new Doc.Concat(
-                recursor.tail(modifiers)
-                        .stream()
+                recursor.tail(modifiers).stream()
                         .map(CommentDocs::renderComment)
                         .flatMap(comment -> Stream.of(comment, Doc.endsWithLineComment(comment) ? Doc.HARD_LINE : new Doc.Text(" "))));
     }
@@ -87,9 +86,7 @@ final class ModifierRenderer {
         if (flags.isEmpty()) {
             return "";
         }
-        final var unknown = flags.stream()
-                .filter((javax.lang.model.element.Modifier m) -> !JavaModifiers.KNOWN_MODIFIERS.contains(m))
-                .toList();
+        final var unknown = flags.stream().filter((javax.lang.model.element.Modifier m) -> !JavaModifiers.KNOWN_MODIFIERS.contains(m)).toList();
         if (!unknown.isEmpty()) {
             throw new IllegalStateException("Unknown modifier(s): " + unknown);
         }
@@ -106,8 +103,7 @@ final class ModifierRenderer {
      */
     boolean rendersFieldAnnotationsInline(final ModifiersTree modifiers, final Recursor recursor) {
         final var annotations = declarationAnnotations(modifiers, List.of(), recursor);
-        return !annotations.isEmpty()
-            && annotations.stream().allMatch(a -> a.getArguments().isEmpty() && !recursor.isFollowedByNewline(a));
+        return !annotations.isEmpty() && annotations.stream().allMatch(a -> a.getArguments().isEmpty() && !recursor.isFollowedByNewline(a));
     }
 
     /**

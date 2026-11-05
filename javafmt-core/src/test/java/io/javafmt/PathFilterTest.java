@@ -45,8 +45,7 @@ class PathFilterTest {
 
     @Test
     void theDefaultExcludedDirectoriesAreTheOutputAndDependencyTrees() {
-        assertThat(PathFilter.DEFAULT_EXCLUDED_DIRECTORIES)
-                .containsExactlyInAnyOrder(".git", "build", "generated", "node_modules", "out", "target");
+        assertThat(PathFilter.DEFAULT_EXCLUDED_DIRECTORIES).containsExactlyInAnyOrder(".git", "build", "generated", "node_modules", "out", "target");
     }
 
     @ParameterizedTest

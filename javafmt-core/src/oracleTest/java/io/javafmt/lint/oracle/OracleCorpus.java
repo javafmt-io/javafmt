@@ -109,9 +109,7 @@ public final class OracleCorpus {
         if (violations.isEmpty()) {
             return;
         }
-        final var hasMatchingDiagnostic = result.diagnostics()
-                .stream()
-                .anyMatch(d -> d.message().contains(diagnosticMessageSubstring));
+        final var hasMatchingDiagnostic = result.diagnostics().stream().anyMatch(d -> d.message().contains(diagnosticMessageSubstring));
         assertThat(hasMatchingDiagnostic)
                 .as(
                         "javafmt output for corpus file '%s' still has %s violations and no diagnostic "
@@ -121,8 +119,7 @@ public final class OracleCorpus {
     }
 
     public static void assertCorpusExercisesRule(final String corpusSubdir, final String checkClassName, final Map<String, String> checkProperties) {
-        final var dirty = corpusFiles(corpusSubdir)
-                .stream()
+        final var dirty = corpusFiles(corpusSubdir).stream()
                 .filter(p -> !CheckstyleOracle.run(readString(p), checkClassName, checkProperties).isEmpty())
                 .map(p -> p.getFileName().toString())
                 .toList();
@@ -139,14 +136,8 @@ public final class OracleCorpus {
     }
 
     private static void assertNoInternalError(final String name, final FormatResult result) {
-        final var internal = result.diagnostics()
-                .stream()
-                .filter(d -> d instanceof Diagnostic.InternalError)
-                .map(Diagnostic::message)
-                .toList();
-        assertThat(internal)
-                .as("corpus file '%s' must format without an internal error", name)
-                .isEmpty();
+        final var internal = result.diagnostics().stream().filter(d -> d instanceof Diagnostic.InternalError).map(Diagnostic::message).toList();
+        assertThat(internal).as("corpus file '%s' must format without an internal error", name).isEmpty();
     }
 
     /**
@@ -170,8 +161,7 @@ public final class OracleCorpus {
      * check and pass without ever compiling anything.
      */
     public static void assertCorpusIsCompilable(final String corpusSubdir) {
-        final var compilable = corpusFiles(corpusSubdir)
-                .stream()
+        final var compilable = corpusFiles(corpusSubdir).stream()
                 .filter(p -> CompileCheck.check(readString(p)) instanceof CompileCheck.Outcome.Compiles)
                 .map(p -> p.getFileName().toString())
                 .toList();
@@ -191,11 +181,7 @@ public final class OracleCorpus {
             throw new IllegalStateException("corpus root not found on classpath: corpus/");
         }
         try (final var listing = Files.list(Paths.get(resource.toURI()))) {
-            return listing.filter(Files::isDirectory)
-                    .map(p -> p.getFileName().toString())
-                    .sorted()
-                    .toList()
-                    .stream();
+            return listing.filter(Files::isDirectory).map(p -> p.getFileName().toString()).sorted().toList().stream();
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         } catch (final URISyntaxException e) {
@@ -206,9 +192,7 @@ public final class OracleCorpus {
     private static List<Path> corpusFiles(final String corpusSubdir) {
         final var dir = locateCorpus(corpusSubdir);
         try (final var listing = Files.list(dir)) {
-            return listing.filter(p -> p.getFileName().toString().endsWith(".java"))
-                    .sorted()
-                    .toList();
+            return listing.filter(p -> p.getFileName().toString().endsWith(".java")).sorted().toList();
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }

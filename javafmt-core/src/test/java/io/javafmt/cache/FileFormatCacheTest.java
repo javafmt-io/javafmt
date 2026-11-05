@@ -91,12 +91,8 @@ class FileFormatCacheTest {
     void concurrentRecordFormatted_isThreadSafe(@TempDir final Path dir) throws Exception {
         final var cacheFile = dir.resolve(".javafmt-cache");
         final var cache = FileFormatCache.load(cacheFile, KEY);
-        final var paths = java.util.stream.IntStream.range(0, 200)
-                .mapToObj(i -> dir.resolve("F" + i + ".java"))
-                .toList();
-        final var contents = paths.stream()
-                .map(p -> "class " + p.getFileName().toString().replace(".java", "") + " {}\n")
-                .toList();
+        final var paths = java.util.stream.IntStream.range(0, 200).mapToObj(i -> dir.resolve("F" + i + ".java")).toList();
+        final var contents = paths.stream().map(p -> "class " + p.getFileName().toString().replace(".java", "") + " {}\n").toList();
         final var pool = java.util.concurrent.Executors.newFixedThreadPool(8);
         try {
             final var futures = java.util.stream.IntStream.range(0, paths.size())
@@ -113,9 +109,7 @@ class FileFormatCacheTest {
             pool.shutdownNow();
         }
         for (var i = 0; i < paths.size(); i++) {
-            assertThat(cache.isUpToDate(paths.get(i), contents.get(i)))
-                    .as("file %s should be up to date", paths.get(i))
-                    .isTrue();
+            assertThat(cache.isUpToDate(paths.get(i), contents.get(i))).as("file %s should be up to date", paths.get(i)).isTrue();
         }
     }
 
@@ -129,8 +123,7 @@ class FileFormatCacheTest {
         final var written = FileFormatCache.load(cacheFile, KEY);
         written.recordFormatted(path, content);
         written.save();
-        final var stale = Files.readString(cacheFile, StandardCharsets.UTF_8)
-                .replace(JavafmtVersion.VERSION, "0.0.0-not-this-version");
+        final var stale = Files.readString(cacheFile, StandardCharsets.UTF_8).replace(JavafmtVersion.VERSION, "0.0.0-not-this-version");
         Files.writeString(cacheFile, stale, StandardCharsets.UTF_8);
         assertThat(FileFormatCache.load(cacheFile, KEY).isUpToDate(path, content)).isFalse();
     }
@@ -191,9 +184,7 @@ class FileFormatCacheTest {
         cache.recordFormatted(deleted, "class Deleted {}\n");
         cache.save();
         final var body = Files.readString(cacheFile, StandardCharsets.UTF_8);
-        assertThat(body)
-                .contains(kept.toAbsolutePath().toString())
-                .doesNotContain(deleted.toAbsolutePath().toString());
+        assertThat(body).contains(kept.toAbsolutePath().toString()).doesNotContain(deleted.toAbsolutePath().toString());
     }
 
     @Test

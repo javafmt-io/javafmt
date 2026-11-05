@@ -115,14 +115,13 @@ class JavafmtBinaryProviderTest {
     }
 
     static void runOnNewThread(final Task.Backgroundable task) {
-        Thread.ofPlatform()
-                .start(() -> {
-                    try {
-                        task.run(new EmptyProgressIndicator());
-                    } finally {
-                        task.onFinished();
-                    }
-                });
+        Thread.ofPlatform().start(() -> {
+            try {
+                task.run(new EmptyProgressIndicator());
+            } finally {
+                task.onFinished();
+            }
+        });
     }
 
     private static Path javafmtReporting(final Path dir, final String version) throws IOException {

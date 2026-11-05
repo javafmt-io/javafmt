@@ -277,8 +277,7 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
     }
 
     private static String stripAllWitnesses(final String src, final List<WitnessCall> sorted) {
-        final var segmentEdges = Stream.concat(Stream.of(0), sorted.stream().flatMap(c -> Stream.of(c.witnessStart(), c.witnessEnd())))
-                .toList();
+        final var segmentEdges = Stream.concat(Stream.of(0), sorted.stream().flatMap(c -> Stream.of(c.witnessStart(), c.witnessEnd()))).toList();
         return IntStream.range(0, segmentEdges.size() / 2 + 1)
                 .mapToObj(i -> src.substring(segmentEdges.get(2 * i), 2 * i + 1 < segmentEdges.size() ? segmentEdges.get(2 * i + 1) : src.length()))
                 .collect(Collectors.joining());
@@ -311,10 +310,7 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
      * intentionally direct rather than indexed.
      */
     private static int strippedLengthBefore(final List<WitnessCall> sorted, final int offset) {
-        return sorted.stream()
-                .filter(c -> c.witnessStart() < offset)
-                .mapToInt(c -> c.witnessEnd() - c.witnessStart())
-                .sum();
+        return sorted.stream().filter(c -> c.witnessStart() < offset).mapToInt(c -> c.witnessEnd() - c.witnessStart()).sum();
     }
 
     private static Map<Integer, TreePath> callsByMethodNameStart(final ParsedUnit unit) {

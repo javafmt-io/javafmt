@@ -38,9 +38,7 @@ final class LambdaRenderer {
         if (params.isEmpty()) {
             return new Doc.Text("()");
         }
-        if (params.size() == 1
-            && params.getFirst().getType() == null
-            && recursor.sourceSpan(node).charAt(0) != '(') {
+        if (params.size() == 1 && params.getFirst().getType() == null && recursor.sourceSpan(node).charAt(0) != '(') {
             return new Doc.Text(Names.of(params.getFirst()));
         }
         return WrappableList.of("(", ",", ")", params.stream().map(p -> renderParam(p, recursor)));

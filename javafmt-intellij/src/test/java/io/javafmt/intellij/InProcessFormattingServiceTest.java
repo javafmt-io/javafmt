@@ -57,12 +57,10 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
         final var file = myFixture.configureByText("Broken.java", "class Broken { int x = ; }");
         reformat(file);
         assertThat(file.getText()).isEqualTo("class Broken { int x = ; }");
-        assertThat(notifications)
-                .singleElement()
-                .satisfies(notification -> {
-                    assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
-                    assertThat(notification.getContent()).contains("Broken.java");
-                });
+        assertThat(notifications).singleElement().satisfies(notification -> {
+            assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
+            assertThat(notification.getContent()).contains("Broken.java");
+        });
     }
 
     @Test
@@ -87,12 +85,10 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
         final var file = psiFile(localFile(dir.resolve("src/Order.java"), STAR_IMPORT));
         reformat(file);
         assertThat(file.getText()).isEqualTo(STAR_IMPORT);
-        assertThat(notifications)
-                .singleElement()
-                .satisfies(notification -> {
-                    assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
-                    assertThat(notification.getContent()).contains("Order.java", dir.resolve(".javafmt").toString(), "FinalParameters");
-                });
+        assertThat(notifications).singleElement().satisfies(notification -> {
+            assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
+            assertThat(notification.getContent()).contains("Order.java", dir.resolve(".javafmt").toString(), "FinalParameters");
+        });
     }
 
     @Test

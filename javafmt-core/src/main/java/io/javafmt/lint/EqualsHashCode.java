@@ -19,11 +19,7 @@ public final class EqualsHashCode implements WarningRule {
     }
 
     private static Optional<String> warningFor(final ClassTree node) {
-        final var methods = node.getMembers()
-                .stream()
-                .filter(m -> m instanceof MethodTree)
-                .map(m -> (MethodTree) m)
-                .toList();
+        final var methods = node.getMembers().stream().filter(m -> m instanceof MethodTree).map(m -> (MethodTree) m).toList();
         final var hasEquals = methods.stream().anyMatch(Declarations::isEqualsObject);
         final var hasHashCode = methods.stream().anyMatch(EqualsHashCode::isHashCode);
         if (hasEquals && !hasHashCode) {

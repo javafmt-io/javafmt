@@ -4,7 +4,11 @@ import io.javafmt.parser.JavaParser;
 import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,63 +31,20 @@ class BinaryExpressionRendererTest {
         assertThat(format(input)).isEqualTo(expected);
     }
 
-    @Test
-    void authorBrokeBeforeAnd_isPreservedAtContinuationIndent() {
-        final var input = """
-            class X {
-                boolean ok(Object imp, Object ms) {
-                    return imp instanceof MemberSelectTree
-                        && ms.getIdentifier().contentEquals("*");
-                }
-            }""".stripIndent();
-        final var expected = """
-            class X {
-                boolean ok(Object imp, Object ms) {
-                    return imp instanceof MemberSelectTree
-                        && ms.getIdentifier().contentEquals("*");
-                }
-            }""".stripIndent();
-        assertThat(format(input)).isEqualTo(expected);
+    @ParameterizedTest
+    @MethodSource("authorBrokenChainsThatFit")
+    void authorBrokenLogicalChainThatFitsTheLine_joins(final String broken, final String joined) {
+        final var template = "class X {\n    boolean ok(Object imp, Object ms, boolean a, boolean b, boolean c) {\n        %s\n    }\n}";
+        assertThat(format(template.formatted(broken))).isEqualTo(template.formatted(joined));
     }
 
-    @Test
-    void authorBrokeBeforeOr_isPreserved() {
-        final var input = """
-            class X {
-                boolean ok(boolean a, boolean b) {
-                    return a
-                        || b;
-                }
-            }""".stripIndent();
-        final var expected = """
-            class X {
-                boolean ok(boolean a, boolean b) {
-                    return a
-                        || b;
-                }
-            }""".stripIndent();
-        assertThat(format(input)).isEqualTo(expected);
-    }
-
-    @Test
-    void threeWayAndChain_allBreaksPreservedAtSameIndent() {
-        final var input = """
-            class X {
-                boolean ok(boolean a, boolean b, boolean c) {
-                    return a
-                        && b
-                        && c;
-                }
-            }""".stripIndent();
-        final var expected = """
-            class X {
-                boolean ok(boolean a, boolean b, boolean c) {
-                    return a
-                        && b
-                        && c;
-                }
-            }""".stripIndent();
-        assertThat(format(input)).isEqualTo(expected);
+    static Stream<Arguments> authorBrokenChainsThatFit() {
+        return Stream.of(
+                Arguments.of(
+                        "return imp instanceof MemberSelectTree\n            && ms.getIdentifier().contentEquals(\"*\");",
+                        "return imp instanceof MemberSelectTree && ms.getIdentifier().contentEquals(\"*\");"),
+                Arguments.of("return a\n            || b;", "return a || b;"),
+                Arguments.of("return a\n            && b\n            && c;", "return a && b && c;"));
     }
 
     @Test
@@ -121,9 +82,6 @@ class BinaryExpressionRendererTest {
 
     @Test
     void brokenLogicalChain_innerChain_staysFlat_evenWhenSourceBrokeIt() {
-        // When the outer && chain breaks, each operand renders with author-preserve suppressed
-        // for nested chains. This keeps the broken logical-chain visually 3-line clean instead
-        // of cascading into the source's prior layout artifacts.
         final var input = """
             class X {
                 void test(Object annotations, Object recursor) {
@@ -145,7 +103,6 @@ class BinaryExpressionRendererTest {
 
     @Test
     void otherBinaryOperators_unaffected() {
-        // Only && and || get the author-preserve treatment. Arithmetic operators render flat.
         final var input = "class X { int n(int a, int b) { return a + b * 2; } }";
         final var expected = """
             class X {

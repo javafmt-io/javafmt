@@ -57,8 +57,7 @@ class CompileCheckTest {
 
     @Test
     void moduleDeclarationIsSkipped() {
-        assertThat(CompileCheck.check("module com.example.app {\n    requires java.base;\n}\n"))
-                .isInstanceOf(CompileCheck.Outcome.Skipped.class);
+        assertThat(CompileCheck.check("module com.example.app {\n    requires java.base;\n}\n")).isInstanceOf(CompileCheck.Outcome.Skipped.class);
     }
 
     @Test

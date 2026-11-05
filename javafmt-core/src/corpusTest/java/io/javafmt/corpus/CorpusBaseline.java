@@ -33,8 +33,7 @@ record CorpusBaseline(String os, Set<String> perOsKeys, int files, int unparseab
             throw new UncheckedIOException("cannot read " + RESOURCE, e);
         }
         final var os = os(System.getProperty("os.name", ""));
-        final var perOsKeys = properties.stringPropertyNames()
-                .stream()
+        final var perOsKeys = properties.stringPropertyNames().stream()
                 .filter(name -> name.endsWith("." + os))
                 .map(name -> name.substring(0, name.length() - os.length() - 1))
                 .collect(Collectors.toUnmodifiableSet());

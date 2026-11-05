@@ -60,12 +60,10 @@ class SourceFilesTest {
         try {
             final var discovery = SourceFiles.discover(dir);
             assertThat(discovery.files()).containsExactly(dir.resolve("Open.java"));
-            assertThat(discovery.unreadable())
-                    .singleElement()
-                    .satisfies(u -> {
-                        assertThat(u.path()).isEqualTo(unreadable);
-                        assertThat(u.error()).isInstanceOf(AccessDeniedException.class);
-                    });
+            assertThat(discovery.unreadable()).singleElement().satisfies(u -> {
+                assertThat(u.path()).isEqualTo(unreadable);
+                assertThat(u.error()).isInstanceOf(AccessDeniedException.class);
+            });
         } finally {
             Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("rwx------"));
         }
@@ -76,9 +74,7 @@ class SourceFilesTest {
         final var unreadable = Files.createDirectory(dir.resolve("locked"));
         Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("---------"));
         try {
-            assertThatThrownBy(() -> SourceFiles.walk(dir))
-                    .isInstanceOf(UncheckedIOException.class)
-                    .hasCauseInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> SourceFiles.walk(dir)).isInstanceOf(UncheckedIOException.class).hasCauseInstanceOf(AccessDeniedException.class);
         } finally {
             Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("rwx------"));
         }

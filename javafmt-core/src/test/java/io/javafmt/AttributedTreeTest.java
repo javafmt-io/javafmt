@@ -115,16 +115,14 @@ class AttributedTreeTest {
         final var source = "class Order {   }\n";
         final var failed = new FormatResult(source, List.of(new Diagnostic.InternalError("boom", new Position.Unknown())));
         final var results = BatchFormatter.retriedWithoutClasspath(List.of(source), List.of(failed), ANALYZE, BatchFormatter.Renderer.INLINE);
-        assertThat(results)
-                .singleElement()
-                .satisfies(result -> {
-                    assertThat(result.output()).isEqualTo("class Order {}\n");
-                    assertThat(result.diagnostics())
-                            .singleElement()
-                            .isInstanceOf(Diagnostic.Warning.class)
-                            .extracting(Diagnostic::message, InstanceOfAssertFactories.STRING)
-                            .contains("boom", "without the rules that need resolved types");
-                });
+        assertThat(results).singleElement().satisfies(result -> {
+            assertThat(result.output()).isEqualTo("class Order {}\n");
+            assertThat(result.diagnostics())
+                    .singleElement()
+                    .isInstanceOf(Diagnostic.Warning.class)
+                    .extracting(Diagnostic::message, InstanceOfAssertFactories.STRING)
+                    .contains("boom", "without the rules that need resolved types");
+        });
     }
 
     @Test

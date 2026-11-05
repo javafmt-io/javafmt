@@ -97,13 +97,9 @@ class CorpusGateTest {
 
     private static Path sourceZip() {
         final var configured = System.getProperty("javafmt.corpus.srczip");
-        assertThat(configured)
-                .describedAs("javafmt.corpus.srczip is unset; run this suite through gradle :javafmt-core:corpusTest")
-                .isNotNull();
+        assertThat(configured).describedAs("javafmt.corpus.srczip is unset; run this suite through gradle :javafmt-core:corpusTest").isNotNull();
         final var path = Path.of(configured);
-        assertThat(path)
-                .describedAs("the toolchain at %s ships no lib/src.zip, so there is no corpus to format", path)
-                .exists();
+        assertThat(path).describedAs("the toolchain at %s ships no lib/src.zip, so there is no corpus to format", path).exists();
         return path;
     }
 
@@ -125,9 +121,6 @@ class CorpusGateTest {
                 corpus.count(o -> o.formatted() && !o.idempotent()), BASELINE.notIdempotent(),
                 corpus.count(o -> o.formatted() && o.overWidthLines() > 0), BASELINE.overWidth(),
                 corpus.outcomes().stream().mapToLong(FileOutcome::overWidthLines).sum(), corpus.totalMillis(), PER_FILE_BUDGET_MILLIS,
-                corpus.slowest(SLOWEST_REPORTED)
-                        .stream()
-                        .map(o -> "    %5d ms  %s%n".formatted(o.millis(), o.name()))
-                        .collect(Collectors.joining()));
+                corpus.slowest(SLOWEST_REPORTED).stream().map(o -> "    %5d ms  %s%n".formatted(o.millis(), o.name())).collect(Collectors.joining()));
     }
 }

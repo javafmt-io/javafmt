@@ -202,9 +202,7 @@ class CliTest {
         for (final var name : filenames) {
             final var actual = Files.readString(dir.resolve(name));
             if (expectedRewritten.contains(name)) {
-                assertThat(actual)
-                        .as("expected rewritten: %s", name)
-                        .isEqualTo(Fixtures.FORMATTED_FOO);
+                assertThat(actual).as("expected rewritten: %s", name).isEqualTo(Fixtures.FORMATTED_FOO);
             } else {
                 assertThat(actual).as("expected skipped: %s", name).isEqualTo(unformatted);
             }
@@ -366,9 +364,7 @@ class CliTest {
         // the pipeline reports success while the file needs reformatting.
         final var run = runStdin(Fixtures.UNFORMATTED_FOO, "--check");
         assertThat(run.exit()).isOne();
-        assertThat(run.out())
-                .as("check mode must not print the reformatted source")
-                .isEmpty();
+        assertThat(run.out()).as("check mode must not print the reformatted source").isEmpty();
     }
 
     @Test
@@ -386,9 +382,7 @@ class CliTest {
         final var run = run(dir.toString());
         assertThat(run.exit()).isZero();
         assertThat(Files.readString(a)).isEqualTo(Fixtures.FORMATTED_A);
-        assertThat(Files.readString(notJava))
-                .as("non-Java files are left alone")
-                .isEqualTo("# not java\n");
+        assertThat(Files.readString(notJava)).as("non-Java files are left alone").isEqualTo("# not java\n");
     }
 
     @ParameterizedTest
@@ -429,10 +423,7 @@ class CliTest {
         };
         final var run = runStdin(exhausted);
         assertThat(run.exit()).isEqualTo(2);
-        assertThat(run.err())
-                .contains("javafmt: out of memory (Java heap space)")
-                .contains("-Xmx")
-                .doesNotContain("\tat ");
+        assertThat(run.err()).contains("javafmt: out of memory (Java heap space)").contains("-Xmx").doesNotContain("\tat ");
     }
 
     @Test
@@ -450,10 +441,7 @@ class CliTest {
         };
         final var run = runStdin(failing);
         assertThat(run.exit()).isEqualTo(2);
-        assertThat(run.err())
-                .contains("stdin")
-                .contains("pipe burst")
-                .doesNotContain("file a bug");
+        assertThat(run.err()).contains("stdin").contains("pipe burst").doesNotContain("file a bug");
     }
 
     @Test
@@ -645,9 +633,7 @@ class CliTest {
         final var file = dir.resolve("A.java");
         Files.writeString(file, Fixtures.UNFORMATTED_A);
         final var run = run("--", "-", file.toString());
-        assertThat(run.err())
-                .doesNotContain("cannot be combined")
-                .contains("-: read failed: no such file");
+        assertThat(run.err()).doesNotContain("cannot be combined").contains("-: read failed: no such file");
         assertThat(Files.readString(file)).isEqualTo(Fixtures.FORMATTED_A);
     }
 

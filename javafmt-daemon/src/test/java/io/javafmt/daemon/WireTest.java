@@ -59,8 +59,7 @@ class WireTest {
     void aReplySplitAfterTheFirstByteOfItsLengthIsReadWhole() {
         final var bytes = DaemonFixtures.bytes(List.of(DaemonFixtures.LARGE_REPLY_HEX));
         final var split = new SequenceInputStream(new ByteArrayInputStream(bytes, 0, 1), new ByteArrayInputStream(bytes, 1, bytes.length - 1));
-        assertThat(Wire.BINARY.frames(split).map(HexFormat.of()::formatHex).toList())
-                .containsExactly(DaemonFixtures.LARGE_REPLY_HEX.substring(4));
+        assertThat(Wire.BINARY.frames(split).map(HexFormat.of()::formatHex).toList()).containsExactly(DaemonFixtures.LARGE_REPLY_HEX.substring(4));
     }
 
     @Test

@@ -60,11 +60,7 @@ public final class EnumTrailingComma implements LintRule {
     }
 
     private static Optional<LintEdit> editFor(final ClassTree node, final int column, final ParsedUnit unit) {
-        final var constants = node.getMembers()
-                .stream()
-                .filter(m -> isConstant(unit, m))
-                .map(VariableTree.class::cast)
-                .toList();
+        final var constants = node.getMembers().stream().filter(m -> isConstant(unit, m)).map(VariableTree.class::cast).toList();
         if (constants.isEmpty()) {
             return Optional.empty();
         }
@@ -112,9 +108,7 @@ public final class EnumTrailingComma implements LintRule {
             return false;
         }
         final var header = SourceLayout.flatten(unit.source().substring(enumStart, firstConstantStart));
-        final var body = constants.stream()
-                .map(c -> SourceLayout.flatten(unit.source().substring(unit.startOf(c), unit.endOf(c))))
-                .toList();
+        final var body = constants.stream().map(c -> SourceLayout.flatten(unit.source().substring(unit.startOf(c), unit.endOf(c)))).toList();
         final var oneLine = header + " " + String.join(", ", body) + " }";
         return SourceLayout.fits(column, oneLine.length());
     }
@@ -124,8 +118,6 @@ public final class EnumTrailingComma implements LintRule {
      * no position. Same test {@code TreeFacts.isEnumConstant} uses.
      */
     private static boolean isConstant(final ParsedUnit unit, final Tree member) {
-        return member instanceof VariableTree v
-            && v.getType() != null
-            && unit.endOf(v.getType()) < 0;
+        return member instanceof VariableTree v && v.getType() != null && unit.endOf(v.getType()) < 0;
     }
 }

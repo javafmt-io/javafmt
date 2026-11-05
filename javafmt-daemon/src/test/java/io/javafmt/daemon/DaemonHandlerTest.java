@@ -40,14 +40,12 @@ class DaemonHandlerTest {
         final var source = "class Foo {{{";
         final var reply = DaemonHandler.handle(request(2, source));
         assertThat(reply.getOutput()).isEqualTo(source);
-        assertThat(reply.getDiagnosticsList())
-                .first()
-                .satisfies(d -> {
-                    assertThat(d.getSeverity()).isEqualTo(Severity.SEVERITY_ERROR);
-                    assertThat(d.getKind()).isEqualTo(Kind.KIND_PARSE);
-                    assertThat(d.getLine()).isPositive();
-                    assertThat(d.getColumn()).isPositive();
-                });
+        assertThat(reply.getDiagnosticsList()).first().satisfies(d -> {
+            assertThat(d.getSeverity()).isEqualTo(Severity.SEVERITY_ERROR);
+            assertThat(d.getKind()).isEqualTo(Kind.KIND_PARSE);
+            assertThat(d.getLine()).isPositive();
+            assertThat(d.getColumn()).isPositive();
+        });
     }
 
     @Test
@@ -85,11 +83,7 @@ class DaemonHandlerTest {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
         final var reply = DaemonHandler.handle(
-                request(6, STAR_IMPORT)
-                        .toBuilder()
-                        .setClasspath("")
-                        .setPath(dir.resolve("src/Order.java").toString())
-                        .build());
+                request(6, STAR_IMPORT).toBuilder().setClasspath("").setPath(dir.resolve("src/Order.java").toString()).build());
         assertThat(reply.getOutput()).contains("import java.util.*;");
     }
 
@@ -99,13 +93,11 @@ class DaemonHandlerTest {
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=FinalParameters\n");
         final var reply = DaemonHandler.handle(request(7, STAR_IMPORT).toBuilder().setPath(dir.resolve("Order.java").toString()).build());
         assertThat(reply.getOutput()).isEqualTo(STAR_IMPORT);
-        assertThat(reply.getDiagnosticsList())
-                .singleElement()
-                .satisfies(d -> {
-                    assertThat(d.getSeverity()).isEqualTo(Severity.SEVERITY_ERROR);
-                    assertThat(d.getKind()).isEqualTo(Kind.KIND_CONFIG);
-                    assertThat(d.getMessage()).contains("FinalParameters");
-                });
+        assertThat(reply.getDiagnosticsList()).singleElement().satisfies(d -> {
+            assertThat(d.getSeverity()).isEqualTo(Severity.SEVERITY_ERROR);
+            assertThat(d.getKind()).isEqualTo(Kind.KIND_CONFIG);
+            assertThat(d.getMessage()).contains("FinalParameters");
+        });
         assertThat(DaemonFixtures.violations(reply)).isEmpty();
     }
 

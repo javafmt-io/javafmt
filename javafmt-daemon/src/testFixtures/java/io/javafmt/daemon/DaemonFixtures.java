@@ -48,10 +48,7 @@ public final class DaemonFixtures {
 
     public static List<String> hexFrames(final byte[] stream) {
         final var in = CodedInputStream.newInstance(stream);
-        return Stream.generate(() -> frame(in, stream))
-                .takeWhile(Optional::isPresent)
-                .map(Optional::orElseThrow)
-                .toList();
+        return Stream.generate(() -> frame(in, stream)).takeWhile(Optional::isPresent).map(Optional::orElseThrow).toList();
     }
 
     private static Optional<String> frame(final CodedInputStream in, final byte[] stream) {

@@ -99,9 +99,7 @@ class GitRatchetTest {
     @Test
     void aRefThatLooksLikeAnOptionIsAnUnknownRef() {
         committedRepository();
-        assertThatThrownBy(() -> GitRatchet.since("--all", dir))
-                .isInstanceOf(GitRatchetException.class)
-                .hasMessage("unknown git ref: --all");
+        assertThatThrownBy(() -> GitRatchet.since("--all", dir)).isInstanceOf(GitRatchetException.class).hasMessage("unknown git ref: --all");
     }
 
     @Test

@@ -37,21 +37,17 @@ class CommentScannerTest {
     class EofEdgeCases {
         @Test
         void lineCommentAtEofWithoutTrailingNewlineIsCaptured() {
-            assertThat(texts("class C {} // trailing"))
-                    .singleElement()
-                    .isEqualTo("// trailing");
+            assertThat(texts("class C {} // trailing")).singleElement().isEqualTo("// trailing");
         }
 
         @Test
         void unterminatedBlockCommentAtEofIsCapturedToEnd() {
             final var source = "class C {} /* unterminated";
             final var tokens = CommentScanner.scan(source);
-            assertThat(tokens)
-                    .singleElement()
-                    .satisfies(t -> {
-                        assertThat(t.text()).startsWith("/* unterminated");
-                        assertThat(t.end()).isEqualTo(source.length());
-                    });
+            assertThat(tokens).singleElement().satisfies(t -> {
+                assertThat(t.text()).startsWith("/* unterminated");
+                assertThat(t.end()).isEqualTo(source.length());
+            });
         }
     }
 

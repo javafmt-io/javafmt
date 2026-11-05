@@ -22,17 +22,6 @@ interface Recursor extends LeadingCommentAttacher {
     @Nullable
     Doc scanNullable(Tree node);
 
-    /**
-     * Scans {@code node} with compact context active for the subtree. While compact, nested
-     * method-chain and logical-chain renderers skip their 80-char break heuristics and ignore
-     * author-broke layout — they only break when a hard newline or the 150-char line width
-     * forces it. Used by the logical-chain renderer when it has already chosen to break on
-     * every operator, so each operand renders on a single line if it possibly can.
-     */
-    Doc scanCompact(Tree node);
-
-    boolean inCompactContext();
-
     void emitWarning(String message, Tree at);
 
     boolean isVarargs(VariableTree param);

@@ -89,9 +89,7 @@ class BoundedMemoryTest {
     @Test
     void filesAreFormattedSliceBySliceAsTheResultsAreConsumed(@TempDir final Path dir) throws IOException {
         final var padding = "/*" + "x".repeat(3 * MEGABYTE) + "*/\n";
-        final var paths = IntStream.range(0, 3)
-                .mapToObj(i -> dir.resolve("Order" + i + ".java"))
-                .toList();
+        final var paths = IntStream.range(0, 3).mapToObj(i -> dir.resolve("Order" + i + ".java")).toList();
         paths.forEach(path -> write(path, "class " + path.getFileName().toString().replace(".java", "") + " {}\n" + padding));
         final var asked = ConcurrentHashMap.<Path>newKeySet();
         final var cache = new FormatCache() {
@@ -116,9 +114,7 @@ class BoundedMemoryTest {
 
     @Test
     void theLazyResultsAreTheResultsInPathOrder(@TempDir final Path dir) {
-        final var paths = IntStream.range(0, 40)
-                .mapToObj(i -> dir.resolve("Invoice" + i + ".java"))
-                .toList();
+        final var paths = IntStream.range(0, 40).mapToObj(i -> dir.resolve("Invoice" + i + ".java")).toList();
         paths.forEach(path -> write(path, "class   " + path.getFileName().toString().replace(".java", "") + " {}\n"));
         try (final var results = Javafmt.formatFilesLazily(paths, JavafmtConfig.defaults(), FormatCache.noop(), 4)) {
             assertThat(results.toList()).isEqualTo(Javafmt.formatFiles(paths, JavafmtConfig.defaults(), FormatCache.noop(), 4));
@@ -128,9 +124,7 @@ class BoundedMemoryTest {
     @Test
     void batchesAttributedAtTheSameTimeGiveTheResultsOfBatchesAttributedOneAfterAnother(@TempDir final Path dir) {
         final var padding = "/*" + "x".repeat(3 * MEGABYTE) + "*/\n";
-        final var paths = IntStream.range(0, 3)
-                .mapToObj(i -> dir.resolve("Customer" + i + ".java"))
-                .toList();
+        final var paths = IntStream.range(0, 3).mapToObj(i -> dir.resolve("Customer" + i + ".java")).toList();
         paths.forEach(path -> write(path, "class   " + path.getFileName().toString().replace(".java", "") + " {   }\n" + padding));
         try (
                 final var together = BatchFormatter.formatFilesLazily(paths, ANALYZE, FormatCache.noop(), 4, 3);
