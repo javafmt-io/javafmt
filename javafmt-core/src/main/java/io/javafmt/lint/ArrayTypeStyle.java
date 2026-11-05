@@ -4,10 +4,14 @@ import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Enforces Java-style array notation: {@code String[] arguments} instead of C-style
@@ -62,14 +66,12 @@ public final class ArrayTypeStyle implements LintRule {
         if (nameIndex < 0) {
             return Optional.empty();
         }
-        final var afterNameInType = typeSrc.substring(nameIndex + name.length());
-        final var brackets = extractBracketSuffix(afterNameInType);
-        if (brackets.isEmpty()) {
-            return Optional.empty();
-        }
-        final var typeBeforeName = typeSrc.substring(0, nameIndex).stripTrailing();
-        final var replacement = typeBeforeName + brackets + " " + name;
-        return Optional.of(new LintEdit(typeStart, typeEnd, replacement));
+        return bracketSuffix(typeSrc.substring(nameIndex + name.length()))
+                .map(
+                        suffix -> new LintEdit(
+                                typeStart, typeEnd,
+                                typeSrc.substring(0, nameIndex).stripTrailing() + "[]".repeat(suffix.dimensions()) + " " + name
+                                        + suffix.comments().stream().map(comment -> " " + comment).collect(Collectors.joining())));
     }
 
     /**
@@ -135,18 +137,41 @@ public final class ArrayTypeStyle implements LintRule {
      * (e.g. {@code int} inside {@code intx}) rather than as the declarator, so that's rejected too.
      */
     private static int indexOfCStyleName(final String typeSrc, final String name) {
-        final var nameIndex = typeSrc.lastIndexOf(name);
-        if (nameIndex < 0 || (nameIndex > 0 && Character.isJavaIdentifierPart(typeSrc.charAt(nameIndex - 1)))) {
-            return -1;
-        }
-        return nameIndex;
+        final var comments = CommentScanner.scan(typeSrc);
+        final var nameIndex = IntStream.iterate(
+                typeSrc.lastIndexOf(name), index -> index >= 0, index -> index == 0 ? -1 : typeSrc.lastIndexOf(name, index - 1))
+                .filter(index -> comments.stream().noneMatch(comment -> comment.start() <= index && index < comment.end()))
+                .findFirst()
+                .orElse(-1);
+        return nameIndex > 0 && Character.isJavaIdentifierPart(typeSrc.charAt(nameIndex - 1)) ? -1 : nameIndex;
     }
 
-    private static String extractBracketSuffix(final String afterName) {
-        return afterName.chars()
-                .takeWhile(ch -> ch == '[' || ch == ']' || Character.isWhitespace(ch))
-                .filter(ch -> ch == '[' || ch == ']')
-                .mapToObj(ch -> String.valueOf((char) ch))
-                .collect(Collectors.joining());
+    private static Optional<BracketSuffix> bracketSuffix(final String afterName) {
+        final var comments = new ArrayList<String>();
+        var dimensions = 0;
+        var open = false;
+        var index = 0;
+        while (index < afterName.length()) {
+            final var character = afterName.charAt(index);
+            final var commentEnd = CommentScanner.skipComment(afterName, index);
+            if (commentEnd >= 0) {
+                comments.add(afterName.substring(index, commentEnd).strip());
+                index = commentEnd;
+            } else if (Character.isWhitespace(character)) {
+                index++;
+            } else if (character == '[' && !open) {
+                open = true;
+                index++;
+            } else if (character == ']' && open) {
+                open = false;
+                dimensions++;
+                index++;
+            } else {
+                return Optional.empty();
+            }
+        }
+        return open || dimensions == 0 ? Optional.empty() : Optional.of(new BracketSuffix(dimensions, List.copyOf(comments)));
     }
+
+    private record BracketSuffix(int dimensions, List<String> comments) {}
 }

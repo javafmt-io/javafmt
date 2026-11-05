@@ -99,42 +99,6 @@ public sealed interface Doc
     }
 
     /**
-     * Whether {@code doc} already contains somewhere a point at which the printer can, or must,
-     * start a new line. Renderers use this to avoid introducing a break of their own when the
-     * operand is able to absorb one: breaking after the {@code =} of an assignment whose value is
-     * a wrappable call or operator chain only buys an extra indent level, since the value's own
-     * group would have taken the break anyway.
-     */
-    static boolean canBreakInternally(final Doc doc) {
-        final var work = new ArrayDeque<Doc>();
-        work.push(doc);
-        while (!work.isEmpty()) {
-            switch (work.pop()) {
-                case Line(), SoftLine(), HardLine(), LineStart(), BlockComment _ -> {
-                    return true;
-                }
-                case Verbatim(var s, var _) -> {
-                    if (s.indexOf('\n') >= 0) {
-                        return true;
-                    }
-                }
-                case Text _ -> {}
-                case Indent(var inner) -> work.push(inner);
-                case Align(var inner) -> work.push(inner);
-                case Group(var inner, var _) -> work.push(inner);
-                case IfBreak(var breakContents, var _) -> work.push(breakContents);
-                case Choice(var preferred, var fallback, var _) -> {
-                    work.push(preferred);
-                    work.push(fallback);
-                }
-                case Concat(var ps) -> ps.forEach(work::push);
-                case Fill(var ps) -> ps.forEach(work::push);
-            }
-        }
-        return false;
-    }
-
-    /**
      * Wraps {@code contents} in a continuation indent — two block indents (2 × INDENT_SIZE).
      * Used for wrapped continuations of a single logical line (argument lists,
      * {@code extends}/{@code implements}/{@code permits} and {@code throws} clauses, method
@@ -285,7 +249,7 @@ public sealed interface Doc
             this(preferred, fallback, Fit.EVERY_LINE);
         }
 
-        public enum Fit { EVERY_LINE, OPENING_LINE }
+        public enum Fit { EVERY_LINE, OPENING_LINE, FIRST_BREAK }
     }
 
     record Fill(List<Doc> parts) implements Doc {

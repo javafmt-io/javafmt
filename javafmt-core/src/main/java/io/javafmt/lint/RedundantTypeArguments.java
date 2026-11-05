@@ -13,6 +13,7 @@ import com.sun.source.util.TreePath;
 import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.Attribution;
 import io.javafmt.parser.ChainPathScanner;
+import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
 
@@ -159,7 +160,7 @@ public final class RedundantTypeArguments implements LintRule {
         while (ltPos < src.length() && Character.isWhitespace(src.charAt(ltPos))) {
             ltPos++;
         }
-        if (ltPos >= src.length() || src.charAt(ltPos) != '<') {
+        if (ltPos >= src.length() || src.charAt(ltPos) != '<' || !CommentScanner.scan(src.substring(ltPos, typeEnd)).isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(new LintEdit(ltPos, typeEnd, "<>"));
@@ -187,7 +188,10 @@ public final class RedundantTypeArguments implements LintRule {
         while (gt < src.length() && Character.isWhitespace(src.charAt(gt))) {
             gt++;
         }
-        if (gt >= src.length() || src.charAt(gt) != '>' || src.substring(lt, gt).indexOf('@') >= 0) {
+        if (gt >= src.length()
+            || src.charAt(gt) != '>'
+            || src.substring(lt, gt).indexOf('@') >= 0
+            || !CommentScanner.scan(src.substring(lt, gt)).isEmpty()) {
             return Optional.empty();
         }
         final var nameStart = methodNameStart(node, unit);

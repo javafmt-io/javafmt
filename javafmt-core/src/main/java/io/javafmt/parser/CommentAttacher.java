@@ -7,6 +7,7 @@ import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ConditionalExpressionTree;
+import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ForLoopTree;
 import com.sun.source.tree.IfTree;
 import com.sun.source.tree.LiteralTree;
@@ -162,11 +163,18 @@ final class CommentAttacher {
     }
 
     private boolean sameLine(final String source, final int from, final int to) {
-        for (var i = from; i < to; i++) {
+        var i = from;
+        while (i < to) {
             final var c = source.charAt(i);
-            if (c != ' ' && c != '\t') {
+            if (c == ' ' || c == '\t') {
+                i++;
+                continue;
+            }
+            final var commentEnd = CommentScanner.skipComment(source, i);
+            if (commentEnd < 0 || commentEnd > to || source.startsWith("//", i) || source.substring(i, commentEnd).indexOf('\n') >= 0) {
                 return false;
             }
+            i = commentEnd;
         }
         return true;
     }
@@ -445,7 +453,7 @@ final class CommentAttacher {
 
         @Override
         protected void visitInvocation(final MethodInvocationTree node, final Void p) {
-            collectSeparatedList(node, pos.getEndPosition(cu, node.getMethodSelect()), node.getArguments());
+            collectArguments(node, pos.getEndPosition(cu, node.getMethodSelect()), node.getArguments());
             collectInsideEmptyArguments(node, pos.getEndPosition(cu, node.getMethodSelect()), node.getArguments());
             collectChainJoint(node);
         }
@@ -553,7 +561,7 @@ final class CommentAttacher {
 
         @Override
         public Void visitNewClass(final NewClassTree node, final Void p) {
-            collectSeparatedList(node, pos.getEndPosition(cu, node.getIdentifier()), node.getArguments());
+            collectArguments(node, pos.getEndPosition(cu, node.getIdentifier()), node.getArguments());
             collectInsideEmptyArguments(node, pos.getEndPosition(cu, node.getIdentifier()), node.getArguments());
             return super.visitNewClass(node, null);
         }
@@ -974,6 +982,18 @@ final class CommentAttacher {
          * {@link #visitNewArray} — because a comment routed there by a renderer that never asks for
          * it is a comment the output does not contain.
          */
+        private void collectArguments(final Tree call, final long argumentsLo, final List<? extends ExpressionTree> arguments) {
+            collectSeparatedList(call, argumentsLo, arguments);
+            if (arguments.isEmpty()) {
+                return;
+            }
+            final var lastEnd = pos.getEndPosition(cu, arguments.getLast());
+            final var callEnd = pos.getEndPosition(cu, call);
+            if (lastEnd >= 0 && callEnd > lastEnd) {
+                slots.add(new Slot(arguments.getLast(), call, lastEnd, callEnd, Kind.TAIL, Reach.SAME_LINE));
+            }
+        }
+
         private void collectSeparatedList(final Tree container, final long containerLo, final List<? extends Tree> children) {
             if (children.isEmpty()) {
                 return;

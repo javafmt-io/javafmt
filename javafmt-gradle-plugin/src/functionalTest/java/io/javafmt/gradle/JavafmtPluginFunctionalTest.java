@@ -30,7 +30,8 @@ class JavafmtPluginFunctionalTest {
 
     private static final String PROBLEMS_REPORT = "build/reports/problems/problems-report.html";
 
-    private static final String WARNED_SOURCE = "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
+    private static final String WARNED_SOURCE =
+            "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
 
     @Test
     void formatRewritesEveryJavaSourceSetInPlace(@TempDir final Path dir) {

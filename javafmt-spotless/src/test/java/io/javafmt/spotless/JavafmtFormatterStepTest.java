@@ -30,7 +30,8 @@ class JavafmtFormatterStepTest {
     private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Foo {\n    List<String> xs;\n}\n";
 
     /** The type witness on {@code of} is redundant, but only a rule with resolved types can tell. */
-    private static final String TYPE_WITNESS_SOURCE = "import java.util.stream.Stream;\n\nclass Foo {\n    Stream<String> xs = Stream.<String>of(\"a\");\n}\n";
+    private static final String TYPE_WITNESS_SOURCE =
+            "import java.util.stream.Stream;\n\nclass Foo {\n    Stream<String> xs = Stream.<String>of(\"a\");\n}\n";
 
     @Test
     void applyOnValidSourceReturnsFormattedOutput() {

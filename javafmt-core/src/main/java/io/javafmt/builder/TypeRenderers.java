@@ -25,10 +25,14 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @UtilityClass
 final class TypeRenderers {
+    private final int TAB_WIDTH = 4;
+
     Doc renderIdentifier(final IdentifierTree node) {
         return new Doc.Text(node.getName().toString());
     }
@@ -42,7 +46,25 @@ final class TypeRenderers {
         if (text.indexOf('\n') < 0 && text.indexOf('\r') < 0) {
             return new Doc.Text(text);
         }
-        return new Doc.Verbatim(text, sourceColumnOf(node, unit));
+        if (text.contains("\"\"\"")) {
+            return new Doc.Verbatim(text, sourceColumnOf(node, unit));
+        }
+        final var lines = text.split("\n", -1);
+        final var expanded = IntStream.range(0, lines.length)
+                .mapToObj(i -> i == 0 ? lines[i] : withTabsExpandedInTheIndent(lines[i]))
+                .collect(Collectors.joining("\n"));
+        final var start = unit.startOf(node);
+        final var source = unit.source();
+        return new Doc.Verbatim(expanded, expandedWidth(source.substring(source.lastIndexOf('\n', start - 1) + 1, start)));
+    }
+
+    private String withTabsExpandedInTheIndent(final String line) {
+        final var indentEnd = (int) line.chars().takeWhile(c -> c == ' ' || c == '\t').count();
+        return " ".repeat(expandedWidth(line.substring(0, indentEnd))) + line.substring(indentEnd);
+    }
+
+    private int expandedWidth(final String text) {
+        return text.chars().reduce(0, (column, c) -> c == '\t' ? (column / TAB_WIDTH + 1) * TAB_WIDTH : column + 1);
     }
 
     /**
@@ -159,17 +181,27 @@ final class TypeRenderers {
      * {@code byte @A [][]} are different types, and recursing inward instead swapped them.
      */
     private Doc renderArrayDimensions(final Tree type, final Recursor recursor) {
+        return renderDimensions(type, "[]", recursor);
+    }
+
+    Doc renderVarargsType(final Tree type, final Recursor recursor) {
+        return renderDimensions(type, "...", recursor);
+    }
+
+    private Doc renderDimensions(final Tree type, final String innermost, final Recursor recursor) {
         final var levels = Stream.<@Nullable Tree>iterate(type, Objects::nonNull, TypeRenderers::componentOf).map(Objects::requireNonNull).toList();
-        final var brackets = levels.subList(0, levels.size() - 1).stream().map(level -> bracketsOf(level, recursor));
+        final var dimensions = levels.size() - 1;
+        final var brackets = IntStream.range(0, dimensions)
+                .mapToObj(i -> bracketsOf(levels.get(i), i + 1 == dimensions ? innermost : "[]", recursor));
         return Doc.concatOf(Stream.of(Stream.of(recursor.scan(levels.getLast())), brackets));
     }
 
-    private Doc bracketsOf(final Tree level, final Recursor recursor) {
+    private Doc bracketsOf(final Tree level, final String brackets, final Recursor recursor) {
         if (!(level instanceof AnnotatedTypeTree annotated)) {
-            return new Doc.Text("[]");
+            return new Doc.Text(brackets);
         }
         final var annotations = annotated.getAnnotations().stream().flatMap(a -> Stream.of(new Doc.Text(" "), recursor.scan(a)));
-        return Doc.concatOf(Stream.of(annotations, Stream.of(new Doc.Text(" []"))));
+        return Doc.concatOf(Stream.of(annotations, Stream.of(new Doc.Text(" " + brackets))));
     }
 
     @Nullable

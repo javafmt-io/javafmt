@@ -12,7 +12,7 @@ final class ConstructorRenderer {
         final var preamble = ModifierRenderer.preambleOf(modifiers, typeParameters, recursor);
         final var name = new Doc.Text(className);
         final var leading = MethodRenderer.buildLeading(preamble.prefix(), typeParameters, name, recursor);
-        final var signature = MethodRenderer.renderSignature(leading, node.getParameters(), node.getThrows(), recursor);
+        final var signature = MethodRenderer.renderSignature(leading, MethodRenderer.parametersOf(node), node.getThrows(), recursor);
         final var signatureDoc = MethodRenderer.appendBody(signature, node, recursor);
         return ModifierRenderer.finish(preamble, signatureDoc, recursor);
     }

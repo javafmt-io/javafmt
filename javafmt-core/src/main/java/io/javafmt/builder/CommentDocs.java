@@ -147,14 +147,16 @@ final class CommentDocs {
     }
 
     Doc commaFill(final List<? extends Tree> items, final List<Doc> renderedWithCommas, final LeadingCommentAttacher attacher) {
+        return commaFill(renderedWithCommas, items.stream().map(attacher::pastTheSeparatorBefore).toList());
+    }
+
+    Doc commaFill(final List<Doc> renderedWithCommas, final List<List<CommentToken>> pastTheSeparator) {
         return new Doc.Fill(
-                IntStream.range(0, items.size())
+                IntStream.range(0, renderedWithCommas.size())
                         .boxed()
                         .flatMap(
                                 i -> Stream.concat(
-                                        i == 0
-                                                ? Stream.empty()
-                                                : Stream.of(afterComma(renderedWithCommas.get(i - 1), attacher.pastTheSeparatorBefore(items.get(i)))),
+                                        i == 0 ? Stream.empty() : Stream.of(afterComma(renderedWithCommas.get(i - 1), pastTheSeparator.get(i))),
                                         Stream.of(renderedWithCommas.get(i))))
                         .toList());
     }

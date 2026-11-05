@@ -257,6 +257,23 @@ class PrinterTest {
                             80, Doc.concat(new Doc.Text("a"), Doc.LINE, new Doc.Text("b")),
                             "call(\n    a\n    b,\n    x -> {\n        statementLongerThanTheLine();\n    })"));
         }
+
+        @ParameterizedTest
+        @MethodSource("firstBreakCases")
+        void firstBreakChoice_takesTheFallbackOnlyWhenItAloneFitsUpToTheFirstBreak(final int lineWidth, final String expected) {
+            final var value = new Doc.Group(
+                    Doc.concat(new Doc.Text("call("), new Doc.Indent(Doc.concat(Doc.SOFT_LINE, new Doc.Text("argument"))), new Doc.Text(")")));
+            final var preferred = Doc.concat(new Doc.Text(" = "), value);
+            final var fallback = Doc.concat(new Doc.Text(" ="), new Doc.Indent(new Doc.Indent(Doc.concat(Doc.HARD_LINE, value))));
+            final var doc = Doc.concat(new Doc.Text("longName"), new Doc.Choice(preferred, fallback, Doc.Choice.Fit.FIRST_BREAK));
+            assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
+        }
+
+        static Stream<Arguments> firstBreakCases() {
+            return Stream.of(
+                    Arguments.of(80, "longName = call(argument)"), Arguments.of(16, "longName = call(\n    argument)"),
+                    Arguments.of(15, "longName =\n        call(\n            argument)"), Arguments.of(12, "longName = call(\n    argument)"));
+        }
     }
 
     @Nested

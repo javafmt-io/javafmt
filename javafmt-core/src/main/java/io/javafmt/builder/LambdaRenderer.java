@@ -52,9 +52,14 @@ final class LambdaRenderer {
      */
     private Doc renderParam(final VariableTree param, final Recursor recursor) {
         final var modifiers = ModifierRenderer.prefixOf(param.getModifiers(), recursor);
-        if (param.getType() == null) {
+        if (param.getType() == null && !declaredWithVar(param, recursor)) {
             return Doc.concat(modifiers, new Doc.Text(Names.of(param)));
         }
-        return Doc.concat(modifiers, recursor.scan(param.getType()), new Doc.Text(" " + Names.of(param)));
+        return Doc.concat(modifiers, MethodRenderer.typeAndName(param, recursor));
+    }
+
+    private boolean declaredWithVar(final VariableTree param, final Recursor recursor) {
+        final var span = recursor.sourceSpan(param);
+        return span.length() > 3 && "var".contentEquals(span.subSequence(0, 3)) && !Character.isJavaIdentifierPart(span.charAt(3));
     }
 }

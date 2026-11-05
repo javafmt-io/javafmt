@@ -84,7 +84,7 @@ public final class DocBuilder {
 
     private final TreeFacts facts;
 
-    private final LeadingCommentAttacher attacher;
+    private final CommentAttacher attacher;
 
     private final List<Diagnostic> diagnostics = new ArrayList<>();
 
@@ -103,6 +103,12 @@ public final class DocBuilder {
         public Doc scanBeforeComments(final Tree node, final UnaryOperator<Doc> adjust) {
             Objects.requireNonNull(node, "node");
             return Objects.requireNonNull(DocBuilder.this.scan(node, adjust));
+        }
+
+        @Override
+        public Doc scanLeavingTrailing(final Tree node, final UnaryOperator<Doc> adjust) {
+            Objects.requireNonNull(node, "node");
+            return DocBuilder.this.scan(node, adjust, false);
         }
 
         @Override
@@ -244,16 +250,23 @@ public final class DocBuilder {
     }
 
     private Doc scan(final Tree tree, final UnaryOperator<Doc> adjust) {
+        return scan(tree, adjust, true);
+    }
+
+    private Doc scan(final Tree tree, final UnaryOperator<Doc> adjust, final boolean withTrailing) {
         final var ready = prerendered.remove(tree);
+        final Doc doc;
         if (ready != null) {
             diagnostics.addAll(ready.diagnostics());
-            return attacher.attach(tree, adjust.apply(ready.doc()));
+            doc = adjust.apply(ready.doc());
+        } else {
+            final var reentry = reentryPoint(tree);
+            if (reentry != null) {
+                walk(reentry, DocBuilder::reentryPoint).toList().reversed().forEach(this::prerender);
+            }
+            doc = adjust.apply(dispatch(tree));
         }
-        final var reentry = reentryPoint(tree);
-        if (reentry != null) {
-            walk(reentry, DocBuilder::reentryPoint).toList().reversed().forEach(this::prerender);
-        }
-        return attacher.attach(tree, adjust.apply(dispatch(tree)));
+        return withTrailing ? attacher.attach(tree, doc) : attacher.attachLeading(tree, doc);
     }
 
     private void prerender(final Tree tree) {
@@ -455,10 +468,13 @@ public final class DocBuilder {
     private record CommentAttacher(ParsedUnit unit) implements LeadingCommentAttacher {
         @Override
         public Doc attach(final Tree node, final Doc doc) {
+            return CommentDocs.appendTrailing(attachLeading(node, doc), unit.trailingOf(node));
+        }
+
+        Doc attachLeading(final Tree node, final Doc doc) {
             final var leading = unit.leadingOf(node);
             final var inlineFrom = firstInlineComment(node, leading);
-            final var withLeading = CommentDocs.prepend(leading.subList(0, inlineFrom), leading.subList(inlineFrom, leading.size()), doc);
-            return CommentDocs.appendTrailing(withLeading, unit.trailingOf(node));
+            return CommentDocs.prepend(leading.subList(0, inlineFrom), leading.subList(inlineFrom, leading.size()), doc);
         }
 
         /**

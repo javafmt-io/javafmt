@@ -44,6 +44,22 @@ class RedundantTypeArgumentsAnalyzeTest {
     }
 
     @Test
+    void aWitnessHoldingACommentIsKept() {
+        final var source = """
+                import java.util.stream.Stream;
+                class Fixture {
+
+                    Stream<Integer> test() {
+                        return Stream.</* boxed */ Integer>of(1, 2, 3);
+                    }
+                }
+                """;
+        final var result = Javafmt.formatWithResult(source, ANALYZE.withVerifyOutput(true));
+        assertThat(result.diagnostics()).isEmpty();
+        assertThat(result.output()).contains("Stream.</* boxed */ Integer>of(1, 2, 3);");
+    }
+
+    @Test
     void optionalOfRedundantWitnessIsDropped() {
         final var source = """
                 import java.util.Optional;

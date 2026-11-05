@@ -1,10 +1,7 @@
 package io.javafmt.builder;
 
-import com.sun.source.tree.AnnotatedTypeTree;
-import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
@@ -30,9 +27,13 @@ final class MethodRenderer {
                         Stream.of(ModifierRenderer.annotationsAfterTypeParameters(modifiers, typeParameters, recursor)),
                         returnTypeDoc(node, recursor), Stream.of(new Doc.Text(node.getName().toString()))));
         final var leading = buildLeading(preamble.prefix(), typeParameters, afterTypeParams, recursor);
-        final var signature = renderSignature(leading, node.getParameters(), node.getThrows(), recursor);
+        final var signature = renderSignature(leading, parametersOf(node), node.getThrows(), recursor);
         final var signatureDoc = appendBody(signature, node, recursor);
         return ModifierRenderer.finish(preamble, signatureDoc, recursor);
+    }
+
+    List<VariableTree> parametersOf(final MethodTree node) {
+        return Stream.concat(Stream.ofNullable(node.getReceiverParameter()), node.getParameters().stream()).toList();
     }
 
     /**
@@ -93,35 +94,12 @@ final class MethodRenderer {
     }
 
     Doc typeAndName(final VariableTree p, final Recursor recursor) {
-        final var varargs = recursor.isVarargs(p) ? varargsElementType(p.getType(), recursor) : Optional.<Doc>empty();
-        if (varargs.isPresent()) {
-            return Doc.concat(varargs.get(), new Doc.Text("... " + Names.of(p)));
+        final var name = p.getNameExpression() == null ? new Doc.Text(Names.of(p)) : recursor.scan(p.getNameExpression());
+        if (p.getType() == null) {
+            return Doc.concat(new Doc.Text("var "), name);
         }
-        final var typeDoc = p.getType() == null ? new Doc.Text("var") : recursor.scan(p.getType());
-        return Doc.concat(typeDoc, new Doc.Text(" " + Names.of(p)));
-    }
-
-    /**
-     * Everything a varargs parameter writes before the {@code ...}: the element type, plus any
-     * type-use annotation on the array the ellipsis creates, which belongs between the two —
-     * {@code String @N ... arguments}. javac reports the parameter's type as that array, wrapped in an
-     * {@link AnnotatedTypeTree} when it carries an annotation, and rendering the wrapper as an
-     * ordinary type writes {@code String @N []} and loses the varargs outright.
-     */
-    private Optional<Doc> varargsElementType(@Nullable final Tree type, final Recursor recursor) {
-        if (type instanceof ArrayTypeTree arr) {
-            return Optional.of(recursor.scan(arr.getType()));
-        }
-        if (type instanceof AnnotatedTypeTree annotated && annotated.getUnderlyingType() instanceof ArrayTypeTree arr) {
-            return Optional.of(
-                    Doc.concatOf(
-                            Stream.of(
-                                    Stream.of(recursor.scan(arr.getType()), new Doc.Text(" ")),
-                                    annotated.getAnnotations()
-                                            .stream()
-                                            .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" "))))));
-        }
-        return Optional.empty();
+        final var typeDoc = recursor.isVarargs(p) ? TypeRenderers.renderVarargsType(p.getType(), recursor) : recursor.scan(p.getType());
+        return Doc.concat(typeDoc, new Doc.Text(" "), name);
     }
 
     Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor) {

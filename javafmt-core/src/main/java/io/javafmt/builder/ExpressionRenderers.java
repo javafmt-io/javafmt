@@ -145,17 +145,15 @@ final class ExpressionRenderers {
     }
 
     /**
-     * Breaks after the operator, leaving the right-hand side on its own continuation line — but only
-     * when the value has no break point of its own. A wrappable value (a call, an operator chain, a
-     * ternary) already breaks where it should, and breaking after the operator as well would just
-     * push the whole value down a line and in one indent level further.
+     * Breaks after the operator, leaving the right-hand side on its own continuation line, when the
+     * line up to the value's first break point does not fit beside the operator but does below it.
+     * Otherwise the value stays beside the operator and breaks where it should.
      */
     private Doc renderAssignmentLike(final Doc target, final String operator, final ExpressionTree value, final Recursor recursor) {
         final var valueDoc = recursor.scan(value);
-        if (Doc.canBreakInternally(valueDoc)) {
-            return Doc.concat(target, new Doc.Text(" " + operator + " "), valueDoc);
-        }
-        return new Doc.Group(Doc.concat(target, new Doc.Text(" " + operator), Doc.continuationIndent(Doc.concat(Doc.LINE, valueDoc))));
+        final var beside = Doc.concat(new Doc.Text(" " + operator + " "), valueDoc);
+        final var below = Doc.concat(new Doc.Text(" " + operator), Doc.continuationIndent(Doc.concat(Doc.HARD_LINE, valueDoc)));
+        return Doc.concat(target, new Doc.Choice(beside, below, Doc.Choice.Fit.FIRST_BREAK));
     }
 
     /** Breaks before both {@code ?} and {@code :} together, so the two arms line up. */

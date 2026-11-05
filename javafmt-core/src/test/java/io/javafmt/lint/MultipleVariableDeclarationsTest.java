@@ -116,11 +116,11 @@ class MultipleVariableDeclarationsTest {
     }
 
     @Test
-    void aCommentInsideTheSharedPrefixStopsTheSplit() {
-        // The prefix is copied once per declaration, so a comment inside it would come out several
-        // times over.
-        final var unit = JavaParser.parseUnit("class Fixture {\n    private /* why */ static int a = 1, b = 2;\n}\n");
-        assertThat(new MultipleVariableDeclarations().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
+    void aCommentInsideTheSharedPrefixStaysWithTheFirstDeclarationOnly() {
+        assertThat(split(inMethod("final /* why */ int a = 1, b = 2;")))
+                .containsOnlyOnce("/* why */")
+                .contains("final /* why */ int a = 1;")
+                .contains("int b = 2;");
     }
 
     @Test

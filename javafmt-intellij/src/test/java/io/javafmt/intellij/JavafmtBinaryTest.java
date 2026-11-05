@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.LockSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,17 +51,22 @@ class JavafmtBinaryTest {
     @Timeout(10)
     void aProbeInterruptedMidRunReturnsPromptlyEvenWhenTheBinaryIgnoresTermination(@TempDir final Path dir) throws Exception {
         final var pidFile = dir.resolve("pid");
-        final var fake = fakeBinaryScript(dir, "#!/bin/sh\necho $$ > '" + pidFile + "'\ntrap '' TERM\nwhile :; do sleep 1; done\n");
+        final var fake = fakeBinaryScript(
+                dir,
+                "#!/bin/sh\ntrap '' TERM\necho $$ > '" + pidFile + ".tmp'\nmv '" + pidFile + ".tmp' '" + pidFile + "'\nwhile :; do sleep 1; done\n");
         final var caller = Thread.currentThread();
+        final var interruptedAt = new CompletableFuture<Instant>();
         final var interrupter = Thread.ofPlatform()
                 .start(() -> {
-                    LockSupport.parkNanos(Duration.ofMillis(300).toNanos());
+                    while (!Files.exists(pidFile)) {
+                        LockSupport.parkNanos(Duration.ofMillis(10).toNanos());
+                    }
+                    interruptedAt.complete(Instant.now());
                     caller.interrupt();
                 });
-        final var started = Instant.now();
         try {
             assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
-            assertThat(Duration.between(started, Instant.now())).isLessThan(Duration.ofSeconds(2));
+            assertThat(Duration.between(interruptedAt.join(), Instant.now())).isLessThan(Duration.ofSeconds(2));
         } finally {
             Thread.interrupted();
             interrupter.join();
