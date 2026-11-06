@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 class Registry {
+
     private final Map<String, Integer> counts = new HashMap<>();
 
     private final Map<Long, Map<String, Integer>> orders = new HashMap<>();

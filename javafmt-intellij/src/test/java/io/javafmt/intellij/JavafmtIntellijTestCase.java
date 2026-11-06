@@ -25,6 +25,7 @@ import java.util.Objects;
 // on the JUnit Platform, so @RunInEdt (the platform's own JUnit 5 extension) restores it here.
 @RunInEdt(writeIntent = true)
 public abstract class JavafmtIntellijTestCase extends LightJavaCodeInsightFixtureTestCase {
+
     @Override
     protected void tearDown() throws Exception {
         try {

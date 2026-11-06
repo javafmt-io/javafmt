@@ -6,6 +6,7 @@ import java.lang.annotation.Target;
 @interface Marker {}
 
 class Ledger {
+
     @SuppressWarnings("unchecked" /* checked by the caller */)
     void settle() {}
 

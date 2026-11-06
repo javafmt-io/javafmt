@@ -3,7 +3,6 @@ package io.javafmt.builder;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
-import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
@@ -13,6 +12,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.function.UnaryOperator;
 
 interface Recursor extends LeadingCommentAttacher {
+
     Doc scan(Tree node);
 
     Doc scanBeforeComments(Tree node, UnaryOperator<Doc> adjust);
@@ -35,6 +35,8 @@ interface Recursor extends LeadingCommentAttacher {
      */
     boolean isEnumConstant(VariableTree member);
 
+    boolean isField(VariableTree variable);
+
     /**
      * Whether the source text immediately following {@code node} contains a newline before
      * the next non-whitespace character. Used to preserve annotation layout: an annotation
@@ -46,8 +48,6 @@ interface Recursor extends LeadingCommentAttacher {
     boolean followsAModifierKeyword(ModifiersTree modifiers, AnnotationTree annotation);
 
     boolean startsAfter(Tree node, Tree other);
-
-    boolean hasTrailingComma(NewArrayTree array);
 
     boolean hasEmptyArgumentList(AnnotationTree annotation);
 

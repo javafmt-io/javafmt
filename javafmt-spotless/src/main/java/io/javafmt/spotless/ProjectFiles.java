@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 
 record ProjectFiles(ProjectFile governing, List<ProjectFile> below, List<String> repositoryRoots) implements Serializable {
+
     ProjectFiles {
         Objects.requireNonNull(governing, "governing");
         below = List.copyOf(below);
@@ -36,6 +37,7 @@ record ProjectFiles(ProjectFile governing, List<ProjectFile> below, List<String>
     }
 
     private static final class Finder extends SimpleFileVisitor<Path> {
+
         private final Path root;
 
         private final List<Path> projectFiles = new ArrayList<>();

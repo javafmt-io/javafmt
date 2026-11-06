@@ -3,6 +3,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 class Fixture {
+
     Supplier<Object> ctor() {
         return Object::new;
     }

@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 @Service(Service.Level.APP)
 @State(name = "JavafmtApplicationSettings", storages = @Storage("javafmt.xml"))
 public final class JavafmtApplicationSettings implements PersistentStateComponent<JavafmtApplicationSettings> {
+
     @NonNull
     private Engine engine = Engine.IN_PROCESS;
 

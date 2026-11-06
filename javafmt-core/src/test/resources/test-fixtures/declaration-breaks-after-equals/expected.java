@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiFunction;
 
 class Registry {
+
     private static final ConcurrentMap<Class<? extends Comparable<String>>, ConcurrentMap<String, List<Map<String, Integer>>>> registeredCache =
             new ConcurrentHashMap<>();
     static final String NOTICE = "this string literal is long enough that moving it below its declaration would still leave the line past the width, so it stays where it was written";

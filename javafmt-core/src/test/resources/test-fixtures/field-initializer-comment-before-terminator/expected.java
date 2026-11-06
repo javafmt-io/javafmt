@@ -1,4 +1,5 @@
 class Fixture {
+
     static final int SHIPPED = 1;
 
     static final int PAID = 2;

@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 record FileScope(Optional<Path> path, JavafmtConfig.Analysis analysis) {
+
     FileScope {
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(analysis, "analysis");

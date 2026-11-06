@@ -1,4 +1,5 @@
 class Fixture {
+
     int sum(final int n, final int[] xs) {
         var total = 0;
         for (int i = 0, len = n; i < len; i++) {

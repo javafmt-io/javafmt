@@ -11,6 +11,7 @@ import java.util.Objects;
  */
 public sealed interface Diagnostic
         permits Diagnostic.ParseError, Diagnostic.LintError, Diagnostic.ConfigError, Diagnostic.InternalError, Diagnostic.Warning {
+
     /** A human-readable description of the issue. */
     String message();
 
@@ -62,6 +63,7 @@ public sealed interface Diagnostic
 
     /** The source could not be parsed. The input is at fault. */
     record ParseError(String message, Position position) implements Diagnostic {
+
         public ParseError {
             requireParts(message, position);
         }
@@ -69,12 +71,14 @@ public sealed interface Diagnostic
 
     /** A lint rule rejected the source and could not rewrite it. */
     record LintError(String message, Position position) implements Diagnostic {
+
         public LintError {
             requireParts(message, position);
         }
     }
 
     record ConfigError(String message, Position position) implements Diagnostic {
+
         public ConfigError {
             requireParts(message, position);
         }
@@ -91,6 +95,7 @@ public sealed interface Diagnostic
      */
     @SuppressWarnings("JavaLangClash")
     record InternalError(String message, Position position) implements Diagnostic {
+
         public InternalError {
             requireParts(message, position);
         }
@@ -98,6 +103,7 @@ public sealed interface Diagnostic
 
     /** A non-fatal advisory: formatting succeeded, but something the caller asked for did not happen. */
     record Warning(String message, Position position) implements Diagnostic {
+
         public Warning {
             requireParts(message, position);
         }

@@ -25,7 +25,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CliTest {
-    private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
+
+    private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n\n    List<String> lines;\n}\n";
 
     @Test
     void stdinNoArguments_formatsAndWritesToStdout() {
@@ -43,7 +44,7 @@ class CliTest {
         final var run = run(a.toString(), b.toString());
         assertThat(run.exit()).isZero();
         assertThat(Files.readString(a)).isEqualTo(Fixtures.FORMATTED_A);
-        assertThat(Files.readString(b)).isEqualTo("class B {\n    int y;\n}\n");
+        assertThat(Files.readString(b)).isEqualTo("class B {\n\n    int y;\n}\n");
     }
 
     @Test
@@ -113,7 +114,7 @@ class CliTest {
     @Test
     void batchWithOneMalformedJava_reportsPathAndExitsNonZero(@TempDir final Path dir) throws Exception {
         final var good = dir.resolve("Good.java");
-        Files.writeString(good, "class Good {\n    int x;\n}\n");
+        Files.writeString(good, "class Good {\n\n    int x;\n}\n");
         final var bad = dir.resolve("Bad.java");
         Files.writeString(bad, "class {");
         final var run = run(good.toString(), bad.toString());
@@ -167,7 +168,7 @@ class CliTest {
         Files.writeString(a, "class A   {   int  y;  }");
         final var second = run("--cache", cacheFile.toString(), a.toString());
         assertThat(second.exit()).isZero();
-        assertThat(Files.readString(a)).isEqualTo("class A {\n    int y;\n}\n");
+        assertThat(Files.readString(a)).isEqualTo("class A {\n\n    int y;\n}\n");
     }
 
     @Test
@@ -330,7 +331,7 @@ class CliTest {
         repositoryWithAnEditedFile(dir);
         final var run = run("--ratchet-from=main", dir.resolve("src").toString());
         assertThat(run.exit()).as("err=%s", run.err()).isZero();
-        assertThat(Files.readString(dir.resolve("src/Invoice.java"))).isEqualTo("class Invoice {\n    int total;\n}\n");
+        assertThat(Files.readString(dir.resolve("src/Invoice.java"))).isEqualTo("class Invoice {\n\n    int total;\n}\n");
         assertThat(Files.readString(dir.resolve("src/Order.java"))).isEqualTo(Fixtures.UNFORMATTED_A.replace("class A", "class Order"));
     }
 
@@ -564,7 +565,7 @@ class CliTest {
     }
 
     private static final String EQUALS_WITHOUT_HASHCODE =
-            "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
+            "class Warned {\n\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
 
     @Test
     void aFileArgumentReportsTheWarningsStdinModeReports(@TempDir final Path dir) throws Exception {
@@ -679,7 +680,7 @@ class CliTest {
     @Test
     void aFileThatIsNotUtf8SaysSo(@TempDir final Path dir) throws Exception {
         final var file = dir.resolve("Latin.java");
-        Files.write(file, new byte[] {(byte) 0xff, (byte) 0xfe, 'a',});
+        Files.write(file, new byte[]{(byte) 0xff, (byte) 0xfe, 'a'});
         final var run = run(file.toString());
         assertThat(run.exit()).isEqualTo(2);
         assertThat(run.err()).contains(file + ": read failed: not valid UTF-8");
@@ -711,7 +712,7 @@ class CliTest {
     void daemonFlag_answersEachDelimitedRequestWithOneDelimitedReplyUntilStdinCloses() {
         final var out = new ByteArrayOutputStream();
         final var exit = Cli.run(
-                new String[] {"--daemon",}, new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
+                new String[]{"--daemon"}, new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
                 new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8), true);
         assertThat(exit).isZero();
         assertThat(DaemonFixtures.hexFrames(out.toByteArray())).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_HEX);

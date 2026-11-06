@@ -1,4 +1,5 @@
 class Fixture {
+
     static final int[] VALUES = {
             1,
             2, // the last one

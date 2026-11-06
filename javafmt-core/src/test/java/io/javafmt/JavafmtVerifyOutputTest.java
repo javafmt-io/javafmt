@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link Diagnostic.InternalError} instead of silently dropping the user's code.
  */
 class JavafmtVerifyOutputTest {
+
     private static final String SOURCE = "class Fixture {\n    int x;\n}\n";
 
     private static final String SOURCE_WITH_NOTE = SOURCE + "// a note the renderer never sees\n";

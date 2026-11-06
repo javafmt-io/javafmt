@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FileFormatCacheTest {
+
     private static final CacheKey KEY = CacheKey.of(JavafmtConfig.defaults());
 
     @Test

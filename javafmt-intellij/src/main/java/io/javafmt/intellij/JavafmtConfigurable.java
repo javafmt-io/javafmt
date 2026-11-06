@@ -26,6 +26,7 @@ import javax.swing.JPanel;
 
 /** The <em>Settings | Tools | javafmt</em> page backing {@link JavafmtSettings}. */
 public final class JavafmtConfigurable implements Configurable {
+
     /**
      * Swing component names, so the settings form can be driven by name rather than by position
      * in the component tree.

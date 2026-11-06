@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Exhaustive rendering behaviour lives in the per-renderer test classes.
  */
 class DocBuilderTest {
+
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -61,36 +62,36 @@ class DocBuilderTest {
 
     @Test
     void field_isIndentedInsideClass() {
-        assertThat(format("class Foo { int x; }")).isEqualTo("class Foo {\n    int x;\n}");
+        assertThat(format("class Foo { int x; }")).isEqualTo("class Foo {\n\n    int x;\n}");
     }
 
     @Test
     void method_isIndentedInsideClass() {
-        assertThat(format("class Foo { void bar() {} }")).isEqualTo("class Foo {\n    void bar() {}\n}");
+        assertThat(format("class Foo { void bar() {} }")).isEqualTo("class Foo {\n\n    void bar() {}\n}");
     }
 
     @Test
     void returnStatement_renderedInsideMethod() {
-        assertThat(format("class Foo { int bar() { return 42; } }")).isEqualTo("class Foo {\n    int bar() {\n        return 42;\n    }\n}");
+        assertThat(format("class Foo { int bar() { return 42; } }")).isEqualTo("class Foo {\n\n    int bar() {return 42;}\n}");
     }
 
     @Test
     void expressionStatement_renderedInsideMethod() {
-        assertThat(format("class Foo { void bar() { doIt(); } }")).isEqualTo("class Foo {\n    void bar() {\n        doIt();\n    }\n}");
+        assertThat(format("class Foo { void bar() { doIt(); } }")).isEqualTo("class Foo {\n\n    void bar() {doIt();}\n}");
     }
 
     @Test
     void switchExpression_renderedInsideMethod() {
         assertThat(format("class Foo { String bar(int x) { return switch (x) { case 1 -> \"one\"; default -> \"other\"; }; } }"))
                 .isEqualTo(
-                        "class Foo {\n    String bar(int x) {\n        return switch (x) {\n            case 1 -> \"one\";\n            default -> \"other\";\n        };\n    }\n}");
+                        "class Foo {\n\n    String bar(int x) {\n        return switch (x) {\n            case 1 -> \"one\";\n            default -> \"other\";\n        };\n    }\n}");
     }
 
     @Test
     void switchStatement_renderedInsideMethod() {
         assertThat(format("class Foo { void bar(int x) { switch (x) { case 1 -> doIt(); default -> doOther(); } } }"))
                 .isEqualTo(
-                        "class Foo {\n    void bar(int x) {\n        switch (x) {\n            case 1 -> doIt();\n            default -> doOther();\n        }\n    }\n}");
+                        "class Foo {\n\n    void bar(int x) {\n        switch (x) {\n            case 1 -> doIt();\n            default -> doOther();\n        }\n    }\n}");
     }
 
     @Test
@@ -124,108 +125,110 @@ class DocBuilderTest {
 
     @Nested
     class StatementSmoke {
+
         @Test
         void tryCatch_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { try { doIt(); } catch (Exception e) { handle(e); } } }"))
                     .isEqualTo(
-                            "class Foo {\n    void bar() {\n        try {\n            doIt();\n        } catch (Exception e) {\n            handle(e);\n        }\n    }\n}");
+                            "class Foo {\n\n    void bar() {\n        try {\n            doIt();\n        } catch (Exception e) {\n            handle(e);\n        }\n    }\n}");
         }
 
         @Test
         void ifElse_renderedInsideMethod() {
             assertThat(format("class Foo { void bar(boolean b) { if (b) { doIt(); } else { doOther(); } } }"))
                     .isEqualTo(
-                            "class Foo {\n    void bar(boolean b) {\n        if (b) {\n            doIt();\n        } else {\n            doOther();\n        }\n    }\n}");
+                            "class Foo {\n\n    void bar(boolean b) {\n        if (b) {\n            doIt();\n        } else {\n            doOther();\n        }\n    }\n}");
         }
 
         @Test
         void forLoop_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { for (int i = 0; i < 10; i++) { doIt(); } } }"))
-                    .isEqualTo("class Foo {\n    void bar() {\n        for (int i = 0; i < 10; i++) {\n            doIt();\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        for (int i = 0; i < 10; i++) {\n            doIt();\n        }\n    }\n}");
         }
 
         @Test
         void whileLoop_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { while (cond()) { doIt(); } } }"))
-                    .isEqualTo("class Foo {\n    void bar() {\n        while (cond()) {\n            doIt();\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        while (cond()) {\n            doIt();\n        }\n    }\n}");
         }
 
         @Test
         void doWhileLoop_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { do { doIt(); } while (cond()); } }"))
-                    .isEqualTo("class Foo {\n    void bar() {\n        do {\n            doIt();\n        } while (cond());\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        do {\n            doIt();\n        } while (cond());\n    }\n}");
         }
 
         @Test
         void lambda_renderedAsFieldInitializer() {
-            assertThat(format("class Foo { Runnable r = () -> doIt(); }")).isEqualTo("class Foo {\n    Runnable r = () -> doIt();\n}");
+            assertThat(format("class Foo { Runnable r = () -> doIt(); }")).isEqualTo("class Foo {\n\n    Runnable r = () -> doIt();\n}");
         }
 
         @Test
         void throwStatement_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { throw new RuntimeException(); } }"))
-                    .isEqualTo("class Foo {\n    void bar() {\n        throw new RuntimeException();\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {throw new RuntimeException();}\n}");
         }
 
         @Test
         void synchronizedBlock_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { synchronized (this) { doIt(); } } }"))
-                    .isEqualTo("class Foo {\n    void bar() {\n        synchronized (this) {\n            doIt();\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        synchronized (this) {\n            doIt();\n        }\n    }\n}");
         }
 
         @Test
         void labeledStatement_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { outer: while (true) { break outer; } } }"))
                     .isEqualTo(
-                            "class Foo {\n    void bar() {\n        outer:\n        while (true) {\n            break outer;\n        }\n    }\n}");
+                            "class Foo {\n\n    void bar() {\n        outer:\n        while (true) {\n            break outer;\n        }\n    }\n}");
         }
 
         @Test
         void assertStatement_renderedInsideMethod() {
-            assertThat(format("class Foo { void bar(int x) { assert x > 0; } }"))
-                    .isEqualTo("class Foo {\n    void bar(int x) {\n        assert x > 0;\n    }\n}");
+            assertThat(format("class Foo { void bar(int x) { assert x > 0; } }")).isEqualTo("class Foo {\n\n    void bar(int x) {assert x > 0;}\n}");
         }
 
         @Test
         void continueStatement_renderedInsideLoop() {
             assertThat(format("class Foo { void bar() { while (true) { continue; } } }"))
-                    .isEqualTo("class Foo {\n    void bar() {\n        while (true) {\n            continue;\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        while (true) {\n            continue;\n        }\n    }\n}");
         }
 
         @Test
         void breakStatement_renderedInsideLoop() {
             assertThat(format("class Foo { void bar() { while (true) { break; } } }"))
-                    .isEqualTo("class Foo {\n    void bar() {\n        while (true) {\n            break;\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        while (true) {\n            break;\n        }\n    }\n}");
         }
     }
 
     @Nested
     class MemberGrouping {
+
         @Test
         void fieldThenMethod_haveBlankLineBetweenThem() {
-            assertThat(format("class Foo { int x; void bar() {} }")).isEqualTo("class Foo {\n    int x;\n\n    void bar() {}\n}");
+            assertThat(format("class Foo { int x; void bar() {} }")).isEqualTo("class Foo {\n\n    int x;\n\n    void bar() {}\n}");
         }
 
         @Test
         void twoAdjacentFieldsStayAdjacent() {
             // Between plain fields the author's grouping is kept, so fields written together stay
             // together. Same as google-java-format; see TypeBodyRenderer.separated.
-            assertThat(format("class Foo { int x; int y; }")).isEqualTo("class Foo {\n    int x;\n    int y;\n}");
+            assertThat(format("class Foo { int x; int y; }")).isEqualTo("class Foo {\n\n    int x;\n    int y;\n}");
         }
 
         @Test
         void twoFieldsTheAuthorSeparatedStaySeparated() {
-            assertThat(format("class Foo { int x;\n\n int y; }")).isEqualTo("class Foo {\n    int x;\n\n    int y;\n}");
+            assertThat(format("class Foo { int x;\n\n int y; }")).isEqualTo("class Foo {\n\n    int x;\n\n    int y;\n}");
         }
 
         @Test
         void aFieldWithJavadocIsSeparatedLikeAMethod() {
             assertThat(format("class Foo { int x;\n/** why */\n int y;\n int z; }"))
-                    .isEqualTo("class Foo {\n    int x;\n\n    /** why */\n    int y;\n\n    int z;\n}");
+                    .isEqualTo("class Foo {\n\n    int x;\n\n    /** why */\n    int y;\n\n    int z;\n}");
         }
     }
 
     private record SyntheticCompilationUnit(CompilationUnitTree real, Tree declaration) implements CompilationUnitTree {
+
         @Override
         public List<? extends AnnotationTree> getPackageAnnotations() {
             return List.of();

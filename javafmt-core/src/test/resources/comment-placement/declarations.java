@@ -4,6 +4,7 @@ import java.util.List;
 
 @SuppressWarnings("unchecked")
 final class Orders<T extends Comparable<T>> implements Comparable<Orders<T>> {
+
     private static final int LIMIT = 10;
 
     private final List<T> items;

@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class FileScopeTest extends JavafmtIntellijTestCase {
+
     private static final Path ROOT = createRoot();
 
     private static final Path LIBRARY = ROOT.resolve("libraries/compile");

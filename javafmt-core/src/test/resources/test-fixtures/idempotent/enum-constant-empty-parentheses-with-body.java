@@ -1,4 +1,5 @@
 enum Direction {
+
     UP() {
         @Override
         Direction opposite() {

@@ -1,4 +1,5 @@
 class Fixture {
+
     void reconcile(final Ledger ledger) {
         ledger.reconcile(
                 openingBalanceForTheCurrentAccountingPeriod, closingBalanceForTheCurrentAccountingPeriod,

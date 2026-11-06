@@ -1,4 +1,5 @@
 class Fixture {
+
     void f() {
         doWork();
         // final note

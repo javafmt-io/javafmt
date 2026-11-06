@@ -41,6 +41,7 @@ import javax.lang.model.element.Modifier;
 
 @UtilityClass
 final class CommentAttacher {
+
     /**
      * Orders slots so the innermost slot fires first when two slots enclose the same comment: by
      * ascending {@code hi}, then by {@link Reach}, then ascending {@code lo}.
@@ -186,9 +187,9 @@ final class CommentAttacher {
      * renderer has to emit it after the separator: emitted before, a {@code //} comment would
      * swallow the comma.
      *
-     * <p>A one-line block comment qualifies only when nothing follows it on its line. One with code
-     * after it, <code>f(a, /* b *&#47; b)</code>, reads as annotating what comes after it and is
-     * already attached that way.
+     * <p>A one-line block comment qualifies only when nothing but comments follows it on its
+     * line. One with code after it, <code>f(a, /* b *&#47; b)</code>, reads as annotating what
+     * comes after it and is already attached that way.
      */
     private boolean trailsPastTheSeparator(final Slot slot,
                                            final CommentToken c,
@@ -199,7 +200,10 @@ final class CommentAttacher {
             return false;
         }
         final var gap = source.substring((int) slot.lo(), c.start());
-        return gap.indexOf('\n') < 0 && gap.chars().allMatch(ch -> ch == ' ' || ch == '\t' || ch == ',' || isTheEnumTerminator(ch, slot, cu, pos));
+        return gap.indexOf('\n') < 0
+            && CommentScanner.withoutComments(gap)
+                    .chars()
+                    .allMatch(ch -> ch == ' ' || ch == '\t' || ch == ',' || isTheEnumTerminator(ch, slot, cu, pos));
     }
 
     private boolean followsTheLastElementsComma(final Slot slot, final CommentToken c, final String source) {
@@ -213,7 +217,7 @@ final class CommentAttacher {
     private boolean endsItsLine(final CommentToken c, final String source) {
         final var newline = source.indexOf('\n', c.end());
         final var rest = source.substring(c.end(), newline < 0 ? source.length() : newline);
-        return c.text().indexOf('\n') < 0 && rest.isBlank();
+        return c.text().indexOf('\n') < 0 && CommentScanner.withoutComments(rest).isBlank();
     }
 
     /**
@@ -314,6 +318,7 @@ final class CommentAttacher {
      * left after the comma.
      */
     private record Slot(@Nullable Tree previous, @Nullable Tree owner, long lo, long hi, Kind kind, Reach reach, boolean crossesSeparator) {
+
         Slot(@Nullable final Tree previous, @Nullable final Tree owner, final long lo, final long hi, final Kind kind) {
             this(previous, owner, lo, hi, kind, Reach.PRECISE, false);
         }
@@ -324,6 +329,7 @@ final class CommentAttacher {
     }
 
     private static final class TokenPositions {
+
         private final int[] starts;
 
         private final int[] ends;
@@ -351,6 +357,7 @@ final class CommentAttacher {
     }
 
     private static final class Collector extends ChainScanner<Void, Void> {
+
         private final CompilationUnitTree cu;
 
         private final SourcePositions pos;
@@ -384,7 +391,7 @@ final class CommentAttacher {
             final var start = pos.getStartPosition(cu, node);
             final var end = pos.getEndPosition(cu, node);
             if (start >= 0 && end > start && source.lastIndexOf('\n', (int) end - 1) > start) {
-                opaque.add(new long[] {start, end,});
+                opaque.add(new long[]{start, end});
             }
             return null;
         }

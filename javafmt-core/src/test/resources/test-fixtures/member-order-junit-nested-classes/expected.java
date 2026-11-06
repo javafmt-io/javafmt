@@ -3,6 +3,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 final class InvoiceTest {
+
     private InvoiceTest() {}
 
     @Test
@@ -12,6 +13,7 @@ final class InvoiceTest {
 
     @Nested
     class WhenPaid {
+
         @Test
         void marksPaid() {
             check(1);
@@ -23,6 +25,7 @@ final class InvoiceTest {
     @Nested
     @DisplayName("when overdue")
     class WhenOverdue {
+
         @Test
         void addsFee() {
             check(2);
@@ -31,6 +34,7 @@ final class InvoiceTest {
 
     @org.junit.jupiter.api.Nested
     class WhenRefunded {
+
         @Test
         void reversesTotal() {
             check(3);

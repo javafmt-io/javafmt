@@ -8,6 +8,7 @@ import javax.inject.Inject;
 import static xyz.U.u;
 
 class Invoice {
+
     @Nullable
     @Builder
     Duration due;

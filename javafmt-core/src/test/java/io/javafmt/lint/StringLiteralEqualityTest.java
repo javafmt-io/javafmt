@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class StringLiteralEqualityTest {
+
     @Test
     void stringLiteralEqualityProducesWarning() {
         final var unit = JavaParser.parseUnit("""
@@ -83,14 +84,12 @@ class StringLiteralEqualityTest {
     }
 
     @ParameterizedTest
-    @CsvSource(
-            delimiter = ';',
-            value = {
-                    "a == \"x\" || b == \"y\"; 2",
-                    "f(a == \"x\" && (b != \"y\")); 2",
-                    "a == \"x\" || b == \"y\" || c != \"z\"; 3",
-                    "a == \"x\" || b.isEmpty() && c == null; 1",
-            })
+    @CsvSource(delimiter = ';', value = {
+            "a == \"x\" || b == \"y\"; 2",
+            "f(a == \"x\" && (b != \"y\")); 2",
+            "a == \"x\" || b == \"y\" || c != \"z\"; 3",
+            "a == \"x\" || b.isEmpty() && c == null; 1",
+    })
     void everyComparisonInAnOperatorChainIsChecked(final String expression, final int warnings) {
         final var unit = JavaParser.parseUnit("""
             class Fixture {

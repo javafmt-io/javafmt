@@ -23,9 +23,10 @@ import java.util.stream.IntStream;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class AnalyzeWitnessBenchmark {
+
     private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
-    @Param({"10", "200",})
+    @Param({"10", "200"})
     public int witnesses = 10;
 
     private String source = "";

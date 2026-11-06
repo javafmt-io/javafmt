@@ -1,3 +1,4 @@
 class Fixture {
-    int[] xs = {1, 2, 3,};
+
+    int[] xs = {1, 2, 3};
 }

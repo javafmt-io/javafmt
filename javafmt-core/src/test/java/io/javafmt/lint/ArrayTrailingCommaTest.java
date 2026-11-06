@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ArrayTrailingCommaTest {
+
     @Test
     void singleElementArrayGetsTrailingComma() {
         final var unit = JavaParser.parseUnit("""
@@ -86,16 +87,25 @@ class ArrayTrailingCommaTest {
     }
 
     @Test
-    void annotationArrayIsLeftAlone() {
-        // Annotation arguments are almost always one line, where a trailing comma reads as a typo
-        // rather than as diff hygiene. Annotations also render from source now, so a comma added
-        // here would survive into the output instead of being normalized away.
+    void annotationArrayGetsATrailingCommaToo() {
         final var unit = JavaParser.parseUnit("""
             @SuppressWarnings({"foo", "bar"})
             class Fixture {}
             """);
         final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("{\"foo\", \"bar\",}");
+    }
+
+    @Test
+    void anArrayOnARecordComponentOfARecordWithACompactConstructorGetsOneComma() {
+        final var unit = JavaParser.parseUnit("""
+            record Fixture(@Names({"a", "b"}) String name) {
+
+                Fixture {}
+            }
+            """);
+        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("{\"a\", \"b\",}").doesNotContain(",,");
     }
 
     @Test
@@ -127,6 +137,32 @@ class ArrayTrailingCommaTest {
             """);
         final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("1, 2, /* a, b */");
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("1, 2 /* a, b */,");
+    }
+
+    @Test
+    void theCommaGoesAfterEveryBlockCommentBesideTheLastElement() {
+        final var unit = JavaParser.parseUnit("""
+            class Fixture {
+
+                int[] arr = {1, 2 /* x */ /* y */ // z
+                };
+            }
+            """);
+        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("2 /* x */ /* y */, // z");
+    }
+
+    @Test
+    void theCommaStaysBeforeABlockCommentOnTheNextLine() {
+        final var unit = JavaParser.parseUnit("""
+            class Fixture {
+
+                int[] arr = {1, 2
+                    /* x */};
+            }
+            """);
+        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("2,\n");
     }
 }

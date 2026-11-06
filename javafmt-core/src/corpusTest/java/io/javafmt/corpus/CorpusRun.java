@@ -15,6 +15,7 @@ import java.util.Optional;
  * measured from the same run rather than reformatting 3,400 files once per assertion.
  */
 record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
+
     private static final int LINE_WIDTH = 150;
 
     static CorpusRun over(final Path srcZip) {
@@ -73,6 +74,7 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
     * meaningful — and only counted — for a file that actually produced output.
     */
     record FileOutcome(String name, boolean unparseable, boolean refused, boolean reparses, boolean idempotent, int overWidthLines, long millis) {
+
         boolean formatted() {
             return !unparseable && !refused;
         }

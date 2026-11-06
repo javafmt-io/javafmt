@@ -9,6 +9,7 @@ import io.javafmt.parser.ChainScanner;
  * Lowercase {@code l} is visually ambiguous with the digit {@code 1}.
  */
 public final class UpperEll implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

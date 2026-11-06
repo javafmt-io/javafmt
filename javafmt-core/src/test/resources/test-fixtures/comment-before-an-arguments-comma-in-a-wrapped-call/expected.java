@@ -1,4 +1,5 @@
 class Calls {
+
     void call(final String message, final Object state, final Exception cause) {
         try {
             call(

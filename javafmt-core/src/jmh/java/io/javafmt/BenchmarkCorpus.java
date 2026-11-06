@@ -11,6 +11,7 @@ import java.util.List;
  * corpus formats well under one millisecond on a developer laptop.
  */
 public final class BenchmarkCorpus {
+
     public static final String METHOD_CHAINS = """
         package demo;
 

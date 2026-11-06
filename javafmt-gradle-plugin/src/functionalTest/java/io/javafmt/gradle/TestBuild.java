@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 record TestBuild(Path dir) {
+
     static final String JAVA25_HOME = System.getProperty("javafmt.test.java25Home", "");
 
     static final String OLDER_JAVA_HOME = System.getProperty("javafmt.test.olderJavaHome", "");

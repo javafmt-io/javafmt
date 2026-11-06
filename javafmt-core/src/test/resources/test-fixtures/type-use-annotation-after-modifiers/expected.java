@@ -2,6 +2,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 class Registry {
+
     public static @Nullable String find(final String key) {
         return null;
     }

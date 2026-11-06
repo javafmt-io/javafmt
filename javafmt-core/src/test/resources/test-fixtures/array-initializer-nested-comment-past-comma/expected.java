@@ -1,8 +1,9 @@
 class Catalog {
+
     Object[][] contents = {
             {
                     "Shipping",
-                    new String[] {
+                    new String[]{
                             "Ground", // slowest
                             "Express", // fastest
                     },
@@ -10,20 +11,20 @@ class Catalog {
     };
 
     static final int[][] SIZES = {
-            {1, 2,},
+            {1, 2},
             {}, // none
-            {3, 4,},
+            {3, 4},
     };
 
     static final int[][] WEIGHTS = {
-            {1, 2,}, // light
-            {3, 4,}, // heavy
+            {1, 2}, // light
+            {3, 4}, // heavy
     };
 
     void ship() {
         send(
                 "Ground", // the default
-                new int[] {
+                new int[]{
                         1,
                         2, // small
                 });

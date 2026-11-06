@@ -43,6 +43,7 @@ Invoice buildInvoice(final Customer customer,
 - Braces are always present on `if`, `else`, `for`, `while`, and `do-while`.
 - Loop bodies always expand.
 - The compact guard `if (cond) {stmt;}` is kept when it is written that way and fits in 150 characters: no space inside the braces, one statement per branch, no comment, the whole chain on one line. Every other `if` shape expands.
+- A method or constructor whose body the author wrote on one line stays on one line when it fits in 150 characters: `default Message message() {return null;}`. There is no space inside the braces. This applies only when the body is a single statement and the declaration holds no comment. Annotations still go on their own line above it, and blank lines around it follow the usual rule for methods. A body written over several lines, or one that does not fit, expands.
 - A multi-line lambda argument may close with `)` or `);` on its own line, at the chain's indent.
 
 ## Imports
@@ -98,6 +99,8 @@ Fields, methods, initializer blocks, and enum constants keep the author's order.
 ## Single-line constructs
 
 - `if (cond) {stmt;}`: see Braces.
+- `int size() {return size;}`, written that way: see Braces.
+- `x -> {log(x);}`, written that way: see Lambdas.
 - A record whose components fit on one line stays on one line.
 - An empty body folds: `) {}` and `private X() {}`.
 - Short lambdas inline.
@@ -105,6 +108,8 @@ Fields, methods, initializer blocks, and enum constants keep the author's order.
 ## Lambdas
 
 A multi-line lambda gets its own lines. The body indents 4 past the line that opens it.
+
+A block lambda whose body the author wrote on one line stays on one line when it fits in 150 characters, on the same terms as a method: one statement, no comment, and no space inside the braces, as in `orders.forEach(order -> {ship(order);})`. One that does not fit expands like any other block lambda.
 
 A block-bodied lambda that is the last argument of a call stays on the call's line, after the other arguments, and the call closes right after the lambda's `}`:
 
@@ -155,10 +160,17 @@ Lambda parameters are never `final`.
 
 - Constants keep declaration order.
 - Constants fit on one line, or one per line.
-- When the constants do not fit on one line they go one per line, with a trailing comma after the last constant.
+- Constants that fit on one line go on one line, with no trailing comma even if the author wrote one: `enum Size { SMALL, MEDIUM, LARGE }`.
+- Constants that go one per line end with a trailing comma after the last constant.
 - An enum with body declarations keeps its `;`. A `,` written directly before the `;` is removed.
 - A constant's arguments follow the call-site argument rule: when they do not fit they wrap at +8 and pack as many per line as fit.
 - Empty parentheses after a constant, `A()`, stay as written.
+
+## Arrays
+
+- An array initializer that fits in 150 characters goes on one line, with no trailing comma even if the author wrote one: `int[] sizes = {1, 2, 3};`.
+- One that does not fit goes one element per line at +8, ends with a trailing comma, and closes with `}` on a line of its own.
+- An array creation's `{` sits against its brackets: `new String[]{"a", "b"}`. A comment written between them keeps a space on each side.
 
 ## Records
 
@@ -181,7 +193,8 @@ public final Money total() {
 
 - Classes: every annotation on its own line, in the order the author wrote.
 - Parameters: annotations inline before `final`: `@Named("primary") final Account account`, `@NonNull final String orderId`, `@Nullable final LocalDate dueDate`.
-- Fields: the annotations in front of the modifiers stay inline with the field declaration when none of them has arguments and the author wrote them inline (`@Getter @Setter private int count;`). Otherwise each of them goes on its own line above the field.
+- Fields: every annotation in front of the modifiers goes on its own line above the field, as on a method.
+- Local variables: the annotations in front of the modifiers stay inline with the declaration when none of them has arguments and the author wrote them inline (`@Deprecated final int count = total;`). Otherwise each of them goes on its own line above it.
 - An annotation written after the modifiers of a field, local variable, parameter, constructor, or method that returns a value stays after them, beside the type it annotates: `public @Nullable Order find(final String id)`, `private final @Nullable Comparator<Order> order;`, `final @Nullable Order[] orders`. One written after a method's type parameters stays there too: `public static <T> @Nullable T first(final List<T> items)`. A class, interface, enum, record or `void` method has no type for it to annotate, so there it moves in front of the modifiers (see `ModifierOrder`).
 - An annotation that fits in 150 characters goes on one line, however the author wrapped it. One that does not ends its first line with `@Name(`, puts each argument on its own line at +8, and closes with `)` right after the last argument. An array value that still does not fit puts one element per line, with `}` on a line of its own:
 
@@ -202,7 +215,16 @@ class OrderIntegrationTest {
 })
 ```
 
-- An array inside an annotation keeps its trailing comma if the author wrote one, and does not get one otherwise.
+- When the last argument is an array, as in `name = {...}`, and the annotation does not fit on one line, the first line runs up to that array's `{` if it fits in 150 characters. The elements follow one per line at +8, and `})` closes the annotation on a line of its own:
+
+```java
+@SpringSimpleTest(classes = ActionNotificationEventConsumer.class, properties = {
+        "radar.event.action-notification.enabled=true",
+        "radar.event.action-notification.topic=" + TOPIC,
+})
+```
+
+- An array inside an annotation follows the rule for every array (see Arrays): a trailing comma when it goes one element per line, none when it fits on one line.
 - A `//` comment after an annotation's last argument keeps its line, and `)` goes on the line below it.
 
 ## Javadoc and comments
@@ -220,7 +242,7 @@ class OrderIntegrationTest {
 
 - One blank line around every method, constructor, nested type, and initializer block.
 - Between consecutive fields, the author's grouping stands: zero or one blank line. A field carrying Javadoc is separated like a method.
-- No blank line after the opening brace of any type, whatever the first member.
+- One blank line after the opening brace of every class, interface, enum, record and annotation type whose body is not empty, nested or not. An empty body stays `{}`, an enum whose constants fit on one line stays on one line, and anonymous classes and enum constant bodies get no blank line.
 - No blank line after a method's opening brace, or before any closing brace.
 - Method-body blank lines stay as written.
 - One blank line after `package`, and one between import groups.
@@ -240,7 +262,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `FinalCatchParameter` | Adds `final` to every `catch` parameter, after any annotations: `catch (final RuntimeException e)`. Never when the body reassigns it. |
 | `FinalForEachVariable` | Adds `final` to the for-each variable: `for (final var x : xs)`. Never when the loop body reassigns it. |
 | `LocalVarUseVar` | Replaces the declared type of a local with `var` when the source shows the type stays the same: an unqualified `new` of exactly the declared type, whether or not the local is reassigned; and, for a local that is never reassigned, an unqualified diamond of the declared class, which gains the declared type arguments, a cast to the declared type, or a literal of the declared type. With the classpath it also rewrites a factory call that carries the declared type arguments as its witness when javac gives the call exactly the declared type, and a wider declaration such as `List<String> xs = new ArrayList<String>()`, or any other initializer, when javac confirms every use of the local is unchanged. Lambdas, method references, `null` and array initializers keep their declared type, and so does a reassigned local unless its initializer is an unqualified `new` of exactly the declared type. A qualified `new` such as `outer.new Inner()` names a member of the outer object's type, which can differ from the declared `Inner`, so it is rewritten only with the classpath and only when every use stays the same. With FinalLocalVariable the result is `final var`. |
-| `ArrayTrailingComma` | Adds a trailing comma to non-empty array initializers. Empty `{}` initializers are skipped, and so are arrays inside an annotation. |
+| `ArrayTrailingComma` | Adds a trailing comma to every non-empty array initializer, inside annotations too. It is printed only when the array goes one element per line (see Arrays). |
 | `DefaultComesLast` | Moves `default` last in arrow switches. A colon-form switch is rewritten only when `default` has its own terminating body and is not part of a label group; otherwise it warns. |
 | `ModifierOrder` | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. Annotations in front of the keywords stay there. An annotation written among or after the keywords goes after them on a field, variable, parameter, constructor, or method that returns a value, and in front of them on a class, interface, enum, record, or `void` method. |
 | `RedundantModifier` | Strips modifiers the JLS implies. |
@@ -252,7 +274,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `OneStatementPerLine` | Splits multiple statements on one line. A comment between two of them stays at the end of the first one's line. |
 | `NewlineAtEndOfFile` | Ends the file with exactly one line ending, in the file's own style. |
 | `ExplicitInitialization` | Strips redundant default field initializers: `int x = 0;` becomes `int x;`, `Object o = null;` becomes `Object o;`, `boolean b = false;` becomes `boolean b;`. Skipped when the class has a superclass, because the superclass constructor may call an override that assigns the field and `= 0` is then a real write, and when a comment sits inside the text being deleted. |
-| `EnumTrailingComma` | Adds a trailing comma after the last constant when the constants do not fit on one line and go one per line. Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
+| `EnumTrailingComma` | Adds a trailing comma after the last constant. It is printed only when the constants go one per line (see Enums). Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
 | `ExplodeStarImports` | Replaces a wildcard import with explicit imports for the members the file references. Needs the classpath, and leaves every wildcard alone if any name in the file fails to resolve. |
 | `RedundantTypeArguments` | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically, apart from spacing and comments. With the classpath it also drops type witnesses on generic method calls when javac infers the same type without them. Type arguments that hold a comment are kept, and so is a witness that carries a type annotation, such as `Stream.<@Nullable T>iterate(...)`. |
 | `RedundantSuperCall` | Removes a no-argument `super()` as the first statement of a constructor body. A comment written inside its parentheses stays where the call was. |

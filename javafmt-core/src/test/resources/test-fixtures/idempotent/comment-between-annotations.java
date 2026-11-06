@@ -2,6 +2,7 @@
 // Kept until the importer moves.
 @Deprecated
 final class Orders {
+
     @Deprecated
     // Still read by the old reports.
     @SuppressWarnings("unused")

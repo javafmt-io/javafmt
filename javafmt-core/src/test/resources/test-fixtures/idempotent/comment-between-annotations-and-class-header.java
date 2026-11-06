@@ -1,6 +1,7 @@
 @SuppressWarnings("unchecked")
 // Generated once, edited by hand since.
 final class Orders implements Comparable<Orders> {
+
     @Override
     public int compareTo(final Orders other) {
         return 0;
@@ -9,6 +10,7 @@ final class Orders implements Comparable<Orders> {
     @Deprecated
     // Kept for the old importer.
     static final class Line {
+
         int quantity;
     }
 

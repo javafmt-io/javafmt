@@ -1,4 +1,5 @@
 enum Fixture {
+
     FIRST_CONSTANT_NAME(
             firstArgumentValueName, secondArgumentValueName, thirdArgumentValueName, fourthArgumentValueName, fifthArgumentValueNamesLonger);
 

@@ -28,6 +28,7 @@ import java.util.stream.Stream;
  * </ul>
  */
 class RedundantModifierOracleTest {
+
     RedundantModifierOracleTest() {}
 
     private static final String CORPUS = "redundant-modifier";

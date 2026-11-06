@@ -1,10 +1,13 @@
 package io.javafmt.parser;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RoundTripVerifierTest {
+
     private static final String SOURCE = """
             class Fixture {
 
@@ -38,6 +41,23 @@ class RoundTripVerifierTest {
         assertThat(RoundTripVerifier.verify("case Integer i when i > 0 -> 1;", "case Integer i -> 1;"))
                 .get(org.assertj.core.api.InstanceOfAssertFactories.STRING)
                 .contains("when");
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "int[] a = {1, 2,};|int[] a = {1, 2};",
+            "int[] a = {1, 2};|int[] a = {1, 2,};",
+            "@A({X.class,}) int b;|@A({X.class}) int b;",
+            "int[][] g = {{1,}, {2,},};|int[][] g = {{1}, {2}};",
+    })
+    void aTrailingCommaBeforeAClosingBraceMayComeOrGo(final String before, final String after) {
+        assertThat(RoundTripVerifier.verify(before, after)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {"int[] a = {1, 2};|int[] a = {1 2};", "f(a, b);|f(a b);", "int[] a = {1, 2,};|int[] a = {1, 2,,};"})
+    void anyOtherCommaIsStillChecked(final String before, final String after) {
+        assertThat(RoundTripVerifier.verify(before, after)).isPresent();
     }
 
     @Test

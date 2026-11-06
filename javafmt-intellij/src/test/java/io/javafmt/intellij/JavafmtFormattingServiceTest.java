@@ -24,9 +24,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -40,14 +40,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 // does with a service that declines, is exactly the part that decides whether Reformat Code works.
 @EnabledOnOs({OS.MAC, OS.LINUX})
 public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
+
     /** Source the fake binary answers with a formatted body plus one warning-only diagnostic. */
     private static final String UNFORMATTED_WARNED = "class Warned { int x; }";
 
-    private static final String FORMATTED_WARNED = "class Warned {\n    int x;\n}\n";
+    private static final String FORMATTED_WARNED = "class Warned {\n\n    int x;\n}\n";
 
     private static final String DOWNLOADED = "javafmt-" + FakeRelease.VERSION + "-linux-x64";
 
-    private final List<Notification> notifications = new ArrayList<>();
+    private final List<Notification> notifications = new CopyOnWriteArrayList<>();
 
     private JavafmtFormattingService service;
 
@@ -302,13 +303,13 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     @Test
     public void testSelectionReformatGoesToIntellijsOwnFormatter(@TempDir final Path dir) throws IOException {
         enableJavafmtWithFakeBinary(dir);
-        final var file = myFixture.configureByText("Foo.java", "class Foo {\nint x;\n}\n");
+        final var file = myFixture.configureByText("Foo.java", "class Foo {\n\nint x;\n}\n");
         // javafmt lays out a whole compilation unit or nothing, and the fake echoes anything it
         // does not recognise back unchanged — so an indented field is IntelliJ's own formatter
         // having handled the selection, and an unchanged file would be the silent no-op that
         // leaving FORMAT_FRAGMENTS out of getFeatures() exists to prevent.
-        reformatRange(file, new TextRange("class Foo {\n".length(), "class Foo {\nint x;\n".length()));
-        assertThat(file.getText()).isEqualTo("class Foo {\n    int x;\n}\n");
+        reformatRange(file, new TextRange("class Foo {\n".length(), "class Foo {\n\nint x;\n".length()));
+        assertThat(file.getText()).isEqualTo("class Foo {\n\n    int x;\n}\n");
     }
 
     @Test

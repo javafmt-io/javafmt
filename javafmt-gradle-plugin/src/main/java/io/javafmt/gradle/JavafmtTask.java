@@ -26,6 +26,7 @@ import javax.inject.Inject;
 
 @DisableCachingByDefault(because = "Each concrete javafmt task declares its own caching.")
 public abstract class JavafmtTask extends DefaultTask {
+
     private static final int MAX_THREADS = 4;
 
     @InputFiles

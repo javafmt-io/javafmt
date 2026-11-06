@@ -1,4 +1,5 @@
 class Fixture {
+
     void verify(final int kind, final boolean strict) {
         switch (kind) {
             case 1 -> {
@@ -25,6 +26,7 @@ class Fixture {
     }
 
     interface Counter {
+
         void add(int step);
 
         int value();

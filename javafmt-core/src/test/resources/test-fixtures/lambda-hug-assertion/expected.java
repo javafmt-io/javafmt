@@ -1,4 +1,5 @@
 class Fixture {
+
     void check(final Order order, final List<Order> orders) {
         assertThat(order).satisfies(placed -> {
             assertThat(placed.id()).isEqualTo(1);

@@ -2,6 +2,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 class Fixture {
+
     Outer.@Marker Inner field;
 
     Outer.@Marker Inner method(final Outer.@Marker Inner param) {
@@ -14,6 +15,7 @@ class Fixture {
     @interface Marker {}
 
     static final class Outer {
+
         static final class Inner {}
     }
 }

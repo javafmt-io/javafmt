@@ -1,4 +1,5 @@
 class Fixture {
+
     String labelList(final String s) {
         return switch (s) {
             case "a" -> "A";

@@ -1,4 +1,5 @@
 class Fixture {
+
     Object chain(final Project project, final SourceSet sourceSet) {
         return project.provider(
                 () -> sourceSet.getJava().getSourceDirectories().getFiles().stream()

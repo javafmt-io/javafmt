@@ -10,6 +10,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class VarRetypingCheckTest {
+
     @ParameterizedTest
     @ValueSource(longs = {1, 2, 3, 4, 5})
     void anOffsetMovesByEveryEditBeforeIt(final long seed) {

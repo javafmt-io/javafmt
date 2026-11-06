@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FinalForEachVariableTest {
+
     static Stream<Arguments> rewritten() {
         return Stream.of(
                 Arguments.of("explicit type", "for (String s : xs) { use(s); }", "for (final String s : xs) { use(s); }"),
@@ -42,15 +43,14 @@ class FinalForEachVariableTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {
-                    "for (final String s : xs) { use(s); }",
-                    "for (String s : xs) { s = s.trim(); use(s); }",
-                    "for (@Audited final String s : xs) {}",
-                    "for (int i = 0; i < 3; i++) { use(i); }",
-                    "for (var s : xs) { s = null; }",
-                    "for (@Audited var s : xs) { use(s); }",
-            })
+    @ValueSource(strings = {
+            "for (final String s : xs) { use(s); }",
+            "for (String s : xs) { s = s.trim(); use(s); }",
+            "for (@Audited final String s : xs) {}",
+            "for (int i = 0; i < 3; i++) { use(i); }",
+            "for (var s : xs) { s = null; }",
+            "for (@Audited var s : xs) { use(s); }",
+    })
     void aFinalOrReassignedOrBasicLoopVariableIsLeftAlone(final String loop) {
         assertThat(fix(inMethod(loop))).isEqualTo(inMethod(loop));
     }

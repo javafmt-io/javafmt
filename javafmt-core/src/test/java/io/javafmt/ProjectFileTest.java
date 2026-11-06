@@ -14,6 +14,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ProjectFileTest {
+
     private static final String LOCATION = "/repository/.javafmt";
 
     @Test

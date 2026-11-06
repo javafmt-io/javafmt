@@ -3,21 +3,45 @@ package io.javafmt.parser;
 import com.sun.source.tree.AnnotatedTypeTree;
 import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayTypeTree;
+import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
-import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 /** javac-shape predicates that need source positions to answer questions the tree alone cannot. */
 public final class TreeFacts {
+
     private final ParsedUnit unit;
+
+    private final Set<Tree> fields;
 
     public TreeFacts(final ParsedUnit unit) {
         this.unit = Objects.requireNonNull(unit, "unit");
+        this.fields = fieldsOf(unit.tree());
+    }
+
+    public boolean isField(final VariableTree variable) {
+        return fields.contains(variable);
+    }
+
+    private static Set<Tree> fieldsOf(final CompilationUnitTree tree) {
+        final var found = Collections.newSetFromMap(new IdentityHashMap<Tree, Boolean>());
+        new ChainScanner<Void, Void>() {
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                node.getMembers().stream().filter(VariableTree.class::isInstance).forEach(found::add);
+                return super.visitClass(node, null);
+            }
+        }.scan(tree, null);
+        return Collections.unmodifiableSet(found);
     }
 
     /**
@@ -110,16 +134,6 @@ public final class TreeFacts {
 
     public boolean startsAfter(final Tree node, final Tree other) {
         return unit.startOf(node) > unit.startOf(other) && unit.startOf(other) >= 0;
-    }
-
-    public boolean hasTrailingComma(final NewArrayTree array) {
-        final var initializers = array.getInitializers();
-        if (initializers == null || initializers.isEmpty()) {
-            return false;
-        }
-        final var from = unit.endOf(initializers.getLast());
-        final var to = unit.endOf(array);
-        return from >= 0 && to > from && CommentScanner.withoutComments(unit.source().substring(from, to)).indexOf(',') >= 0;
     }
 
     public boolean hasEmptyArgumentList(final AnnotationTree annotation) {

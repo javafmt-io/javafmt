@@ -2,6 +2,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 class Fixture {
+
     private final char[] @Marker [] replacements = new char[0][];
 
     byte @Marker [][] samples;

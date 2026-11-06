@@ -11,6 +11,7 @@ public record Request(List<File> files,
                       boolean write,
                       File projectDirectory,
                       int threads) {
+
     public Request {
         files = List.copyOf(files);
         Objects.requireNonNull(analysisClasspath, "analysisClasspath");

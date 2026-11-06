@@ -1,4 +1,5 @@
 class Switches {
+
     String describe(final Object value, final int kind) {
         switch (kind) {
             case 1:

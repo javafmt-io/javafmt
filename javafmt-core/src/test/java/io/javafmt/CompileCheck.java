@@ -36,6 +36,7 @@ import javax.tools.ToolProvider;
  * {@link Outcome.Compiles} so a suite can assert it isn't skipping everything.
  */
 public final class CompileCheck {
+
     private static final List<String> UNRESOLVABLE_CODE_PREFIXES = List.of(
             "compiler.err.cant.resolve", "compiler.err.doesnt.exist", "compiler.err.cant.access", "compiler.err.package.not.visible",
             "compiler.err.not.def.access");
@@ -100,6 +101,7 @@ public final class CompileCheck {
 
     /** What a compile check concluded about one source. */
     public sealed interface Outcome {
+
         record Compiles() implements Outcome {}
 
         record Broken(List<String> errors) implements Outcome {}
@@ -108,6 +110,7 @@ public final class CompileCheck {
     }
 
     private static final class InMemorySource extends SimpleJavaFileObject {
+
         private final String source;
 
         InMemorySource(final String name, final String source) {
@@ -123,6 +126,7 @@ public final class CompileCheck {
 
     /** Keeps generated class files in memory so a compile check never touches the build tree. */
     private static final class DiscardingFileManager extends ForwardingJavaFileManager<JavaFileManager> {
+
         DiscardingFileManager(final JavaFileManager delegate) {
             super(delegate);
         }

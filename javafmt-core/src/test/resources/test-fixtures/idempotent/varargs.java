@@ -1,6 +1,7 @@
 import java.util.List;
 
 class Fixture {
+
     int sum(final int... values) {
         return values.length;
     }

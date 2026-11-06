@@ -23,6 +23,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public final class UnusedVariableShouldBeUnnamed implements LintRule {
+
     private static final String UNNAMED = "_";
 
     private static final int FIRST_RELEASE_WITH_UNNAMED_VARIABLES = 22;

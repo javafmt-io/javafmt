@@ -12,6 +12,7 @@ import javax.lang.model.element.Modifier;
 
 @UtilityClass
 final class RecordRenderer {
+
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("record " + node.getSimpleName()));
         final var components = node.getMembers().stream().filter(RecordRenderer::isRecordComponent).map(m -> (VariableTree) m).toList();

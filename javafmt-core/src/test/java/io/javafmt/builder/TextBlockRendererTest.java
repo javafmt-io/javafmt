@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * indent would re-indent the literal on every format pass, compounding indefinitely).
  */
 class TextBlockRendererTest {
+
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -36,7 +37,7 @@ class TextBlockRendererTest {
             """;
         // Interior lines of the text block keep the 12-space indent they had in src,
         // even though the enclosing 'return' lands at column 8 in the output.
-        assertThat(format(src)).isEqualTo("class Foo {\n    String t() {\n        return \"\"\"\n            hello\n            \"\"\";\n    }\n}");
+        assertThat(format(src)).isEqualTo("class Foo {\n\n    String t() {\n        return \"\"\"\n            hello\n            \"\"\";\n    }\n}");
     }
 
     @Test

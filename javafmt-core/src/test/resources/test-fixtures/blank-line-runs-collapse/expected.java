@@ -1,6 +1,7 @@
 package demo;
 
 class Fixture {
+
     int first = 1;
 
     int second = 2;

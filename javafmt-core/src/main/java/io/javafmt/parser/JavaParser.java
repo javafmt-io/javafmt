@@ -69,6 +69,7 @@ import javax.tools.ToolProvider;
  */
 @UtilityClass
 public final class JavaParser {
+
     public final boolean HAS_JAVAC_INTERNAL_ACCESS = computeHasJavacInternalAccess();
 
     private final JavaCompiler COMPILER = lookupCompiler();
@@ -367,6 +368,7 @@ public final class JavaParser {
                                StringWriter compilerOutput) {}
 
     private static final class InMemoryJavaFileObject extends SimpleJavaFileObject {
+
         private final String source;
 
         /**

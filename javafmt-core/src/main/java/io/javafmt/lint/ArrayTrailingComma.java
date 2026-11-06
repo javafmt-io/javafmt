@@ -1,6 +1,5 @@
 package io.javafmt.lint;
 
-import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.NewArrayTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
@@ -16,11 +15,6 @@ import java.util.Optional;
  * {@code alwaysDemandTrailingComma=true}. Empty initializers ({@code {}}) are skipped, as
  * are array creations without an initializer ({@code new int[5]}).
  *
- * <p>Arrays inside annotation arguments are left alone. They are almost always written on one line —
- * {@code @Target({TYPE, METHOD})} — where a trailing comma reads as a typo rather than as diff
- * hygiene, and an annotation's array prints with exactly the trailing comma its source has, so the
- * comma would survive into the output.
- *
  * <p>Comma detection looks at the source between the last initializer's end position and the
  * array's end position, with comments stripped out first. Reading the raw text was simpler and the
  * comma inside a comment it mistook for the array's own was written off as too strange to meet;
@@ -29,6 +23,7 @@ import java.util.Optional;
  * left the source without a comma and the renderer printed one.
  */
 public final class ArrayTrailingComma implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -36,13 +31,8 @@ public final class ArrayTrailingComma implements LintRule {
                 context,
                 edits -> new ChainScanner<>() {
                     @Override
-                    public Void visitAnnotation(final AnnotationTree node, final Void p) {
-                        return null;
-                    }
-
-                    @Override
                     public Void visitNewArray(final NewArrayTree node, final Void p) {
-                        editFor(node, unit).ifPresent(edits::add);
+                        editFor(node, unit).filter(edit -> !edits.contains(edit)).ifPresent(edits::add);
                         return super.visitNewArray(node, null);
                     }
                 });
@@ -63,6 +53,6 @@ public final class ArrayTrailingComma implements LintRule {
         if (between.indexOf(',') >= 0) {
             return Optional.empty();
         }
-        return Optional.of(LintEdit.insert(lastEnd, ","));
+        return Optional.of(TrailingCommas.insertAfter(unit.source(), lastEnd));
     }
 }

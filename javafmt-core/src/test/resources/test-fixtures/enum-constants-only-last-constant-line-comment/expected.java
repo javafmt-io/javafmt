@@ -1,6 +1,7 @@
 enum Priority {
+
     HIGH,
     MEDIUM,
     LOW,
-    NONE // when nothing is known
+    NONE, // when nothing is known
 }

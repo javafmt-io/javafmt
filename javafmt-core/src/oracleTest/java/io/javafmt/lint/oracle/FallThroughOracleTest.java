@@ -16,6 +16,7 @@ import java.util.stream.Stream;
  * dirty corpus files.
  */
 class FallThroughOracleTest {
+
     FallThroughOracleTest() {}
 
     private static final String CORPUS = "fall-through";

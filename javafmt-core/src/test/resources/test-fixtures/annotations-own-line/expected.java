@@ -1,10 +1,10 @@
 class Probe {
-    @Deprecated private String f;
+
+    @Deprecated
+    private String f;
 
     @Override
-    public String toString() {
-        return "";
-    }
+    public String toString() {return "";}
 
     @Override /* why */
     public int hashCode() {

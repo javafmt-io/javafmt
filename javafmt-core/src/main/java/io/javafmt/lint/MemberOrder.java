@@ -35,6 +35,7 @@ import javax.lang.model.element.Modifier;
  * one expression or one method, and moving anything there buys nothing.
  */
 public final class MemberOrder implements LintRule {
+
     private static final String CONSTRUCTOR_NAME = "<init>";
 
     @Override

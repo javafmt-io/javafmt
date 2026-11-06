@@ -1,4 +1,5 @@
 class Fixture {
+
     void run() {
         final Object _ = new Object() {
             int width; // last

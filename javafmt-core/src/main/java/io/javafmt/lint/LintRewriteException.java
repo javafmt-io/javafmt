@@ -11,6 +11,7 @@ import java.util.List;
  * fault", and reporting it would blame the file for javafmt's mistake.
  */
 public final class LintRewriteException extends RuntimeException {
+
     private static final long serialVersionUID = 1L;
 
     public LintRewriteException(final List<String> rules, final ParseException cause) {

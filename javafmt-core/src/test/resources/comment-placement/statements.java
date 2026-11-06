@@ -1,4 +1,5 @@
 class Statements {
+
     int run(final int[] values, final java.io.Reader in) throws java.io.IOException {
         var total = 0;
         outer:

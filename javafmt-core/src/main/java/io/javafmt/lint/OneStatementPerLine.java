@@ -17,6 +17,7 @@ import java.util.List;
  * {@code for} loop header.
  */
 public final class OneStatementPerLine implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

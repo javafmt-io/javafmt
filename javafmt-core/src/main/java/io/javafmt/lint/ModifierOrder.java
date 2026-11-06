@@ -46,6 +46,7 @@ import javax.lang.model.type.TypeKind;
  * replacement past it instead, so everything before it stays where it was written.
  */
 public final class ModifierOrder implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

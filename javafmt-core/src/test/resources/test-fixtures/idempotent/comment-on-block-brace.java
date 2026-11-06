@@ -1,4 +1,5 @@
 class Fixture {
+
     static { // class setup
         use(9);
     }

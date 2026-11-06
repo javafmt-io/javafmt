@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledOnOs({OS.MAC, OS.LINUX})
 class JavafmtDaemonTest {
+
     static final String READ_REQUEST = "n=$(($(dd bs=1 count=1 2>/dev/null | od -An -tu1)))\ndd bs=1 count=$n of=/dev/null 2>/dev/null\n";
 
     static final String ECHO_REQUESTS = "exec cat\n";
@@ -146,10 +147,10 @@ class JavafmtDaemonTest {
     @Timeout(10)
     void aDaemonThatNeverAnswersIsRefusedAtTheTimeoutAndStopped(@TempDir final Path dir) throws Exception {
         final var daemon = start(script(dir, "cat > /dev/null\n"));
-        final var begun = Instant.now();
+        final var begun = System.nanoTime();
         assertThat(daemon.format("class A {}", FileScope.none()))
                 .isEqualTo(new JavafmtBinary.Outcome.Refused("javafmt did not respond within 2s", true));
-        assertThat(Duration.between(begun, Instant.now())).isBetween(TIMEOUT, TIMEOUT.plusSeconds(2));
+        assertThat(Duration.ofNanos(System.nanoTime() - begun)).isBetween(TIMEOUT, TIMEOUT.plusSeconds(2));
         assertThat(daemon.isAlive()).isFalse();
     }
 
@@ -243,7 +244,7 @@ class JavafmtDaemonTest {
     @Test
     @Timeout(10)
     void aReplyThatIsNotProtobufStopsTheDaemon(@TempDir final Path dir) throws Exception {
-        final var daemon = start(script(dir, READ_REQUEST + printf(new byte[] {3, (byte) 0xff, (byte) 0xff, (byte) 0xff,}) + "cat > /dev/null\n"));
+        final var daemon = start(script(dir, READ_REQUEST + printf(new byte[]{3, (byte) 0xff, (byte) 0xff, (byte) 0xff}) + "cat > /dev/null\n"));
         assertThat(daemon.format("class A {}", FileScope.none()))
                 .isEqualTo(new JavafmtBinary.Outcome.Refused("javafmt sent a reply that is not part of its protocol", true));
         assertThat(daemon.isAlive()).isFalse();

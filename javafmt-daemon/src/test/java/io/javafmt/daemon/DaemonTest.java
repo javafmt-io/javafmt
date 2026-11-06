@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 class DaemonTest {
+
     @Test
     void theBinaryFixtureRequestsGetTheBinaryFixtureReplies() {
         final var out = new ByteArrayOutputStream();
@@ -48,7 +49,7 @@ class DaemonTest {
 
     @Test
     void aMalformedFrameDoesNotKillTheLoop() {
-        final var garbage = new byte[] {3, (byte) 0xff, (byte) 0xff, (byte) 0xff,};
+        final var garbage = new byte[]{3, (byte) 0xff, (byte) 0xff, (byte) 0xff};
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(garbage, delimited(request(1, "class A {}")))), out);
         assertThat(replies(out)).extracting(FormatReply::getId).containsExactly(1);
@@ -228,7 +229,7 @@ class DaemonTest {
         final var out = new OutputStream() {
             @Override
             public void write(final int b) {
-                write(new byte[] {(byte) b,}, 0, 1);
+                write(new byte[]{(byte) b}, 0, 1);
             }
 
             @Override

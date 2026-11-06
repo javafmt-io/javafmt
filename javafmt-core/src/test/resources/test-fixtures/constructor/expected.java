@@ -1,13 +1,10 @@
 class Fixture {
+
     private final int x;
 
-    public Fixture() {
-        this(0);
-    }
+    public Fixture() {this(0);}
 
-    public Fixture(final int x) {
-        this.x = x;
-    }
+    public Fixture(final int x) {this.x = x;}
 
     <T> Fixture(final T t, final int x) {
         this(x);
@@ -15,7 +12,5 @@ class Fixture {
     }
 
     @Inject
-    public Fixture(final int x, final int y) {
-        this.x = x + y;
-    }
+    public Fixture(final int x, final int y) {this.x = x + y;}
 }

@@ -1,4 +1,5 @@
 class Header {
+
     static final int MAJOR = 1;
     static final int MINOR = 0;
 
@@ -11,7 +12,7 @@ class Header {
 
     @SuppressWarnings({
             "unchecked", /* raw lists */
-            "rawtypes"
+            "rawtypes",
     })
     void read() {}
 }
@@ -19,6 +20,7 @@ class Header {
 class Reader
         implements Runnable, /* runs once */
             AutoCloseable {
+
     public void run() {}
 
     public void close() {}

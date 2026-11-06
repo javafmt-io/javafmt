@@ -14,6 +14,7 @@ import java.util.stream.Stream;
  */
 @UtilityClass
 final class ClassBodyRenderer {
+
     Doc render(final ClassTree body, final Recursor recursor) {
         final var members = body.getMembers().stream().flatMap(m -> Optional.ofNullable(recursor.scanNullable(m)).stream()).toList();
         final var indentedMembers = members.isEmpty()

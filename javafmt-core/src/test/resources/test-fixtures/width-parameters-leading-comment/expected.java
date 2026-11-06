@@ -1,4 +1,5 @@
 class OrderService {
+
     void placeOrder(
             // the customer placing it
             final CustomerAccount customerAccount,

@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 class JavafmtFixtureTest {
+
     private static final JavafmtConfig WITH_THE_CLASSPATH = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     static Stream<Arguments> fixtures() throws URISyntaxException, IOException {

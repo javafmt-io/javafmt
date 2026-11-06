@@ -1,4 +1,5 @@
 class Fixture {
+
     int classify(final Kind kind) {
         return switch (kind) {
             case ALPHA_ONE,
@@ -18,6 +19,7 @@ class Fixture {
     }
 
     enum Kind {
+
         ALPHA_ONE,
         BRAVO_TWO,
         CHARLIE_THREE,

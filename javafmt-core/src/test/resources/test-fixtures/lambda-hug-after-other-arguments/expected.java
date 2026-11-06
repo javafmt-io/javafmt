@@ -1,4 +1,5 @@
 class Fixture {
+
     void count(final Map<Long, Integer> visits, final long id, final Ledger ledger) {
         visits.compute(id, (_, count) -> {
             if (count == null) {

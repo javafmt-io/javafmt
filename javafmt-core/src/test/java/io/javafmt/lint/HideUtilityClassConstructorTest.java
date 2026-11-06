@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class HideUtilityClassConstructorTest {
+
     @Test
     void utilityClassWithoutPrivateConstructorProducesWarning() {
         final var unit = JavaParser.parseUnit("""

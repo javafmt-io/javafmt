@@ -10,6 +10,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class Declarations {
+
     boolean writesItsType(final VariableTree variable, final ParsedUnit unit) {
         return variable.getType() != null && unit.endOf(variable.getType()) >= 0;
     }

@@ -1,6 +1,7 @@
 import java.util.List;
 
 class Invoice {
+
     @Audit(
             level = 1,
             reason = "billing" // required by the ledger
@@ -28,6 +29,7 @@ class Invoice {
 }
 
 @interface Audit {
+
     int level();
 
     String reason();

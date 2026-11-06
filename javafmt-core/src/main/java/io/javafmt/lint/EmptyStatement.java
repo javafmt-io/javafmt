@@ -28,6 +28,7 @@ import java.util.stream.Stream;
  * back in agreement.
  */
 public final class EmptyStatement implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -100,7 +101,7 @@ public final class EmptyStatement implements LintRule {
         }
         final var memberSpans = node.getMembers().stream()
                 .filter(m -> unit.startOf(m) >= 0 && unit.endOf(m) > unit.startOf(m))
-                .map(m -> new int[] {unit.startOf(m), unit.endOf(m),})
+                .map(m -> new int[]{unit.startOf(m), unit.endOf(m)})
                 .sorted(Comparator.comparingInt(span -> span[0]))
                 .toList();
         return IntStream.rangeClosed(0, memberSpans.size())

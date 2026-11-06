@@ -18,6 +18,7 @@ import java.util.List;
  * at lint time.
  */
 public final class StringLiteralEquality implements WarningRule {
+
     private static final String MESSAGE = "string comparison using == or != (use .equals() instead)";
 
     @Override

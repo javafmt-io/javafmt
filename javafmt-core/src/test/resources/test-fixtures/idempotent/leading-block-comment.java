@@ -1,4 +1,5 @@
 class Fixture {
+
     /* leading block comment on a field */
     int count;
 

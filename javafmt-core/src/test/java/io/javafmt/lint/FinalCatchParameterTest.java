@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FinalCatchParameterTest {
+
     static Stream<Arguments> rewritten() {
         return Stream.of(
                 Arguments.of("single type", "catch (IOException e) { log(e); }", "catch (final IOException e) { log(e); }"),
@@ -36,7 +37,7 @@ class FinalCatchParameterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"catch (final IOException e) {}", "catch (IOException e) { e = null; }", "catch (@Annotated final IOException e) {}",})
+    @ValueSource(strings = {"catch (final IOException e) {}", "catch (IOException e) { e = null; }", "catch (@Annotated final IOException e) {}"})
     void aFinalOrReassignedCatchParameterIsLeftAlone(final String catchClause) {
         assertThat(fix(inMethod(catchClause))).isEqualTo(inMethod(catchClause));
     }

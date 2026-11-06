@@ -11,6 +11,7 @@ import java.io.ObjectOutputStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JavafmtConfigTest {
+
     @Test
     void defaults_parseOnly() {
         assertThat(JavafmtConfig.defaults().analysis()).isEqualTo(new JavafmtConfig.Analysis.ParseOnly());

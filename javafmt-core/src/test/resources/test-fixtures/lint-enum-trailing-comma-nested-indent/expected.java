@@ -1,5 +1,7 @@
 class Order {
+
     public enum Status {
+
         Pending,
         Approved,
         Rejected,

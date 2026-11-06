@@ -8,6 +8,7 @@ import java.util.Objects;
  * type-aware lint rules to run.
  */
 public record AttributedUnit(ParsedUnit unit, Attribution attribution) {
+
     public AttributedUnit {
         Objects.requireNonNull(unit, "unit");
         Objects.requireNonNull(attribution, "attribution");

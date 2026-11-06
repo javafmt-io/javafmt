@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JsonDiagnosticsTest {
+
     private static Stream<Arguments> kinds() {
         final var at = new Position.At(3, 9, 42);
         return Stream.of(

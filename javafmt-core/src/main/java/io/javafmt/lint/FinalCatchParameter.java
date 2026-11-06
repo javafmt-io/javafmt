@@ -6,6 +6,7 @@ import io.javafmt.parser.ChainScanner;
 import java.util.Optional;
 
 public final class FinalCatchParameter implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

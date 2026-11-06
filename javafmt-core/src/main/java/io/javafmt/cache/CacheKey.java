@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
  * turns some of those rewrites off.
  */
 public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, String classpath, int release, List<String> projectFiles) {
+
     public CacheKey {
         Objects.requireNonNull(classpath, "classpath");
         projectFiles = projectFiles.stream().distinct().sorted().toList();

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public interface LeadingCommentAttacher {
+
     Doc attach(Tree node, Doc doc);
 
     List<CommentToken> interior(Tree node);

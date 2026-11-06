@@ -18,6 +18,7 @@ import java.util.function.Supplier;
 
 @Service(Service.Level.APP)
 public final class JavafmtBinaryProvider {
+
     private final BinaryInstaller installer;
 
     private final Consumer<Task.Backgroundable> runner;

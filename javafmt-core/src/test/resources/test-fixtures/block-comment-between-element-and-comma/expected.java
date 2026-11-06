@@ -1,4 +1,5 @@
 class Inventory {
+
     static final String[] NAMES = {
             "",
             "one",
@@ -25,7 +26,7 @@ class Inventory {
             0x6D019B93F6F97F3AL, /*    3 */
     };
 
-    static final int[] SHORT = {1, /* one */ 2,};
+    static final int[] SHORT = {1, /* one */ 2};
 
     void record() {
         store("first", /* the name */ "second", /* the alias */ "third");
@@ -34,6 +35,7 @@ class Inventory {
     void store(final String name, final String alias, final String other) {}
 
     enum Policy {
+
         SILENT, /*0*/
         WARN, /*1*/
         FAIL /*2*/

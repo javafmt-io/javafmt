@@ -10,7 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GitRatchetTest {
-    @TempDir Path dir;
+
+    @TempDir
+    Path dir;
 
     private GitRepository committedRepository() {
         final var repository = GitRepository.init(dir);

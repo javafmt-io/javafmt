@@ -12,6 +12,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OutcomeTest {
+
     @ParameterizedTest
     @CsvSource({
             "SEVERITY_WARNING,KIND_WARNING,false,false",

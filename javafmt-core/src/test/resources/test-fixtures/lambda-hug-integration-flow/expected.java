@@ -1,4 +1,5 @@
 class Fixture {
+
     IntegrationFlow orderFlow() {
         return flow -> flow.filter(Order.class, order -> order.total() > 0).handle(Order.class, (order, headers) -> {
             audit(headers);

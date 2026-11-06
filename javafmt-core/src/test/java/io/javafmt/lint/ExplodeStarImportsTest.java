@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * the cases where it fires.
  */
 class ExplodeStarImportsTest {
+
     @Test
     void emitsNoEditForStarImportWithoutAttribution() {
         final var unit = JavaParser.parseUnit("""

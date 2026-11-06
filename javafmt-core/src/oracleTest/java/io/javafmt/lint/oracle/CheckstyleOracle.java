@@ -34,6 +34,7 @@ import java.util.Objects;
  * check class so callers pass a class name either way.
  */
 public final class CheckstyleOracle {
+
     private static final Logger LOG = LoggerFactory.getLogger(CheckstyleOracle.class);
 
     /**
@@ -100,15 +101,18 @@ public final class CheckstyleOracle {
     }
 
     public record Violation(int line, int column, String message) {
+
         public Violation {
             Objects.requireNonNull(message, "message");
         }
     }
 
     private static final class CollectingListener implements AuditListener {
+
         private final List<Violation> violations = new ArrayList<>();
 
-        @Nullable private Throwable failure;
+        @Nullable
+        private Throwable failure;
 
         @Override
         public void addError(final AuditEvent event) {

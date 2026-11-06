@@ -80,6 +80,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 public final class DocBuilder {
+
     private final ParsedUnit unit;
 
     private final TreeFacts facts;
@@ -182,11 +183,6 @@ public final class DocBuilder {
         }
 
         @Override
-        public boolean hasTrailingComma(final NewArrayTree array) {
-            return facts.hasTrailingComma(array);
-        }
-
-        @Override
         public boolean hasEmptyArgumentList(final AnnotationTree annotation) {
             return facts.hasEmptyArgumentList(annotation);
         }
@@ -214,6 +210,11 @@ public final class DocBuilder {
         @Override
         public boolean isEnumConstant(final VariableTree member) {
             return facts.isEnumConstant(member);
+        }
+
+        @Override
+        public boolean isField(final VariableTree variable) {
+            return facts.isField(variable);
         }
     };
 
@@ -440,6 +441,7 @@ public final class DocBuilder {
     private record Prerendered(Doc doc, List<Diagnostic> diagnostics) {}
 
     private record CommentAttacher(ParsedUnit unit) implements LeadingCommentAttacher {
+
         @Override
         public Doc attach(final Tree node, final Doc doc) {
             return CommentDocs.appendTrailing(attachLeading(node, doc), unit.trailingOf(node));

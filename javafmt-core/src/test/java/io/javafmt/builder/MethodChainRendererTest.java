@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MethodChainRendererTest {
+
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -20,9 +21,8 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { result.stream().toList(); } }"))
                 .isEqualTo("""
                            class Foo {
-                               void test() {
-                                   result.stream().toList();
-                               }
+
+                               void test() {result.stream().toList();}
                            }""".stripIndent());
     }
 
@@ -31,9 +31,8 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { doSomething(42); } }"))
                 .isEqualTo("""
                            class Foo {
-                               void test() {
-                                   doSomething(42);
-                               }
+
+                               void test() {doSomething(42);}
                            }""".stripIndent());
     }
 
@@ -49,6 +48,7 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                void test() {
                                    result.stream()
                                            .filter(element -> element.isActive())
@@ -65,9 +65,8 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { someMethod(alpha, beta, gamma); } }"))
                 .isEqualTo("""
                            class Foo {
-                               void test() {
-                                   someMethod(alpha, beta, gamma);
-                               }
+
+                               void test() {someMethod(alpha, beta, gamma);}
                            }""".stripIndent());
     }
 
@@ -79,6 +78,7 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                void test() {
                                    someMethod(
                                            arg1111111111, arg2222222222, arg3333333333, arg4444444444, arg5555555555, arg6666666666, arg7777777777, arg8888888888,
@@ -96,6 +96,7 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                void test() {
                                    result.stream()
                                            .filter(x -> x > 0)
@@ -108,10 +109,11 @@ class MethodChainRendererTest {
 
     @Test
     void blockBodyLambdaArgument_staysInlineWithOpenParen() {
-        final var input = "class Foo { void test() { runner.forEach(x -> { doIt(x); }); } }";
+        final var input = "class Foo { void test() { runner.forEach(x -> {\n doIt(x); }); } }";
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                void test() {
                                    runner.forEach(x -> {
                                        doIt(x);
@@ -129,9 +131,8 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-                               void test() {
-                                   Stream.<java.util.Map<String, Integer>>of();
-                               }
+
+                               void test() {Stream.<java.util.Map<String, Integer>>of();}
                            }""".stripIndent());
     }
 
@@ -147,6 +148,7 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                List<String> test() {
                                    return result.stream()
                                            .filter(element -> element.isActive())
@@ -162,6 +164,7 @@ class MethodChainRendererTest {
     void authorBrokeChain_joinsWhenItFits() {
         final var input = """
             class Foo {
+
                 void test() {
                     result.stream()
                         .filter(x -> x.ok())
@@ -171,6 +174,7 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                void test() {
                                    result.stream().filter(x -> x.ok()).toList();
                                }
@@ -186,6 +190,7 @@ class MethodChainRendererTest {
                 .isEqualTo(
                         """
                         class Foo {
+
                             void test() {
                                 final var productIds = countCompare.discrepantProducts().%s()
                                         .map(Audit.CountCompare.DiscrepantProduct::id)
@@ -205,6 +210,7 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                Object test() {
                                    return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics(), verbose), pool))
                                            .toList()
@@ -221,9 +227,8 @@ class MethodChainRendererTest {
         assertThat(format("class Foo { void test() { result.stream().filter(x -> x.ok()).toList(); } }"))
                 .isEqualTo("""
                            class Foo {
-                               void test() {
-                                   result.stream().filter(x -> x.ok()).toList();
-                               }
+
+                               void test() {result.stream().filter(x -> x.ok()).toList();}
                            }""".stripIndent());
     }
 
@@ -238,9 +243,8 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-                               void test() {
-                                   stmts.stream().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s))));
-                               }
+
+                               void test() {stmts.stream().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s))));}
                            }""".stripIndent());
     }
 
@@ -251,9 +255,8 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
-                               void test() {
-                                   var foo = SomeServiceBuilder.builder().withThing1(thing1).withThing2(thing2).withThing3(thing3).build();
-                               }
+
+                               void test() {var foo = SomeServiceBuilder.builder().withThing1(thing1).withThing2(thing2).withThing3(thing3).build();}
                            }""".stripIndent());
     }
 
@@ -264,6 +267,7 @@ class MethodChainRendererTest {
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
+
                                void test() {
                                    var foo = SomeServiceBuilder.builder()
                                            .withThing1(thing1)

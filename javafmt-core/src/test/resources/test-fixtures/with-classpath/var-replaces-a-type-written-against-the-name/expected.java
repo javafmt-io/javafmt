@@ -1,4 +1,5 @@
 class Matrix {
+
     private final double[][] cells = new double[2][2];
 
     double[][] copy() {

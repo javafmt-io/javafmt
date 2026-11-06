@@ -1,4 +1,5 @@
 class Fixture {
+
     void run(final java.io.Reader in, final java.io.Reader out) throws java.io.IOException {
         for (int i = 0, j = 0; i < 3; i++, // the outer step
                 j++) {
@@ -38,7 +39,8 @@ class Fixture {
               final int to) {}
 
     enum Size {
+
         SMALL, // the smallest
-        LARGE
+        LARGE,
     }
 }

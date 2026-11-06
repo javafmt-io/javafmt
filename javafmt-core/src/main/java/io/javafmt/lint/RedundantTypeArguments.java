@@ -54,6 +54,7 @@ import javax.lang.model.type.TypeKind;
  * holds that argument to account.
  */
 public final class RedundantTypeArguments implements RewriteVerifyingRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var edits = new ArrayList<LintEdit>();

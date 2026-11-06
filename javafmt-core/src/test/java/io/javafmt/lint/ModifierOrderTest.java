@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifierOrderTest {
+
     @Test
     void staticPublicReorderedToPublicStatic() {
         final var unit = JavaParser.parseUnit("""
@@ -50,13 +51,12 @@ class ModifierOrderTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {
-                    "class Fixture { public static int x = 0; }",
-                    "class Fixture { public final int x = 0; }",
-                    "class Fixture { private static int x = 0; }",
-                    "abstract class Fixture { public abstract void method(); }"
-            })
+    @ValueSource(strings = {
+            "class Fixture { public static int x = 0; }",
+            "class Fixture { public final int x = 0; }",
+            "class Fixture { private static int x = 0; }",
+            "abstract class Fixture { public abstract void method(); }",
+    })
     void alreadyCanonicalOrderProducesNoEdits(final String src) {
         final var unit = JavaParser.parseUnit(src);
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
@@ -114,12 +114,11 @@ class ModifierOrderTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {
-                    "@Deprecated // since 3.1",
-                    "@SuppressWarnings({\"unused\", \"rawtypes\"})    // kept for callers",
-                    "@Deprecated /* old */ // since 3.1"
-            })
+    @ValueSource(strings = {
+            "@Deprecated // since 3.1",
+            "@SuppressWarnings({\"unused\", \"rawtypes\"})    // kept for callers",
+            "@Deprecated /* old */ // since 3.1",
+    })
     void keywordsAfterALineCommentFollowingTheAnnotationsAreReordered(final String annotationLine) {
         final var source = "class Fixture {\n    " + annotationLine + "\n    public final static char NUL = 0;\n}\n";
         final var unit = JavaParser.parseUnit(source);
@@ -197,29 +196,26 @@ class ModifierOrderTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {
-                    "class Fixture { private final @Nullable String value = null; }",
-                    "class Fixture { public @Nullable String find() { return null; } }",
-                    "class Fixture { public static <T> @Nullable T first() { return null; } }",
-                    "class Fixture { void accept(final @Nullable String value) {} }",
-                    "class Fixture { void run() { final @Nullable String value = null; } }",
-                    "class Fixture { public @Nullable Fixture() {} }"
-            })
+    @ValueSource(strings = {
+            "class Fixture { private final @Nullable String value = null; }",
+            "class Fixture { public @Nullable String find() { return null; } }",
+            "class Fixture { public static <T> @Nullable T first() { return null; } }",
+            "class Fixture { void accept(final @Nullable String value) {} }",
+            "class Fixture { void run() { final @Nullable String value = null; } }",
+            "class Fixture { public @Nullable Fixture() {} }",
+    })
     void anAnnotationAfterTheKeywordsOfATypedDeclarationStaysThere(final String source) {
         final var result = new ModifierOrder().apply(LintContext.parseOnly(JavaParser.parseUnit(source)));
         assertThat(result.edits()).isEmpty();
     }
 
     @ParameterizedTest
-    @CsvSource(
-            delimiter = '|',
-            value = {
-                    "class Fixture { public @Deprecated void legacy() {} }|@Deprecated public void legacy()",
-                    "public @Deprecated class Fixture {}|@Deprecated public class Fixture",
-                    "public @Deprecated interface Fixture {}|@Deprecated public interface Fixture",
-                    "class Fixture { static @Deprecated public void legacy() {} }|@Deprecated public static void legacy()"
-            })
+    @CsvSource(delimiter = '|', value = {
+            "class Fixture { public @Deprecated void legacy() {} }|@Deprecated public void legacy()",
+            "public @Deprecated class Fixture {}|@Deprecated public class Fixture",
+            "public @Deprecated interface Fixture {}|@Deprecated public interface Fixture",
+            "class Fixture { static @Deprecated public void legacy() {} }|@Deprecated public static void legacy()",
+    })
     void anAnnotationAfterTheKeywordsOfADeclarationWithoutATypeMovesInFrontOfThem(final String source, final String reordered) {
         final var unit = JavaParser.parseUnit(source);
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));

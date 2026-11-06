@@ -18,6 +18,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class JavafmtEngine {
+
     public static Outcome run(final Request request) {
         Objects.requireNonNull(request, "request");
         final var root = request.projectDirectory().toPath();

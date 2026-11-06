@@ -1,4 +1,5 @@
 enum Currency {
+
     EURO("EUR"),
     DOLLAR("USD");
 
@@ -14,6 +15,7 @@ enum Currency {
 }
 
 enum Unit {
+
     ;
 
     static int count() {

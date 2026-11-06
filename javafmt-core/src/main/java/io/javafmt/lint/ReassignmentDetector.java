@@ -29,6 +29,7 @@ import java.util.Set;
  * unchanged and {@code final int[] a} still compiles. It is correctly ignored.
  */
 final class ReassignmentDetector {
+
     private final IdentityHashMap<Tree, Set<String>> writtenByScope = new IdentityHashMap<>();
 
     boolean reassigned(final Tree scope, final String name) {

@@ -13,6 +13,7 @@ import java.util.stream.IntStream;
 
 @UtilityClass
 final class LooseComments {
+
     Doc weave(final Doc doc, final ParsedUnit unit) {
         if (unit.loose().isEmpty()) {
             return doc;
@@ -47,6 +48,7 @@ final class LooseComments {
     private record Insertion(int significantBefore, CommentToken comment, boolean ownLine) {}
 
     private static final class Weaver {
+
         private final List<Insertion> insertions;
 
         private int next;

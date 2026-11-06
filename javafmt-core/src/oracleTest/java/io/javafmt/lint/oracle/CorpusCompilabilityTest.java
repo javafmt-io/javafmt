@@ -16,6 +16,7 @@ import java.util.stream.Stream;
  * corpus directory enrolls it here automatically.
  */
 class CorpusCompilabilityTest {
+
     @ParameterizedTest(name = "{0}")
     @MethodSource(value = "corpora")
     void corpusHasAtLeastOneCompilableFile(final String corpus) {

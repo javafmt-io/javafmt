@@ -21,6 +21,7 @@ import javax.tools.ToolProvider;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DeepExpressionTest {
+
     private static final int SEARCH_CEILING = 1 << 17;
 
     @TempDir
@@ -90,6 +91,7 @@ class DeepExpressionTest {
     }
 
     enum Chain {
+
         ALTERNATING("Deep", "a", ".f().a", ""),
         ARITHMETIC("int", "1", " + 1", ""),
         FIELD_SELECT("Deep", "a", ".a", ""),

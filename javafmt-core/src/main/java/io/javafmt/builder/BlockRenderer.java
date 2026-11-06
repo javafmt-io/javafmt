@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class BlockRenderer {
+
     List<Doc> blockStatements(final StatementTree statement, final Recursor recursor) {
         if (statement instanceof BlockTree block) {
             final var statementDocs = statementDocs(block.getStatements(), recursor);
@@ -60,14 +61,20 @@ final class BlockRenderer {
     }
 
     Stream<Doc> braceLineComments(final List<CommentToken> braceLine) {
-        final var beside = IntStream.range(0, braceLine.size())
-                .filter(i -> braceLine.get(i).text().startsWith("//"))
-                .findFirst()
-                .orElse(braceLine.size() - 1)
+        return Stream.concat(besideTheBrace(braceLine), belowTheBrace(braceLine));
+    }
+
+    Stream<Doc> besideTheBrace(final List<CommentToken> braceLine) {
+        return braceLine.subList(0, besideCount(braceLine)).stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)));
+    }
+
+    Stream<Doc> belowTheBrace(final List<CommentToken> braceLine) {
+        return braceLine.subList(besideCount(braceLine), braceLine.size()).stream().map(c -> Doc.indentedLine(CommentDocs.renderComment(c)));
+    }
+
+    private int besideCount(final List<CommentToken> braceLine) {
+        return IntStream.range(0, braceLine.size()).filter(i -> braceLine.get(i).text().startsWith("//")).findFirst().orElse(braceLine.size() - 1)
                 + 1;
-        return Stream.concat(
-                braceLine.subList(0, beside).stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
-                braceLine.subList(beside, braceLine.size()).stream().map(c -> Doc.indentedLine(CommentDocs.renderComment(c))));
     }
 
     private List<CommentToken> braceLineOf(final StatementTree body, final Recursor recursor) {

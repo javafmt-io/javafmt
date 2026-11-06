@@ -14,6 +14,7 @@ import java.util.stream.Stream;
  * {@code EmptyStatementCheck}.
  */
 class EmptyStatementOracleTest {
+
     EmptyStatementOracleTest() {}
 
     private static final String CORPUS = "empty-statement";

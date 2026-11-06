@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 public final class LintRules {
+
     private final List<LintRule> SPLIT_VARIABLE_DECLARATIONS_BEFORE_VAR_AND_FINAL = List.of(new MultipleVariableDeclarations());
 
     private final List<LintRule> INFER_VAR_BEFORE_INSERTING_FINAL = List.of(new LocalVarUseVar());

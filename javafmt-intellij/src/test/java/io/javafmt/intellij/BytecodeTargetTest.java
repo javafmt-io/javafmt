@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * compiles fine and fails only when a user tries to load the plugin.
  */
 class BytecodeTargetTest {
+
     /** Class file major version of Java 25. */
     private static final int JAVA_25_MAJOR = 69;
 

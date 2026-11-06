@@ -4,6 +4,7 @@
 // extra line comment above
 /* and a block comment */
 class Fixture {
+
     // field comment
     /** field javadoc */
     int count;

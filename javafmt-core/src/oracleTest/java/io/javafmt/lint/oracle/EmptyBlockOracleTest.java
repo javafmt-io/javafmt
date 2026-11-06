@@ -26,6 +26,7 @@ import java.util.stream.Stream;
  * retired it: six warnings on javafmt's own source, every one a deliberate no-op.
  */
 class EmptyBlockOracleTest {
+
     EmptyBlockOracleTest() {}
 
     private static final String CORPUS = "empty-block";

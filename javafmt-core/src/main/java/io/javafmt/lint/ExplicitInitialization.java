@@ -22,6 +22,7 @@ import javax.lang.model.element.Modifier;
  * those have no later opportunity to be assigned, so the rewrite would not compile.
  */
 public final class ExplicitInitialization implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -134,6 +135,7 @@ public final class ExplicitInitialization implements LintRule {
     }
 
     private record Span(int start, int end) {
+
         boolean covers(final int pos) {
             return start <= pos && pos < end;
         }

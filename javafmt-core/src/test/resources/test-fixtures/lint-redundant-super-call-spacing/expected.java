@@ -1,4 +1,5 @@
 class Account extends Ledger {
+
     Account() {}
 
     Account(final int balance) {

@@ -1,4 +1,5 @@
 class Rates {
+
     static final int[] LIMITS = {
             10, // daily
             70, // weekly

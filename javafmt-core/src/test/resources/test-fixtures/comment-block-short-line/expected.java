@@ -1,4 +1,5 @@
 class A {
+
     /* opener
     short
       proper

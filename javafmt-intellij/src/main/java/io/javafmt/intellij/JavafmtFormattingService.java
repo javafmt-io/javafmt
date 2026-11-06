@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
  * request is one it can honour.
  */
 public final class JavafmtFormattingService extends AsyncDocumentFormattingService {
+
     private static final Logger LOG = Logger.getInstance(JavafmtFormattingService.class);
 
     /** Must match the {@code notificationGroup} id registered in {@code plugin.xml}. */
@@ -123,6 +124,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
      * the document already has" rather than by returning silently.
      */
     private static final class JavafmtFormattingTask implements FormattingTask {
+
         private final AsyncFormattingRequest request;
 
         /**
@@ -131,7 +133,8 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
          * interrupt there returns at once, leaves the file alone without a notification, and the
          * daemon drops the late reply.
          */
-        @Nullable private Thread worker;
+        @Nullable
+        private Thread worker;
 
         private JavafmtFormattingTask(final AsyncFormattingRequest request) {
             this.request = request;

@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 final class JavafmtDaemon {
+
     private static final Logger LOG = Logger.getInstance(JavafmtDaemon.class);
 
     private final Process process;

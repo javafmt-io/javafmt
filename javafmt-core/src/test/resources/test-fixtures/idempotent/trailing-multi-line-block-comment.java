@@ -1,4 +1,5 @@
 class Fixture {
+
     int insertRemove; /* if >0, flags for inserting LRM/RLM before/after run,
                          if <0, count of bidi controls within run */
     volatile boolean disableKeepAlive; /* keep-alive has been disabled for this

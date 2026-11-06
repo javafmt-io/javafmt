@@ -25,6 +25,7 @@ import java.util.stream.IntStream;
  * normalizes the resulting single declarations on a later iteration.
  */
 public final class ArrayTypeStyle implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

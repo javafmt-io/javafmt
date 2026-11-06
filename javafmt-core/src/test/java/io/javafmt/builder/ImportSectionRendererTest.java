@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ImportSectionRendererTest {
+
     private static final int WIDTH = 150;
 
     private static String format(final String source) {

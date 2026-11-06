@@ -21,6 +21,7 @@ import io.javafmt.parser.ChainPathScanner;
  * block; see that class for which writes count and which nested scopes it skips.
  */
 public final class FinalLocalVariable implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

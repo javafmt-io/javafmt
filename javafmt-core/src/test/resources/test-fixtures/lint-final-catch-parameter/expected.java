@@ -1,4 +1,5 @@
 class InvoiceReader {
+
     Invoice read(final Path path) {
         try {
             return parse(path);

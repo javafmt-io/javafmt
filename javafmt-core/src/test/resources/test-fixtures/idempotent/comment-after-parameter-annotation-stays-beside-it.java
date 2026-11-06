@@ -1,4 +1,5 @@
 class InvoiceFormatter {
+
     void archive(
             @Named("primary") // the account the archive is billed to
             final String account,
