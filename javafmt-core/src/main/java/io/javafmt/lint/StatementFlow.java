@@ -20,6 +20,7 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 final class StatementFlow {
+
     boolean terminates(final StatementTree statement) {
         return switch (statement) {
             case BlockTree block -> !block.getStatements().isEmpty() && transfersControl(block.getStatements().getLast());

@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class JavaParserTest {
+
     @Test
     void parsingOnManyShortLivedThreadsKeepsNoFileManagerPerThread() {
         final var before = JavaParser.idleFileManagers();

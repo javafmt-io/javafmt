@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 public record GitRepository(Path root) {
+
     public GitRepository {
         Objects.requireNonNull(root, "root");
     }

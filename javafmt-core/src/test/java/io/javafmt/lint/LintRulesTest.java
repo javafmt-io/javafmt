@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class LintRulesTest {
+
     @Test
     void defaultsRunInTheirFixedOrder() {
         assertThat(LintRules.defaults().stream().map(LintRule::name).toList())

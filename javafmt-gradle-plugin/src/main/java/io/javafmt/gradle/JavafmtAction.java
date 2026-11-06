@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 
 public abstract class JavafmtAction implements WorkAction<JavafmtAction.Parameters> {
+
     private static final Logger LOGGER = Logging.getLogger(JavafmtAction.class);
 
     private static final ProblemGroup GROUP = ProblemGroup.create("javafmt", "javafmt");
@@ -103,6 +104,7 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
     }
 
     public interface Parameters extends WorkParameters {
+
         ConfigurableFileCollection getFiles();
 
         Property<Boolean> getAnalyze();

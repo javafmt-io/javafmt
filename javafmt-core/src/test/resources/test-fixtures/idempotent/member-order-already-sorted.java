@@ -1,4 +1,5 @@
 class Fixture {
+
     int value = 1;
 
     void run() {

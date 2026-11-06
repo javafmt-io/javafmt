@@ -18,6 +18,7 @@ import javax.lang.model.element.Modifier;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifierRendererTest {
+
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -26,7 +27,7 @@ class ModifierRendererTest {
 
     @Test
     void modifiersEmittedInJlsOrder() {
-        assertThat(format("class Foo { static private final int X = 1; }")).isEqualTo("class Foo {\n    private static final int X = 1;\n}");
+        assertThat(format("class Foo { static private final int X = 1; }")).isEqualTo("class Foo {\n\n    private static final int X = 1;\n}");
     }
 
     @Test
@@ -44,22 +45,21 @@ class ModifierRendererTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {
-                    "class Foo {\n    public @Nullable String find() {\n        return null;\n    }\n}",
-                    "class Foo {\n    public static <T> @Nullable T first() {\n        return null;\n    }\n}",
-                    "class Foo {\n    private final @Nullable String name;\n}",
-                    "class Foo {\n    void accept(final @Nullable String name) {}\n}",
-                    "public @Deprecated class Foo {}"
-            })
+    @ValueSource(strings = {
+            "class Foo {\n\n    public @Nullable String find() {\n        return null;\n    }\n}",
+            "class Foo {\n\n    public static <T> @Nullable T first() {\n        return null;\n    }\n}",
+            "class Foo {\n\n    private final @Nullable String name;\n}",
+            "class Foo {\n\n    void accept(final @Nullable String name) {}\n}",
+            "public @Deprecated class Foo {}",
+    })
     void anAnnotationWrittenAfterTheModifiersStaysThere(final String source) {
         assertThat(format(source)).isEqualTo(source);
     }
 
     @Test
     void anAnnotationInFrontOfTheModifiersOfAMethodTakesItsOwnLine() {
-        assertThat(format("class Foo {\n    @Deprecated public @Nullable String find() {\n        return null;\n    }\n}"))
-                .isEqualTo("class Foo {\n    @Deprecated\n    public @Nullable String find() {\n        return null;\n    }\n}");
+        assertThat(format("class Foo {\n\n    @Deprecated public @Nullable String find() {\n        return null;\n    }\n}"))
+                .isEqualTo("class Foo {\n\n    @Deprecated\n    public @Nullable String find() {\n        return null;\n    }\n}");
     }
 
     private static ModifiersTree stubModifiers(final Set<Modifier> flags, final List<? extends AnnotationTree> annotations) {

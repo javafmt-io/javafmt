@@ -24,6 +24,7 @@ import java.util.stream.Stream;
  */
 @UtilityClass
 final class ModuleRenderer {
+
     Doc render(final ModuleTree node, final Recursor recursor) {
         final var header = headerText(node);
         final var directives = node.getDirectives();

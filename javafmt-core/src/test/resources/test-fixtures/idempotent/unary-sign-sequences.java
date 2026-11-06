@@ -1,4 +1,5 @@
 class Fixture {
+
     int test(final int input) {
         var counter = input;
         final var negated = - -input;

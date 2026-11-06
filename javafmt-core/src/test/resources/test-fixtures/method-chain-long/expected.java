@@ -1,4 +1,5 @@
 class Fixture {
+
     void test() {
         result.stream()
                 .filter(element -> element.isActive())

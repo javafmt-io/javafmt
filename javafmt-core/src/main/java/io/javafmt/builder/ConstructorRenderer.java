@@ -6,6 +6,7 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 final class ConstructorRenderer {
+
     Doc render(final MethodTree node, final String className, final Recursor recursor) {
         final var modifiers = node.getModifiers();
         final var typeParameters = node.getTypeParameters();

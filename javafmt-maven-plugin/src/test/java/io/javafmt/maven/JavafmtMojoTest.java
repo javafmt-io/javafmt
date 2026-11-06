@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtMojoTest {
+
     @Test
     void formatGoalRewritesUnformattedFile(@TempDir final Path srcDir) throws Exception {
         final var file = srcDir.resolve("Foo.java");
@@ -141,7 +142,7 @@ class JavafmtMojoTest {
     @Test
     void anUnreadableFileFailsTheGoalWithoutWritingItsNeighbours(@TempDir final Path srcDir) throws Exception {
         final var unreadable = srcDir.resolve("Latin1.java");
-        Files.write(unreadable, new byte[] {'c', 'l', 'a', 's', 's', ' ', (byte) 0xE9, ' ', '{', '}', '\n',});
+        Files.write(unreadable, new byte[]{'c', 'l', 'a', 's', 's', ' ', (byte) 0xE9, ' ', '{', '}', '\n'});
         final var normal = srcDir.resolve("Normal.java");
         Files.writeString(normal, UNFORMATTED, StandardCharsets.UTF_8);
         final var mojo = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.empty());

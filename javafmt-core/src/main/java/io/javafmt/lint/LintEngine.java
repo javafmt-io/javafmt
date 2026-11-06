@@ -52,6 +52,7 @@ import java.util.stream.Stream;
  * applied.
  */
 public final class LintEngine {
+
     private static final int MAX_ITERATIONS = 10;
 
     private final List<LintRule> rules;
@@ -267,13 +268,16 @@ public final class LintEngine {
 
     /** One file's progress through the rounds. Mutable by nature: it is a loop variable per file. */
     private static final class FileState {
+
         private LintContext context;
 
         private final boolean attributed;
 
-        @Nullable private String pendingSource;
+        @Nullable
+        private String pendingSource;
 
-        @Nullable private Staged<Outcome> result;
+        @Nullable
+        private Staged<Outcome> result;
 
         private boolean awaitingParseOnlyUnit;
 
@@ -339,6 +343,7 @@ public final class LintEngine {
     }
 
     public record Outcome(ParsedUnit unit, List<Diagnostic> diagnostics) {
+
         public Outcome {
             Objects.requireNonNull(unit, "unit");
             diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));

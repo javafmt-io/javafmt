@@ -23,6 +23,7 @@ public record LintContext(ParsedUnit unit,
                           Set<String> analyzeSkip,
                           ParsedUnit unattributedUnit,
                           Map<String, AttributedUnit> attributedRewrites) {
+
     public LintContext {
         Objects.requireNonNull(unit, "unit");
         Objects.requireNonNull(attribution, "attribution");

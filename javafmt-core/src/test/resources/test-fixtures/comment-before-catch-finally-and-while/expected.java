@@ -1,6 +1,7 @@
 import java.util.concurrent.Callable;
 
 class Fixture {
+
     Object read(final Callable<Object> task) {
         try {
             return task.call();

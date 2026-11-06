@@ -3,6 +3,7 @@
  * Every helper here is static.
  */
 final class Orders {
+
     static int count() {
         return 0;
     }

@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DefaultComesLastTest {
+
     private static final String ARROW_FORM_AUTO_FIX = """
         class Fixture {
 

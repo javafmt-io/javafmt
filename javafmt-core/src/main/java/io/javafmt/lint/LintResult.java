@@ -16,6 +16,7 @@ import java.util.Objects;
  * break compilation.
  */
 public record LintResult(List<LintEdit> edits, List<Diagnostic> diagnostics) {
+
     public static final LintResult EMPTY = new LintResult(List.of(), List.of());
 
     public LintResult {

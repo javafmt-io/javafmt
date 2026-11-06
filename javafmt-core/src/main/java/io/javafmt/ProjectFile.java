@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public sealed interface ProjectFile extends Serializable permits ProjectFile.None, ProjectFile.Settings, ProjectFile.Invalid {
+
     String NAME = ".javafmt";
 
     String ANALYZE_SKIP = "analyze.skip";
@@ -99,6 +100,7 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
     }
 
     record None() implements ProjectFile {
+
         @Override
         public Set<String> analyzeSkip() {
             return Set.of();
@@ -106,6 +108,7 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
     }
 
     record Settings(String location, Set<String> analyzeSkip) implements ProjectFile {
+
         public Settings {
             Objects.requireNonNull(location, "location");
             analyzeSkip = Collections.unmodifiableSortedSet(new TreeSet<>(analyzeSkip));
@@ -113,6 +116,7 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
     }
 
     record Invalid(String location, String problem) implements ProjectFile {
+
         public Invalid {
             Objects.requireNonNull(location, "location");
             Objects.requireNonNull(problem, "problem");

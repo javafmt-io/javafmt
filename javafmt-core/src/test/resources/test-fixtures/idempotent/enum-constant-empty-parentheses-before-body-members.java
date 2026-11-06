@@ -1,4 +1,5 @@
 enum Method {
+
     STORED(0),
     DEFLATED(),
     UNKNOWN();

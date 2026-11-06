@@ -1,4 +1,5 @@
 class Fixture {
+
     void test() {
         try {
             riskyOp();

@@ -22,6 +22,7 @@ import java.util.stream.Stream;
  * io.javafmt.lint.AvoidStarImport} reports it as a warning instead.
  */
 class ExplodeStarImportsOracleTest {
+
     ExplodeStarImportsOracleTest() {}
 
     private static final String CORPUS = "explode-star-imports";

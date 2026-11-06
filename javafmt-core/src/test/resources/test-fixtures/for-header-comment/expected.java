@@ -1,4 +1,5 @@
 class Fixture {
+
     void run(final int count) {
         int index;
         for (index = 0 /*count / 4*/; index < count * 2; index++) {

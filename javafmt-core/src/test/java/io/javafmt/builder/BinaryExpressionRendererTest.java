@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BinaryExpressionRendererTest {
+
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
@@ -24,9 +25,8 @@ class BinaryExpressionRendererTest {
         final var input = "class X { boolean ok(boolean a, boolean b) { return a && b; } }";
         final var expected = """
             class X {
-                boolean ok(boolean a, boolean b) {
-                    return a && b;
-                }
+
+                boolean ok(boolean a, boolean b) {return a && b;}
             }""".stripIndent();
         assertThat(format(input)).isEqualTo(expected);
     }
@@ -34,7 +34,7 @@ class BinaryExpressionRendererTest {
     @ParameterizedTest
     @MethodSource("authorBrokenChainsThatFit")
     void authorBrokenLogicalChainThatFitsTheLine_joins(final String broken, final String joined) {
-        final var template = "class X {\n    boolean ok(Object imp, Object ms, boolean a, boolean b, boolean c) {\n        %s\n    }\n}";
+        final var template = "class X {\n\n    boolean ok(Object imp, Object ms, boolean a, boolean b, boolean c) {\n        %s\n    }\n}";
         assertThat(format(template.formatted(broken))).isEqualTo(template.formatted(joined));
     }
 
@@ -53,12 +53,14 @@ class BinaryExpressionRendererTest {
         // each operand sits on its own line, rather than only breaking the last operator.
         final var input = """
             class X {
+
                 boolean ok(Object annotations, Object recursor) {
                     final var inline = annotations.size() == 1 && annotations.getFirst().getArguments().isEmpty() && !recursor.isFollowedByNewline(annotations.getFirst());
                 }
             }""".stripIndent();
         final var expected = """
             class X {
+
                 boolean ok(Object annotations, Object recursor) {
                     final var inline = annotations.size() == 1
                         && annotations.getFirst().getArguments().isEmpty()
@@ -69,14 +71,13 @@ class BinaryExpressionRendererTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {
-                    "final var ok = a.longMethodName(arg1) && b.anotherLongMethod(arg2, arg3, arg4);",
-                    "return a && b && c;",
-                    "final var ok = tree != null && !(tree instanceof BinaryTree) && !(tree instanceof MethodInvocationTree) && !(tree instanceof LambdaTree);"
-            })
+    @ValueSource(strings = {
+            "final var ok = a.longMethodName(arg1) && b.anotherLongMethod(arg2, arg3, arg4);",
+            "return a && b && c;",
+            "final var ok = tree != null && !(tree instanceof BinaryTree) && !(tree instanceof MethodInvocationTree) && !(tree instanceof LambdaTree);",
+    })
     void logicalChainThatFitsTheLine_staysFlat(final String statement) {
-        final var source = "class X {\n    boolean ok(Object a, Object b, Object tree) {\n        " + statement + "\n    }\n}";
+        final var source = "class X {\n\n    boolean ok(Object a, Object b, Object tree) {\n        " + statement + "\n    }\n}";
         assertThat(format(source)).isEqualTo(source);
     }
 
@@ -84,6 +85,7 @@ class BinaryExpressionRendererTest {
     void brokenLogicalChain_innerChain_staysFlat_evenWhenSourceBrokeIt() {
         final var input = """
             class X {
+
                 void test(Object annotations, Object recursor) {
                     final var inline = annotations.size() == 1 && annotations.getFirst()
                             .getArguments()
@@ -92,6 +94,7 @@ class BinaryExpressionRendererTest {
             }""".stripIndent();
         final var expected = """
             class X {
+
                 void test(Object annotations, Object recursor) {
                     final var inline = annotations.size() == 1
                         && annotations.getFirst().getArguments().isEmpty()
@@ -106,9 +109,8 @@ class BinaryExpressionRendererTest {
         final var input = "class X { int n(int a, int b) { return a + b * 2; } }";
         final var expected = """
             class X {
-                int n(int a, int b) {
-                    return a + b * 2;
-                }
+
+                int n(int a, int b) {return a + b * 2;}
             }""".stripIndent();
         assertThat(format(input)).isEqualTo(expected);
     }

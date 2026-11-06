@@ -1,4 +1,5 @@
 class Fixture {
+
     // leading line comment
     int a;
 

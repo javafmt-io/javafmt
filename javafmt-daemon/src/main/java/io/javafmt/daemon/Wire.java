@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 
 @Slf4j
 public enum Wire {
+
     BINARY,
     JSON;
 

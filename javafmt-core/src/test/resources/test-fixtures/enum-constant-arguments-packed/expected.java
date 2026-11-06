@@ -1,4 +1,5 @@
 enum Shipping {
+
     SHORT(1, 2),
     LONG(
             firstRateTableEntryName, secondRateTableEntryName, thirdRateTableEntryName, fourthRateTableEntryName, fifthRateTableEntryName,

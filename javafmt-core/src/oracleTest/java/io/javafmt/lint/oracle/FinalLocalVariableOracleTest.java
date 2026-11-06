@@ -18,6 +18,7 @@ import java.util.stream.Stream;
  * comment explaining why.
  */
 class FinalLocalVariableOracleTest {
+
     FinalLocalVariableOracleTest() {}
 
     private static final String CORPUS = "final-local-variable";

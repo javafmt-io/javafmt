@@ -4,10 +4,15 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.LambdaExpressionTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
+import io.javafmt.parser.CommentScanner;
 import lombok.experimental.UtilityClass;
+
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @UtilityClass
 final class LambdaRenderer {
+
     Doc render(final LambdaExpressionTree node, final Recursor recursor) {
         final var paramList = renderParamList(node, recursor);
         return switch (node.getBodyKind()) {
@@ -23,7 +28,23 @@ final class LambdaRenderer {
     private Doc renderBlockBody(final LambdaExpressionTree node, final Doc paramList, final Recursor recursor) {
         final var block = (BlockTree) node.getBody();
         final var header = Doc.concat(paramList, new Doc.Text(" ->"));
-        return BlockRenderer.braced(header, block, recursor);
+        if (block.getStatements().size() != 1 || !writtenOnOneLine(node, block, recursor)) {
+            return BlockRenderer.braced(header, block, recursor);
+        }
+        return Optional.ofNullable(recursor.scan(block.getStatements().getFirst()))
+                .map(statement -> keptOnOneLine(header, statement))
+                .orElseGet(() -> BlockRenderer.braced(header, block, recursor));
+    }
+
+    private Doc keptOnOneLine(final Doc header, final Doc statement) {
+        final var braced = Doc.concatOf(Stream.of(Stream.of(header, new Doc.Text(" {")), Stream.of(Doc.indentedLine(statement)), Doc.closeBrace()));
+        final var oneLine = Doc.concat(header, new Doc.Text(" {"), statement, new Doc.Text("}"));
+        return Doc.flatWidthOrBreak(oneLine) < 0 ? braced : new Doc.Choice(new Doc.Group(oneLine), braced, Doc.Choice.Fit.OPENING_LINE);
+    }
+
+    private boolean writtenOnOneLine(final LambdaExpressionTree node, final BlockTree block, final Recursor recursor) {
+        final var lambda = recursor.sourceOf(node);
+        return recursor.sourceOf(block).lines().count() == 1 && CommentScanner.withoutComments(lambda).equals(lambda);
     }
 
     /**

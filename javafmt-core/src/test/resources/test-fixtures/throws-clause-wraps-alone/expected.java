@@ -1,4 +1,5 @@
 class InvoiceLedger {
+
     InvoiceLedger(final String account, final String calendar, final int retentionDays)
             throws java.io.IOException, InterruptedException, IllegalStateException {}
 

@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class EnumRenderer {
+
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("enum " + node.getSimpleName()));
         final var headerDoc = ClassLikeRenderer.buildTypeDeclarationHeader(prefix, null, node.getImplementsClause(), false, List.of(), recursor);
@@ -42,7 +43,8 @@ final class EnumRenderer {
                     new Doc.Group(
                             Doc.concat(
                                     headerDoc, new Doc.Text(" {"), new Doc.Concat(BlockRenderer.braceLineComments(braceLine).toList()),
-                                    constantsInner, beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant), new Doc.Text("}")),
+                                    new Doc.IfBreak(Doc.HARD_LINE, new Doc.Text("")), constantsInner,
+                                    beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant), new Doc.Text("}")),
                             !braceLine.isEmpty()),
                     recursor);
         }
@@ -127,27 +129,11 @@ final class EnumRenderer {
     }
 
     /**
-     * The separator after the last constant of a body-less enum, preserving whatever the author
-     * wrote there.
-     *
-     * <p>Both a trailing {@code ,} and a trailing {@code ;} are optional and carry no meaning, but
-     * they are tokens the author wrote. Emitting the usual break-only comma instead would delete
-     * them whenever the enum fits on one line, and "javafmt does not delete what you wrote" is a
-     * cheaper contract to keep than a list of blessed normalizations. With output verification on,
-     * dropping one does not corrupt the file — it freezes it, returning the source unformatted with
-     * an internal error, which is worse for the user than an unfashionable comma.
-     *
-     * <p>Nothing is invented here either. The trailing comma a wide enum gets is written into the
-     * source by the {@code EnumTrailingComma} lint rule, so by the time the renderer runs it is a
-     * separator the source already has; a comma conjured at print time would be a token the output
-     * verifier has never seen and the file would come back refused.
+     * The separator after the last constant of a body-less enum: the author's {@code ;}, or a
+     * {@code ,} printed only when the constants go one per line.
      */
     private Doc trailingSeparator(final ClassTree node, final Recursor recursor) {
-        return switch (authorsSeparator(recursor.sourceOf(node))) {
-            case ';' -> new Doc.Text(";");
-            case ',' -> new Doc.Text(",");
-            default -> new Doc.Text("");
-        };
+        return authorsSeparator(recursor.sourceOf(node)) == ';' ? new Doc.Text(";") : new Doc.IfBreak(new Doc.Text(","), new Doc.Text(""));
     }
 
     /**

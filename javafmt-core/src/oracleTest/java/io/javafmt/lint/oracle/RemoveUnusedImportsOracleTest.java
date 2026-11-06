@@ -18,6 +18,7 @@ import java.util.stream.Stream;
  * identifier-shaped words, so the oracle runs with the default.
  */
 class RemoveUnusedImportsOracleTest {
+
     RemoveUnusedImportsOracleTest() {}
 
     private static final String CORPUS = "remove-unused-imports";

@@ -23,13 +23,14 @@ import java.util.stream.IntStream;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class ParallelBatchBenchmark {
-    @Param({"64", "256",})
+
+    @Param({"64", "256"})
     public int files = 64;
 
-    @Param({"1", "4",})
+    @Param({"1", "4"})
     public int threads = 1;
 
-    @Param({"clean", "dirty", "mixed",})
+    @Param({"clean", "dirty", "mixed"})
     public String variant = "clean";
 
     private List<String> sources = List.of();

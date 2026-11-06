@@ -36,6 +36,7 @@ import javax.lang.model.type.TypeKind;
  * account for is exactly the unsafe direction.
  */
 public final class ExplodeStarImports implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var attribution = context.attributionFor(ExplodeStarImports.class);

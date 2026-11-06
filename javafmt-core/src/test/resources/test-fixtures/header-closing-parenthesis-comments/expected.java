@@ -1,4 +1,5 @@
 class Fixture {
+
     void run(final java.io.Reader in) throws java.io.IOException {
         for (var i = 0; i < 3; i++ // one step at a time
         ) {

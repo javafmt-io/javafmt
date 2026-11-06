@@ -5,6 +5,7 @@ package io.javafmt;
  * report (e.g. an error with no source position at all).
  */
 public sealed interface Position permits Position.At, Position.Unknown {
+
     int line();
 
     int column();
@@ -22,6 +23,7 @@ public sealed interface Position permits Position.At, Position.Unknown {
 
     /** No known location. */
     record Unknown() implements Position {
+
         @Override
         public int line() {
             return 0;

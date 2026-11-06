@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class CallArguments {
+
     Rendered render(final Tree call, final List<? extends ExpressionTree> arguments, final Recursor recursor) {
         if (arguments.isEmpty()) {
             return new Rendered(emptyArguments(CommentDocs.inside(call, recursor)), false);
@@ -21,13 +22,20 @@ final class CallArguments {
         final var trailing = IntStream.range(0, arguments.size())
                 .mapToObj(i -> i + 1 < arguments.size() ? recursor.trailing(arguments.get(i)) : List.<CommentToken>of())
                 .toList();
-        final var inline = trailing.stream().map(comments -> CommentDocs.hasLineComment(comments) ? List.<CommentToken>of() : comments).toList();
+        final var lineCommentAfter = IntStream.range(0, arguments.size())
+                .mapToObj(
+                        i -> CommentDocs.hasLineComment(trailing.get(i))
+                            || (i + 1 < arguments.size() && CommentDocs.hasLineComment(recursor.pastTheSeparatorBefore(arguments.get(i + 1)))))
+                .toList();
+        final var inline = IntStream.range(0, arguments.size())
+                .mapToObj(i -> lineCommentAfter.get(i) ? List.<CommentToken>of() : trailing.get(i))
+                .toList();
         final var pastTheSeparator = IntStream.range(0, arguments.size())
                 .mapToObj(
                         i -> i == 0
                                 ? recursor.pastTheSeparatorBefore(arguments.getFirst())
                                 : Stream.concat(
-                                        CommentDocs.hasLineComment(trailing.get(i - 1)) ? trailing.get(i - 1).stream() : Stream.<CommentToken>empty(),
+                                        lineCommentAfter.get(i - 1) ? trailing.get(i - 1).stream() : Stream.<CommentToken>empty(),
                                         recursor.pastTheSeparatorBefore(arguments.get(i)).stream())
                                         .toList())
                 .toList();

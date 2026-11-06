@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JavafmtPluginFunctionalTest {
+
     private static final String FOO = "src/main/java/Foo.java";
 
     private static final String FOO_TEST = "src/test/java/FooTest.java";
@@ -36,7 +37,7 @@ class JavafmtPluginFunctionalTest {
     private static final String PROBLEMS_REPORT = "build/reports/problems/problems-report.html";
 
     private static final String WARNED_SOURCE =
-            "class Warned {\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
+            "class Warned {\n\n    @Override\n    public boolean equals(final Object other) {\n        return this == other;\n    }\n}\n";
 
     @Test
     void formatRewritesEveryJavaSourceSetInPlace(@TempDir final Path dir) {
@@ -238,7 +239,7 @@ class JavafmtPluginFunctionalTest {
         build.write(A, "class A { int y; }");
         assertThat(build.fail("javafmtCheck").getOutput()).contains("A.java").doesNotContain("Foo.java");
         build.run("javafmtFormat");
-        assertThat(build.read(A)).isEqualTo("class A {\n    int y;\n}\n");
+        assertThat(build.read(A)).isEqualTo("class A {\n\n    int y;\n}\n");
         assertThat(build.read(FOO)).isEqualTo(Fixtures.UNFORMATTED_FOO);
         assertThat(outcome(build.run("javafmtCheck"), ":javafmtCheckMain")).isEqualTo(TaskOutcome.SUCCESS);
     }

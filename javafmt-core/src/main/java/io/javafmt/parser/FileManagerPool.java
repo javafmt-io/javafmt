@@ -16,6 +16,7 @@ import javax.tools.StandardJavaFileManager;
  * managers nor their jar files open.
  */
 final class FileManagerPool {
+
     private static final System.Logger LOG = System.getLogger(FileManagerPool.class.getName());
 
     private final int capacity;

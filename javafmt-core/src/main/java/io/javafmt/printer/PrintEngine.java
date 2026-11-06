@@ -14,6 +14,7 @@ import java.util.stream.IntStream;
  */
 @UtilityClass
 final class PrintEngine {
+
     final int INDENT_SIZE = 4;
 
     String print(final int lineWidth, final Doc doc) {
@@ -377,6 +378,7 @@ final class PrintEngine {
     private record Pending(Doc doc, boolean grouped) {}
 
     private record Frame(int indent, Mode mode, Doc doc, int firstPart) {
+
         Frame(final int indent, final Mode mode, final Doc doc) {
             this(indent, mode, doc, 0);
         }

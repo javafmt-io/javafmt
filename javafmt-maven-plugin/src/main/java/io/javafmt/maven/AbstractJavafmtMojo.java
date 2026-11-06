@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 /** Template contract: {@link #execute()} is final; subclasses supply {@link #handle}. */
 abstract class AbstractJavafmtMojo extends AbstractMojo {
+
     @Nullable
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject project;
@@ -58,7 +59,8 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
      * "glob:..."}) of source paths to skip. Each entry is tested against both the full path
      * and the bare filename; a match in either drops the file.
      */
-    @Parameter private List<String> excludes = List.of();
+    @Parameter
+    private List<String> excludes = List.of();
 
     /**
      * A git ref such as {@code origin/main}. When set, only files that differ from the merge base of {@code HEAD} and this ref,

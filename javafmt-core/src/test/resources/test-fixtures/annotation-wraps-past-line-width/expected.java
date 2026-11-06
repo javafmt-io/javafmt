@@ -6,6 +6,7 @@ import java.lang.annotation.RetentionPolicy;
         imports = {SecurityConfiguration.class, PersistenceConfiguration.class},
         properties = {"orders.enabled=true", "orders.endpoint=http://localhost:8080/orders"})
 class OrderIntegrationTest {
+
     @SuppressWarnings({
             "unchecked",
             "rawtypes",
@@ -17,7 +18,7 @@ class OrderIntegrationTest {
             "cast",
             "fallthrough",
             "finally",
-            "this-escape"
+            "this-escape",
     })
     void settle() {}
 
@@ -32,13 +33,14 @@ class OrderIntegrationTest {
                     "orders.endpoint=http://localhost:8080/orders",
                     "orders.retries=3",
                     "orders.timeout=30s",
-                    "orders.currency=EUR"
+                    "orders.currency=EUR",
             })
     void invoice() {}
 }
 
 @Retention(RetentionPolicy.RUNTIME)
 @interface IntegrationTest {
+
     Class<?>[] classes();
 
     Class<?>[] imports();

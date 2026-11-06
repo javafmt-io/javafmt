@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class LintEngineTest {
+
     private static final String SOURCE = """
             class Fixture {
 
@@ -152,6 +153,7 @@ class LintEngineTest {
     }
 
     private record RecordsSource(List<String> seen) implements WarningRule {
+
         @Override
         public List<Diagnostic> warnings(final LintContext context) {
             seen.add(context.unit().source());
@@ -161,6 +163,7 @@ class LintEngineTest {
 
     /** Emits an edit on every pass, so the engine can never reach a fixed point. */
     private record AlwaysEdits(String name) implements LintRule {
+
         @Override
         public LintResult apply(final LintContext context) {
             return LintResult.ofEdits(List.of(LintEdit.insert(context.unit().source().indexOf('\n') + 1, " ")));
@@ -169,6 +172,7 @@ class LintEngineTest {
 
     /** Replaces a fixed span, but only while the original identifier is still present. */
     private record ReplaceOnce(String name, int start, int end, String replacement) implements LintRule {
+
         @Override
         public LintResult apply(final LintContext context) {
             return context.unit().source().contains("aaaabbbb")
@@ -179,6 +183,7 @@ class LintEngineTest {
 
     /** Inserts text at a fixed offset unless the source already contains {@code guard}. */
     private record InsertUnless(String name, int offset, String text, String guard) implements LintRule {
+
         @Override
         public LintResult apply(final LintContext context) {
             return context.unit().source().contains(guard) ? LintResult.EMPTY : LintResult.ofEdits(List.of(LintEdit.insert(offset, text)));
@@ -187,6 +192,7 @@ class LintEngineTest {
 
     /** A buggy rule: two of its own edits overlap each other. */
     private record SelfOverlapping(String name, int start) implements LintRule {
+
         @Override
         public LintResult apply(final LintContext context) {
             return context.unit().source().contains("aaaabbbb")
@@ -197,6 +203,7 @@ class LintEngineTest {
 
     /** Never emits an edit, so every file converges on the first round. */
     private record AlwaysConverged(String name) implements LintRule {
+
         @Override
         public LintResult apply(final LintContext context) {
             return LintResult.EMPTY;

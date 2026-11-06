@@ -1,4 +1,5 @@
 class Fixture {
+
     void roll(final int field) {
         switch (field) {
             case 1:

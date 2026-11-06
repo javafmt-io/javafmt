@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 interface WarningRule extends LintRule {
+
     List<Diagnostic> warnings(LintContext context);
 
     @Override

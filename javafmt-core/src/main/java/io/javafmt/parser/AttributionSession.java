@@ -13,6 +13,7 @@ import javax.tools.StandardJavaFileManager;
  * {@code Elements} cannot be guarded the same way and must not be used past that point either.
  */
 public final class AttributionSession {
+
     private final String classpath;
 
     private final StandardJavaFileManager fileManager;

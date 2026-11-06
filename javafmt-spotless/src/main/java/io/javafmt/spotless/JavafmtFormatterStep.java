@@ -21,6 +21,7 @@ import java.util.Objects;
 
 @UtilityClass
 public final class JavafmtFormatterStep {
+
     private final String NAME = "javafmt";
 
     public FormatterStep create(final File projectDirectory) {
@@ -95,6 +96,7 @@ public final class JavafmtFormatterStep {
     }
 
     record Func(JavafmtConfig config) implements FormatterFunc {
+
         Func {
             Objects.requireNonNull(config, "config");
         }
@@ -116,6 +118,7 @@ public final class JavafmtFormatterStep {
     }
 
     record Setup(String formatterVersion, JavafmtConfig config, String projectDirectory) implements Serializable {
+
         Setup {
             Objects.requireNonNull(formatterVersion, "formatterVersion");
             Objects.requireNonNull(config, "config");
@@ -141,6 +144,7 @@ public final class JavafmtFormatterStep {
      *     build, since a project file decides which rules run and whether a file formats at all.
      */
     record State(String formatterVersion, JavafmtConfig config, ProjectFiles projectFiles) implements Serializable {
+
         State {
             Objects.requireNonNull(formatterVersion, "formatterVersion");
             Objects.requireNonNull(config, "config");

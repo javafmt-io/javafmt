@@ -25,6 +25,7 @@ import java.util.stream.Stream;
  */
 @UtilityClass
 final class WrappableList {
+
     Doc of(final String open, final String separator, final String close, final Stream<Doc> elements) {
         final var interior = new Doc.Concat(
                 Stream.concat(Stream.of(Doc.SOFT_LINE), Doc.intersperse(List.of(new Doc.Text(separator), Doc.LINE), elements)));

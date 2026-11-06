@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class JavafmtFormatFilesTest {
+
     private static final String UNFORMATTED = "class   Foo{\n\nvoid bar()  { }\n}\n";
 
     @Test

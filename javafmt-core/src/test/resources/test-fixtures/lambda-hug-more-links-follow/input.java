@@ -4,7 +4,10 @@ class Fixture {
     }
 
     void shipOpen(final List<Order> orders) {
-        orders.stream().filter(order -> { return order.isOpen(); }).forEach(order -> ship(order));
-        orders.stream().filter(order -> { return order.isOpen(); }).forEach(order -> { ship(order); });
+        orders.stream().filter(order -> {
+            return order.isOpen(); }).forEach(order -> ship(order));
+        orders.stream().filter(order -> {
+            return order.isOpen(); }).forEach(order -> {
+            ship(order); });
     }
 }

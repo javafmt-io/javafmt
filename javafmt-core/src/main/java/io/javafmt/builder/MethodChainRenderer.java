@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class MethodChainRenderer {
+
     private final Set<String> STREAMS = Set.of("stream", "parallelStream");
 
     Doc render(final MethodInvocationTree node, final Recursor recursor) {

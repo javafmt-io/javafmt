@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class FormatStages {
+
     private final Printer PRINTER = new Printer(150);
 
     /** Where a refusal tells the user to send the file that triggered it. */

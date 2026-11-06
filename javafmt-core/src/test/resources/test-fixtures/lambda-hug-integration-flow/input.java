@@ -9,6 +9,7 @@ class Fixture {
     }
 
     IntegrationFlow invoiceFlow() {
-        return flow -> flow.transform(Invoice.class, invoice -> invoice.customer()).handle(customer -> { notify(customer); });
+        return flow -> flow.transform(Invoice.class, invoice -> invoice.customer()).handle(customer -> {
+            notify(customer); });
     }
 }

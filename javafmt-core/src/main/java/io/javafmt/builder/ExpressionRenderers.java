@@ -22,6 +22,7 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
 import io.javafmt.doc.Doc;
+import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
@@ -34,6 +35,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class ExpressionRenderers {
+
     /**
      * A non-logical binary expression breaks before the operator when the line does not fit.
      * Unlike a logical chain this does not collect
@@ -197,9 +199,10 @@ final class ExpressionRenderers {
         if (initializers == null) {
             return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets));
         }
-        final var beforeBrace = Doc.concatOf(Stream.of(BlockRenderer.braceLineComments(recursor.braceLine(node))));
+        final var braceLine = recursor.braceLine(node);
+        final var beforeBrace = Doc.concatOf(Stream.of(BlockRenderer.braceLineComments(braceLine)));
         final var braceOnItsOwnLine = Doc.endsWithLineComment(beforeBrace);
-        final var brace = type == null || braceOnItsOwnLine ? "{" : " {";
+        final var brace = type != null && !braceOnItsOwnLine && !braceLine.isEmpty() ? " {" : "{";
         final var beforeTheBrace = braceOnItsOwnLine ? Stream.of(beforeBrace, Doc.HARD_LINE) : Stream.of(beforeBrace);
         if (initializers.isEmpty()) {
             return Doc.concatOf(
@@ -207,13 +210,14 @@ final class ExpressionRenderers {
                             prefix, dims, sizelessBrackets, implicitBrackets, beforeTheBrace,
                             Stream.of(emptyInitializer(brace, recursor.interior(node)))));
         }
-        final var elements = WrappableList.blockOf(brace, "}", separatedElements(node, initializers, recursor.hasTrailingComma(node), recursor));
+        final var elements = WrappableList.blockOf(
+                brace, "}", separatedElements(node, initializers, Optional.of(new Doc.IfBreak(new Doc.Text(","), new Doc.Text(""))), recursor));
         return Doc.concatOf(Stream.of(prefix, dims, sizelessBrackets, implicitBrackets, beforeTheBrace, Stream.of(elements)));
     }
 
     private List<WrappableList.Element> separatedElements(final Tree list,
                                                           final List<? extends Tree> items,
-                                                          final boolean trailingComma,
+                                                          final Optional<Doc> trailingComma,
                                                           final Recursor recursor) {
         return IntStream.range(0, items.size()).mapToObj(i -> separatedElement(list, items, i, trailingComma, recursor)).toList();
     }
@@ -222,19 +226,15 @@ final class ExpressionRenderers {
      * One element with its comma, the trailing comma attached to the last one rather than to the
      * closing brace — written as part of the brace it would break onto the closing line as
      * {@code ,}}.
-     *
-     * <p>An array's trailing comma is the author's or {@code ArrayTrailingComma}'s: that rule writes
-     * one into the source of every non-empty initializer outside an annotation, so this is
-     * reproducing a token rather than inventing one.
      */
     private WrappableList.Element separatedElement(final Tree list,
                                                    final List<? extends Tree> items,
                                                    final int index,
-                                                   final boolean trailingComma,
+                                                   final Optional<Doc> trailingComma,
                                                    final Recursor recursor) {
         final var last = index == items.size() - 1;
-        final var comma = !last || trailingComma;
-        final var element = recursor.scanBeforeComments(items.get(index), d -> comma ? Doc.concat(d, new Doc.Text(",")) : d);
+        final var comma = last ? trailingComma : Optional.<Doc>of(new Doc.Text(","));
+        final var element = recursor.scanBeforeComments(items.get(index), d -> comma.map(c -> Doc.concat(d, c)).orElse(d));
         final var commentsPastTheComma = last ? recursor.interior(list) : recursor.pastTheSeparatorBefore(items.get(index + 1));
         final var pastTheComma = CommentDocs.appendTrailing(element, commentsPastTheComma);
         final var doc = last ? Doc.concatOf(Stream.of(Stream.of(pastTheComma), ownLineTail(list, recursor))) : pastTheComma;
@@ -389,12 +389,41 @@ final class ExpressionRenderers {
             return recursor.hasEmptyArgumentList(node) ? Doc.concat(name, emptyArgumentList(node, recursor)) : name;
         }
         final var sole = arguments.getFirst();
+        if (arguments.getLast() instanceof AssignmentTree last
+            && last.getExpression() instanceof NewArrayTree array
+            && array.getInitializers() != null
+            && !array.getInitializers().isEmpty()
+            && CommentScanner.scan(recursor.sourceSpan(node).toString()).isEmpty()) {
+            final var exploded = Doc.concat(
+                    name, WrappableList.separatedOf("(", ")", separatedElements(node, arguments, Optional.empty(), recursor)));
+            return new Doc.Group(
+                    new Doc.IfBreak(
+                            new Doc.Choice(huggingItsArray(name, arguments, last, array, recursor), exploded, Doc.Choice.Fit.OPENING_LINE),
+                            exploded));
+        }
         if (arguments.size() == 1 && sole instanceof NewArrayTree && recursor.tail(node).isEmpty() && !recursor.hasLeadingComments(sole)) {
             final var array = recursor.scan(sole);
             final var close = Doc.endsWithLineComment(array) ? Doc.concat(Doc.HARD_LINE, new Doc.Text(")")) : new Doc.Text(")");
             return Doc.concat(name, new Doc.Text("("), array, close);
         }
-        return Doc.concat(name, WrappableList.separatedOf("(", ")", separatedElements(node, arguments, false, recursor)));
+        return Doc.concat(name, WrappableList.separatedOf("(", ")", separatedElements(node, arguments, Optional.empty(), recursor)));
+    }
+
+    private Doc huggingItsArray(final Doc name,
+                                final List<? extends ExpressionTree> arguments,
+                                final AssignmentTree last,
+                                final NewArrayTree array,
+                                final Recursor recursor) {
+        final var leading = Stream.concat(
+                arguments.subList(0, arguments.size() - 1).stream().flatMap(argument -> Stream.of(recursor.scan(argument), new Doc.Text(", "))),
+                Stream.of(recursor.scan(last.getVariable()), new Doc.Text(" = {")));
+        final var elements = array.getInitializers();
+        final var lines = IntStream.range(0, elements.size())
+                .boxed()
+                .flatMap(i -> Stream.of(Doc.HARD_LINE, recursor.scan(elements.get(i)), new Doc.Text(",")));
+        return Doc.concat(
+                name, new Doc.Text("("), new Doc.Group(new Doc.Concat(leading.toList())), Doc.continuationIndent(new Doc.Concat(lines.toList())),
+                Doc.HARD_LINE, new Doc.Text("})"));
     }
 
     private Doc emptyArgumentList(final AnnotationTree node, final Recursor recursor) {

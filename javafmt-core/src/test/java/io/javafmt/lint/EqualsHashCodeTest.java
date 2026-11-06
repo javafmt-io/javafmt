@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class EqualsHashCodeTest {
+
     @Test
     void classWithEqualsButNoHashCodeProducesWarning() {
         final var unit = JavaParser.parseUnit("""

@@ -1,4 +1,5 @@
 class Fixture {
+
     int classify(final int x) {
         switch (x) {
             case 1: {

@@ -16,6 +16,7 @@ import javax.lang.model.element.Modifier;
 
 @UtilityClass
 final class ModifierRenderer {
+
     /**
      * The annotations and modifiers of a declaration as one prefix, each token followed by a
      * space so a type can be concatenated directly after it. Empty when the declaration has
@@ -94,14 +95,14 @@ final class ModifierRenderer {
     }
 
     /**
-     * Whether a field or local declaration's annotations belong on the declaration line. Several
+     * Whether a local declaration's annotations belong on the declaration line. Several
      * marker annotations may share it — {@code @Getter @Setter int x} is one declaration, not
      * three lines — so the author's layout decides, as it does everywhere else. What cannot stay
      * there is an annotation carrying arguments: it is long enough on its own to push the
      * declaration past the line width. Only the annotations in front of the modifiers count; one
      * written after them stays beside the type whatever this answers.
      */
-    boolean rendersFieldAnnotationsInline(final ModifiersTree modifiers, final Recursor recursor) {
+    boolean rendersLocalAnnotationsInline(final ModifiersTree modifiers, final Recursor recursor) {
         final var annotations = declarationAnnotations(modifiers, List.of(), recursor);
         return !annotations.isEmpty() && annotations.stream().allMatch(a -> a.getArguments().isEmpty() && !recursor.isFollowedByNewline(a));
     }

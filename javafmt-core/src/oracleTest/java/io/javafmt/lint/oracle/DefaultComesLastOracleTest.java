@@ -15,6 +15,7 @@ import java.util.stream.Stream;
  * outcomes — the helper accepts either.
  */
 class DefaultComesLastOracleTest {
+
     DefaultComesLastOracleTest() {}
 
     private static final String CORPUS = "default-comes-last";

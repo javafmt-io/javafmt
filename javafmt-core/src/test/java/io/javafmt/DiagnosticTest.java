@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DiagnosticTest {
+
     @Test
     void parseErrorIsAnError() {
         final var d = new Diagnostic.ParseError("bad", new Position.At(1, 1, 0));

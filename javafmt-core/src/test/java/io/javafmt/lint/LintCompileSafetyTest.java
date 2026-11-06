@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * rejects for unrelated reasons do not have to be excluded by hand.
  */
 class LintCompileSafetyTest {
+
     @ParameterizedTest(name = "{argumentSetName}")
     @MethodSource("cases")
     void formatsToCompilingOutput(final String source, final boolean analyze, final TestInfo testInfo) {

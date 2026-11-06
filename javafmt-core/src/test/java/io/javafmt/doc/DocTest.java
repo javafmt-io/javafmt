@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 class DocTest {
+
     static Stream<Doc> allVariants() {
         return Stream.of(
                 new Doc.Text("t"), Doc.LINE, Doc.SOFT_LINE, Doc.HARD_LINE, new Doc.Indent(new Doc.Text("i")), new Doc.Group(new Doc.Text("g")),
@@ -29,6 +30,7 @@ class DocTest {
 
     @Nested
     class TextTests {
+
         @Test
         void storesValue() {
             assertThat(new Doc.Text("hello").value()).isEqualTo("hello");
@@ -67,6 +69,7 @@ class DocTest {
 
     @Nested
     class ConcatTests {
+
         @Test
         void storesParts() {
             final var parts = List.<Doc>of(new Doc.Text("a"), new Doc.Text("b"));
@@ -117,6 +120,7 @@ class DocTest {
 
     @Nested
     class FillTests {
+
         @Test
         void separatorWithoutAFollowingItemThrows() {
             assertThatIllegalArgumentException().isThrownBy(() -> new Doc.Fill(List.of(new Doc.Text("a"), Doc.LINE)));
@@ -130,6 +134,7 @@ class DocTest {
 
     @Nested
     class IndentTests {
+
         @Test
         void storesContents() {
             final var inner = new Doc.Text("x");
@@ -149,6 +154,7 @@ class DocTest {
 
     @Nested
     class LineBreakTests {
+
         @ParameterizedTest
         @MethodSource("lineVariants")
         void lineVariantsAreEqual(final Doc a, final Doc b) {
@@ -170,6 +176,7 @@ class DocTest {
 
     @Nested
     class GroupTests {
+
         @Test
         void storesContents() {
             final var inner = new Doc.Text("g");
@@ -189,6 +196,7 @@ class DocTest {
 
     @Nested
     class IntersperseTests {
+
         private static final Doc A = new Doc.Text("a");
 
         private static final Doc B = new Doc.Text("b");
@@ -274,6 +282,7 @@ class DocTest {
 
     @Nested
     class IfBreakTests {
+
         @Test
         void storesBreakContents() {
             assertThat(new Doc.IfBreak(new Doc.Text("break"), new Doc.Text("flat")).breakContents()).isEqualTo(new Doc.Text("break"));
@@ -305,6 +314,7 @@ class DocTest {
      */
     @Nested
     class FlatWidthOrBreakTests {
+
         static Stream<Arguments> widths() {
             return Stream.of(
                     Arguments.of(new Doc.Text("abc"), 3), Arguments.of(Doc.LINE, 1), Arguments.of(Doc.SOFT_LINE, 0),
@@ -348,6 +358,7 @@ class DocTest {
 
     @Nested
     class IndentedLineTests {
+
         @Test
         void indentedLineWrapsHardLinePlusContents() {
             final var d = Doc.indentedLine(new Doc.Text("x"));
@@ -362,6 +373,7 @@ class DocTest {
 
     @Nested
     class CloseBraceTests {
+
         @Test
         void closeBraceIsHardLineThenClosingBrace() {
             assertThat(Doc.closeBrace().toList()).containsExactly(Doc.HARD_LINE, new Doc.Text("}"));
@@ -370,6 +382,7 @@ class DocTest {
 
     @Nested
     class ConcatOfTests {
+
         @Test
         void concatOfFlattensPartStreams() {
             final var d = Doc.concatOf(Stream.of(Stream.of(new Doc.Text("a")), Stream.of(new Doc.Text("b"))));

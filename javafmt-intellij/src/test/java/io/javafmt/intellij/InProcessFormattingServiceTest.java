@@ -17,15 +17,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
+
     private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order { List<String> lines; }\n";
 
-    private final List<Notification> notifications = new ArrayList<>();
+    private final List<Notification> notifications = new CopyOnWriteArrayList<>();
 
     @Override
     protected void setUp() throws Exception {
@@ -67,14 +68,15 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
     public void testAFileInAModuleIsFormattedWithTheClasspath() {
         final var file = myFixture.configureByText("Order.java", STAR_IMPORT);
         reformat(file);
-        assertThat(myFixture.getEditor().getDocument().getText()).isEqualTo("import java.util.List;\n\nclass Order {\n    List<String> lines;\n}\n");
+        assertThat(myFixture.getEditor().getDocument().getText())
+                .isEqualTo("import java.util.List;\n\nclass Order {\n\n    List<String> lines;\n}\n");
     }
 
     @Test
     public void testAScratchFileIsFormattedWithoutTheClasspath() {
         final var file = scratchFile("Order.java", STAR_IMPORT);
         reformat(file);
-        assertThat(file.getText()).isEqualTo("import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n");
+        assertThat(file.getText()).isEqualTo("import java.util.*;\n\nclass Order {\n\n    List<String> lines;\n}\n");
         assertThat(notifications).isEmpty();
     }
 

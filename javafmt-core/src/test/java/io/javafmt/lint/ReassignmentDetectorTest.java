@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ReassignmentDetectorTest {
+
     @ParameterizedTest
     @ValueSource(strings = {"x = 1;", "x += 1;", "x -= 1;", "x++;", "++x;", "x--;", "--x;"})
     void detectsWritesToTheNamedVariable(final String statement) {

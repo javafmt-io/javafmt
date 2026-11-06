@@ -1,4 +1,5 @@
 class Fixture {
+
     static final int[] TABLE = {
             100000001,
             100000002,

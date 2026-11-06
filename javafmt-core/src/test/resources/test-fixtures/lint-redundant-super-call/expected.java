@@ -1,4 +1,5 @@
 class Fixture extends Base {
+
     private final int value;
 
     Fixture() {

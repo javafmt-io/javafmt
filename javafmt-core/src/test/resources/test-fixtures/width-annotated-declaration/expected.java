@@ -2,6 +2,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 class Fixture {
+
     @SuppressWarnings("unchecked")
     private static final Entry<String, Object>[] EMPTY = (Entry<String, Object>[]) new Entry[0];
 

@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 
 class Registry<V> {
+
     private final @Nullable Comparator<V> order;
 
     private transient @Nullable Registry<V> next;

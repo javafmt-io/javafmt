@@ -23,6 +23,7 @@ import java.util.stream.Stream;
  * and {@link #visitMemberSelect} are final.
  */
 public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullable Object> extends TreeScanner<R, P> {
+
     @Override
     @Nullable
     public final R visitBinary(final BinaryTree node, final P p) {

@@ -26,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 @Service(Service.Level.PROJECT)
 @State(name = "JavafmtSettings", storages = @Storage("javafmt.xml"))
 public final class JavafmtSettings implements PersistentStateComponent<JavafmtSettings> {
+
     private boolean enabled;
 
     @NonNull

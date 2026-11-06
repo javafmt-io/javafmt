@@ -38,13 +38,14 @@ import java.util.stream.IntStream;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class BatchFormatBenchmark {
+
     /** Held constant across cells so results are comparable per file, not per invocation. */
     private static final int FILES = 64;
 
-    @Param({"1", "8", "64",})
+    @Param({"1", "8", "64"})
     public int batchSize = 1;
 
-    @Param({"clean", "dirty",})
+    @Param({"clean", "dirty"})
     public String variant = "clean";
 
     private List<List<String>> batches = List.of();

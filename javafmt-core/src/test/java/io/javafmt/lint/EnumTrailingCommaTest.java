@@ -3,6 +3,8 @@ package io.javafmt.lint;
 import io.javafmt.Javafmt;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -12,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * would look exactly like corruption and every wide enum without one came back refused.
  */
 class EnumTrailingCommaTest {
+
     private static final String WIDE = "enum Big { ALPHA, BRAVO, CHARLIE, DELTA, ECHO, FOXTROT, GOLF, HOTEL, INDIA, JULIET, KILO, LIMA, "
             + "MIKE, NOVEMBER, OSCAR, PAPA, QUEBEC, ROMEO, SIERRA, TANGO, UNIFORM }\n";
 
@@ -25,14 +28,20 @@ class EnumTrailingCommaTest {
     }
 
     @Test
-    void anEnumThatFitsOnOneLineGetsNothing() {
-        assertThat(lint("enum Small { A, B }\n").edits()).isEmpty();
+    void anEnumThatFitsOnOneLineGetsATrailingCommaToo() {
+        assertThat(lint("enum Small { A, B }\n").edits()).singleElement().satisfies(edit -> assertThat(edit.replacement()).isEqualTo(","));
     }
 
     @Test
     void anEnumTheAuthorAlreadyPunctuatedIsLeftAlone() {
         assertThat(lint(WIDE.replace("UNIFORM }", "UNIFORM, }")).edits()).isEmpty();
         assertThat(lint(WIDE.replace("UNIFORM }", "UNIFORM; }")).edits()).isEmpty();
+    }
+
+    @Test
+    void theCommaGoesAfterEveryBlockCommentBesideTheLastConstant() {
+        final var source = "enum Kind { FIRST, LAST /* three */ /* four */ }\n";
+        assertThat(LintEngine.applyEdits(source, lint(source).edits())).isEqualTo("enum Kind { FIRST, LAST /* three */ /* four */, }\n");
     }
 
     @Test
@@ -51,9 +60,10 @@ class EnumTrailingCommaTest {
         assertThat(Javafmt.formatWithResult(WIDE).diagnostics()).isEmpty();
     }
 
-    @Test
-    void narrowEnumStaysOnOneLineWithoutAComma() {
-        assertThat(Javafmt.format("enum Small { A, B }\n")).isEqualTo("enum Small { A, B }\n");
+    @ParameterizedTest
+    @ValueSource(strings = {"enum Small { A, B }\n", "enum Small { A, B, }\n", "enum Small {\n    A,\n    B,\n}\n"})
+    void narrowEnumStaysOnOneLineWithoutAComma(final String source) {
+        assertThat(Javafmt.format(source)).isEqualTo("enum Small { A, B }\n");
     }
 
     @Test
@@ -63,6 +73,12 @@ class EnumTrailingCommaTest {
         final var source = "enum WithBody { A, B,; void m() { call(); } }\n";
         assertThat(Javafmt.formatWithResult(source).diagnostics()).isEmpty();
         assertThat(Javafmt.format(source)).contains("    B;");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"enum WithBody { A, B /* c */,; void m() { call(); } }\n", "enum E { A, B /* c */,; }\n"})
+    void aCommaAfterACommentInFrontOfTheSemicolonFormatsWithoutBeingRefused(final String source) {
+        assertThat(Javafmt.formatWithResult(source).diagnostics()).isEmpty();
     }
 
     @Test

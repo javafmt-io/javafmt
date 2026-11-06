@@ -1,4 +1,5 @@
 class Fixture {
+
     void test(int x) {
         do {
             x--;

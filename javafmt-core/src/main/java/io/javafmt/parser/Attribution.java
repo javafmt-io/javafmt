@@ -29,6 +29,7 @@ public record Attribution(Trees trees,
                           AttributionSession session,
                           Map<URI, List<AttributionError>> errors,
                           List<String> batch) {
+
     public Attribution {
         Objects.requireNonNull(trees, "trees");
         Objects.requireNonNull(types, "types");

@@ -38,6 +38,7 @@ import java.util.concurrent.Callable;
                 "2:bad usage, a file could not be read or written, or javafmt failed or ran out of memory",
         })
 final class FormatCommand implements Callable<Integer> {
+
     private static final Path STDIN = Path.of("-");
 
     private final InputStream in;
@@ -169,12 +170,13 @@ final class FormatCommand implements Callable<Integer> {
         return positionals.subList(0, positionals.size() - afterDelimiter);
     }
 
-    enum DiagnosticsFormat { JSON, TEXT, }
+    enum DiagnosticsFormat { JSON, TEXT }
 
     static final class Version implements IVersionProvider {
+
         @Override
         public String[] getVersion() {
-            return new String[] {"javafmt " + JavafmtVersion.VERSION,};
+            return new String[]{"javafmt " + JavafmtVersion.VERSION};
         }
     }
 }

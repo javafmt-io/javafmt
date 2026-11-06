@@ -69,6 +69,7 @@ import javax.lang.model.type.TypeMirror;
  * {@code var}.
  */
 public final class LocalVarUseVar implements RewriteVerifyingRule {
+
     private static final Map<String, Integer> DIAMOND_TARGET_ARITY = Map.ofEntries(
             Map.entry("Iterable", 1), Map.entry("Collection", 1), Map.entry("SequencedCollection", 1), Map.entry("List", 1), Map.entry("Set", 1),
             Map.entry("SequencedSet", 1), Map.entry("SortedSet", 1), Map.entry("NavigableSet", 1), Map.entry("Queue", 1), Map.entry("Deque", 1),
@@ -492,6 +493,7 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
     }
 
     record Proposal(TreePath path, List<LintEdit> edits, boolean proven, boolean keepsItsTypeWithoutTarget) {
+
         Proposal {
             edits = List.copyOf(edits);
         }

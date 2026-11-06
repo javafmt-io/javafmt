@@ -14,6 +14,7 @@ import java.util.stream.Stream;
  * javafmt's output must be matched by a javafmt diagnostic.
  */
 class HideUtilityClassConstructorOracleTest {
+
     HideUtilityClassConstructorOracleTest() {}
 
     private static final String CORPUS = "hide-utility-class-constructor";

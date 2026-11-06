@@ -2,6 +2,7 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 class Fixture {
+
     int count(final List<String> items, final Object o, final BiFunction<String, String, String> join) {
         var count = 0;
         for (final var _ : items) {

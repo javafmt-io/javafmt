@@ -8,6 +8,7 @@ import java.util.Objects;
 /** Renders a {@link Diagnostic} as one line of NDJSON for {@code --diagnostics=json}. */
 @UtilityClass
 final class JsonDiagnostics {
+
     /**
      * The {@code kind} vocabulary is the sealed {@link Diagnostic} hierarchy plus {@code cli}, so a
      * client can tell a javafmt bug ({@code internal}) from a problem in the user's own source

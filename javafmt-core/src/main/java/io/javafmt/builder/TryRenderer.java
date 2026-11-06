@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class TryRenderer {
+
     Doc render(final TryTree node, final Recursor recursor) {
         final var header = buildHeader(node, recursor);
         final var tryStatements = BlockRenderer.blockStatements(node.getBlock(), recursor);

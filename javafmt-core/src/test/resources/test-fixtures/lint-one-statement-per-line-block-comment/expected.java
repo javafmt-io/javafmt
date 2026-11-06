@@ -1,4 +1,5 @@
 class Order {
+
     Object total;
 
     Order total(final Object value) {

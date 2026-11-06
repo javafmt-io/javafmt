@@ -35,6 +35,7 @@ import java.util.stream.Stream;
  * with it, and {@link ArrayTypeStyle} moves them to the type on a later iteration.
  */
 public final class MultipleVariableDeclarations implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

@@ -12,6 +12,7 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 class InProcessFormatter {
+
     JavafmtBinary.Outcome format(final String source, final FileScope scope) {
         if (Thread.currentThread().isInterrupted()) {
             return new JavafmtBinary.Outcome.Cancelled();

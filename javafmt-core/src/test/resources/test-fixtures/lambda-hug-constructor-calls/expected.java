@@ -1,4 +1,5 @@
 class Fixture extends Worker {
+
     Fixture(final ThreadGroup group) {
         this(group, () -> {
             System.out.println("started");

@@ -26,6 +26,7 @@ import java.util.stream.StreamSupport;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ChainScannerTest {
+
     private static final String MIXED = """
             class Mixed {
 

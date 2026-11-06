@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class ClassLikeRenderer {
+
     Doc render(final ClassTree node, final String keyword, final Recursor recursor) {
         final var prefix = Doc.concat(
                 ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text(keyword + " " + node.getSimpleName()));

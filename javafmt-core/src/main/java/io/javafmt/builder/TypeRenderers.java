@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class TypeRenderers {
+
     private final int TAB_WIDTH = 4;
 
     Doc renderIdentifier(final IdentifierTree node) {

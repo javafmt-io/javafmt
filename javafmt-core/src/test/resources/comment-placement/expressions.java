@@ -2,14 +2,15 @@ import java.util.List;
 import java.util.Map;
 
 class Expressions {
+
     Object compute(final List<String> names, final Map<String, Integer> counts, final boolean open) {
         final var size = names.size() * 2 + 1;
         final var ready = open && size > 0 || names.isEmpty();
         final var label = ready ? "ready" : "waiting";
         final var flags = 1 | 2;
         final var text = "size: " + size;
-        final int[] numbers = {1, 2, 3,};
-        final var copy = new int[] {4, 5,};
+        final int[] numbers = {1, 2, 3};
+        final var copy = new int[]{4, 5};
         final var count = (long) numbers.length;
         if (copy instanceof int[] array && array.length > count) {
             return label;

@@ -16,7 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SourceFilesTest {
-    @TempDir Path dir;
+
+    @TempDir
+    Path dir;
 
     @Test
     void skipsDirectoriesNamedLikeJavaFilesAndSortsResults() throws IOException {

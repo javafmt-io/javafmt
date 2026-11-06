@@ -1,4 +1,5 @@
 class Fixture {
+
     void test() {
         final int a;
         final int[] b;

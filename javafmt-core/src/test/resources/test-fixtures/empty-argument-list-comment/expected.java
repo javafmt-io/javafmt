@@ -1,6 +1,7 @@
 import java.util.List;
 
 class Fixture {
+
     Fixture() {}
 
     List<String> names() {

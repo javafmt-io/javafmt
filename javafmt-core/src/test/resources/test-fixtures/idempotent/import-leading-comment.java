@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 class Fixture {
+
     List<String> xs;
 
     Map<String, Integer> ys;

@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public record GitRatchet(Set<Path> changedFiles) {
+
     private static final String GIT = "git";
 
     private static final Pattern NUL = Pattern.compile("\0");

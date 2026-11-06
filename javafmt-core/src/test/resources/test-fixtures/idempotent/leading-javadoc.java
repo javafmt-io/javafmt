@@ -2,6 +2,7 @@
  * Javadoc on the class.
  */
 class Fixture {
+
     /** inline javadoc on a field */
     int count;
 

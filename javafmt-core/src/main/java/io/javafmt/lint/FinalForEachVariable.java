@@ -8,6 +8,7 @@ import io.javafmt.parser.ParsedUnit;
 import java.util.Optional;
 
 public final class FinalForEachVariable implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

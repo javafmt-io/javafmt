@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * that the declarators and everything the author wrote around them come through untouched.
  */
 class MultipleVariableDeclarationsTest {
+
     private static String split(final String source) {
         final var unit = JavaParser.parseUnit(source);
         return LintEngine.applyEdits(unit.source(), new MultipleVariableDeclarations().apply(LintContext.parseOnly(unit)).edits());

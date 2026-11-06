@@ -7,6 +7,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DiagnosticRenderingTest {
+
     @Test
     void describeUsesCanonicalFileLineColFormat() {
         final var d = new Diagnostic.ParseError("boom", new Position.At(3, 7, 42));

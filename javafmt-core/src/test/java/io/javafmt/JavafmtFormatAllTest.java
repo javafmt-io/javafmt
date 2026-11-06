@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * rather than asserting formatted text directly.
  */
 class JavafmtFormatAllTest {
+
     private static final JavafmtConfig ANALYZE = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     private static List<String> dirtyCorpus(final int n) {
@@ -82,7 +83,7 @@ class JavafmtFormatAllTest {
             "4096, 4, 64",
             "640, 8, 40",
             "640, 18, 40",
-            "128, 0, 64"
+            "128, 0, 64",
     })
     void chunksAreSizedSoEveryChunkWorkerGetsAboutFour(final int files, final int threads, final int expected) {
         assertThat(BatchFormatter.chunkSize(files, threads)).isEqualTo(expected);

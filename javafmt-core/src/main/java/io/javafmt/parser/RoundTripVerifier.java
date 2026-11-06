@@ -19,7 +19,7 @@ import java.util.stream.IntStream;
  * is supposed to be purely a layout transformation. A mismatch there is a renderer coverage
  * gap silently deleting or corrupting code.
  *
- * <p>Three kinds of difference are tolerated because the formatter creates them by design:
+ * <p>Four kinds of difference are tolerated because the formatter creates them by design:
  *
  * <ul>
  *   <li><b>Ordering.</b> The comparison is over multisets, not sequences. javafmt sorts
@@ -32,10 +32,13 @@ import java.util.stream.IntStream;
  *       literal means.</li>
  *   <li><b>Re-indentation of comments.</b> Comment text is compared line by line with
  *       surrounding whitespace stripped.</li>
+ *   <li><b>Trailing commas.</b> A {@code ,} right before a closing brace is dropped from both
+ *       sides, because the renderer writes one only when the list breaks.</li>
  * </ul>
  */
 @UtilityClass
 public final class RoundTripVerifier {
+
     /**
      * Verifies that {@code after} preserves every token and comment of {@code before}.
      * Returns a description of what changed, or empty when the output is faithful.
@@ -137,7 +140,11 @@ public final class RoundTripVerifier {
     }
 
     private List<Token> normalizedTokens(final String source) {
-        return TokenScanner.scan(source).stream().map(t -> new Token(normalizeToken(t.text()), t.start())).toList();
+        final var tokens = TokenScanner.scan(source);
+        return IntStream.range(0, tokens.size())
+                .filter(i -> !tokens.get(i).text().equals(",") || i + 1 == tokens.size() || !tokens.get(i + 1).text().equals("}"))
+                .mapToObj(i -> new Token(normalizeToken(tokens.get(i).text()), tokens.get(i).start()))
+                .toList();
     }
 
     private List<String> normalizedComments(final String source) {

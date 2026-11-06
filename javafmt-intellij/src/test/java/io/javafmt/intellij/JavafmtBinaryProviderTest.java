@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Timeout(30)
 class JavafmtBinaryProviderTest {
+
     @BeforeAll
     static void startTheApplication() {
         TestApplicationManager.getInstance();

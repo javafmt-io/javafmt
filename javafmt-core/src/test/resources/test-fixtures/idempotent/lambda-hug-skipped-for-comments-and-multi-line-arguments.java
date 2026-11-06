@@ -1,4 +1,5 @@
 class Fixture {
+
     void count(final Map<Long, Integer> visits, final long id, final Executor executor, final List<Invoice> invoices) {
         visits.compute(
                 id, // the key

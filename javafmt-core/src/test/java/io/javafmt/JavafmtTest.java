@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtTest {
+
     @Test
     void formatEmptySourceReturnsEmptyString() {
         assertThat(Javafmt.format("").stripTrailing().stripTrailing()).isEqualTo("");
@@ -23,7 +24,7 @@ class JavafmtTest {
 
     @Test
     void formatNormalisesWhitespace() {
-        assertThat(Javafmt.format("class Foo { int x; }").stripTrailing().stripTrailing()).isEqualTo("class Foo {\n    int x;\n}");
+        assertThat(Javafmt.format("class Foo { int x; }").stripTrailing().stripTrailing()).isEqualTo("class Foo {\n\n    int x;\n}");
     }
 
     @Test
@@ -55,13 +56,13 @@ class JavafmtTest {
         for (var level = 0; level < 600; level++) {
             nested = "f" + level + "(" + nested + ")";
         }
-        final var source = "class Deep {\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
+        final var source = "class Deep {\n\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
         assertThat(Javafmt.formatWithResult(source).diagnostics()).isEmpty();
     }
 
     @Test
     void unusedVariablesAreUnnamedOnlyWhenTheTargetReleaseAllowsIt() {
-        final var source = "class C {\n    void m(boolean b) {\n        if (b) run();\n        try { run(); } catch (IllegalStateException unused) { run(); }\n    }\n}\n";
+        final var source = "class C {\n\n    void m(boolean b) {\n        if (b) run();\n        try { run(); } catch (IllegalStateException unused) { run(); }\n    }\n}\n";
         assertThat(Javafmt.formatWithResult(source, JavafmtConfig.defaults()).output()).contains("catch (final IllegalStateException _)");
         assertThat(Javafmt.formatWithResult(source, JavafmtConfig.defaults().withRelease(21)).output())
                 .contains("if (b) {")
@@ -70,6 +71,7 @@ class JavafmtTest {
 
     @Nested
     class EdgeCasesTest {
+
         @Test
         void identifierLongerThan150Chars_isNotBroken() {
             final var longName = "a".repeat(151);
@@ -84,7 +86,7 @@ class JavafmtTest {
         void exactly150CharLine_isPreservedWithoutWrapping() {
             // "    int " (8) + name (137) + " = 1;" (5) = 150 chars exactly
             final var name = "a".repeat(137);
-            final var source = "class C {\n    int " + name + " = 1;\n}";
+            final var source = "class C {\n\n    int " + name + " = 1;\n}";
             final var formatted = Javafmt.format(source).stripTrailing();
             assertThat(Arrays.stream(formatted.split("\n")).filter(l -> l.contains(name)).findFirst())
                     .hasValueSatisfying(line -> assertThat(line.length()).isEqualTo(150));
@@ -94,39 +96,39 @@ class JavafmtTest {
         void crlfInputIsWrittenBackAsCrlf() {
             // Rewriting a CRLF file to LF makes every line of it a diff, and whatever javafmt
             // actually changed disappears inside that.
-            final var source = "class C {\r\n    int x;\r\n}\r\n";
-            assertThat(Javafmt.format(source)).isEqualTo("class C {\r\n    int x;\r\n}\r\n");
+            final var source = "class C {\r\n\r\n    int x;\r\n}\r\n";
+            assertThat(Javafmt.format(source)).isEqualTo("class C {\r\n\r\n    int x;\r\n}\r\n");
         }
 
         @Test
         void crlfOutputIsIdempotent() {
-            final var formatted = Javafmt.format("class C {\r\n    int x;\r\n}\r\n");
+            final var formatted = Javafmt.format("class C {\r\n\r\n    int x;\r\n}\r\n");
             assertThat(Javafmt.format(formatted)).isEqualTo(formatted);
         }
 
         @Test
         void aByteOrderMarkSurvives() {
             final var formatted = Javafmt.format("\uFEFFclass C {\n    int x;\n}\n");
-            assertThat(formatted).isEqualTo("\uFEFFclass C {\n    int x;\n}\n");
+            assertThat(formatted).isEqualTo("\uFEFFclass C {\n\n    int x;\n}\n");
         }
 
         @Test
         void mixedEndingsNormaliseToTheDominantOne() {
             // Three CRLF endings against one LF: the file has to be given one of them, and the
             // majority is the smaller diff.
-            final var source = "class C {\r\n    int x;\r\n    int y;\n    int z;\r\n}\r\n";
+            final var source = "class C {\r\n\r\n    int x;\r\n    int y;\n    int z;\r\n}\r\n";
             assertThat(Javafmt.format(source).replace("\r\n", "")).doesNotContain("\n");
         }
 
         @Test
         void aLoneCarriageReturnCountsAsALineEnding() {
-            assertThat(Javafmt.format("class C {\r    int x;\r}\r")).isEqualTo("class C {\r    int x;\r}\r");
+            assertThat(Javafmt.format("class C {\r\r    int x;\r}\r")).isEqualTo("class C {\r\r    int x;\r}\r");
         }
 
         @Test
         void theBatchPathKeepsEachFilesOwnEndings() {
-            final var crlf = "class A {\r\n    int x;\r\n}\r\n";
-            final var lf = "class B {\n    int y;\n}\n";
+            final var crlf = "class A {\r\n\r\n    int x;\r\n}\r\n";
+            final var lf = "class B {\n\n    int y;\n}\n";
             final var results = Javafmt.formatAll(java.util.List.of(crlf, lf), JavafmtConfig.defaults(), 2);
             assertThat(results.getFirst().output()).isEqualTo(Javafmt.format(crlf)).contains("\r\n");
             assertThat(results.get(1).output()).isEqualTo(lf).doesNotContain("\r");
@@ -135,7 +137,7 @@ class JavafmtTest {
         @Test
         void tabIndentedInput_normalizesToFourSpaces() {
             final var formatted = Javafmt.format("class C {\n\n\tint x;\n}").stripTrailing();
-            assertThat(formatted).isEqualTo("class C {\n    int x;\n}");
+            assertThat(formatted).isEqualTo("class C {\n\n    int x;\n}");
         }
 
         @Test
@@ -155,6 +157,7 @@ class JavafmtTest {
 
     @Nested
     class NullChecksTest {
+
         @Test
         void format_nullSource_throws() {
             assertThatThrownBy(() -> Javafmt.format(null).stripTrailing()).isInstanceOf(NullPointerException.class);

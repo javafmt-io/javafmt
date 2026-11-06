@@ -1,4 +1,5 @@
 class Fixture {
+
     int size(final int kind) {
         switch (kind) {
             case 1 -> // one item

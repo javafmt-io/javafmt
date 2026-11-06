@@ -44,6 +44,7 @@ import javax.lang.model.util.ElementFilter;
 
 @UtilityClass
 class VarRetypingCheck {
+
     private final Pattern CAPTURE_NUMBER = Pattern.compile("capture#\\d+");
 
     List<LocalVarUseVar.Proposal> verified(final LintContext context,
@@ -256,6 +257,7 @@ class VarRetypingCheck {
     private record Scope(int start, int end) {}
 
     record Shift(NavigableMap<Integer, Integer> movedFromStart, NavigableMap<Integer, Integer> movedFromEnd) {
+
         Shift(final List<LintEdit> edits) {
             this(
                     movedFrom(edits, edit -> isInsertion(edit) ? edit.start() : edit.end()),

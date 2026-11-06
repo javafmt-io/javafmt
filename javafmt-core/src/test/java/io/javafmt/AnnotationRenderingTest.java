@@ -10,10 +10,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * there — the author's trailing comma, or a comment inside the argument list.
  */
 class AnnotationRenderingTest {
+
     @Test
     void annotationArrayKeepsTheAuthorsPunctuation() {
-        // ArrayTrailingComma deliberately skips annotation arrays. Were it to fire, the comma would
-        // survive into the output, which prints exactly the trailing comma the source has.
         final var source = """
                 import java.lang.annotation.ElementType;
                 import java.lang.annotation.Target;

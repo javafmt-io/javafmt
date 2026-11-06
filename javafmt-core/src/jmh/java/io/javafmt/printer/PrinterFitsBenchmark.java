@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 @Fork(1)
 public class PrinterFitsBenchmark {
+
     @Param({"100", "1000", "10000"})
     public int depth = 100;
 

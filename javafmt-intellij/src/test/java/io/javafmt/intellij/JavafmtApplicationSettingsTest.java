@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JavafmtApplicationSettingsTest extends JavafmtIntellijTestCase {
+
     @Test
     void engineDefaultsToInProcess() {
         assertThat(new JavafmtApplicationSettings().getEngine()).isEqualTo(JavafmtApplicationSettings.Engine.IN_PROCESS);

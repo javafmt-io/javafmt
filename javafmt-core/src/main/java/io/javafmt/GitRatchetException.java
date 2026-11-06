@@ -3,6 +3,7 @@ package io.javafmt;
 import java.io.Serial;
 
 public final class GitRatchetException extends RuntimeException {
+
     @Serial
     private static final long serialVersionUID = 1L;
 

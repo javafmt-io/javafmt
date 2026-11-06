@@ -1,4 +1,5 @@
 class Fixture {
+
     Order run() {
         call(
                 1, // first
@@ -12,6 +13,7 @@ class Fixture {
     void call(final int first, final int second) {}
 
     enum Size {
+
         SMALL(
                 1, // the smallest
                 2),

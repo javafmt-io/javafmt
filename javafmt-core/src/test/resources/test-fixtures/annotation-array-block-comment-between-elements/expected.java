@@ -1,4 +1,5 @@
 class Ledger {
+
     @SuppressWarnings({
             "ShortCircuitBoolean",
             /*

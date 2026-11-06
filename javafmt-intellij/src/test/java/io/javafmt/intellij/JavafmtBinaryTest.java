@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 // listed risk to measure on real hardware, not something to fake here.
 @EnabledOnOs({OS.MAC, OS.LINUX})
 class JavafmtBinaryTest {
+
     @Test
     void versionReadsTheBinaryVersionString(@TempDir final Path dir) throws Exception {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\necho 'javafmt 0.2.0'\n");

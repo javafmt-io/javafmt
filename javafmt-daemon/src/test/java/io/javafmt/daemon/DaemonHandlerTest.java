@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 class DaemonHandlerTest {
+
     private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
 
     private static FormatRequest request(final int id, final String source) {

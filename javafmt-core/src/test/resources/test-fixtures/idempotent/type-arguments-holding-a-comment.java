@@ -3,6 +3,7 @@ import java.util.List;
 import java.util.function.Function;
 
 class Fixture {
+
     private static final Function<Object, /* nullable */ Void> RETURN_NULL = new Function<Object, /* nullable */ Void>() {
         @Override
         public Void apply(final Object input) {

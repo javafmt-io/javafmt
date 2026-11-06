@@ -7,6 +7,7 @@ import java.util.List;
  * needed.
  */
 public final class NewlineAtEndOfFile implements LintRule {
+
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();

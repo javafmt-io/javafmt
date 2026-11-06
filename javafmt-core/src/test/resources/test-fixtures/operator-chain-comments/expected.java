@@ -1,4 +1,5 @@
 class Fixture {
+
     String run(final boolean open, final int count) {
         if (open
             // only when something is pending

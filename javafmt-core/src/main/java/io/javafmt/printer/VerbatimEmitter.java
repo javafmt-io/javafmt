@@ -23,6 +23,7 @@ import lombok.experimental.UtilityClass;
  */
 @UtilityClass
 final class VerbatimEmitter {
+
     /**
      * Emit {@code value} into {@code sb} at column {@code col}, applying the shift defined by
      * {@code sourceColumn}. Returns the column after the last emitted line.

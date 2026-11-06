@@ -14,6 +14,7 @@ import java.util.stream.Stream;
  * output must be matched by a javafmt diagnostic.
  */
 class StringLiteralEqualityOracleTest {
+
     StringLiteralEqualityOracleTest() {}
 
     private static final String CORPUS = "string-literal-equality";

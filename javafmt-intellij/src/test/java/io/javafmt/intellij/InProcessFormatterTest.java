@@ -16,7 +16,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class InProcessFormatterTest {
-    private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
+
+    private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n\n    List<String> lines;\n}\n";
 
     @AfterEach
     void clearInterrupt() {
@@ -48,7 +49,7 @@ class InProcessFormatterTest {
 
     @Test
     void warningOnlyRulesDoNotCountAsAFailure() {
-        assertThat(InProcessFormatter.format("import java.util.*;\n\nclass A {\n    List<String> names;\n}\n", FileScope.none()))
+        assertThat(InProcessFormatter.format("import java.util.*;\n\nclass A {\n\n    List<String> names;\n}\n", FileScope.none()))
                 .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.hasFailure()).isFalse();
                     assertThat(formatted.diagnostics()).singleElement().satisfies(diagnostic -> {

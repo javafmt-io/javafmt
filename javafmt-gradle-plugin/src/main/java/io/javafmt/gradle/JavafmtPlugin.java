@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public abstract class JavafmtPlugin implements Plugin<Project> {
+
     private static final String CHECK = "javafmtCheck";
 
     private static final String FORMAT = "javafmtFormat";
@@ -88,6 +89,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
     private record PluginProperties(String engineHash, String foojayVersion) {}
 
     private static final class RatchetFromSet implements Spec<Task> {
+
         private final boolean set;
 
         private RatchetFromSet(final boolean set) {
@@ -106,6 +108,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
                                   Provider<JavafmtWorkerSlot> workerSlot,
                                   TaskProvider<Task> checkAll,
                                   TaskProvider<Task> formatAll) {
+
         void register(final SourceSet sourceSet) {
             final var name = sourceSet.getName();
             final var suffix = name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);

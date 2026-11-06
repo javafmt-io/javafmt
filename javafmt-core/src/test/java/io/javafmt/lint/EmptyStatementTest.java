@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class EmptyStatementTest {
+
     @Test
     void deletesOnlyTheStraySemicolonsBetweenClassMembers() {
         final var unit = JavaParser.parseUnit("""
@@ -107,16 +108,14 @@ class EmptyStatementTest {
     }
 
     @ParameterizedTest
-    @CsvSource(
-            delimiter = '|',
-            value = {
-                    "try (Resource first = open(); ) {}|try (Resource first = open() ) {}",
-                    "try (Resource first = open(); Resource second = open();) {}|try (Resource first = open(); Resource second = open()) {}",
-                    "try (held; ) {}|try (held ) {}",
-                    "try (held /* last */ ; ) {}|try (held /* last */  ) {}",
-                    "try (Resource first = open()) {}|try (Resource first = open()) {}",
-                    "try (held) {}|try (held) {}",
-            })
+    @CsvSource(delimiter = '|', value = {
+            "try (Resource first = open(); ) {}|try (Resource first = open() ) {}",
+            "try (Resource first = open(); Resource second = open();) {}|try (Resource first = open(); Resource second = open()) {}",
+            "try (held; ) {}|try (held ) {}",
+            "try (held /* last */ ; ) {}|try (held /* last */  ) {}",
+            "try (Resource first = open()) {}|try (Resource first = open()) {}",
+            "try (held) {}|try (held) {}",
+    })
     void deletesTheSemicolonAfterTheLastResource(final String statement, final String expected) {
         final var unit = JavaParser.parseUnit(
                 "class Fixture {\n    void test(Resource held) throws Exception {\n        " + statement + "\n    }\n}\n");

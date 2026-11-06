@@ -31,6 +31,7 @@ import java.util.Objects;
  */
 @UtilityClass
 public final class TokenScanner {
+
     public List<SourceToken> scan(final String source) {
         Objects.requireNonNull(source, "source");
         final var tokens = new ArrayList<SourceToken>();

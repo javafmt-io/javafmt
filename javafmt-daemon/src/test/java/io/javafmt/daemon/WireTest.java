@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class WireTest {
+
     static Stream<Integer> requests() {
         return IntStream.range(0, DaemonFixtures.REQUESTS_HEX.size()).boxed();
     }

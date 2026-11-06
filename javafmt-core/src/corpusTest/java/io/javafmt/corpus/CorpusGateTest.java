@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * than drifting into fiction.
  */
 class CorpusGateTest {
+
     /**
      * Generous on purpose: this exists to catch a file that never finishes, not to police a
      * millisecond. The whole 3,379-file corpus formats in well under this per file.

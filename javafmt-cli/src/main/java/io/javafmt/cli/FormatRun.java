@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 
 @UtilityClass
 final class FormatRun {
+
     int runPaths(final Arguments parsed, final PrintStream err) {
         try {
             final var changed = changedFiles(parsed);
@@ -281,6 +282,7 @@ final class FormatRun {
                      Optional<String> classpath,
                      Optional<String> ratchetFrom,
                      boolean jsonDiagnostics) {
+
         Arguments {
             files = List.copyOf(files);
             excludes = List.copyOf(excludes);

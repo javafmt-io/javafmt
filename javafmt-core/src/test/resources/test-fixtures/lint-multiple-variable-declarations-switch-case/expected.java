@@ -1,4 +1,5 @@
 class Fixture {
+
     int run(final int kind) {
         switch (kind) {
             case 1:

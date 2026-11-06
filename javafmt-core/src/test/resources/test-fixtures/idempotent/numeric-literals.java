@@ -1,4 +1,5 @@
 class Fixture {
+
     static final int HEX = 0xFF;
 
     static final int OCT = 010;

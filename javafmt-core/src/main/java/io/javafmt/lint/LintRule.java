@@ -20,6 +20,7 @@ package io.javafmt.lint;
  * that does this returns {@code true} from {@link #usesAnalysis()}.
  */
 public interface LintRule {
+
     default String name() {
         return getClass().getSimpleName();
     }

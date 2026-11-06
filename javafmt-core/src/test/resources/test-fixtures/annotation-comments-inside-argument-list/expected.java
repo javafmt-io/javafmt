@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
         ElementType.ANNOTATION_TYPE, // for combined annotations
         ElementType.FIELD,
         ElementType.METHOD,
-        ElementType.PARAMETER // for properties
+        ElementType.PARAMETER, // for properties
 })
 @Retention(RetentionPolicy.RUNTIME)
 @interface Alias {}
@@ -16,10 +16,11 @@ import java.lang.annotation.Target;
         ElementType.TYPE,
         ElementType.METHOD,
         // since the second release
-        ElementType.FIELD
+        ElementType.FIELD,
 })
 @Retention(RetentionPolicy.RUNTIME)
 @interface Command {
+
     String name();
 
     String description();
@@ -31,6 +32,7 @@ import java.lang.annotation.Target;
         description = "Execute the invoices" //
 )
 class ExecuteCommand {
+
     @Option(names = "--details", description = "Select an output mode. " //
             + "Use one of the listed modes. If none is selected, " //
             + "only the summary is shown.")
@@ -53,6 +55,7 @@ class Comparison {}
 class Conversion {}
 
 @interface Option {
+
     String names();
 
     String description();

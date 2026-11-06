@@ -1,4 +1,5 @@
 class Fixture {
+
     IntegrationFlow orderFlow() {
         return IntegrationFlow.from("orders")
                 .handle(Order.class, (order, headers) -> {

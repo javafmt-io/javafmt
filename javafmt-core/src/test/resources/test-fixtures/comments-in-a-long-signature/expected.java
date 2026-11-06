@@ -1,4 +1,5 @@
 class Fixture {
+
     private static int /*unsigned byte*/ insertOrdered(final char[] source,
                                                        final int start,
                                                        final int current,

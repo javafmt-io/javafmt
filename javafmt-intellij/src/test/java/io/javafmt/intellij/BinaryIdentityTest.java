@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BinaryIdentityTest {
+
     @Test
     void identifiesAnExistingFileByPathTimeAndSize(@TempDir final Path dir) throws IOException {
         final var file = Files.writeString(dir.resolve("javafmt"), "binary");

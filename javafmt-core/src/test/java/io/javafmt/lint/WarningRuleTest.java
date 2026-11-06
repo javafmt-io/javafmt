@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class WarningRuleTest {
+
     @Test
     void onNodeSeesEveryCallInAChain() {
         final var source = "class Chain {\n    Object value = a.b().c(d.e()).f();\n}\n";

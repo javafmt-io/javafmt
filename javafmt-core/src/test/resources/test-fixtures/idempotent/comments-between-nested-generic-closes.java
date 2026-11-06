@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 class Places<T extends Comparable<List<T> /* bound */>> extends ArrayList<List<String> /* base */> {
+
     private Map<String, List<Integer> /* counts */> byName;
     private List<List<String> // rows
             > table;

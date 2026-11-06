@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RedundantModifierTest {
+
     @Test
     void publicAbstractRemovedFromInterfaceMethod() {
         final var unit = JavaParser.parseUnit("""

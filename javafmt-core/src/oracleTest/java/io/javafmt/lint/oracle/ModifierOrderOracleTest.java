@@ -20,6 +20,7 @@ import java.util.stream.Stream;
  * the type, which is where Checkstyle accepts it as a type annotation.
  */
 class ModifierOrderOracleTest {
+
     ModifierOrderOracleTest() {}
 
     private static final String CORPUS = "modifier-order";

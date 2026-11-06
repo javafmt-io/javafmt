@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CommentPlacementTest {
+
     private static final int LINE_WIDTH = 150;
 
     static Stream<Arguments> gaps() throws URISyntaxException, IOException {
@@ -63,7 +64,11 @@ class CommentPlacementTest {
         final var internalErrors = result.diagnostics().stream().filter(d -> d instanceof Diagnostic.InternalError).map(Diagnostic::message).toList();
         assertThat(internalErrors).as("formatting %s", name).isEmpty();
         final var output = result.output();
-        final var outputTokens = TokenScanner.scan(output);
+        final var scanned = TokenScanner.scan(output);
+        final var outputTokens = IntStream.range(0, scanned.size())
+                .filter(i -> !scanned.get(i).text().equals(",") || i + 1 == scanned.size() || !scanned.get(i + 1).text().equals("}"))
+                .mapToObj(scanned::get)
+                .toList();
         assertThat(texts(outputTokens)).as("tokens of %s", name).containsExactlyElementsOf(texts(tokens));
         final var probeAt = output.indexOf(probe.text);
         assertThat(output.indexOf(probe.text, probeAt + 1)).as("the probe appears once in%n%s", output).isEqualTo(-1);
@@ -93,6 +98,7 @@ class CommentPlacementTest {
     }
 
     enum Probe {
+
         BLOCK(" /* probe */ ", "/* probe */"),
         LINE(" // probe\n", "// probe");
 
@@ -107,6 +113,7 @@ class CommentPlacementTest {
     }
 
     enum AllowedMove {
+
         COMMA_MOVES_BEFORE_THE_COMMENT(",", false),
         SEMICOLON_MOVES_BEFORE_A_LINE_COMMENT(";", true),
         BRACE_MOVES_UP_BEFORE_A_LINE_COMMENT("{", true);

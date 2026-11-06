@@ -15,6 +15,7 @@ import java.nio.file.Path;
 
 @UtilityClass
 final class DaemonHandler {
+
     FormatReply handle(final FormatRequest request) {
         final ProjectFile projectFile;
         try {

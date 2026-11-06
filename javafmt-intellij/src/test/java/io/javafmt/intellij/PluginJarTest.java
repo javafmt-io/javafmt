@@ -18,6 +18,7 @@ import java.util.zip.ZipEntry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PluginJarTest {
+
     private static final int MAX_MAJOR = 69;
 
     @Test
@@ -32,7 +33,7 @@ class PluginJarTest {
     @Test
     void theBundledProtocolDecodesAReplyWithNothingElseOnTheClasspath() throws Exception {
         final var jar = Path.of(System.getProperty("javafmt.pluginJar")).toUri().toURL();
-        try (final var loader = new URLClassLoader(new URL[] {jar,}, ClassLoader.getPlatformClassLoader())) {
+        try (final var loader = new URLClassLoader(new URL[]{jar}, ClassLoader.getPlatformClassLoader())) {
             final var replyClass = loader.loadClass("io.javafmt.daemon.protocol.FormatReply");
             final var bytes = DaemonFixtures.bytes(List.of(DaemonFixtures.REPLIES_HEX.getFirst()));
             final var reply = replyClass.getMethod("parseDelimitedFrom", InputStream.class).invoke(null, new ByteArrayInputStream(bytes));

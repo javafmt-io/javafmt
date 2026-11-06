@@ -1,4 +1,5 @@
 class Fixture {
+
     @SuppressWarnings("serial") // not serializable
     private volatile Object first;
     @SuppressWarnings("serial")

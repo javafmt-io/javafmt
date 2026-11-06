@@ -35,6 +35,7 @@ import java.util.stream.Stream;
  * killing a hung child happens there too, never on the calling thread.
  */
 public final class JavafmtBinary {
+
     /** Real work is ~10 ms; this only ever catches a hang. */
     static final Duration TIMEOUT = Duration.ofSeconds(10);
 
@@ -174,11 +175,13 @@ public final class JavafmtBinary {
     }
 
     public sealed interface VersionProbe {
+
         default Optional<String> reportedVersion() {
             return this instanceof Reported reported ? Optional.of(reported.output()) : Optional.empty();
         }
 
         record Reported(String output) implements VersionProbe {
+
             public Reported {
                 Objects.requireNonNull(output, "output");
             }
@@ -191,11 +194,13 @@ public final class JavafmtBinary {
 
     /** What one format attempt produced. */
     public sealed interface Outcome {
+
         /**
          * {@code output} is the text to install. javafmt returns the input unchanged when it cannot
          * format, so this is always safe to put in the document.
          */
         record Formatted(String output, List<Diagnostic> diagnostics) implements Outcome {
+
             public Formatted {
                 Objects.requireNonNull(output, "output");
                 diagnostics = List.copyOf(diagnostics);
@@ -214,6 +219,7 @@ public final class JavafmtBinary {
 
         /** The binary could not be run at all. {@code internal} distinguishes a javafmt bug. */
         record Refused(String reason, boolean internal) implements Outcome {
+
             public Refused {
                 Objects.requireNonNull(reason, "reason");
             }
