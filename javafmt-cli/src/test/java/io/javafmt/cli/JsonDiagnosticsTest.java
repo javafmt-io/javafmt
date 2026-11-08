@@ -16,8 +16,10 @@ class JsonDiagnosticsTest {
     private static Stream<Arguments> kinds() {
         final var at = new Position.At(3, 9, 42);
         return Stream.of(
-                Arguments.of(new Diagnostic.ParseError("boom", at), "parse"), Arguments.of(new Diagnostic.LintError("boom", at), "lint"),
-                Arguments.of(new Diagnostic.InternalError("boom", at), "internal"), Arguments.of(new Diagnostic.Warning("boom", at), "warning"));
+                Arguments.of(new Diagnostic.ParseError("boom", at), "parse"),
+                Arguments.of(new Diagnostic.LintError("boom", at), "lint"),
+                Arguments.of(new Diagnostic.InternalError("boom", at), "internal"),
+                Arguments.of(new Diagnostic.Warning("boom", at), "warning"));
     }
 
     @ParameterizedTest
@@ -45,7 +47,8 @@ class JsonDiagnosticsTest {
 
     @Test
     void blankFileOmitsTheFileMember() {
-        assertThat(JsonDiagnostics.line("", new Diagnostic.Warning("m", new Position.Unknown()))).doesNotContain("\"file\"");
+        assertThat(JsonDiagnostics.line("", new Diagnostic.Warning("m", new Position.Unknown())))
+                .doesNotContain("\"file\"");
     }
 
     @Test
@@ -58,6 +61,8 @@ class JsonDiagnosticsTest {
     void messagesAreEscapedSoTheLineStaysParseable() {
         final var nasty = "quote \" backslash \\ newline \n tab \t control ";
         final var rendered = JsonDiagnostics.line("", new Diagnostic.Warning(nasty, new Position.Unknown()));
-        assertThat(rendered).contains("quote \\\" backslash \\\\ newline \\n tab \\t control \\u0001").doesNotContain("\n");
+        assertThat(rendered)
+                .contains("quote \\\" backslash \\\\ newline \\n tab \\t control \\u0001")
+                .doesNotContain("\n");
     }
 }

@@ -40,12 +40,17 @@ class JavafmtBinaryProviderTest {
     void concurrentFirstFormatsShareOneDownload(@TempDir final Path dir) throws Exception {
         final var go = new CountDownLatch(1);
         try (final var release = FakeRelease.servingAfter(go, Map.of(NAME, BINARY))) {
-            final var provider = provider(release.base(), dir.resolve("cache"), ASSET, dir.resolve("empty-path").toString());
+            final var provider = provider(
+                    release.base(),
+                    dir.resolve("cache"),
+                    ASSET,
+                    dir.resolve("empty-path").toString());
             final var first = provider.download(null);
             final var second = provider.download(null);
             go.countDown();
             assertThat(second).isSameAs(first);
-            assertThat(first.get(20, TimeUnit.SECONDS)).isEqualTo(new Installation.Installed(dir.resolve("cache").resolve(NAME)));
+            assertThat(first.get(20, TimeUnit.SECONDS))
+                    .isEqualTo(new Installation.Installed(dir.resolve("cache").resolve(NAME)));
             assertThat(release.requests()).isEqualTo(1);
         }
     }
@@ -53,7 +58,11 @@ class JavafmtBinaryProviderTest {
     @Test
     void aFinishedFailureIsRetriedOnTheNextFormat(@TempDir final Path dir) throws Exception {
         try (final var release = FakeRelease.serving(Map.of())) {
-            final var provider = provider(release.base(), dir.resolve("cache"), ASSET, dir.resolve("empty-path").toString());
+            final var provider = provider(
+                    release.base(),
+                    dir.resolve("cache"),
+                    ASSET,
+                    dir.resolve("empty-path").toString());
             assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Failed.class);
             assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Failed.class);
             assertThat(release.requests()).isEqualTo(2);
@@ -66,7 +75,8 @@ class JavafmtBinaryProviderTest {
         final var installed = Files.write(cache.resolve(NAME), BINARY);
         assertThat(installed.toFile().setExecutable(true)).isTrue();
         try (final var release = FakeRelease.serving(Map.of(NAME, BINARY))) {
-            final var provider = provider(release.base(), cache, ASSET, dir.resolve("empty-path").toString());
+            final var provider = provider(
+                    release.base(), cache, ASSET, dir.resolve("empty-path").toString());
             assertThat(provider.download(null)).isCompletedWithValue(new Installation.Installed(installed));
             assertThat(provider.describe()).contains(installed.toString());
             assertThat(release.requests()).isZero();
@@ -88,7 +98,9 @@ class JavafmtBinaryProviderTest {
         final var onPath = javafmtReporting(dir, "javafmt 99.0.0");
         final var provider = provider(FakeRelease.unreachable(), dir.resolve("cache"), ASSET, dir.toString());
         assertThat(provider.onPath().map(BinaryIdentity::path)).contains(onPath);
-        assertThat(provider.describe()).contains(onPath.toString()).contains("PATH");
+        assertThat(provider.describe())
+                .contains(onPath.toString())
+                .contains("PATH");
     }
 
     @Test

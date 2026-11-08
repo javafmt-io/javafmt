@@ -32,18 +32,26 @@ class NativeDaemonRoundTripTest {
 
     private static byte[] serve(final byte[] requests, final String... arguments) throws IOException, InterruptedException {
         final var binary = locateBinary().orElseThrow(() -> new AssertionError("no native javafmt binary in " + BINARY_DIR.toAbsolutePath()));
-        final var command = Stream.concat(Stream.of(binary.toString()), Stream.of(arguments)).toList();
-        final var process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+        final var command = Stream.concat(Stream.of(binary.toString()), Stream.of(arguments))
+                .toList();
+        final var process = new ProcessBuilder(command)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start();
         try (final var stdin = process.getOutputStream()) {
             stdin.write(requests);
         }
         final var out = process.getInputStream().readAllBytes();
-        assertThat(process.waitFor(30, TimeUnit.SECONDS)).as("daemon exited before timeout").isTrue();
+        assertThat(process.waitFor(30, TimeUnit.SECONDS))
+                .as("daemon exited before timeout")
+                .isTrue();
         assertThat(process.exitValue()).isZero();
         return out;
     }
 
     private static Optional<Path> locateBinary() {
-        return List.of(BINARY_DIR.resolve("javafmt"), BINARY_DIR.resolve("javafmt.exe")).stream().filter(Files::isExecutable).findFirst();
+        return List.of(BINARY_DIR.resolve("javafmt"), BINARY_DIR.resolve("javafmt.exe"))
+                .stream()
+                .filter(Files::isExecutable)
+                .findFirst();
     }
 }

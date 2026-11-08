@@ -17,7 +17,8 @@ final class JsonDiagnostics {
     String line(final String file, final Diagnostic d) {
         Objects.requireNonNull(file, "file");
         Objects.requireNonNull(d, "d");
-        return object(d.kind(), d.message(), file, d.position().line(), d.position().column());
+        return object(
+                d.kind(), d.message(), file, d.position().line(), d.position().column());
     }
 
     /** A message originating in the CLI rather than in a {@link Diagnostic}. */

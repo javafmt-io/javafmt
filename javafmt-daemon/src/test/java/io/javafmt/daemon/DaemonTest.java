@@ -52,7 +52,9 @@ class DaemonTest {
         final var garbage = new byte[]{3, (byte) 0xff, (byte) 0xff, (byte) 0xff};
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(garbage, delimited(request(1, "class A {}")))), out);
-        assertThat(replies(out)).extracting(FormatReply::getId).containsExactly(1);
+        assertThat(replies(out))
+                .extracting(FormatReply::getId)
+                .containsExactly(1);
     }
 
     @Test
@@ -75,7 +77,9 @@ class DaemonTest {
         final var whole = delimited(request(1, "class A {}"));
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(whole, Arrays.copyOf(whole, whole.length - 2))), out);
-        assertThat(replies(out)).extracting(FormatReply::getId).containsExactly(1);
+        assertThat(replies(out))
+                .extracting(FormatReply::getId)
+                .containsExactly(1);
     }
 
     @Test
@@ -83,12 +87,16 @@ class DaemonTest {
         final var fatal = new AtomicReference<Error>();
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY, new ByteArrayInputStream(delimited(request(1, "class A {}"))), out,
+                Wire.BINARY,
+                new ByteArrayInputStream(delimited(request(1, "class A {}"))),
+                out,
                 _ -> {
                     throw new OutOfMemoryError("simulated");
                 },
                 fatal::set);
-        assertThat(fatal.get()).isInstanceOf(OutOfMemoryError.class).hasMessage("simulated");
+        assertThat(fatal.get())
+                .isInstanceOf(OutOfMemoryError.class)
+                .hasMessage("simulated");
         assertThat(out.toByteArray()).isEmpty();
     }
 
@@ -97,15 +105,23 @@ class DaemonTest {
     void noMoreRequestsFormatAtOnceThanTheDaemonHasThreads(final int threads) {
         final var running = new AtomicInteger();
         final var mostAtOnce = new AtomicInteger();
-        final var requests = IntStream.rangeClosed(1, 6).mapToObj(id -> delimited(request(id, "class A {}"))).reduce(new byte[0], DaemonTest::concat);
+        final var requests = IntStream.rangeClosed(1, 6)
+                .mapToObj(id -> delimited(request(id, "class A {}")))
+                .reduce(new byte[0], DaemonTest::concat);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY, new ByteArrayInputStream(requests), out, threads,
+                Wire.BINARY,
+                new ByteArrayInputStream(requests),
+                out,
+                threads,
                 request -> {
                     mostAtOnce.accumulateAndGet(running.incrementAndGet(), Math::max);
                     LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(50));
                     running.decrementAndGet();
-                    return FormatReply.newBuilder().setId(request.getId()).setOutput(request.getSource()).build();
+                    return FormatReply.newBuilder()
+                            .setId(request.getId())
+                            .setOutput(request.getSource())
+                            .build();
                 },
                 _ -> {});
         assertThat(mostAtOnce.get()).isBetween(1, threads);
@@ -114,16 +130,21 @@ class DaemonTest {
 
     @Test
     void theDefaultThreadCountIsTheCpuCountCappedAtFour() {
-        assertThat(Daemon.DEFAULT_THREADS).isEqualTo(Math.clamp(Runtime.getRuntime().availableProcessors(), 1, 4));
+        assertThat(Daemon.DEFAULT_THREADS)
+                .isEqualTo(Math.clamp(Runtime.getRuntime().availableProcessors(), 1, 4));
     }
 
     @Test
     void deeplyNestedCodeFormatsOnTheDaemonsThreadsWhateverTheDefaultStackSize() {
-        final var nested = IntStream.range(0, 600).boxed().reduce("a", (inner, level) -> "f" + level + "(" + inner + ")", (_, right) -> right);
+        final var nested = IntStream.range(0, 600)
+                .boxed()
+                .reduce("a", (inner, level) -> "f" + level + "(" + inner + ")", (_, right) -> right);
         final var source = "class Deep {\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request(1, source))), out, DaemonHandler::handle, _ -> {});
-        assertThat(replies(out)).singleElement().satisfies(reply -> assertThat(reply.getDiagnosticsList()).isEmpty());
+        assertThat(replies(out))
+                .singleElement()
+                .satisfies(reply -> assertThat(reply.getDiagnosticsList()).isEmpty());
     }
 
     @Test
@@ -132,13 +153,18 @@ class DaemonTest {
         final var writtenDuringFatal = new AtomicInteger(-1);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY, new ByteArrayInputStream(concat(delimited(request(1, "class A {}")), delimited(request(2, "class B {}")))), out,
+                Wire.BINARY,
+                new ByteArrayInputStream(concat(delimited(request(1, "class A {}")), delimited(request(2, "class B {}")))),
+                out,
                 request -> {
                     if (request.getId() == 1) {
                         throw new OutOfMemoryError("simulated");
                     }
                     awaitUninterruptibly(fatalStarted);
-                    return FormatReply.newBuilder().setId(request.getId()).setOutput(request.getSource()).build();
+                    return FormatReply.newBuilder()
+                            .setId(request.getId())
+                            .setOutput(request.getSource())
+                            .build();
                 },
                 _ -> {
                     fatalStarted.countDown();
@@ -146,7 +172,9 @@ class DaemonTest {
                     writtenDuringFatal.set(out.size());
                 });
         assertThat(writtenDuringFatal).hasValue(0);
-        assertThat(replies(out)).extracting(FormatReply::getId).containsExactly(2);
+        assertThat(replies(out))
+                .extracting(FormatReply::getId)
+                .containsExactly(2);
     }
 
     private static void awaitUninterruptibly(final CountDownLatch latch) {
@@ -161,34 +189,38 @@ class DaemonTest {
     void aRequestThatFailsToFormatStillGetsAReplyCarryingTheFailure() {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
-                Wire.BINARY, new ByteArrayInputStream(delimited(request(1, "class A {}"))), out,
+                Wire.BINARY,
+                new ByteArrayInputStream(delimited(request(1, "class A {}"))),
+                out,
                 _ -> {
                     throw new IllegalStateException("boom");
                 },
                 _ -> {});
         assertThat(replies(out))
-                .containsExactly(
-                        FormatReply.newBuilder()
-                                .setId(1)
-                                .setOutput("class A {}")
-                                .addDiagnostics(
-                                        Diagnostic.newBuilder()
-                                                .setSeverity(Severity.SEVERITY_ERROR)
-                                                .setKind(Kind.KIND_INTERNAL)
-                                                .setMessage("IllegalStateException: boom"))
-                                .build());
+                .containsExactly(FormatReply.newBuilder()
+                        .setId(1)
+                        .setOutput("class A {}")
+                        .addDiagnostics(Diagnostic.newBuilder()
+                                .setSeverity(Severity.SEVERITY_ERROR)
+                                .setKind(Kind.KIND_INTERNAL)
+                                .setMessage("IllegalStateException: boom"))
+                        .build());
     }
 
     @Test
     void aRequestWithoutASourceGetsTheRuleItBreaksAsACliReply() {
-        final var request = FormatRequest.newBuilder().setId(4).build();
+        final var request = FormatRequest.newBuilder()
+                .setId(4)
+                .build();
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request)), out);
         assertThat(replies(out)).singleElement().satisfies(reply -> {
             assertThat(reply.getDiagnosticsList())
                     .extracting(Diagnostic::getKind, Diagnostic::getMessage)
-                    .containsExactlyElementsOf(
-                            DaemonFixtures.violations(request).stream().map(violation -> tuple(Kind.KIND_CLI, "source: " + violation)).toList());
+                    .containsExactlyElementsOf(DaemonFixtures.violations(request)
+                            .stream()
+                            .map(violation -> tuple(Kind.KIND_CLI, "source: " + violation))
+                            .toList());
             assertThat(DaemonFixtures.violations(reply)).isEmpty();
         });
     }
@@ -196,7 +228,13 @@ class DaemonTest {
     @Test
     void aRequestWithoutAnIdIsDropped() {
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(FormatRequest.newBuilder().setSource("class A {}").build())), out);
+        Daemon.serve(
+                Wire.BINARY,
+                new ByteArrayInputStream(
+                        delimited(FormatRequest.newBuilder()
+                                .setSource("class A {}")
+                                .build())),
+                out);
         assertThat(out.toByteArray()).isEmpty();
     }
 
@@ -256,7 +294,11 @@ class DaemonTest {
                 .reduce(new byte[0], DaemonTest::concat);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(requests), out);
-        assertThat(replies(out)).extracting(FormatReply::getId).containsExactlyInAnyOrderElementsOf(IntStream.range(1, 51).boxed().toList());
+        assertThat(replies(out))
+                .extracting(FormatReply::getId)
+                .containsExactlyInAnyOrderElementsOf(IntStream.range(1, 51)
+                        .boxed()
+                        .toList());
         assertThat(replies(out)).allSatisfy(reply -> assertThat(DaemonFixtures.violations(reply)).isEmpty());
     }
 
@@ -265,7 +307,10 @@ class DaemonTest {
     }
 
     private static FormatRequest request(final int id, final String source) {
-        return FormatRequest.newBuilder().setId(id).setSource(source).build();
+        return FormatRequest.newBuilder()
+                .setId(id)
+                .setSource(source)
+                .build();
     }
 
     private static ByteArrayInputStream input(final String text) {
@@ -283,12 +328,15 @@ class DaemonTest {
     }
 
     private static List<FormatReply> replies(final ByteArrayOutputStream out) {
-        return DaemonFixtures.hexFrames(out.toByteArray()).stream().map(DaemonTest::reply).toList();
+        return DaemonFixtures.hexFrames(out.toByteArray()).stream()
+                .map(DaemonTest::reply)
+                .toList();
     }
 
     private static FormatReply reply(final String hexFrame) {
         try {
-            return FormatReply.parseDelimitedFrom(new ByteArrayInputStream(HexFormat.of().parseHex(hexFrame)));
+            return FormatReply.parseDelimitedFrom(
+                    new ByteArrayInputStream(HexFormat.of().parseHex(hexFrame)));
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }

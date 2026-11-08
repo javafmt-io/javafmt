@@ -1,11 +1,13 @@
 class Fixture {
 
     Object chain(final Project project, final SourceSet sourceSet) {
-        return project.provider(
-                () -> sourceSet.getJava().getSourceDirectories().getFiles().stream()
-                        .filter(file -> file.exists())
-                        .map(file -> file.toPath())
-                        .toList());
+        return project.provider(() -> sourceSet.getJava()
+                .getSourceDirectories()
+                .getFiles()
+                .stream()
+                .filter(file -> file.exists())
+                .map(file -> file.toPath())
+                .toList());
     }
 
     Supplier<String> ternary(final boolean condition) {

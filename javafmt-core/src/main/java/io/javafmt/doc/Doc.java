@@ -41,6 +41,14 @@ public sealed interface Doc
      * break ({@link HardLine}, {@link BlockComment}, or a {@link Verbatim} whose body contains a newline).
      */
     static int flatWidthOrBreak(final Doc doc) {
+        return width(doc, true);
+    }
+
+    static int widthBeforeFirstBreak(final Doc doc) {
+        return width(doc, false);
+    }
+
+    private static int width(final Doc doc, final boolean unmeasuredPastABreak) {
         var total = 0;
         final var work = new ArrayDeque<Doc>();
         work.push(doc);
@@ -48,21 +56,22 @@ public sealed interface Doc
             switch (work.pop()) {
                 case Text(var s) -> total += s.length();
                 case Verbatim(var s, var _) -> {
-                    if (s.indexOf('\n') >= 0) {
-                        return -1;
+                    final var newline = s.indexOf('\n');
+                    if (newline >= 0) {
+                        return unmeasuredPastABreak ? -1 : total + newline;
                     }
                     total += s.length();
                 }
                 case Line() -> total += 1;
                 case SoftLine() -> {}
                 case HardLine(), LineStart(), BlockComment _ -> {
-                    return -1;
+                    return unmeasuredPastABreak ? -1 : total;
                 }
                 case Indent(var inner) -> work.push(inner);
                 case Align(var inner) -> work.push(inner);
                 case Group(var inner, var _) -> work.push(inner);
                 case IfBreak(var _, var flatContents) -> work.push(flatContents);
-                case Choice(var preferred, var _, var _) -> work.push(preferred);
+                case Choice(var preferred, var _, var _, var _) -> work.push(preferred);
                 case Concat(var ps) -> {
                     for (var i = ps.size() - 1; i >= 0; i--) {
                         work.push(ps.get(i));
@@ -86,11 +95,12 @@ public sealed interface Doc
      */
     static boolean endsWithLineComment(final Doc doc) {
         return switch (doc) {
-            case Text(var s) -> s.stripTrailing().startsWith("//") || s.stripTrailing().contains("\n//");
+            case Text(var s) ->
+                s.stripTrailing().startsWith("//") || s.stripTrailing().contains("\n//");
             case Verbatim(var s, var _) -> s.stripTrailing().startsWith("//");
             case Indent(var inner) -> endsWithLineComment(inner);
             case Align(var inner) -> endsWithLineComment(inner);
-            case Choice(var preferred, var _, var _) -> endsWithLineComment(preferred);
+            case Choice(var preferred, var _, var _, var _) -> endsWithLineComment(preferred);
             case Group(var inner, var _) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case Fill(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
@@ -142,7 +152,8 @@ public sealed interface Doc
         Objects.requireNonNull(separator, "separator");
         Objects.requireNonNull(parts, "parts");
         final var sepArray = separator.toArray(Doc[]::new);
-        return parts.flatMap(d -> Stream.concat(Arrays.stream(sepArray), Stream.of(d))).skip(sepArray.length);
+        return parts.flatMap(d -> Stream.concat(Arrays.stream(sepArray), Stream.of(d)))
+                .skip(sepArray.length);
     }
 
     record Text(String value) implements Doc {
@@ -247,7 +258,7 @@ public sealed interface Doc
         }
     }
 
-    record Choice(Doc preferred, Doc fallback, Fit fit) implements Doc {
+    record Choice(Doc preferred, Doc fallback, Fit fit, int chainWidth) implements Doc {
 
         public Choice {
             Objects.requireNonNull(preferred, "preferred");
@@ -255,11 +266,19 @@ public sealed interface Doc
             Objects.requireNonNull(fit, "fit");
         }
 
+        public Choice(final Doc preferred, final Doc fallback, final Fit fit) {
+            this(preferred, fallback, fit, -1);
+        }
+
         public Choice(final Doc preferred, final Doc fallback) {
             this(preferred, fallback, Fit.EVERY_LINE);
         }
 
-        public enum Fit { EVERY_LINE, OPENING_LINE, FIRST_BREAK }
+        public static Doc unlessPastTheChainColumn(final Doc preferred, final Doc fallback, final int chainWidth) {
+            return chainWidth < 0 ? preferred : new Choice(preferred, fallback, Fit.EVERY_LINE, chainWidth);
+        }
+
+        public enum Fit { EVERY_LINE, OPENING_LINE, FIRST_BREAK, FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN }
     }
 
     record Fill(List<Doc> parts) implements Doc {

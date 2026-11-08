@@ -56,7 +56,9 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted).contains("var xs = Stream.of(\"a\", \"b\").toList();").doesNotContain("List<String> xs");
+        assertThat(formatted)
+                .contains("var xs = Stream.of(\"a\", \"b\").toList();")
+                .doesNotContain("List<String> xs");
     }
 
     @Test
@@ -129,7 +131,9 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted).contains("List<String> xs =").doesNotContain("var xs");
+        assertThat(formatted)
+                .contains("List<String> xs =")
+                .doesNotContain("var xs");
     }
 
     @Test
@@ -162,7 +166,9 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted).contains("Supplier<String> s = () -> \"x\";").doesNotContain("var s");
+        assertThat(formatted)
+                .contains("Supplier<String> s = () -> \"x\";")
+                .doesNotContain("var s");
     }
 
     @Test
@@ -182,7 +188,9 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted).contains("Supplier<String> s = Fixture::make;").doesNotContain("var s");
+        assertThat(formatted)
+                .contains("Supplier<String> s = Fixture::make;")
+                .doesNotContain("var s");
     }
 
     @Test
@@ -198,7 +206,9 @@ class LocalVarUseVarAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted).contains("int[] xs = {1, 2};").doesNotContain("var xs");
+        assertThat(formatted)
+                .contains("int[] xs = {1, 2};")
+                .doesNotContain("var xs");
     }
 
     @Test
@@ -468,13 +478,17 @@ class LocalVarUseVarAnalyzeTest {
             "Line line = branch().new Line(); line = new Line(); record(line);",
     })
     void aLocalWhoseUsesWouldChangeKeepsItsType(final String body) {
-        assertThat(rewrittenWithAttribution(ledger(body))).contains(body).doesNotContain("var ");
+        assertThat(rewrittenWithAttribution(ledger(body)))
+                .contains(body)
+                .doesNotContain("var ");
     }
 
     @Test
     void aLocalOfExactlyTheDeclaredTypeBecomesVarBesideARejectedOne() {
         final var rewritten = rewrittenWithAttribution(ledger("List<String> xs = names(); CharSequence text = describe(); show(text); record(xs);"));
-        assertThat(rewritten).contains("var xs = names();").contains("CharSequence text = describe();");
+        assertThat(rewritten)
+                .contains("var xs = names();")
+                .contains("CharSequence text = describe();");
     }
 
     @Test

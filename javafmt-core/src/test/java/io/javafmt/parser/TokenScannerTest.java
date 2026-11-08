@@ -12,7 +12,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TokenScannerTest {
 
     private static List<String> texts(final String source) {
-        return TokenScanner.scan(source).stream().map(SourceToken::text).toList();
+        return TokenScanner.scan(source).stream()
+                .map(SourceToken::text)
+                .toList();
     }
 
     @Test
@@ -94,7 +96,9 @@ class TokenScannerTest {
     @Test
     void recordsSourceOffsetsForEachToken() {
         final var tokens = TokenScanner.scan("int  x;");
-        assertThat(tokens).extracting(SourceToken::start).containsExactly(0, 5, 6);
+        assertThat(tokens)
+                .extracting(SourceToken::start)
+                .containsExactly(0, 5, 6);
         assertThat(tokens).extracting(SourceToken::end).containsExactly(3, 6, 7);
     }
 

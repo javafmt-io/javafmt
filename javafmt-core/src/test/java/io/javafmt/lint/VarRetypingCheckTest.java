@@ -21,8 +21,12 @@ class VarRetypingCheckTest {
                 .toList();
         final var shift = new VarRetypingCheck.Shift(edits);
         IntStream.range(0, 1100).forEach(offset -> {
-            assertThat(shift.start(offset)).as("start of %d", offset).isEqualTo(offset + movedBy(edits, offset, true));
-            assertThat(shift.end(offset)).as("end of %d", offset).isEqualTo(offset + movedBy(edits, offset, false));
+            assertThat(shift.start(offset))
+                    .as("start of %d", offset)
+                    .isEqualTo(offset + movedBy(edits, offset, true));
+            assertThat(shift.end(offset))
+                    .as("end of %d", offset)
+                    .isEqualTo(offset + movedBy(edits, offset, false));
         });
     }
 

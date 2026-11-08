@@ -5,13 +5,18 @@ import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ArrayTypeTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.ExpressionTree;
+import com.sun.source.tree.LambdaExpressionTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
+import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.IntStream;
@@ -21,27 +26,52 @@ public final class TreeFacts {
 
     private final ParsedUnit unit;
 
-    private final Set<Tree> fields;
+    private final Set<Tree> fields = Collections.newSetFromMap(new IdentityHashMap<>());
+
+    private final Set<Tree> loneLambdaBodies = Collections.newSetFromMap(new IdentityHashMap<>());
 
     public TreeFacts(final ParsedUnit unit) {
         this.unit = Objects.requireNonNull(unit, "unit");
-        this.fields = fieldsOf(unit.tree());
+        index(unit.tree());
     }
 
     public boolean isField(final VariableTree variable) {
         return fields.contains(variable);
     }
 
-    private static Set<Tree> fieldsOf(final CompilationUnitTree tree) {
-        final var found = Collections.newSetFromMap(new IdentityHashMap<Tree, Boolean>());
+    public boolean isLoneLambdaBody(final Tree node) {
+        return loneLambdaBodies.contains(node);
+    }
+
+    private void index(final CompilationUnitTree tree) {
         new ChainScanner<Void, Void>() {
             @Override
             public Void visitClass(final ClassTree node, final Void p) {
-                node.getMembers().stream().filter(VariableTree.class::isInstance).forEach(found::add);
+                node.getMembers().stream()
+                        .filter(VariableTree.class::isInstance)
+                        .forEach(fields::add);
                 return super.visitClass(node, null);
             }
+
+            @Override
+            protected void visitInvocation(final MethodInvocationTree node, final Void p) {
+                addLoneLambdaBody(node.getArguments());
+            }
+
+            @Override
+            public Void visitNewClass(final NewClassTree node, final Void p) {
+                addLoneLambdaBody(node.getArguments());
+                return super.visitNewClass(node, null);
+            }
         }.scan(tree, null);
-        return Collections.unmodifiableSet(found);
+    }
+
+    private void addLoneLambdaBody(final List<? extends ExpressionTree> arguments) {
+        if (arguments.size() == 1
+            && arguments.getFirst() instanceof LambdaExpressionTree lambda
+            && lambda.getBodyKind() == LambdaExpressionTree.BodyKind.EXPRESSION) {
+            loneLambdaBodies.add(lambda.getBody());
+        }
     }
 
     /**
@@ -74,7 +104,9 @@ public final class TreeFacts {
         if (ctorStart < 0) {
             return false;
         }
-        return ctor.getParameters().stream().mapToInt(unit::startOf).anyMatch(pos -> pos >= 0 && pos < ctorStart);
+        return ctor.getParameters().stream()
+                .mapToInt(unit::startOf)
+                .anyMatch(pos -> pos >= 0 && pos < ctorStart);
     }
 
     /**
@@ -106,9 +138,14 @@ public final class TreeFacts {
         }
         // A trailing comment belongs to the declaration it follows, so the gap starts after it —
         // otherwise `int x = 1; // note` followed by a blank line reads as no blank line at all.
-        final var from = unit.trailingOf(before).stream().mapToInt(CommentToken::end).max().orElse(declared);
+        final var from = unit.trailingOf(before).stream()
+                .mapToInt(CommentToken::end)
+                .max()
+                .orElse(declared);
         final var leading = unit.leadingOf(after);
-        final var until = leading.isEmpty() ? to : Math.min(to, leading.getFirst().start());
+        final var until = leading.isEmpty()
+                ? to
+                : Math.min(to, leading.getFirst().start());
         return newlinesIn(unit.source(), from, Math.max(from, until)) > 1;
     }
 
@@ -126,14 +163,23 @@ public final class TreeFacts {
 
     public boolean followsAModifierKeyword(final ModifiersTree modifiers, final AnnotationTree annotation) {
         final var annotations = modifiers.getAnnotations();
-        final var index = IntStream.range(0, annotations.size()).filter(i -> annotations.get(i) == annotation).findFirst().orElse(-1);
+        final var index = IntStream.range(0, annotations.size())
+                .filter(i -> annotations.get(i) == annotation)
+                .findFirst()
+                .orElse(-1);
         return IntStream.rangeClosed(0, index)
-                .anyMatch(
-                        i -> writtenBetween(i == 0 ? unit.startOf(modifiers) : unit.endOf(annotations.get(i - 1)), unit.startOf(annotations.get(i))));
+                .anyMatch(i -> writtenBetween(
+                        i == 0 ? unit.startOf(modifiers) : unit.endOf(annotations.get(i - 1)), unit.startOf(annotations.get(i))));
     }
 
     public boolean startsAfter(final Tree node, final Tree other) {
         return unit.startOf(node) > unit.startOf(other) && unit.startOf(other) >= 0;
+    }
+
+    public boolean lineBreakBetween(final Tree before, final Tree after) {
+        final var from = unit.endOf(before);
+        final var newline = from < 0 ? -1 : unit.source().indexOf('\n', from);
+        return newline >= 0 && newline < unit.startOf(after);
     }
 
     public boolean hasEmptyArgumentList(final AnnotationTree annotation) {
@@ -141,12 +187,16 @@ public final class TreeFacts {
     }
 
     private boolean writtenBetween(final int from, final int to) {
-        return from >= 0 && to > from && !CommentScanner.withoutComments(unit.source().substring(from, to)).isBlank();
+        return from >= 0
+            && to > from
+            && !CommentScanner.withoutComments(unit.source().substring(from, to))
+                    .isBlank();
     }
 
     /** Whether {@code node} carries a Javadoc comment. */
     public boolean hasJavadoc(final Tree node) {
-        return unit.leadingOf(node).stream().anyMatch(c -> c.text().startsWith("/**"));
+        return unit.leadingOf(node).stream()
+                .anyMatch(c -> c.text().startsWith("/**"));
     }
 
     /**

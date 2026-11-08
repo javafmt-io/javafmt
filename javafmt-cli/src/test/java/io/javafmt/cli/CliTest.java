@@ -108,7 +108,9 @@ class CliTest {
         final var run = run("--bogus");
         assertThat(run.exit()).isEqualTo(2);
         assertThat(run.err()).contains("Unknown option: '--bogus'");
-        assertThat(run.err()).doesNotContain("Exception").doesNotContain("\tat ");
+        assertThat(run.err())
+                .doesNotContain("Exception")
+                .doesNotContain("\tat ");
     }
 
     @Test
@@ -196,16 +198,23 @@ class CliTest {
             Files.writeString(target, unformatted);
         }
         final var arguments = Stream.concat(
-                excludes.stream().flatMap(g -> Stream.of("--exclude", g)), filenames.stream().map(n -> dir.resolve(n).toString()))
+                excludes.stream()
+                        .flatMap(g -> Stream.of("--exclude", g)),
+                filenames.stream()
+                        .map(n -> dir.resolve(n).toString()))
                 .toArray(String[]::new);
         final var run = run(arguments);
         assertThat(run.exit()).isZero();
         for (final var name : filenames) {
             final var actual = Files.readString(dir.resolve(name));
             if (expectedRewritten.contains(name)) {
-                assertThat(actual).as("expected rewritten: %s", name).isEqualTo(Fixtures.FORMATTED_FOO);
+                assertThat(actual)
+                        .as("expected rewritten: %s", name)
+                        .isEqualTo(Fixtures.FORMATTED_FOO);
             } else {
-                assertThat(actual).as("expected skipped: %s", name).isEqualTo(unformatted);
+                assertThat(actual)
+                        .as("expected skipped: %s", name)
+                        .isEqualTo(unformatted);
             }
         }
     }
@@ -215,7 +224,9 @@ class CliTest {
                 Arguments.of("basenameMatch", List.of("Keep.java", "input.java"), List.of("**/input.java"), List.of("Keep.java")),
                 Arguments.of("noMatch", List.of("A.java", "B.java"), List.of("**/nope.java"), List.of("A.java", "B.java")),
                 Arguments.of(
-                        "multiGlobMatch", List.of("A.java", "input.java", "expected.java"), List.of("**/input.java", "**/expected.java"),
+                        "multiGlobMatch",
+                        List.of("A.java", "input.java", "expected.java"),
+                        List.of("**/input.java", "**/expected.java"),
                         List.of("A.java")),
                 Arguments.of("fullPathMatch", List.of("nested/skip.java", "Keep.java"), List.of("**/nested/**"), List.of("Keep.java")));
     }
@@ -232,7 +243,9 @@ class CliTest {
         final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
         final var run = run("--classpath", "", file.toString());
         assertThat(run.exit()).as("err=%s", run.err()).isZero();
-        assertThat(Files.readString(file)).contains("import java.util.List;").doesNotContain("java.util.*");
+        assertThat(Files.readString(file))
+                .contains("import java.util.List;")
+                .doesNotContain("java.util.*");
     }
 
     @Test
@@ -245,7 +258,8 @@ class CliTest {
     @Test
     void noAnalyzeTurnsTheRulesThatNeedAClasspathOffThoughOneIsGiven(@TempDir final Path dir) throws Exception {
         final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
-        assertThat(run("--no-analyze", "--classpath", "", file.toString()).exit()).isZero();
+        assertThat(run("--no-analyze", "--classpath", "", file.toString()).exit())
+                .isZero();
         assertThat(Files.readString(file)).contains("import java.util.*;");
     }
 
@@ -263,7 +277,8 @@ class CliTest {
     void aProjectFileSkipsTheRulesItNamesForTheFilesBelowIt(@TempDir final Path dir) throws Exception {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
-        final var file = Files.writeString(Files.createDirectories(dir.resolve("src")).resolve("Order.java"), STAR_IMPORT);
+        final var file = Files.writeString(
+                Files.createDirectories(dir.resolve("src")).resolve("Order.java"), STAR_IMPORT);
         assertThat(run("--classpath", "", file.toString()).exit()).isZero();
         assertThat(Files.readString(file)).contains("import java.util.*;");
     }
@@ -286,7 +301,8 @@ class CliTest {
         final var run = runStdinIn(dir, STAR_IMPORT, "--classpath", "");
         assertThat(run.exit()).as("err=%s", run.err()).isZero();
         assertThat(run.out()).contains("import java.util.*;");
-        assertThat(runStdinIn(dir.getRoot(), STAR_IMPORT, "--classpath", "").out()).contains("import java.util.List;");
+        assertThat(runStdinIn(dir.getRoot(), STAR_IMPORT, "--classpath", "").out())
+                .contains("import java.util.List;");
     }
 
     @Test
@@ -295,10 +311,16 @@ class CliTest {
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
         final var file = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
         final var cache = dir.resolve("javafmt.cache");
-        assertThat(run("--cache", cache.toString(), "--classpath", "", file.toString()).exit()).isZero();
+        assertThat(
+                        run("--cache", cache.toString(), "--classpath", "", file.toString())
+                                .exit())
+                .isZero();
         assertThat(Files.readString(file)).contains("import java.util.*;");
         Files.writeString(dir.resolve(".javafmt"), "");
-        assertThat(run("--cache", cache.toString(), "--classpath", "", file.toString()).exit()).isZero();
+        assertThat(
+                        run("--cache", cache.toString(), "--classpath", "", file.toString())
+                                .exit())
+                .isZero();
         assertThat(Files.readString(file)).contains("import java.util.List;");
     }
 
@@ -338,9 +360,12 @@ class CliTest {
     @Test
     void ratchetFrom_checksOnlyTheFilesChangedSinceTheRef(@TempDir final Path dir) {
         repositoryWithAnEditedFile(dir);
-        final var run = run("--check", "--ratchet-from", "main", dir.resolve("src").toString());
+        final var run = run(
+                "--check", "--ratchet-from", "main", dir.resolve("src").toString());
         assertThat(run.exit()).isEqualTo(1);
-        assertThat(run.err()).contains("Invoice.java: would reformat").doesNotContain("Order.java");
+        assertThat(run.err())
+                .contains("Invoice.java: would reformat")
+                .doesNotContain("Order.java");
     }
 
     @Test
@@ -365,7 +390,9 @@ class CliTest {
         // the pipeline reports success while the file needs reformatting.
         final var run = runStdin(Fixtures.UNFORMATTED_FOO, "--check");
         assertThat(run.exit()).isOne();
-        assertThat(run.out()).as("check mode must not print the reformatted source").isEmpty();
+        assertThat(run.out())
+                .as("check mode must not print the reformatted source")
+                .isEmpty();
     }
 
     @Test
@@ -383,7 +410,9 @@ class CliTest {
         final var run = run(dir.toString());
         assertThat(run.exit()).isZero();
         assertThat(Files.readString(a)).isEqualTo(Fixtures.FORMATTED_A);
-        assertThat(Files.readString(notJava)).as("non-Java files are left alone").isEqualTo("# not java\n");
+        assertThat(Files.readString(notJava))
+                .as("non-Java files are left alone")
+                .isEqualTo("# not java\n");
     }
 
     @ParameterizedTest
@@ -424,7 +453,10 @@ class CliTest {
         };
         final var run = runStdin(exhausted);
         assertThat(run.exit()).isEqualTo(2);
-        assertThat(run.err()).contains("javafmt: out of memory (Java heap space)").contains("-Xmx").doesNotContain("\tat ");
+        assertThat(run.err())
+                .contains("javafmt: out of memory (Java heap space)")
+                .contains("-Xmx")
+                .doesNotContain("\tat ");
     }
 
     @Test
@@ -442,7 +474,10 @@ class CliTest {
         };
         final var run = runStdin(failing);
         assertThat(run.exit()).isEqualTo(2);
-        assertThat(run.err()).contains("stdin").contains("pipe burst").doesNotContain("file a bug");
+        assertThat(run.err())
+                .contains("stdin")
+                .contains("pipe burst")
+                .doesNotContain("file a bug");
     }
 
     @Test
@@ -481,7 +516,9 @@ class CliTest {
         Files.writeString(a, Fixtures.UNFORMATTED_A);
         final var run = run("--check", "--diagnostics=json", a.toString());
         assertThat(run.exit()).isEqualTo(1);
-        assertThat(run.err()).contains("\"kind\":\"cli\"").contains("would reformat");
+        assertThat(run.err())
+                .contains("\"kind\":\"cli\"")
+                .contains("would reformat");
         assertThat(run.err().strip().lines()).allSatisfy(l -> assertThat(l).startsWith("{\"kind\":\""));
     }
 
@@ -558,7 +595,9 @@ class CliTest {
         try {
             final var run = run("--check", dir.toString());
             assertThat(run.exit()).isEqualTo(2);
-            assertThat(run.err()).contains("B.java: would reformat").contains("locked");
+            assertThat(run.err())
+                    .contains("B.java: would reformat")
+                    .contains("locked");
         } finally {
             Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("rwx------"));
         }
@@ -582,7 +621,9 @@ class CliTest {
         Files.writeString(file, EQUALS_WITHOUT_HASHCODE);
         final var run = run("--check", "--diagnostics=json", file.toString());
         assertThat(run.exit()).isZero();
-        assertThat(run.err()).contains("\"kind\":\"warning\"").contains("hashCode()");
+        assertThat(run.err())
+                .contains("\"kind\":\"warning\"")
+                .contains("hashCode()");
     }
 
     @Test
@@ -634,7 +675,9 @@ class CliTest {
         final var file = dir.resolve("A.java");
         Files.writeString(file, Fixtures.UNFORMATTED_A);
         final var run = run("--", "-", file.toString());
-        assertThat(run.err()).doesNotContain("cannot be combined").contains("-: read failed: no such file");
+        assertThat(run.err())
+                .doesNotContain("cannot be combined")
+                .contains("-: read failed: no such file");
         assertThat(Files.readString(file)).isEqualTo(Fixtures.FORMATTED_A);
     }
 
@@ -671,8 +714,11 @@ class CliTest {
         final var out = new ByteArrayOutputStream();
         final var err = new ByteArrayOutputStream();
         final var exit = Cli.run(
-                new String[0], new ByteArrayInputStream(new byte[0]), new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(err, true, StandardCharsets.UTF_8), true);
+                new String[0],
+                new ByteArrayInputStream(new byte[0]),
+                new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8),
+                true);
         assertThat(exit).isEqualTo(2);
         assertThat(err.toString(StandardCharsets.UTF_8)).contains("Usage: javafmt");
     }
@@ -712,8 +758,11 @@ class CliTest {
     void daemonFlag_answersEachDelimitedRequestWithOneDelimitedReplyUntilStdinCloses() {
         final var out = new ByteArrayOutputStream();
         final var exit = Cli.run(
-                new String[]{"--daemon"}, new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
-                new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8), true);
+                new String[]{"--daemon"},
+                new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
+                new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8),
+                true);
         assertThat(exit).isZero();
         assertThat(DaemonFixtures.hexFrames(out.toByteArray())).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_HEX);
     }
@@ -759,8 +808,12 @@ class CliTest {
         final var out = new ByteArrayOutputStream();
         final var err = new ByteArrayOutputStream();
         final var exit = Cli.run(
-                arguments, new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)), new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(err, true, StandardCharsets.UTF_8), false, workingDirectory);
+                arguments,
+                new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)),
+                new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8),
+                false,
+                workingDirectory);
         return new Run(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }
 

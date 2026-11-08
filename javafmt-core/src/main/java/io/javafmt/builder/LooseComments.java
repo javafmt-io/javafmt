@@ -22,9 +22,8 @@ final class LooseComments {
         final var significantBefore = significantBefore(source);
         final var insertions = unit.loose().stream()
                 .sorted(Comparator.comparingInt(CommentToken::start))
-                .map(
-                        c -> new Insertion(
-                                significantBefore[c.start()], c, source.substring(source.lastIndexOf('\n', c.start() - 1) + 1, c.start()).isBlank()))
+                .map(c -> new Insertion(significantBefore[c.start()], c, source.substring(source.lastIndexOf('\n', c.start() - 1) + 1, c.start())
+                        .isBlank()))
                 .toList();
         return new Weaver(insertions).transform(doc);
     }
@@ -75,15 +74,19 @@ final class LooseComments {
                 case Doc.Indent(var inner) -> new Doc.Indent(transform(inner));
                 case Doc.Align(var inner) -> new Doc.Align(transform(inner));
                 case Doc.Group(var inner, var preferBreak) -> new Doc.Group(transform(inner), preferBreak);
-                case Doc.Concat(var parts) -> new Doc.Concat(parts.stream().map(this::transform).toList());
-                case Doc.Fill(var parts) -> new Doc.Fill(parts.stream().map(this::transform).toList());
+                case Doc.Concat(var parts) -> new Doc.Concat(parts.stream()
+                        .map(this::transform)
+                        .toList());
+                case Doc.Fill(var parts) -> new Doc.Fill(parts.stream()
+                        .map(this::transform)
+                        .toList());
                 case Doc.IfBreak(var breakContents, var flatContents) -> {
                     final var both = branches(breakContents, flatContents);
                     yield new Doc.IfBreak(both.getFirst(), both.getLast());
                 }
-                case Doc.Choice(var preferred, var fallback, var fit) -> {
+                case Doc.Choice(var preferred, var fallback, var fit, var chainWidth) -> {
                     final var both = branches(preferred, fallback);
-                    yield new Doc.Choice(both.getFirst(), both.getLast(), fit);
+                    yield new Doc.Choice(both.getFirst(), both.getLast(), fit, chainWidth);
                 }
             };
         }
@@ -144,7 +147,11 @@ final class LooseComments {
                     parts.add(new Doc.Text(text.substring(from, i + 1)));
                     parts.addAll(sameLine);
                     from = i + 1;
-                    spaceBeforeCode = atEnd && !insertions.get(next - 1).comment().text().startsWith("//");
+                    spaceBeforeCode = atEnd
+                        && !insertions.get(next - 1)
+                                .comment()
+                                .text()
+                                .startsWith("//");
                 }
             }
             if (parts.isEmpty()) {
@@ -156,7 +163,9 @@ final class LooseComments {
 
         private List<Doc> ownLineCommentsDue() {
             final var parts = new ArrayList<Doc>();
-            while (next < insertions.size() && insertions.get(next).ownLine() && insertions.get(next).significantBefore() == count) {
+            while (next < insertions.size()
+                && insertions.get(next).ownLine()
+                && insertions.get(next).significantBefore() == count) {
                 parts.add(Doc.LINE_START);
                 parts.add(CommentDocs.renderComment(insertions.get(next).comment()));
                 parts.add(Doc.HARD_LINE);
@@ -171,7 +180,9 @@ final class LooseComments {
 
         private List<Doc> sameLineCommentsDue(final boolean spaceFollows, final boolean spaceBefore) {
             final var parts = new ArrayList<Doc>();
-            while (next < insertions.size() && !insertions.get(next).ownLine() && insertions.get(next).significantBefore() == count) {
+            while (next < insertions.size()
+                && !insertions.get(next).ownLine()
+                && insertions.get(next).significantBefore() == count) {
                 final var comment = insertions.get(next).comment();
                 if (spaceBefore || !parts.isEmpty() || comment.text().startsWith("//")) {
                     parts.add(new Doc.Text(" "));

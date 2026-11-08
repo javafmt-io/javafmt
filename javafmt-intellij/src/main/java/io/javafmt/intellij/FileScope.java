@@ -27,14 +27,12 @@ record FileScope(Optional<Path> path, JavafmtConfig.Analysis analysis) {
     }
 
     static FileScope of(final Project project, final VirtualFile file) {
-        return ReadAction.computeBlocking(
-                () -> new FileScope(
-                        Optional.ofNullable(file.getFileSystem().getNioPath(file)),
-                        Optional.ofNullable(ProjectFileIndex.getInstance(project).getModuleForFile(file))
-                                .<JavafmtConfig.Analysis>map(
-                                        module -> new JavafmtConfig.Analysis.Attributed(
-                                                classpath(module, TestSourcesFilter.isTestSources(file, project))))
-                                .orElseGet(JavafmtConfig.Analysis.ParseOnly::new)));
+        return ReadAction.computeBlocking(() -> new FileScope(
+                Optional.ofNullable(file.getFileSystem().getNioPath(file)),
+                Optional.ofNullable(ProjectFileIndex.getInstance(project).getModuleForFile(file))
+                        .<JavafmtConfig.Analysis>map(module -> new JavafmtConfig.Analysis.Attributed(
+                                classpath(module, TestSourcesFilter.isTestSources(file, project))))
+                        .orElseGet(JavafmtConfig.Analysis.ParseOnly::new)));
     }
 
     JavafmtConfig config() {
@@ -46,7 +44,9 @@ record FileScope(Optional<Path> path, JavafmtConfig.Analysis analysis) {
     }
 
     FormatRequest request(final int id, final String source) {
-        final var request = FormatRequest.newBuilder().setId(id).setSource(source);
+        final var request = FormatRequest.newBuilder()
+                .setId(id)
+                .setSource(source);
         path.ifPresent(file -> request.setPath(file.toString()));
         if (analysis instanceof JavafmtConfig.Analysis.Attributed(var classpath)) {
             request.setClasspath(classpath);
@@ -55,7 +55,13 @@ record FileScope(Optional<Path> path, JavafmtConfig.Analysis analysis) {
     }
 
     private static String classpath(final Module module, final boolean test) {
-        final var compile = OrderEnumerator.orderEntries(module).compileOnly().withoutSdk().recursively();
-        return (test ? compile : compile.productionOnly()).classes().usingCache().getPathsList().getPathsString();
+        final var compile = OrderEnumerator.orderEntries(module)
+                .compileOnly()
+                .withoutSdk()
+                .recursively();
+        return (test ? compile : compile.productionOnly()).classes()
+                .usingCache()
+                .getPathsList()
+                .getPathsString();
     }
 }

@@ -35,7 +35,8 @@ class WireTest {
     @MethodSource("requests")
     void eachRequestFixtureIsTheSameRequestOnBothWires(final int index) {
         final var request = decode(Wire.BINARY, DaemonFixtures.REQUESTS_HEX, index, FormatRequest.newBuilder());
-        assertThat(decode(Wire.JSON, DaemonFixtures.REQUESTS_JSON, index, FormatRequest.newBuilder())).isEqualTo(request);
+        assertThat(decode(Wire.JSON, DaemonFixtures.REQUESTS_JSON, index, FormatRequest.newBuilder()))
+                .isEqualTo(request);
         assertEncodes(request, DaemonFixtures.REQUESTS_HEX.get(index), DaemonFixtures.REQUESTS_JSON.get(index));
     }
 
@@ -43,7 +44,8 @@ class WireTest {
     @MethodSource("replies")
     void eachReplyFixtureIsTheSameReplyOnBothWires(final int index) {
         final var reply = decode(Wire.BINARY, DaemonFixtures.REPLIES_HEX, index, FormatReply.newBuilder());
-        assertThat(decode(Wire.JSON, DaemonFixtures.REPLIES_JSON, index, FormatReply.newBuilder())).isEqualTo(reply);
+        assertThat(decode(Wire.JSON, DaemonFixtures.REPLIES_JSON, index, FormatReply.newBuilder()))
+                .isEqualTo(reply);
         assertEncodes(reply, DaemonFixtures.REPLIES_HEX.get(index), DaemonFixtures.REPLIES_JSON.get(index));
         assertThat(DaemonFixtures.violations(reply)).isEmpty();
     }
@@ -51,16 +53,22 @@ class WireTest {
     @Test
     void aReplyWithATwoByteLengthIsTheSameReplyOnBothWires() {
         final var reply = decode(Wire.BINARY, List.of(DaemonFixtures.LARGE_REPLY_HEX), 0, FormatReply.newBuilder());
-        assertThat(decode(Wire.JSON, List.of(DaemonFixtures.LARGE_REPLY_JSON), 0, FormatReply.newBuilder())).isEqualTo(reply);
+        assertThat(decode(Wire.JSON, List.of(DaemonFixtures.LARGE_REPLY_JSON), 0, FormatReply.newBuilder()))
+                .isEqualTo(reply);
         assertEncodes(reply, DaemonFixtures.LARGE_REPLY_HEX, DaemonFixtures.LARGE_REPLY_JSON);
-        assertThat(DaemonFixtures.bytes(List.of(DaemonFixtures.LARGE_REPLY_HEX))[0] & 0x80).isNotZero();
+        assertThat(DaemonFixtures.bytes(List.of(DaemonFixtures.LARGE_REPLY_HEX))[0] & 0x80)
+                .isNotZero();
     }
 
     @Test
     void aReplySplitAfterTheFirstByteOfItsLengthIsReadWhole() {
         final var bytes = DaemonFixtures.bytes(List.of(DaemonFixtures.LARGE_REPLY_HEX));
         final var split = new SequenceInputStream(new ByteArrayInputStream(bytes, 0, 1), new ByteArrayInputStream(bytes, 1, bytes.length - 1));
-        assertThat(Wire.BINARY.frames(split).map(HexFormat.of()::formatHex).toList()).containsExactly(DaemonFixtures.LARGE_REPLY_HEX.substring(4));
+        assertThat(
+                        Wire.BINARY.frames(split)
+                                .map(HexFormat.of()::formatHex)
+                                .toList())
+                .containsExactly(DaemonFixtures.LARGE_REPLY_HEX.substring(4));
     }
 
     @Test
@@ -83,7 +91,10 @@ class WireTest {
     @ValueSource(strings = {"", "01", "0d0801"})
     void aStreamThatEndsMidFrameYieldsOnlyTheWholeFrames(final String tail) {
         final var stream = DaemonFixtures.bytes(List.of(DaemonFixtures.REQUESTS_HEX.getFirst(), tail));
-        assertThat(Wire.BINARY.frames(new ByteArrayInputStream(stream)).map(HexFormat.of()::formatHex).toList())
+        assertThat(
+                        Wire.BINARY.frames(new ByteArrayInputStream(stream))
+                                .map(HexFormat.of()::formatHex)
+                                .toList())
                 .containsExactly(DaemonFixtures.REQUESTS_HEX.getFirst().substring(2));
     }
 
@@ -102,6 +113,7 @@ class WireTest {
 
     private static void assertEncodes(final Message message, final String hex, final String json) {
         assertThat(HexFormat.of().formatHex(Wire.BINARY.encode(message))).isEqualTo(hex);
-        assertThat(new String(Wire.JSON.encode(message), StandardCharsets.UTF_8)).isEqualTo(json + "\n");
+        assertThat(new String(Wire.JSON.encode(message), StandardCharsets.UTF_8))
+                .isEqualTo(json + "\n");
     }
 }

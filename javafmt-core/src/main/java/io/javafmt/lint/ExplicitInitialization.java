@@ -26,20 +26,17 @@ public final class ExplicitInitialization implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        node.getMembers().stream()
-                                .flatMap(
-                                        m -> m instanceof VariableTree field && isRewritableField(field, node)
-                                                ? removeDefaultInitializer(field, unit).stream()
-                                                : Stream.empty())
-                                .forEach(edits::add);
-                        return super.visitClass(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                node.getMembers().stream()
+                        .flatMap(m -> m instanceof VariableTree field && isRewritableField(field, node)
+                                ? removeDefaultInitializer(field, unit).stream()
+                                : Stream.empty())
+                        .forEach(edits::add);
+                return super.visitClass(node, null);
+            }
+        });
     }
 
     /**
@@ -85,12 +82,21 @@ public final class ExplicitInitialization implements LintRule {
 
     private static boolean isDefaultPrimitive(final PrimitiveTypeTree type, final LiteralTree literal) {
         return switch (type.getPrimitiveTypeKind()) {
-            case INT, BYTE, SHORT -> literal.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(literal.getValue());
+            case INT, BYTE, SHORT ->
+                literal.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(literal.getValue());
             // A char's default is written either way, and '\0' is the more common of the two.
-            case CHAR -> isZeroInt(literal) || (literal.getKind() == Tree.Kind.CHAR_LITERAL && Character.valueOf('\0').equals(literal.getValue()));
-            case LONG -> literal.getKind() == Tree.Kind.LONG_LITERAL && Long.valueOf(0L).equals(literal.getValue());
-            case FLOAT -> literal.getKind() == Tree.Kind.FLOAT_LITERAL && Float.valueOf(0.0F).equals(literal.getValue());
-            case DOUBLE -> literal.getKind() == Tree.Kind.DOUBLE_LITERAL && Double.valueOf(0.0).equals(literal.getValue());
+            case CHAR ->
+                isZeroInt(literal)
+                    || (literal.getKind() == Tree.Kind.CHAR_LITERAL
+                        && Character.valueOf('\0').equals(literal.getValue()));
+            case LONG ->
+                literal.getKind() == Tree.Kind.LONG_LITERAL && Long.valueOf(0L).equals(literal.getValue());
+            case FLOAT ->
+                literal.getKind() == Tree.Kind.FLOAT_LITERAL
+                    && Float.valueOf(0.0F).equals(literal.getValue());
+            case DOUBLE ->
+                literal.getKind() == Tree.Kind.DOUBLE_LITERAL
+                    && Double.valueOf(0.0).equals(literal.getValue());
             case BOOLEAN -> literal.getKind() == Tree.Kind.BOOLEAN_LITERAL && Boolean.FALSE.equals(literal.getValue());
             default -> false;
         };
@@ -113,7 +119,8 @@ public final class ExplicitInitialization implements LintRule {
             return Optional.empty();
         }
         final var src = unit.source();
-        final var comments = CommentScanner.scan(src.substring(declarationStart, initializerEnd)).stream()
+        final var comments = CommentScanner.scan(src.substring(declarationStart, initializerEnd))
+                .stream()
                 .map(c -> new Span(declarationStart + c.start(), declarationStart + c.end()))
                 .toList();
         var eqPos = initializerStart - 1;
@@ -127,11 +134,15 @@ public final class ExplicitInitialization implements LintRule {
             eqPos--;
         }
         final var deleted = new Span(eqPos, initializerEnd);
-        return comments.stream().anyMatch(deleted::overlaps) ? Optional.empty() : Optional.of(new LintEdit(eqPos, initializerEnd, ""));
+        return comments.stream()
+                        .anyMatch(deleted::overlaps)
+                ? Optional.empty()
+                : Optional.of(new LintEdit(eqPos, initializerEnd, ""));
     }
 
     private static boolean covers(final List<Span> spans, final int pos) {
-        return spans.stream().anyMatch(span -> span.covers(pos));
+        return spans.stream()
+                .anyMatch(span -> span.covers(pos));
     }
 
     private record Span(int start, int end) {

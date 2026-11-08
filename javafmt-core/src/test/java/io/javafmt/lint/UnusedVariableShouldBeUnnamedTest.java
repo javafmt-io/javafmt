@@ -15,7 +15,8 @@ class UnusedVariableShouldBeUnnamedTest {
     static Stream<Arguments> renamed() {
         return Stream.of(
                 Arguments.of(
-                        "catch parameter", "try { run(); } catch (IllegalStateException e) { log(); }",
+                        "catch parameter",
+                        "try { run(); } catch (IllegalStateException e) { log(); }",
                         "try { run(); } catch (IllegalStateException _) { log(); }"),
                 Arguments.of("implicit lambda parameter", "use(x -> 1);", "use(_ -> 1);"),
                 Arguments.of("one of several lambda parameters", "use((a, b) -> b);", "use((_, b) -> b);"),
@@ -26,13 +27,16 @@ class UnusedVariableShouldBeUnnamedTest {
                 Arguments.of("try-with-resources variable", "try (var lock = acquire()) { work(); }", "try (var _ = acquire()) { work(); }"),
                 Arguments.of("instanceof binding", "if (o instanceof String s) { log(); }", "if (o instanceof String _) { log(); }"),
                 Arguments.of(
-                        "switch pattern binding", "switch (o) { case String s -> log(); default -> {} }",
+                        "switch pattern binding",
+                        "switch (o) { case String s -> log(); default -> {} }",
                         "switch (o) { case String _ -> log(); default -> {} }"),
                 Arguments.of(
-                        "record pattern component", "if (o instanceof Point(int x, int y)) { use(y); }",
+                        "record pattern component",
+                        "if (o instanceof Point(int x, int y)) { use(y); }",
                         "if (o instanceof Point(int _, int y)) { use(y); }"),
                 Arguments.of(
-                        "local whose name appears inside an annotation string", "@SuppressWarnings(\"ignored\") var ignored = compute();",
+                        "local whose name appears inside an annotation string",
+                        "@SuppressWarnings(\"ignored\") var ignored = compute();",
                         "@SuppressWarnings(\"ignored\") var _ = compute();"));
     }
 
@@ -74,14 +78,21 @@ class UnusedVariableShouldBeUnnamedTest {
     @MethodSource("renamed")
     void sourceTargetingAReleaseWithoutUnnamedVariablesKeepsItsNames(final String label, final String body, final String expected) {
         final var unit = JavaParser.parseUnit(inMethod(body));
-        assertThat(new UnusedVariableShouldBeUnnamed().apply(LintContext.parseOnly(unit).withRelease(21)).edits()).isEmpty();
+        assertThat(
+                        new UnusedVariableShouldBeUnnamed().apply(
+                                        LintContext.parseOnly(unit).withRelease(21))
+                                .edits())
+                .isEmpty();
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("renamed")
     void theFixedSourceNeedsNoFurtherFix(final String label, final String body, final String expected) {
         final var unit = JavaParser.parseUnit(inMethod(expected));
-        assertThat(new UnusedVariableShouldBeUnnamed().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
+        assertThat(
+                        new UnusedVariableShouldBeUnnamed().apply(LintContext.parseOnly(unit))
+                                .edits())
+                .isEmpty();
     }
 
     private static String inMethod(final String body) {
@@ -90,6 +101,7 @@ class UnusedVariableShouldBeUnnamedTest {
 
     private static String fix(final String source) {
         final var unit = JavaParser.parseUnit(source);
-        return LintEngine.applyEdits(source, new UnusedVariableShouldBeUnnamed().apply(LintContext.parseOnly(unit)).edits());
+        return LintEngine.applyEdits(source, new UnusedVariableShouldBeUnnamed().apply(LintContext.parseOnly(unit))
+                .edits());
     }
 }

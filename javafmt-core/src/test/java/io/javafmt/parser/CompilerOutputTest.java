@@ -14,7 +14,9 @@ class CompilerOutputTest {
                 java.lang.OutOfMemoryError: Java heap space
                 	at jdk.compiler/com.sun.tools.javac.util.Position$LineMapImpl.build(Position.java:174)
                 """;
-        assertThatThrownBy(() -> JavaParser.rethrowOutOfMemory(output)).isInstanceOf(OutOfMemoryError.class).hasMessage("Java heap space");
+        assertThatThrownBy(() -> JavaParser.rethrowOutOfMemory(output))
+                .isInstanceOf(OutOfMemoryError.class)
+                .hasMessage("Java heap space");
     }
 
     @Test

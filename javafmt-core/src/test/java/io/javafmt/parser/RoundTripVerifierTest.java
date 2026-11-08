@@ -62,12 +62,14 @@ class RoundTripVerifierTest {
 
     @Test
     void anAddedTokenIsReported() {
-        assertThat(RoundTripVerifier.verify(SOURCE, SOURCE.replace("x + 1", "x + 1 + 2"))).isPresent();
+        assertThat(RoundTripVerifier.verify(SOURCE, SOURCE.replace("x + 1", "x + 1 + 2")))
+                .isPresent();
     }
 
     @Test
     void aChangedTokenIsReported() {
-        assertThat(RoundTripVerifier.verify(SOURCE, SOURCE.replace("x + 1", "x + 2"))).isPresent();
+        assertThat(RoundTripVerifier.verify(SOURCE, SOURCE.replace("x + 1", "x + 2")))
+                .isPresent();
     }
 
     @Test

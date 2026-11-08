@@ -52,27 +52,30 @@ class InProcessFormatterTest {
         assertThat(InProcessFormatter.format("import java.util.*;\n\nclass A {\n\n    List<String> names;\n}\n", FileScope.none()))
                 .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.hasFailure()).isFalse();
-                    assertThat(formatted.diagnostics()).singleElement().satisfies(diagnostic -> {
-                        assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_WARNING);
-                        assertThat(diagnostic.getSeverity()).isEqualTo(Severity.SEVERITY_WARNING);
-                        assertThat(diagnostic.getMessage()).isNotBlank();
-                    });
+                    assertThat(formatted.diagnostics())
+                            .singleElement()
+                            .satisfies(diagnostic -> {
+                                assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_WARNING);
+                                assertThat(diagnostic.getSeverity()).isEqualTo(Severity.SEVERITY_WARNING);
+                                assertThat(diagnostic.getMessage()).isNotBlank();
+                            });
                 });
     }
 
     @Test
     void aClasspathTurnsOnTheRulesThatNeedIt() {
         assertThat(InProcessFormatter.format(STAR_IMPORT, new FileScope(Optional.empty(), new JavafmtConfig.Analysis.Attributed(""))))
-                .isInstanceOfSatisfying(
-                        JavafmtBinary.Outcome.Formatted.class,
-                        formatted -> assertThat(formatted.output()).contains("import java.util.List;").doesNotContain("java.util.*"));
+                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class,
+                        formatted -> assertThat(formatted.output())
+                                .contains("import java.util.List;")
+                                .doesNotContain("java.util.*"));
     }
 
     @Test
     void withoutAClasspathTheRulesThatNeedOneDoNotRun() {
         assertThat(InProcessFormatter.format(STAR_IMPORT, FileScope.none()))
-                .isInstanceOfSatisfying(
-                        JavafmtBinary.Outcome.Formatted.class, formatted -> assertThat(formatted.output()).contains("import java.util.*;"));
+                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class,
+                        formatted -> assertThat(formatted.output()).contains("import java.util.*;"));
     }
 
     @Test
@@ -81,8 +84,8 @@ class InProcessFormatterTest {
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
         final var scope = new FileScope(Optional.of(dir.resolve("src/Order.java")), new JavafmtConfig.Analysis.Attributed(""));
         assertThat(InProcessFormatter.format(STAR_IMPORT, scope))
-                .isInstanceOfSatisfying(
-                        JavafmtBinary.Outcome.Formatted.class, formatted -> assertThat(formatted.output()).contains("import java.util.*;"));
+                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class,
+                        formatted -> assertThat(formatted.output()).contains("import java.util.*;"));
     }
 
     @Test
@@ -90,20 +93,24 @@ class InProcessFormatterTest {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=FinalParameters\n");
         assertThat(
-                InProcessFormatter.format(STAR_IMPORT, new FileScope(Optional.of(dir.resolve("Order.java")), new JavafmtConfig.Analysis.ParseOnly())))
+                        InProcessFormatter.format(
+                                STAR_IMPORT, new FileScope(Optional.of(dir.resolve("Order.java")), new JavafmtConfig.Analysis.ParseOnly())))
                 .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.output()).isEqualTo(STAR_IMPORT);
                     assertThat(formatted.hasFailure()).isTrue();
-                    assertThat(formatted.diagnostics()).singleElement().satisfies(diagnostic -> {
-                        assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_CONFIG);
-                        assertThat(diagnostic.getMessage()).contains(".javafmt", "FinalParameters");
-                    });
+                    assertThat(formatted.diagnostics())
+                            .singleElement()
+                            .satisfies(diagnostic -> {
+                                assertThat(diagnostic.getKind()).isEqualTo(Kind.KIND_CONFIG);
+                                assertThat(diagnostic.getMessage()).contains(".javafmt", "FinalParameters");
+                            });
                 });
     }
 
     @Test
     void anInterruptedRequestIsCancelled() {
         Thread.currentThread().interrupt();
-        assertThat(InProcessFormatter.format(Fixtures.UNFORMATTED_FOO, FileScope.none())).isInstanceOf(JavafmtBinary.Outcome.Cancelled.class);
+        assertThat(InProcessFormatter.format(Fixtures.UNFORMATTED_FOO, FileScope.none()))
+                .isInstanceOf(JavafmtBinary.Outcome.Cancelled.class);
     }
 }

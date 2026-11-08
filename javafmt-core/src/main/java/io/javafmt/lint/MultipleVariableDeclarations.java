@@ -39,27 +39,25 @@ public final class MultipleVariableDeclarations implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitBlock(final BlockTree node, final Void p) {
-                        splitGroups(node.getStatements(), unit, edits);
-                        return super.visitBlock(node, null);
-                    }
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitBlock(final BlockTree node, final Void p) {
+                splitGroups(node.getStatements(), unit, edits);
+                return super.visitBlock(node, null);
+            }
 
-                    @Override
-                    public Void visitCase(final CaseTree node, final Void p) {
-                        splitGroups(statementsOf(node), unit, edits);
-                        return super.visitCase(node, null);
-                    }
+            @Override
+            public Void visitCase(final CaseTree node, final Void p) {
+                splitGroups(statementsOf(node), unit, edits);
+                return super.visitCase(node, null);
+            }
 
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        splitGroups(node.getMembers(), unit, edits);
-                        return super.visitClass(node, null);
-                    }
-                });
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                splitGroups(node.getMembers(), unit, edits);
+                return super.visitClass(node, null);
+            }
+        });
     }
 
     private static void splitGroups(final List<? extends Tree> statements, final ParsedUnit unit, final List<LintEdit> edits) {
@@ -75,7 +73,12 @@ public final class MultipleVariableDeclarations implements LintRule {
                 j++;
             }
             if (j - i >= 2) {
-                edits.addAll(buildEdits(statements.subList(i, j).stream().map(t -> (VariableTree) t).toList(), unit));
+                edits.addAll(
+                        buildEdits(
+                                statements.subList(i, j).stream()
+                                        .map(t -> (VariableTree) t)
+                                        .toList(),
+                                unit));
             }
             i = j;
         }
@@ -84,7 +87,9 @@ public final class MultipleVariableDeclarations implements LintRule {
     private static String withoutComments(final String text) {
         final var comments = CommentScanner.scan(text);
         final var kept = IntStream.rangeClosed(0, comments.size())
-                .mapToObj(i -> text.substring(i == 0 ? 0 : comments.get(i - 1).end(), i == comments.size() ? text.length() : comments.get(i).start()))
+                .mapToObj(i -> text.substring(i == 0 ? 0 : comments.get(i - 1).end(), i == comments.size()
+                        ? text.length()
+                        : comments.get(i).start()))
                 .toList();
         return String.join(" ", kept);
     }
@@ -119,7 +124,9 @@ public final class MultipleVariableDeclarations implements LintRule {
             return List.of();
         }
         final var prefix = "\n" + indent + sharedModifiersAndElementType + " ";
-        return separators.stream().flatMap(comma -> Stream.of(new LintEdit(comma, comma + 1, ";"), prefixEdit(src, comma, spanEnd, prefix))).toList();
+        return separators.stream()
+                .flatMap(comma -> Stream.of(new LintEdit(comma, comma + 1, ";"), prefixEdit(src, comma, spanEnd, prefix)))
+                .toList();
     }
 
     /**
@@ -186,7 +193,8 @@ public final class MultipleVariableDeclarations implements LintRule {
     }
 
     private static boolean insideAComment(final List<CommentToken> comments, final int base, final int pos) {
-        return comments.stream().anyMatch(c -> base + c.start() <= pos && pos < base + c.end());
+        return comments.stream()
+                .anyMatch(c -> base + c.start() <= pos && pos < base + c.end());
     }
 
     /**

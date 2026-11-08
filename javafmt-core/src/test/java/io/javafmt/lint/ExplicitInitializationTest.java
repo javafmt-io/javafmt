@@ -154,7 +154,9 @@ class ExplicitInitializationTest {
         final var source = new StringBuilder(unit.source());
         final var edit = result.edits().getFirst();
         source.replace(edit.start(), edit.end(), edit.replacement());
-        assertThat(source.toString()).contains("private String name;").contains("int first = 1;");
+        assertThat(source.toString())
+                .contains("private String name;")
+                .contains("int first = 1;");
     }
 
     @Test
@@ -220,6 +222,9 @@ class ExplicitInitializationTest {
                 private char marker = 'x';
             }
             """);
-        assertThat(new ExplicitInitialization().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
+        assertThat(
+                        new ExplicitInitialization().apply(LintContext.parseOnly(unit))
+                                .edits())
+                .isEmpty();
     }
 }

@@ -25,7 +25,9 @@ final class MojoTestSupport {
         repository.write("src/main/java/Order.java", UNFORMATTED.replace("Foo", "Order"));
         repository.write("src/main/java/Invoice.java", UNFORMATTED.replace("Foo", "Invoice"));
         repository.commitAll("initial");
-        repository.write("src/main/java/Invoice.java", UNFORMATTED.replace("Foo", "Invoice").replace("bar", "total"));
+        repository.write(
+                "src/main/java/Invoice.java",
+                UNFORMATTED.replace("Foo", "Invoice").replace("bar", "total"));
         final var project = buildProject(dir.resolve("src/main/java"));
         project.setFile(dir.resolve("pom.xml").toFile());
         return project;

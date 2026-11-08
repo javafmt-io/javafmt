@@ -78,8 +78,12 @@ public abstract class JavafmtTask extends DefaultTask {
     protected abstract WorkerExecutor getWorkerExecutor();
 
     protected void submit(final Collection<File> files, final boolean write, final Optional<File> marker) {
-        final var engine = EngineJar.extractTo(getEngineDirectory().get().getAsFile(), getEngineHash().get());
-        final var executable = getLauncher().get().getExecutablePath().getAsFile();
+        final var engine = EngineJar.extractTo(
+                getEngineDirectory().get().getAsFile(), getEngineHash().get());
+        final var executable = getLauncher()
+                .get()
+                .getExecutablePath()
+                .getAsFile();
         final var maxHeapSize = getMaxHeapSize().get();
         final var jvmArgs = getJvmArgs().get();
         final var queue = getWorkerExecutor().processIsolation(spec -> {
@@ -94,7 +98,8 @@ public abstract class JavafmtTask extends DefaultTask {
             parameters.getFiles().from(files);
             parameters.getAnalyze().set(getAnalyze());
             parameters.getRatchetFrom().set(getRatchetFrom());
-            parameters.getThreads().set(Math.min(MAX_THREADS, Runtime.getRuntime().availableProcessors()));
+            parameters.getThreads()
+                    .set(Math.min(MAX_THREADS, Runtime.getRuntime().availableProcessors()));
             parameters.getAnalysisClasspath().set(getAnalysisClasspath().getAsPath());
             parameters.getWrite().set(write);
             parameters.getProjectDirectory().set(getProjectDirectory());

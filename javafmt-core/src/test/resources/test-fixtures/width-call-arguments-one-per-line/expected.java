@@ -2,7 +2,12 @@ class Fixture {
 
     void submit(final OrderService orders, final InvoiceLedger invoices) {
         orders.callWithManyArguments(
-                firstOrderIdentifier, secondOrderIdentifier, shippingAddressLine, billingAddressLine, invoiceTotalAmount, customerAccountNumber,
+                firstOrderIdentifier,
+                secondOrderIdentifier,
+                shippingAddressLine,
+                billingAddressLine,
+                invoiceTotalAmount,
+                customerAccountNumber,
                 deliveryWindowStart);
         orders.forEachPendingShipment(shipment -> {
             invoices.record(shipment);
@@ -11,7 +16,11 @@ class Fixture {
         invoices.reconcile(
                 openInvoiceIdentifier,
                 invoices.lookupCustomerAccount(
-                        customerAccountNumber, billingAddressLine, shippingAddressLine, deliveryWindowStart, invoiceTotalAmount,
+                        customerAccountNumber,
+                        billingAddressLine,
+                        shippingAddressLine,
+                        deliveryWindowStart,
+                        invoiceTotalAmount,
                         secondOrderIdentifier),
                 closingBalance);
         final var shipment = new ShipmentRequest(

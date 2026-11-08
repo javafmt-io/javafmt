@@ -21,10 +21,14 @@ class CommentAttacherTest {
             """;
         final var unit = JavaParser.parseUnit(source);
         final var cls = (ClassTree) unit.tree().getTypeDecls().getFirst();
-        final var vars = cls.getMembers().stream().filter(m -> m instanceof VariableTree).toList();
+        final var vars = cls.getMembers().stream()
+                .filter(m -> m instanceof VariableTree)
+                .toList();
         final var x = vars.getFirst();
         final var y = vars.get(1);
-        assertThat(unit.leadingOf(y)).extracting(CommentToken::text).containsExactly("/* between */");
+        assertThat(unit.leadingOf(y))
+                .extracting(CommentToken::text)
+                .containsExactly("/* between */");
         assertThat(unit.trailingOf(x)).isEmpty();
     }
 
@@ -50,7 +54,9 @@ class CommentAttacherTest {
                 .filter(s -> s instanceof VariableTree vt && vt.getName().contentEquals("x"))
                 .findFirst()
                 .orElseThrow();
-        assertThat(unit.trailingOf(x)).extracting(CommentToken::text).containsExactly("// after-x");
+        assertThat(unit.trailingOf(x))
+                .extracting(CommentToken::text)
+                .containsExactly("// after-x");
         assertThat(unit.leadingOf(body.getStatements().get(1))).isEmpty();
     }
 
@@ -65,7 +71,9 @@ class CommentAttacherTest {
             """;
         final var unit = JavaParser.parseUnit(source);
         final var cls = (ClassTree) unit.tree().getTypeDecls().getFirst();
-        assertThat(unit.fileHeader()).extracting(CommentToken::text).containsExactly("/** file header */");
+        assertThat(unit.fileHeader())
+                .extracting(CommentToken::text)
+                .containsExactly("/** file header */");
         assertThat(unit.leadingOf(cls)).isEmpty();
     }
 
@@ -82,7 +90,9 @@ class CommentAttacherTest {
             """;
         final var unit = JavaParser.parseUnit(source);
         final var cls = (ClassTree) unit.tree().getTypeDecls().getFirst();
-        assertThat(unit.leadingOf(cls)).extracting(CommentToken::text).containsExactly("/** class-doc */");
+        assertThat(unit.leadingOf(cls))
+                .extracting(CommentToken::text)
+                .containsExactly("/** class-doc */");
         assertThat(unit.fileHeader()).isEmpty();
     }
 
@@ -104,7 +114,9 @@ class CommentAttacherTest {
         final var cls = (ClassTree) unit.tree().getTypeDecls().getFirst();
         final var method = (MethodTree) cls.getMembers().getFirst();
         final var body = method.getBody();
-        assertThat(unit.interiorOf(body)).extracting(CommentToken::text).containsExactly("// pure interior");
+        assertThat(unit.interiorOf(body))
+                .extracting(CommentToken::text)
+                .containsExactly("// pure interior");
         assertThat(unit.leadingOf(method)).isEmpty();
         assertThat(unit.leadingOf(cls)).isEmpty();
     }

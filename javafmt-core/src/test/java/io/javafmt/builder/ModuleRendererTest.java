@@ -25,19 +25,24 @@ class ModuleRendererTest {
 
     @Test
     void requiresStatic_keepsStaticModifier() {
-        assertThat(Javafmt.format("module foo.bar { requires static java.compiler; }").stripTrailing())
+        assertThat(
+                        Javafmt.format("module foo.bar { requires static java.compiler; }")
+                                .stripTrailing())
                 .isEqualTo("module foo.bar {\n    requires static java.compiler;\n}");
     }
 
     @Test
     void requiresTransitive_keepsTransitiveModifier() {
-        assertThat(Javafmt.format("module foo.bar { requires transitive java.desktop; }").stripTrailing())
+        assertThat(
+                        Javafmt.format("module foo.bar { requires transitive java.desktop; }")
+                                .stripTrailing())
                 .isEqualTo("module foo.bar {\n    requires transitive java.desktop;\n}");
     }
 
     @Test
     void exportsWithoutTo_singleLine() {
-        assertThat(Javafmt.format("module foo.bar { exports a.b; }").stripTrailing()).isEqualTo("module foo.bar {\n    exports a.b;\n}");
+        assertThat(Javafmt.format("module foo.bar { exports a.b; }").stripTrailing())
+                .isEqualTo("module foo.bar {\n    exports a.b;\n}");
     }
 
     @Test
@@ -48,13 +53,17 @@ class ModuleRendererTest {
 
     @Test
     void exportsTo_targetsKeepSourceOrder() {
-        assertThat(Javafmt.format("module foo.bar { exports a.b to zeta, alpha, beta; }").stripTrailing())
+        assertThat(
+                        Javafmt.format("module foo.bar { exports a.b to zeta, alpha, beta; }")
+                                .stripTrailing())
                 .isEqualTo("module foo.bar {\n    exports a.b to zeta, alpha, beta;\n}");
     }
 
     @Test
     void opensTo_targetsKeepSourceOrder() {
-        assertThat(Javafmt.format("module foo.bar { opens a.b to zeta, alpha; }").stripTrailing())
+        assertThat(
+                        Javafmt.format("module foo.bar { opens a.b to zeta, alpha; }")
+                                .stripTrailing())
                 .isEqualTo("module foo.bar {\n    opens a.b to zeta, alpha;\n}");
     }
 
@@ -62,24 +71,31 @@ class ModuleRendererTest {
     void providesWith_implementationsKeepSourceOrder() {
         // ServiceLoader honours declaration order for module-declared providers, so sorting the
         // `with` list can change what findFirst() returns.
-        assertThat(Javafmt.format("module foo.bar { provides a.S with b.Zeta, b.Alpha; }").stripTrailing())
+        assertThat(
+                        Javafmt.format("module foo.bar { provides a.S with b.Zeta, b.Alpha; }")
+                                .stripTrailing())
                 .isEqualTo("module foo.bar {\n    provides a.S with b.Zeta, b.Alpha;\n}");
     }
 
     @Test
     void uses_singleLine() {
-        assertThat(Javafmt.format("module foo.bar { uses a.Service; }").stripTrailing()).isEqualTo("module foo.bar {\n    uses a.Service;\n}");
+        assertThat(Javafmt.format("module foo.bar { uses a.Service; }").stripTrailing())
+                .isEqualTo("module foo.bar {\n    uses a.Service;\n}");
     }
 
     @Test
     void provides_singleLine() {
-        assertThat(Javafmt.format("module foo.bar { provides a.Service with a.Impl; }").stripTrailing())
+        assertThat(
+                        Javafmt.format("module foo.bar { provides a.Service with a.Impl; }")
+                                .stripTrailing())
                 .isEqualTo("module foo.bar {\n    provides a.Service with a.Impl;\n}");
     }
 
     @Test
     void provides_implsKeepSourceOrder() {
-        assertThat(Javafmt.format("module foo.bar { provides a.Service with z.Z, a.A, m.M; }").stripTrailing())
+        assertThat(
+                        Javafmt.format("module foo.bar { provides a.Service with z.Z, a.A, m.M; }")
+                                .stripTrailing())
                 .isEqualTo("module foo.bar {\n    provides a.Service with z.Z, a.A, m.M;\n}");
     }
 

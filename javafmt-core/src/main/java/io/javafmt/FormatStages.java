@@ -38,19 +38,26 @@ final class FormatStages {
     FormatResult withDiagnostics(final FormatResult result, final List<Diagnostic> diagnostics) {
         return diagnostics.isEmpty()
                 ? result
-                : new FormatResult(result.output(), Stream.concat(result.diagnostics().stream(), diagnostics.stream()).toList());
+                : new FormatResult(result.output(), Stream.concat(result.diagnostics().stream(), diagnostics.stream())
+                        .toList());
     }
 
     Diagnostic attributionWarning(final RuntimeException cause) {
         return new Diagnostic.Warning(
-                "a classpath was given but attribution failed (" + cause.getClass().getSimpleName() + ": " + cause.getMessage()
+                "a classpath was given but attribution failed ("
+                        + cause.getClass().getSimpleName()
+                        + ": "
+                        + cause.getMessage()
                         + "); formatted without the rules that need resolved types",
                 new Position.Unknown());
     }
 
     Diagnostic classpathFailureWarning(final FormatResult failed) {
         return new Diagnostic.Warning(
-                "formatting with the classpath failed (" + failed.errors().stream().map(Diagnostic::message).collect(Collectors.joining("; "))
+                "formatting with the classpath failed ("
+                        + failed.errors().stream()
+                                .map(Diagnostic::message)
+                                .collect(Collectors.joining("; "))
                         + "); formatted without the rules that need resolved types",
                 new Position.Unknown());
     }
@@ -91,7 +98,8 @@ final class FormatStages {
 
     private String withOneTrailingNewline(final String printed) {
         final var end = printed.length()
-                - (int) IntStream.iterate(printed.length() - 1, i -> i >= 0 && printed.charAt(i) == '\n', i -> i - 1).count();
+                - (int) IntStream.iterate(printed.length() - 1, i -> i >= 0 && printed.charAt(i) == '\n', i -> i - 1)
+                        .count();
         if (end == 0) {
             return "";
         }
@@ -146,7 +154,11 @@ final class FormatStages {
             return new Position.Unknown();
         }
         final var at = offset.getAsInt();
-        final var line = (int) linted.substring(0, at).chars().filter(c -> c == '\n').count() + 1;
+        final var line = (int) linted.substring(0, at)
+                .chars()
+                .filter(c -> c == '\n')
+                .count()
+                + 1;
         return new Position.At(line, at - (linted.lastIndexOf('\n', at - 1) + 1) + 1, at);
     }
 

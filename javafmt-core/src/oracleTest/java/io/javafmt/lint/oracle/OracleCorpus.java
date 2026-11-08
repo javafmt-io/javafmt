@@ -42,7 +42,9 @@ public final class OracleCorpus {
     public static Stream<Arguments> load(final String corpusSubdir) {
         final var dir = locateCorpus(corpusSubdir);
         try (final var listing = Files.list(dir)) {
-            return listing.filter(p -> p.getFileName().toString().endsWith(".java"))
+            return listing.filter(p -> p.getFileName()
+                            .toString()
+                            .endsWith(".java"))
                     .sorted(Comparator.comparing(p -> p.getFileName().toString()))
                     .<Arguments>map(p -> Arguments.of(p.getFileName().toString(), readString(p)))
                     .toList()
@@ -82,9 +84,8 @@ public final class OracleCorpus {
         assertStillCompiles(name, source, formatted);
         final var violations = CheckstyleOracle.run(formatted, checkClassName, checkProperties);
         assertThat(violations)
-                .as(
-                        "javafmt output with a classpath for file '%s' should have zero %s violations; output:%n%s", name, simpleName(checkClassName),
-                        formatted)
+                .as("javafmt output with a classpath for file '%s' should have zero %s violations; output:%n%s",
+                        name, simpleName(checkClassName), formatted)
                 .isEmpty();
     }
 
@@ -110,18 +111,19 @@ public final class OracleCorpus {
         if (violations.isEmpty()) {
             return;
         }
-        final var hasMatchingDiagnostic = result.diagnostics().stream().anyMatch(d -> d.message().contains(diagnosticMessageSubstring));
+        final var hasMatchingDiagnostic = result.diagnostics().stream()
+                .anyMatch(d -> d.message().contains(diagnosticMessageSubstring));
         assertThat(hasMatchingDiagnostic)
-                .as(
-                        "javafmt output for corpus file '%s' still has %s violations and no diagnostic "
-                            + "containing '%s'; output:%n%s%nresidual violations: %s%njavafmt diagnostics: %s",
+                .as("javafmt output for corpus file '%s' still has %s violations and no diagnostic "
+                        + "containing '%s'; output:%n%s%nresidual violations: %s%njavafmt diagnostics: %s",
                         name, simpleName(checkClassName), diagnosticMessageSubstring, formatted, violations, result.diagnostics())
                 .isTrue();
     }
 
     public static void assertCorpusExercisesRule(final String corpusSubdir, final String checkClassName, final Map<String, String> checkProperties) {
         final var dirty = corpusFiles(corpusSubdir).stream()
-                .filter(p -> !CheckstyleOracle.run(readString(p), checkClassName, checkProperties).isEmpty())
+                .filter(p -> !CheckstyleOracle.run(readString(p), checkClassName, checkProperties)
+                        .isEmpty())
                 .map(p -> p.getFileName().toString())
                 .toList();
         assertThat(dirty)
@@ -137,8 +139,13 @@ public final class OracleCorpus {
     }
 
     private static void assertNoInternalError(final String name, final FormatResult result) {
-        final var internal = result.diagnostics().stream().filter(d -> d instanceof Diagnostic.InternalError).map(Diagnostic::message).toList();
-        assertThat(internal).as("corpus file '%s' must format without an internal error", name).isEmpty();
+        final var internal = result.diagnostics().stream()
+                .filter(d -> d instanceof Diagnostic.InternalError)
+                .map(Diagnostic::message)
+                .toList();
+        assertThat(internal)
+                .as("corpus file '%s' must format without an internal error", name)
+                .isEmpty();
     }
 
     /**
@@ -182,7 +189,11 @@ public final class OracleCorpus {
             throw new IllegalStateException("corpus root not found on classpath: corpus/");
         }
         try (final var listing = Files.list(Paths.get(resource.toURI()))) {
-            return listing.filter(Files::isDirectory).map(p -> p.getFileName().toString()).sorted().toList().stream();
+            return listing.filter(Files::isDirectory)
+                    .map(p -> p.getFileName().toString())
+                    .sorted()
+                    .toList()
+                    .stream();
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         } catch (final URISyntaxException e) {
@@ -193,7 +204,11 @@ public final class OracleCorpus {
     private static List<Path> corpusFiles(final String corpusSubdir) {
         final var dir = locateCorpus(corpusSubdir);
         try (final var listing = Files.list(dir)) {
-            return listing.filter(p -> p.getFileName().toString().endsWith(".java")).sorted().toList();
+            return listing.filter(p -> p.getFileName()
+                            .toString()
+                            .endsWith(".java"))
+                    .sorted()
+                    .toList();
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }

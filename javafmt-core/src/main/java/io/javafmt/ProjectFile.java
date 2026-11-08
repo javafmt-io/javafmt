@@ -47,7 +47,12 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
     }
 
     static ProjectFile forDirectory(final Path directory) {
-        return Stream.iterate(Objects.requireNonNull(directory, "directory").toAbsolutePath().normalize(), Objects::nonNull, Path::getParent)
+        return Stream.iterate(
+                        Objects.requireNonNull(directory, "directory")
+                                .toAbsolutePath()
+                                .normalize(),
+                        Objects::nonNull,
+                        Path::getParent)
                 .filter(candidate -> Files.isRegularFile(candidate.resolve(NAME)) || Files.exists(candidate.resolve(".git")))
                 .findFirst()
                 .map(found -> found.resolve(NAME))
@@ -72,16 +77,24 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
         } catch (final IOException | IllegalArgumentException e) {
             return new Invalid(location, location + ": not a properties file: " + e.getMessage());
         }
-        final var unknown = properties.stringPropertyNames().stream().filter(key -> !key.equals(ANALYZE_SKIP)).sorted().toList();
+        final var unknown = properties.stringPropertyNames().stream()
+                .filter(key -> !key.equals(ANALYZE_SKIP))
+                .sorted()
+                .toList();
         if (!unknown.isEmpty()) {
             return new Invalid(location, location + ": unknown setting " + quoted(unknown) + "; the only setting is " + ANALYZE_SKIP);
         }
-        final var skipped = Arrays.stream(properties.getProperty(ANALYZE_SKIP, "").split(","))
+        final var skipped = Arrays.stream(
+                        properties.getProperty(ANALYZE_SKIP, "").split(","))
                 .map(String::strip)
                 .filter(rule -> !rule.isEmpty())
                 .collect(Collectors.toUnmodifiableSet());
         final var analysisRules = LintRules.analysisRuleNames();
-        final var problems = skipped.stream().filter(rule -> !analysisRules.contains(rule)).sorted().map(ProjectFile::whyNotSkippable).toList();
+        final var problems = skipped.stream()
+                .filter(rule -> !analysisRules.contains(rule))
+                .sorted()
+                .map(ProjectFile::whyNotSkippable)
+                .toList();
         if (!problems.isEmpty()) {
             return new Invalid(
                     location,
@@ -96,7 +109,9 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
     }
 
     private static String quoted(final List<String> names) {
-        return names.stream().map(name -> "\"" + name + "\"").collect(Collectors.joining(", "));
+        return names.stream()
+                .map(name -> "\"" + name + "\"")
+                .collect(Collectors.joining(", "));
     }
 
     record None() implements ProjectFile {

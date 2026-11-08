@@ -82,7 +82,14 @@ final class BatchFormatter {
     List<FormatResult> formatAll(final List<String> sources, final JavafmtConfig config, final int threads) {
         final var workers = Math.max(1, threads);
         try (final var pool = newPool(workers)) {
-            return formatOn(pool, workers, sources, sources.stream().map(_ -> Set.<String>of()).toList(), config);
+            return formatOn(
+                    pool,
+                    workers,
+                    sources,
+                    sources.stream()
+                            .map(_ -> Set.<String>of())
+                            .toList(),
+                    config);
         }
     }
 
@@ -109,24 +116,33 @@ final class BatchFormatter {
         final var pool = newPool(workers);
         final var slicePool = newPool(slicesAtOnce);
         final var projectFiles = new ConcurrentHashMap<Path, ProjectFile>();
-        final var sizes = paths.stream().map(BatchFormatter::sizeOf).toList();
+        final var sizes = paths.stream()
+                .map(BatchFormatter::sizeOf)
+                .toList();
         final var slices = config.analysis() instanceof JavafmtConfig.Analysis.Attributed
-                ? batches(sizes, paths.stream().map(path -> Objects.requireNonNullElse(path.toAbsolutePath().getParent(), path)).toList())
+                ? batches(sizes, paths.stream()
+                        .map(path -> Objects.requireNonNullElse(
+                                path.toAbsolutePath().getParent(), path))
+                        .toList())
                 : slices(sizes, SLICE_SIZE);
         return IntStream.iterate(0, start -> start < slices.size(), start -> start + slicesAtOnce)
                 .mapToObj(start -> slices.subList(start, Math.min(slices.size(), start + slicesAtOnce)))
-                .flatMap(
-                        wave -> fanOut(
-                                slicePool,
-                                wave.stream()
-                                        .<Supplier<List<FileResult>>>map(
-                                                slice -> () -> formatSlice(
-                                                        slice.stream().map(paths::get).toList(), config, cache, pool, workers, projectFiles))
-                                        .toList(),
-                                (_, failure) -> {
-                                    throw new IllegalStateException("formatting a batch of files failed", failure);
-                                })
-                                .stream())
+                .flatMap(wave -> fanOut(
+                        slicePool,
+                        wave.stream()
+                                .<Supplier<List<FileResult>>>map(slice -> () -> formatSlice(
+                                        slice.stream()
+                                                .map(paths::get)
+                                                .toList(),
+                                        config,
+                                        cache,
+                                        pool,
+                                        workers,
+                                        projectFiles))
+                                .toList(),
+                        (_, failure) -> {
+                            throw new IllegalStateException("formatting a batch of files failed", failure);
+                        }).stream())
                 .flatMap(List::stream)
                 .onClose(() -> {
                     slicePool.close();
@@ -140,19 +156,27 @@ final class BatchFormatter {
                                          final ExecutorService pool,
                                          final int workers,
                                          final Map<Path, ProjectFile> projectFiles) {
-        final var reads = paths.stream().map(path -> CompletableFuture.supplyAsync(() -> read(path, cache, projectFiles), pool)).toList().stream()
+        final var reads = paths.stream()
+                .map(path -> CompletableFuture.supplyAsync(() -> read(path, cache, projectFiles), pool))
+                .toList()
+                .stream()
                 .map(BatchFormatter::joined)
                 .toList();
         final var results = formatOn(
-                pool, workers, reads.stream().map(read -> read instanceof FileRead.Pending(var _, var source, var _) ? source : "").toList(),
-                reads.stream().map(read -> read instanceof FileRead.Pending(var _, var _, var analyzeSkip) ? analyzeSkip : Set.<String>of()).toList(),
+                pool,
+                workers,
+                reads.stream()
+                        .map(read -> read instanceof FileRead.Pending(var _, var source, var _) ? source : "")
+                        .toList(),
+                reads.stream()
+                        .map(read -> read instanceof FileRead.Pending(var _, var _, var analyzeSkip) ? analyzeSkip : Set.<String>of())
+                        .toList(),
                 config);
         return IntStream.range(0, reads.size())
-                .mapToObj(
-                        i -> switch (reads.get(i)) {
-                            case FileRead.Pending(var path, var source, var _) -> new FileResult.Formatted(path, source, results.get(i));
-                            case FileRead.Done(var done) -> done;
-                        })
+                .mapToObj(i -> switch (reads.get(i)) {
+                    case FileRead.Pending(var path, var source, var _) -> new FileResult.Formatted(path, source, results.get(i));
+                    case FileRead.Done(var done) -> done;
+                })
                 .toList();
     }
 
@@ -177,20 +201,30 @@ final class BatchFormatter {
 
     List<List<Integer>> batches(final List<Long> weights, final List<?> directories) {
         return Stream.iterate(0, start -> start < weights.size(), start -> batchEnd(directories, start))
-                .flatMap(start -> withinBudget(IntStream.range(start, batchEnd(directories, start)).boxed().toList(), weights))
+                .flatMap(start -> withinBudget(
+                        IntStream.range(start, batchEnd(directories, start))
+                                .boxed()
+                                .toList(),
+                        weights))
                 .toList();
     }
 
     private int batchEnd(final List<?> directories, final int start) {
         final var limit = Math.min(directories.size(), start + MAX_BATCH_FILES);
         return IntStream.rangeClosed(start + 1, limit)
-                .filter(end -> end == limit || (end - start >= MAX_BATCH_FILES / 2 && !directories.get(end).equals(directories.get(end - 1))))
+                .filter(end -> end == limit
+                    || (end - start >= MAX_BATCH_FILES / 2
+                        && !directories.get(end).equals(directories.get(end - 1))))
                 .findFirst()
                 .orElse(limit);
     }
 
     private Stream<List<Integer>> withinBudget(final List<Integer> batch, final List<Long> weights) {
-        if (batch.size() == 1 || batch.stream().mapToLong(weights::get).sum() <= ATTRIBUTION_BATCH_SIZE) {
+        if (batch.size() == 1
+            || batch.stream()
+                    .mapToLong(weights::get)
+                    .sum()
+                    <= ATTRIBUTION_BATCH_SIZE) {
             return Stream.of(batch);
         }
         final var middle = batch.size() / 2;
@@ -198,10 +232,16 @@ final class BatchFormatter {
     }
 
     List<List<Integer>> slices(final List<Long> weights, final long budget) {
-        final var ends = LongStream.concat(LongStream.of(0), weights.stream().mapToLong(weight -> Math.max(1, weight))).toArray();
+        final var ends = LongStream.concat(
+                LongStream.of(0),
+                weights.stream()
+                        .mapToLong(weight -> Math.max(1, weight)))
+                .toArray();
         Arrays.parallelPrefix(ends, Long::sum);
         return Stream.iterate(0, start -> start < weights.size(), start -> sliceEnd(ends, start, budget))
-                .map(start -> IntStream.range(start, sliceEnd(ends, start, budget)).boxed().toList())
+                .map(start -> IntStream.range(start, sliceEnd(ends, start, budget))
+                        .boxed()
+                        .toList())
                 .toList();
     }
 
@@ -227,7 +267,10 @@ final class BatchFormatter {
     }
 
     private ExecutorService newPool(final int workers) {
-        return Executors.newFixedThreadPool(workers, Thread.ofPlatform().name("javafmt-format-", 0).daemon(true).factory());
+        return Executors.newFixedThreadPool(workers, Thread.ofPlatform()
+                .name("javafmt-format-", 0)
+                .daemon(true)
+                .factory());
     }
 
     private List<FormatResult> formatOn(final ExecutorService pool,
@@ -235,33 +278,42 @@ final class BatchFormatter {
                                         final List<String> sources,
                                         final List<Set<String>> analyzeSkips,
                                         final JavafmtConfig config) {
-        return skippingBlanks(
-                sources, analyzeSkips,
-                (formattable, skips) -> switch (config.analysis()) {
-                    case JavafmtConfig.Analysis.ParseOnly() -> {
-                        final var chunks = chunks(formattable, workers);
-                        try (final var chunkPool = newPool(chunkWorkers(workers))) {
-                            yield fanOut(
-                                    chunkPool,
-                                    chunks.stream()
-                                            .<Supplier<List<FormatResult>>>map(chunk -> () -> formatParseOnly(chunk, config, Renderer.on(pool)))
-                                            .toList(),
-                                    (i, failure) -> chunks.get(i).stream().map(source -> FormatStages.internalErrorResult(source, failure)).toList())
-                                    .stream()
-                                    .flatMap(List::stream)
-                                    .toList();
-                        }
-                    }
-                    case JavafmtConfig.Analysis.Attributed(var classpath) ->
-                        batches(formattable.stream().map(source -> (long) source.length()).toList(), formattable.stream().map(_ -> "").toList())
-                                .stream()
-                                .flatMap(
-                                        batch -> formatAttributed(
-                                                batch.stream().map(formattable::get).toList(), batch.stream().map(skips::get).toList(), config,
-                                                classpath, Renderer.on(pool))
-                                                .stream())
-                                .toList();
-                });
+        return skippingBlanks(sources, analyzeSkips, (formattable, skips) -> switch (config.analysis()) {
+            case JavafmtConfig.Analysis.ParseOnly() -> {
+                final var chunks = chunks(formattable, workers);
+                try (final var chunkPool = newPool(chunkWorkers(workers))) {
+                    yield fanOut(
+                            chunkPool,
+                            chunks.stream()
+                                    .<Supplier<List<FormatResult>>>map(chunk -> () -> formatParseOnly(chunk, config, Renderer.on(pool)))
+                                    .toList(),
+                            (i, failure) -> chunks.get(i).stream()
+                                    .map(source -> FormatStages.internalErrorResult(source, failure))
+                                    .toList()).stream()
+                            .flatMap(List::stream)
+                            .toList();
+                }
+            }
+            case JavafmtConfig.Analysis.Attributed(var classpath) -> batches(
+                    formattable.stream()
+                            .map(source -> (long) source.length())
+                            .toList(),
+                    formattable.stream()
+                            .map(_ -> "")
+                            .toList())
+                    .stream()
+                    .flatMap(batch -> formatAttributed(
+                            batch.stream()
+                                    .map(formattable::get)
+                                    .toList(),
+                            batch.stream()
+                                    .map(skips::get)
+                                    .toList(),
+                            config,
+                            classpath,
+                            Renderer.on(pool)).stream())
+                    .toList();
+        });
     }
 
     private FileRead read(final Path path, final FormatCache cache, final Map<Path, ProjectFile> projectFiles) {
@@ -285,28 +337,35 @@ final class BatchFormatter {
         if (projectFile instanceof ProjectFile.Invalid invalid) {
             return FormatStages.configErrorResult(source, invalid);
         }
-        return skippingBlanks(
-                List.of(source), List.of(projectFile.analyzeSkip()),
-                (sources, skips) -> switch (config.analysis()) {
-                    case JavafmtConfig.Analysis.ParseOnly() -> formatParseOnly(sources, config, Renderer.INLINE);
-                    case JavafmtConfig.Analysis.Attributed(var classpath) -> formatAttributed(sources, skips, config, classpath, Renderer.INLINE);
-                })
+        return skippingBlanks(List.of(source), List.of(projectFile.analyzeSkip()), (sources, skips) -> switch (config.analysis()) {
+            case JavafmtConfig.Analysis.ParseOnly() -> formatParseOnly(sources, config, Renderer.INLINE);
+            case JavafmtConfig.Analysis.Attributed(var classpath) -> formatAttributed(sources, skips, config, classpath, Renderer.INLINE);
+        })
                 .getFirst();
     }
 
     FormatResult formatParsed(final String source, final ParsedUnit unit, final JavafmtConfig config) {
-        return formatChunk(
-                List.of(source), config, Renderer.INLINE, _ -> List.of(new Prepared(new Staged.Ok<>(LintContext.parseOnly(unit)), List.of())))
+        return formatChunk(List.of(source), config, Renderer.INLINE, _ -> List.of(
+                        new Prepared(new Staged.Ok<>(LintContext.parseOnly(unit)), List.of())))
                 .getFirst();
     }
 
     private List<FormatResult> skippingBlanks(final List<String> sources,
                                               final List<Set<String>> analyzeSkips,
                                               final BiFunction<List<String>, List<Set<String>>, List<FormatResult>> format) {
-        final var formattable = IntStream.range(0, sources.size()).filter(i -> !sources.get(i).isEmpty()).boxed().toList();
+        final var formattable = IntStream.range(0, sources.size())
+                .filter(i -> !sources.get(i).isEmpty())
+                .boxed()
+                .toList();
         final var results = formattable.isEmpty()
                 ? List.<FormatResult>of()
-                : format.apply(formattable.stream().map(sources::get).toList(), formattable.stream().map(analyzeSkips::get).toList());
+                : format.apply(
+                        formattable.stream()
+                                .map(sources::get)
+                                .toList(),
+                        formattable.stream()
+                                .map(analyzeSkips::get)
+                                .toList());
         return scatter(sources.size(), formattable, results, i -> new FormatResult(sources.get(i), List.of()));
     }
 
@@ -321,9 +380,10 @@ final class BatchFormatter {
                                                 final Renderer renderer) {
         return retriedWithoutClasspath(
                 sources,
-                JavaParser.attributing(
-                        classpath, session -> formatChunk(sources, analyzeSkips, config, renderer, chunk -> attributedContexts(chunk, session))),
-                config, renderer);
+                JavaParser.attributing(classpath, session -> formatChunk(sources, analyzeSkips, config, renderer, chunk -> attributedContexts(
+                        chunk, session))),
+                config,
+                renderer);
     }
 
     List<FormatResult> retriedWithoutClasspath(final List<String> sources,
@@ -331,19 +391,25 @@ final class BatchFormatter {
                                                final JavafmtConfig config,
                                                final Renderer renderer) {
         final var failed = IntStream.range(0, results.size())
-                .filter(i -> results.get(i).diagnostics().stream().anyMatch(Diagnostic.InternalError.class::isInstance))
+                .filter(i -> results.get(i).diagnostics().stream()
+                        .anyMatch(Diagnostic.InternalError.class::isInstance))
                 .boxed()
                 .toList();
         if (failed.isEmpty()) {
             return results;
         }
-        final var retried = formatParseOnly(failed.stream().map(sources::get).toList(), config, renderer);
+        final var retried = formatParseOnly(
+                failed.stream()
+                        .map(sources::get)
+                        .toList(),
+                config,
+                renderer);
         return scatter(
-                results.size(), failed,
+                results.size(),
+                failed,
                 IntStream.range(0, failed.size())
-                        .mapToObj(
-                                k -> FormatStages.withDiagnostics(
-                                        retried.get(k), List.of(FormatStages.classpathFailureWarning(results.get(failed.get(k))))))
+                        .mapToObj(k -> FormatStages.withDiagnostics(
+                                retried.get(k), List.of(FormatStages.classpathFailureWarning(results.get(failed.get(k))))))
                         .toList(),
                 results::get);
     }
@@ -352,7 +418,14 @@ final class BatchFormatter {
                                    final JavafmtConfig config,
                                    final Renderer renderer,
                                    final Function<List<String>, List<Prepared>> parser) {
-        return formatChunk(chunk, chunk.stream().map(_ -> Set.<String>of()).toList(), config, renderer, parser);
+        return formatChunk(
+                chunk,
+                chunk.stream()
+                        .map(_ -> Set.<String>of())
+                        .toList(),
+                config,
+                renderer,
+                parser);
     }
 
     /** Parses, lints, and renders one chunk of non-blank sources. */
@@ -363,10 +436,16 @@ final class BatchFormatter {
                                            final Function<List<String>, List<Prepared>> parser) {
         // Everything downstream works in LF with no BOM; how each file was written is put back on
         // its own result, so a CRLF file does not come out as a whole-file diff.
-        final var encodings = chunk.stream().map(SourceEncoding::of).toList();
-        final var sources = IntStream.range(0, chunk.size()).mapToObj(k -> encodings.get(k).normalize(chunk.get(k))).toList();
+        final var encodings = chunk.stream()
+                .map(SourceEncoding::of)
+                .toList();
+        final var sources = IntStream.range(0, chunk.size())
+                .mapToObj(k -> encodings.get(k).normalize(chunk.get(k)))
+                .toList();
         final var formatted = formatNormalized(sources, analyzeSkips, config, renderer, parser);
-        return IntStream.range(0, formatted.size()).mapToObj(k -> FormatStages.asWritten(encodings.get(k), formatted.get(k))).toList();
+        return IntStream.range(0, formatted.size())
+                .mapToObj(k -> FormatStages.asWritten(encodings.get(k), formatted.get(k)))
+                .toList();
     }
 
     /**
@@ -385,12 +464,28 @@ final class BatchFormatter {
             final var parsed = parser.apply(sources);
             final var settled = settled(
                     new Settled(
-                            sources, lint(parsed, IntStream.range(0, sources.size()).boxed().toList(), analyzeSkips, config),
-                            parsed.stream().map(Prepared::warnings).toList(), parsed.stream().map(BatchFormatter::isAttributed).toList()),
-                    analyzeSkips, config, parser, 1);
+                            sources,
+                            lint(
+                                    parsed,
+                                    IntStream.range(0, sources.size())
+                                            .boxed()
+                                            .toList(),
+                                    analyzeSkips,
+                                    config),
+                            parsed.stream()
+                                    .map(Prepared::warnings)
+                                    .toList(),
+                            parsed.stream()
+                                    .map(BatchFormatter::isAttributed)
+                                    .toList()),
+                    analyzeSkips,
+                    config,
+                    parser,
+                    1);
             final var rendered = render(sources, settled.linted(), config, renderer);
             return IntStream.range(0, rendered.size())
-                    .mapToObj(k -> FormatStages.withDiagnostics(rendered.get(k), settled.warnings().get(k)))
+                    .mapToObj(k -> FormatStages.withDiagnostics(
+                            rendered.get(k), settled.warnings().get(k)))
                     .toList();
         } catch (final RuntimeException | AssertionError | StackOverflowError batchFailure) {
             if (sources.size() == 1) {
@@ -426,11 +521,17 @@ final class BatchFormatter {
                                                   final List<Set<String>> analyzeSkips,
                                                   final JavafmtConfig config) {
         return lintBatch(
-                indices.stream().map(i -> parsed.get(i).context().map(context -> context.skippingAnalysisFor(analyzeSkips.get(i)))).toList(), config);
+                indices.stream()
+                        .map(i -> parsed.get(i)
+                                .context()
+                                .map(context -> context.skippingAnalysisFor(analyzeSkips.get(i))))
+                        .toList(),
+                config);
     }
 
     private boolean isAttributed(final Prepared prepared) {
-        return prepared.context() instanceof Staged.Ok<LintContext>(var context) && context.attribution().isPresent();
+        return prepared.context() instanceof Staged.Ok<LintContext>(var context)
+            && context.attribution().isPresent();
     }
 
     private List<Staged<LintEngine.Outcome>> lintBatch(final List<Staged<LintContext>> parsed, final JavafmtConfig config) {
@@ -438,18 +539,18 @@ final class BatchFormatter {
     }
 
     private List<LintContext> targeting(final List<LintContext> contexts, final int release) {
-        return contexts.stream().map(context -> context.withRelease(release)).toList();
+        return contexts.stream()
+                .map(context -> context.withRelease(release))
+                .toList();
     }
 
     private List<FormatResult> render(final List<String> sources,
                                       final List<Staged<LintEngine.Outcome>> linted,
                                       final JavafmtConfig config,
                                       final Renderer renderer) {
-        return renderer.renderAll(
-                sources,
-                IntStream.range(0, sources.size())
-                        .<Supplier<FormatResult>>mapToObj(i -> () -> resultFor(sources.get(i), linted.get(i), config))
-                        .toList());
+        return renderer.renderAll(sources, IntStream.range(0, sources.size())
+                .<Supplier<FormatResult>>mapToObj(i -> () -> resultFor(sources.get(i), linted.get(i), config))
+                .toList());
     }
 
     private FormatResult resultFor(final String source, final Staged<LintEngine.Outcome> linted, final JavafmtConfig config) {
@@ -460,8 +561,12 @@ final class BatchFormatter {
     }
 
     private <T> List<T> fanOut(final Executor pool, final List<Supplier<T>> tasks, final BiFunction<Integer, Throwable, T> onFailure) {
-        final var futures = tasks.stream().map(task -> CompletableFuture.supplyAsync(task, pool)).toList();
-        return IntStream.range(0, futures.size()).mapToObj(i -> await(futures.get(i), failure -> onFailure.apply(i, failure))).toList();
+        final var futures = tasks.stream()
+                .map(task -> CompletableFuture.supplyAsync(task, pool))
+                .toList();
+        return IntStream.range(0, futures.size())
+                .mapToObj(i -> await(futures.get(i), failure -> onFailure.apply(i, failure)))
+                .toList();
     }
 
     private <T> T await(final Future<T> future, final Function<Throwable, T> onFailure) {
@@ -480,7 +585,9 @@ final class BatchFormatter {
     }
 
     private List<Prepared> parseOnly(final List<String> chunk, final List<Diagnostic> warnings) {
-        return JavaParser.parseUnits(chunk).stream().map(parsed -> new Prepared(parsed.map(LintContext::parseOnly), warnings)).toList();
+        return JavaParser.parseUnits(chunk).stream()
+                .map(parsed -> new Prepared(parsed.map(LintContext::parseOnly), warnings))
+                .toList();
     }
 
     /**
@@ -492,16 +599,22 @@ final class BatchFormatter {
     List<Prepared> attributedContexts(final List<String> chunk, final AttributionSession session) {
         try {
             final var unattributed = JavaParser.parseUnits(chunk);
-            final var attributable = IntStream.range(0, chunk.size()).filter(i -> !declaresAModule(unattributed.get(i))).boxed().toList();
+            final var attributable = IntStream.range(0, chunk.size())
+                    .filter(i -> !declaresAModule(unattributed.get(i)))
+                    .boxed()
+                    .toList();
             final var attributed = attributable.isEmpty()
                     ? List.<Staged<AttributedUnit>>of()
-                    : session.attribute(attributable.stream().map(chunk::get).toList());
-            final var byIndex = IntStream.range(0, attributable.size()).boxed().collect(Collectors.toMap(attributable::get, attributed::get));
+                    : session.attribute(attributable.stream()
+                            .map(chunk::get)
+                            .toList());
+            final var byIndex = IntStream.range(0, attributable.size())
+                    .boxed()
+                    .collect(Collectors.toMap(attributable::get, attributed::get));
             return IntStream.range(0, chunk.size())
-                    .mapToObj(
-                            i -> Optional.ofNullable(byIndex.get(i))
-                                    .map(outcome -> prepared(chunk.get(i), outcome, unattributed.get(i)))
-                                    .orElseGet(() -> new Prepared(unattributed.get(i).map(LintContext::parseOnly), List.of())))
+                    .mapToObj(i -> Optional.ofNullable(byIndex.get(i))
+                            .map(outcome -> prepared(chunk.get(i), outcome, unattributed.get(i)))
+                            .orElseGet(() -> new Prepared(unattributed.get(i).map(LintContext::parseOnly), List.of())))
                     .toList();
         } catch (final RuntimeException e) {
             return parseOnly(chunk, List.of(FormatStages.attributionWarning(e)));
@@ -509,16 +622,22 @@ final class BatchFormatter {
     }
 
     private boolean javacStoppedOnAnUnresolvedName(final Throwable crash) {
-        return Stream.iterate(crash, Objects::nonNull, Throwable::getCause).anyMatch(cause -> cause.getClass().getName().equals(JAVAC_FATAL_ERROR));
+        return Stream.iterate(crash, Objects::nonNull, Throwable::getCause)
+                .anyMatch(cause -> cause.getClass()
+                        .getName()
+                        .equals(JAVAC_FATAL_ERROR));
     }
 
     private boolean declaresAModule(final Staged<ParsedUnit> unit) {
-        return unit instanceof Staged.Ok<ParsedUnit>(var parsed) && parsed.tree().getModule() != null;
+        return unit instanceof Staged.Ok<ParsedUnit>(var parsed)
+            && parsed.tree().getModule() != null;
     }
 
     List<Prepared> fromAttributed(final List<String> chunk, final List<Staged<AttributedUnit>> outcomes) {
         final var unattributed = JavaParser.parseUnits(chunk);
-        return IntStream.range(0, chunk.size()).mapToObj(i -> prepared(chunk.get(i), outcomes.get(i), unattributed.get(i))).toList();
+        return IntStream.range(0, chunk.size())
+                .mapToObj(i -> prepared(chunk.get(i), outcomes.get(i), unattributed.get(i)))
+                .toList();
     }
 
     private Prepared prepared(final String source, final Staged<AttributedUnit> outcome, final Staged<ParsedUnit> unattributed) {
@@ -536,8 +655,12 @@ final class BatchFormatter {
      * total}, filling gaps from {@code gap}.
      */
     private <T> List<T> scatter(final int total, final List<Integer> indices, final List<T> results, final IntFunction<T> gap) {
-        final var byIndex = IntStream.range(0, indices.size()).boxed().collect(Collectors.toMap(indices::get, results::get));
-        return IntStream.range(0, total).mapToObj(i -> Optional.ofNullable(byIndex.get(i)).orElseGet(() -> gap.apply(i))).toList();
+        final var byIndex = IntStream.range(0, indices.size())
+                .boxed()
+                .collect(Collectors.toMap(indices::get, results::get));
+        return IntStream.range(0, total)
+                .mapToObj(i -> Optional.ofNullable(byIndex.get(i)).orElseGet(() -> gap.apply(i)))
+                .toList();
     }
 
     record Prepared(Staged<LintContext> context, List<Diagnostic> warnings) {}
@@ -546,17 +669,18 @@ final class BatchFormatter {
 
         List<Integer> changed() {
             return IntStream.range(0, inputs.size())
-                    .filter(
-                            i -> attributed.get(i)
-                                && linted.get(i) instanceof Staged.Ok<LintEngine.Outcome>(var outcome)
-                                && !outcome.unit().source().equals(inputs.get(i)))
+                    .filter(i -> attributed.get(i)
+                        && linted.get(i) instanceof Staged.Ok<LintEngine.Outcome>(var outcome)
+                        && !outcome.unit().source().equals(inputs.get(i)))
                     .boxed()
                     .toList();
         }
 
         List<String> current() {
             return IntStream.range(0, inputs.size())
-                    .mapToObj(i -> linted.get(i) instanceof Staged.Ok<LintEngine.Outcome>(var outcome) ? outcome.unit().source() : inputs.get(i))
+                    .mapToObj(i -> linted.get(i) instanceof Staged.Ok<LintEngine.Outcome>(var outcome)
+                            ? outcome.unit().source()
+                            : inputs.get(i))
                     .toList();
         }
 
@@ -564,13 +688,21 @@ final class BatchFormatter {
                      final List<Integer> changed,
                      final List<Staged<LintEngine.Outcome>> relinted,
                      final List<Prepared> parsed) {
-            final var position = IntStream.range(0, changed.size()).boxed().collect(Collectors.toMap(changed::get, k -> k));
+            final var position = IntStream.range(0, changed.size())
+                    .boxed()
+                    .collect(Collectors.toMap(changed::get, k -> k));
             return new Settled(
                     current,
                     IntStream.range(0, inputs.size())
-                            .mapToObj(i -> Optional.ofNullable(position.get(i)).map(relinted::get).orElseGet(() -> linted.get(i)))
+                            .mapToObj(i -> Optional.ofNullable(position.get(i))
+                                    .map(relinted::get)
+                                    .orElseGet(() -> linted.get(i)))
                             .toList(),
-                    IntStream.range(0, inputs.size()).mapToObj(i -> position.containsKey(i) ? parsed.get(i).warnings() : warnings.get(i)).toList(),
+                    IntStream.range(0, inputs.size())
+                            .mapToObj(i -> position.containsKey(i)
+                                    ? parsed.get(i).warnings()
+                                    : warnings.get(i))
+                            .toList(),
                     IntStream.range(0, inputs.size())
                             .mapToObj(i -> position.containsKey(i) ? isAttributed(parsed.get(i)) : attributed.get(i))
                             .toList());
@@ -578,10 +710,13 @@ final class BatchFormatter {
 
         Settled withWarning(final List<Integer> changed, final Diagnostic warning) {
             return new Settled(
-                    inputs, linted,
+                    inputs,
+                    linted,
                     IntStream.range(0, inputs.size())
-                            .mapToObj(
-                                    i -> changed.contains(i) ? Stream.concat(warnings.get(i).stream(), Stream.of(warning)).toList() : warnings.get(i))
+                            .mapToObj(i -> changed.contains(i)
+                                    ? Stream.concat(warnings.get(i).stream(), Stream.of(warning))
+                                            .toList()
+                                    : warnings.get(i))
                             .toList(),
                     attributed);
         }
@@ -597,7 +732,9 @@ final class BatchFormatter {
     @FunctionalInterface
     interface Renderer {
 
-        Renderer INLINE = (_, tasks) -> tasks.stream().map(Supplier::get).toList();
+        Renderer INLINE = (_, tasks) -> tasks.stream()
+                .map(Supplier::get)
+                .toList();
 
         List<FormatResult> renderAll(List<String> sources, List<Supplier<FormatResult>> tasks);
 

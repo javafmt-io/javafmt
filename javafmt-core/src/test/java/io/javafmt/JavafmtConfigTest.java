@@ -26,7 +26,12 @@ class JavafmtConfigTest {
     void release_isKeptByTheOtherWithers() {
         final var config = JavafmtConfig.defaults().withRelease(21);
         assertThat(config.release()).isEqualTo(21);
-        assertThat(config.withLint(false).withVerifyOutput(false).withAnalysis(new JavafmtConfig.Analysis.ParseOnly()).release()).isEqualTo(21);
+        assertThat(
+                        config.withLint(false)
+                                .withVerifyOutput(false)
+                                .withAnalysis(new JavafmtConfig.Analysis.ParseOnly())
+                                .release())
+                .isEqualTo(21);
     }
 
     @Test

@@ -110,7 +110,9 @@ class ModifierOrderTest {
             }
             """);
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).singleElement().satisfies(e -> assertThat(e.replacement()).isEqualTo("public static"));
+        assertThat(result.edits())
+                .singleElement()
+                .satisfies(e -> assertThat(e.replacement()).isEqualTo("public static"));
     }
 
     @ParameterizedTest

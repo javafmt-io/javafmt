@@ -76,7 +76,9 @@ class JavafmtFormatterStepTest {
     @Test
     void createThrowsOnParseError() {
         final var step = JavafmtFormatterStep.create(project.toFile());
-        assertThatThrownBy(() -> step.format("class {", null)).isInstanceOf(Exception.class).hasMessageMatching("(?s).*\\d+:\\d+.*");
+        assertThatThrownBy(() -> step.format("class {", null))
+                .isInstanceOf(Exception.class)
+                .hasMessageMatching("(?s).*\\d+:\\d+.*");
     }
 
     @Test
@@ -106,18 +108,22 @@ class JavafmtFormatterStepTest {
 
     @Test
     void lintReportsNothingForSourceThatTripsNoWarning() throws Exception {
-        assertThat(JavafmtFormatterStep.create(project.toFile()).lint(Fixtures.FORMATTED_FOO, null)).isEmpty();
+        assertThat(JavafmtFormatterStep.create(project.toFile()).lint(Fixtures.FORMATTED_FOO, null))
+                .isEmpty();
     }
 
     @Test
     void createWithAnalysisClasspathRunsTheRulesThatNeedResolvedTypes(@TempDir final Path dir) throws Exception {
         // RedundantTypeArguments only drops a type witness on a generic method call when it can
         // resolve the types, so this is the difference an analysis classpath makes.
-        final var withoutAnalysis = JavafmtFormatterStep.create(project.toFile()).format(TYPE_WITNESS_SOURCE, null);
+        final var withoutAnalysis = JavafmtFormatterStep.create(project.toFile())
+                .format(TYPE_WITNESS_SOURCE, null);
         final var withAnalysis = JavafmtFormatterStep.create(JavafmtConfig.defaults(), System.getProperty("java.class.path"), dir.toFile())
                 .format(TYPE_WITNESS_SOURCE, null);
         assertThat(withoutAnalysis).contains("Stream.<String>of");
-        assertThat(withAnalysis).contains("Stream.of").doesNotContain("Stream.<String>of");
+        assertThat(withAnalysis)
+                .contains("Stream.of")
+                .doesNotContain("Stream.<String>of");
     }
 
     @Test
@@ -135,7 +141,8 @@ class JavafmtFormatterStepTest {
         final var before = JavafmtFormatterStep.create(JavafmtConfig.defaults(), "", dir.toFile());
         assertThat(before).isEqualTo(JavafmtFormatterStep.create(JavafmtConfig.defaults(), "", dir.toFile()));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=LocalVarUseVar\n");
-        assertThat(JavafmtFormatterStep.create(JavafmtConfig.defaults(), "", dir.toFile())).isNotEqualTo(before);
+        assertThat(JavafmtFormatterStep.create(JavafmtConfig.defaults(), "", dir.toFile()))
+                .isNotEqualTo(before);
     }
 
     @Test
@@ -177,7 +184,8 @@ class JavafmtFormatterStepTest {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=RedundantTypeArguments\n");
         final var step = JavafmtFormatterStep.create(JavafmtConfig.defaults(), "", dir.toFile());
-        assertThat(step.format(TYPE_WITNESS_SOURCE, dir.resolve("src/Foo.java").toFile())).contains("Stream.<String>of");
+        assertThat(step.format(TYPE_WITNESS_SOURCE, dir.resolve("src/Foo.java").toFile()))
+                .contains("Stream.<String>of");
     }
 
     @Test
@@ -185,7 +193,8 @@ class JavafmtFormatterStepTest {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=FinalParameters\n");
         final var step = JavafmtFormatterStep.create(project.toFile());
-        assertThatThrownBy(() -> step.format(Fixtures.FORMATTED_FOO, dir.resolve("Foo.java").toFile()))
+        assertThatThrownBy(() -> step.format(
+                        Fixtures.FORMATTED_FOO, dir.resolve("Foo.java").toFile()))
                 .hasMessageContaining(".javafmt")
                 .hasMessageContaining("FinalParameters");
     }
@@ -220,7 +229,8 @@ class JavafmtFormatterStepTest {
 
     static Stream<JavafmtConfig> configsDifferingFromDefaults() {
         return Stream.of(
-                JavafmtConfig.defaults().withVerifyOutput(false), JavafmtConfig.defaults().withLint(false),
+                JavafmtConfig.defaults().withVerifyOutput(false),
+                JavafmtConfig.defaults().withLint(false),
                 JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("/lib/a.jar")));
     }
 

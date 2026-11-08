@@ -32,30 +32,28 @@ public final class EmptyStatement implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitBlock(final BlockTree node, final Void p) {
-                        node.getStatements().stream()
-                                .filter(EmptyStatementTree.class::isInstance)
-                                .filter(s -> unit.startOf(s) >= 0 && unit.endOf(s) > unit.startOf(s))
-                                .forEach(s -> edits.add(new LintEdit(unit.startOf(s), unit.endOf(s), "")));
-                        return super.visitBlock(node, null);
-                    }
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitBlock(final BlockTree node, final Void p) {
+                node.getStatements().stream()
+                        .filter(EmptyStatementTree.class::isInstance)
+                        .filter(s -> unit.startOf(s) >= 0 && unit.endOf(s) > unit.startOf(s))
+                        .forEach(s -> edits.add(new LintEdit(unit.startOf(s), unit.endOf(s), "")));
+                return super.visitBlock(node, null);
+            }
 
-                    @Override
-                    public Void visitTry(final TryTree node, final Void p) {
-                        semicolonAfterTheLastResource(node, unit).ifPresent(pos -> edits.add(new LintEdit(pos, pos + 1, "")));
-                        return super.visitTry(node, null);
-                    }
+            @Override
+            public Void visitTry(final TryTree node, final Void p) {
+                semicolonAfterTheLastResource(node, unit).ifPresent(pos -> edits.add(new LintEdit(pos, pos + 1, "")));
+                return super.visitTry(node, null);
+            }
 
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        classBodySemicolons(node, unit).forEach(pos -> edits.add(new LintEdit(pos, pos + 1, "")));
-                        return super.visitClass(node, null);
-                    }
-                });
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                classBodySemicolons(node, unit).forEach(pos -> edits.add(new LintEdit(pos, pos + 1, "")));
+                return super.visitClass(node, null);
+            }
+        });
     }
 
     private static Optional<Integer> semicolonAfterTheLastResource(final TryTree node, final ParsedUnit unit) {
@@ -106,10 +104,10 @@ public final class EmptyStatement implements LintRule {
                 .toList();
         return IntStream.rangeClosed(0, memberSpans.size())
                 .boxed()
-                .flatMap(
-                        i -> semicolonsOutsideComments(
-                                unit.source(), i == 0 ? bodyOpen + 1 : Math.max(bodyOpen + 1, memberSpans.get(i - 1)[1]),
-                                i == memberSpans.size() ? classEnd - 1 : memberSpans.get(i)[0]));
+                .flatMap(i -> semicolonsOutsideComments(unit.source(), i == 0 ? bodyOpen + 1 : Math.max(bodyOpen + 1, memberSpans.get(i - 1)[1]), i
+                        == memberSpans.size()
+                        ? classEnd - 1
+                        : memberSpans.get(i)[0]));
     }
 
     private static Stream<Integer> semicolonsOutsideComments(final String source, final int from, final int to) {
@@ -119,7 +117,8 @@ public final class EmptyStatement implements LintRule {
         final var comments = CommentScanner.scan(source.substring(from, to));
         return IntStream.range(from, to)
                 .filter(i -> source.charAt(i) == ';')
-                .filter(i -> comments.stream().noneMatch(c -> from + c.start() <= i && i < from + c.end()))
+                .filter(i -> comments.stream()
+                        .noneMatch(c -> from + c.start() <= i && i < from + c.end()))
                 .boxed();
     }
 }

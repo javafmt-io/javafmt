@@ -17,6 +17,8 @@ final class PrintEngine {
 
     final int INDENT_SIZE = 4;
 
+    private final int CHAIN_COLUMN = 80;
+
     String print(final int lineWidth, final Doc doc) {
         Objects.requireNonNull(doc, "doc");
         final var output = new StringBuilder();
@@ -78,12 +80,20 @@ final class PrintEngine {
                 }
                 case Doc.Indent(var contents) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> stack.push(new Frame(column, frame.mode(), contents));
-                case Doc.Choice(var preferred, var fallback, var fit) -> {
+                case Doc.Choice(var preferred, var fallback, var _, var chainWidth) when chainWidth >= 0 -> {
+                    if (column + chainWidth <= CHAIN_COLUMN) {
+                        stack.push(new Frame(frame.indent(), frame.mode(), preferred));
+                    } else {
+                        final var indent = frame.mode() == Mode.FLAT ? leadingSpaces(output.substring(output.lastIndexOf("\n") + 1)) : frame.indent();
+                        stack.push(new Frame(indent, Mode.BREAK, fallback));
+                    }
+                }
+                case Doc.Choice(var preferred, var fallback, var fit, var _) -> {
                     final var preferredFrame = new Frame(frame.indent(), frame.mode(), preferred);
                     final var fallbackFrame = new Frame(frame.indent(), frame.mode(), fallback);
                     final var fits = frame.mode() == Mode.FLAT
                         || fits(preferredFrame, column, lineWidth, stack, work, reachOf(fit))
-                        || (fit == Doc.Choice.Fit.FIRST_BREAK && !fits(fallbackFrame, column, lineWidth, stack, work, Reach.NEXT_LINE_FIRST_BREAK));
+                        || (stopsAtTheFirstBreak(reachOf(fit)) && !fits(fallbackFrame, column, lineWidth, stack, work, Reach.NEXT_LINE_FIRST_BREAK));
                     stack.push(fits ? preferredFrame : fallbackFrame);
                 }
                 case Doc.Concat(var parts) -> {
@@ -92,10 +102,10 @@ final class PrintEngine {
                     }
                 }
                 case Doc.Fill(var parts) when frame.mode() == Mode.FLAT -> pushParts(stack, frame, parts);
-                case Doc.Fill(var parts) -> fill(frame, parts, lineWidth - column, stack, work);
+                case Doc.Fill(var parts) -> fill(frame, parts, column, lineWidth, stack, work);
                 case Doc.Group(var contents, var preferBreak) -> {
                     final var flat = new Frame(frame.indent(), Mode.FLAT, contents);
-                    final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, lineWidth - column, stack, work));
+                    final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, column, lineWidth, stack, work));
                     stack.push(fits ? flat : new Frame(frame.indent(), Mode.BREAK, contents));
                 }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
@@ -122,18 +132,22 @@ final class PrintEngine {
         output.append(lines.getFirst());
         continuation.forEach(line -> {
             stripTrailingWhitespace(output, verbatimEnd);
-            output.append('\n').repeat(' ', Math.max(0, leadingSpaces(line) + shift)).append(line, leadingSpaces(line), line.length());
+            output.append('\n')
+                    .repeat(' ', Math.max(0, leadingSpaces(line) + shift))
+                    .append(line, leadingSpaces(line), line.length());
         });
         return output.length() - output.lastIndexOf("\n") - 1;
     }
 
     private int leadingSpaces(final String line) {
-        return (int) line.chars().takeWhile(character -> character == ' ').count();
+        return (int) line.chars()
+                .takeWhile(character -> character == ' ')
+                .count();
     }
 
     private void stripTrailingWhitespace(final StringBuilder output, final int verbatimEnd) {
-        final var trailing = (int) IntStream.iterate(
-                output.length() - 1, index -> index >= 0 && isSpaceOrTab(output.charAt(index)), index -> index - 1)
+        final var trailing = (int) IntStream.iterate(output.length() - 1, index -> index >= 0 && isSpaceOrTab(output.charAt(index)), index -> index
+                        - 1)
                 .count();
         final var start = output.length() - trailing;
         if (start >= verbatimEnd) {
@@ -167,8 +181,12 @@ final class PrintEngine {
      * decision, so only the first line's width is budgeted — the surrounding Group is free to
      * render flat with the literal's body trailing inside.
      */
-    private boolean fitsForward(final Frame candidate, final int budget, final ArrayDeque<Frame> upcoming, final ArrayDeque<Frame> work) {
-        return fits(candidate, 0, budget, upcoming, work, Reach.FIRST_LINE);
+    private boolean fitsForward(final Frame candidate,
+                                final int column,
+                                final int lineWidth,
+                                final ArrayDeque<Frame> upcoming,
+                                final ArrayDeque<Frame> work) {
+        return fits(candidate, column, lineWidth, upcoming, work, Reach.FIRST_LINE);
     }
 
     private Reach reachOf(final Doc.Choice.Fit fit) {
@@ -176,7 +194,12 @@ final class PrintEngine {
             case EVERY_LINE -> Reach.EVERY_LINE;
             case OPENING_LINE -> Reach.OPENING_LINE;
             case FIRST_BREAK -> Reach.FIRST_BREAK;
+            case FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN -> Reach.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
         };
+    }
+
+    private boolean stopsAtTheFirstBreak(final Reach reach) {
+        return reach == Reach.FIRST_BREAK || reach == Reach.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
     }
 
     private boolean fits(final Frame candidate,
@@ -214,7 +237,8 @@ final class PrintEngine {
             if (lineCommentEnded && content) {
                 return false;
             }
-            if (frame.doc() instanceof Doc.Text(var comment) && comment.stripLeading().startsWith("//")) {
+            if (frame.doc() instanceof Doc.Text(var comment)
+                && comment.stripLeading().startsWith("//")) {
                 if (column + comment.length() > lineWidth) {
                     return false;
                 }
@@ -226,7 +250,7 @@ final class PrintEngine {
             }
             if (frame.doc() instanceof Doc.HardLine || frame.doc() instanceof Doc.LineStart) {
                 lineCommentEnded = false;
-                if (consumedCandidate || effectiveReach == Reach.OPENING_LINE || effectiveReach == Reach.FIRST_BREAK) {
+                if (consumedCandidate || effectiveReach == Reach.OPENING_LINE || stopsAtTheFirstBreak(effectiveReach)) {
                     return true;
                 }
                 if (effectiveReach == Reach.FIRST_LINE) {
@@ -254,7 +278,7 @@ final class PrintEngine {
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
                 case Doc.HardLine _, Doc.LineStart _ -> {}
                 case Doc.Line _, Doc.SoftLine _ -> {
-                    if (consumedCandidate || effectiveReach == Reach.FIRST_LINE || effectiveReach == Reach.FIRST_BREAK) {
+                    if (consumedCandidate || effectiveReach == Reach.FIRST_LINE || stopsAtTheFirstBreak(effectiveReach)) {
                         return true;
                     }
                     if (effectiveReach == Reach.OPENING_LINE) {
@@ -265,7 +289,7 @@ final class PrintEngine {
                 case Doc.Indent(var contents) -> work.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> work.push(new Frame(column, frame.mode(), contents));
                 case Doc.Group(var contents, var preferBreak) -> {
-                    if (effectiveReach == Reach.FIRST_BREAK && !consumedCandidate) {
+                    if (stopsAtTheFirstBreak(effectiveReach) && !consumedCandidate) {
                         work.push(new Frame(frame.indent(), Mode.BREAK, contents));
                         continue;
                     }
@@ -276,8 +300,16 @@ final class PrintEngine {
                 }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
                     work.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? breakContents : flatContents));
-                case Doc.Choice(var preferred, var fallback, var _) ->
-                    work.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? fallback : preferred));
+                case Doc.Choice(var preferred, var fallback, var _, var chainWidth) -> {
+                    if (chainWidth >= 0 && !consumedCandidate && column + chainWidth > CHAIN_COLUMN) {
+                        if (effectiveReach != Reach.FIRST_BREAK && effectiveReach != Reach.NEXT_LINE_FIRST_BREAK) {
+                            return false;
+                        }
+                        work.push(new Frame(frame.indent(), Mode.BREAK, fallback));
+                    } else {
+                        work.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK && chainWidth < 0 ? fallback : preferred));
+                    }
+                }
                 case Doc.Concat(var parts) -> {
                     for (var index = parts.size() - 1; index >= 0; index--) {
                         work.push(new Frame(frame.indent(), frame.mode(), parts.get(index)));
@@ -289,7 +321,12 @@ final class PrintEngine {
         return false;
     }
 
-    private void fill(final Frame frame, final List<Doc> parts, final int budget, final ArrayDeque<Frame> stack, final ArrayDeque<Frame> work) {
+    private void fill(final Frame frame,
+                      final List<Doc> parts,
+                      final int column,
+                      final int lineWidth,
+                      final ArrayDeque<Frame> stack,
+                      final ArrayDeque<Frame> work) {
         final var first = frame.firstPart();
         if (first >= parts.size()) {
             return;
@@ -303,7 +340,7 @@ final class PrintEngine {
         final var separator = parts.get(first + 1);
         final var next = parts.get(first + 2);
         final var pair = new Frame(frame.indent(), Mode.FLAT, Doc.concat(content, separator, next));
-        final var pairFits = fitsForward(pair, budget, following(frame, parts, first + 3, stack), work)
+        final var pairFits = fitsForward(pair, column, lineWidth, following(frame, parts, first + 3, stack), work)
             && staysOnOneLine(content)
             && staysOnOneLine(next);
         stack.push(new Frame(frame.indent(), Mode.BREAK, frame.doc(), first + 2));
@@ -345,7 +382,7 @@ final class PrintEngine {
                 case Doc.Indent(var contents) -> pending.push(new Pending(contents, grouped));
                 case Doc.Align(var contents) -> pending.push(new Pending(contents, grouped));
                 case Doc.IfBreak(var breakContents, var flatContents) -> pending.push(new Pending(grouped ? flatContents : breakContents, grouped));
-                case Doc.Choice(var preferred, var fallback, var _) -> {
+                case Doc.Choice(var preferred, var fallback, var _, var _) -> {
                     pending.push(new Pending(preferred, grouped));
                     pending.push(new Pending(fallback, grouped));
                 }
@@ -373,7 +410,7 @@ final class PrintEngine {
 
     private enum Mode { FLAT, BREAK }
 
-    private enum Reach { FIRST_LINE, OPENING_LINE, EVERY_LINE, FIRST_BREAK, NEXT_LINE_FIRST_BREAK }
+    private enum Reach { FIRST_LINE, OPENING_LINE, EVERY_LINE, FIRST_BREAK, FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN, NEXT_LINE_FIRST_BREAK }
 
     private record Pending(Doc doc, boolean grouped) {}
 

@@ -32,34 +32,31 @@ interface WarningRule extends LintRule {
                                                     final Class<T> type,
                                                     final Function<? super T, Optional<String>> warning) {
         final var unit = context.unit();
-        return LintScan.collect(
-                context,
-                diagnostics -> new ChainScanner<>() {
-                    @Override
-                    @Nullable
-                    public Void scan(@Nullable final Tree tree, @Nullable final Void p) {
-                        if (tree != null && !(tree instanceof BinaryTree) && !(tree instanceof MethodInvocationTree)) {
-                            check(tree);
-                        }
-                        return super.scan(tree, null);
-                    }
+        return LintScan.collect(context, diagnostics -> new ChainScanner<>() {
+            @Override
+            @Nullable
+            public Void scan(@Nullable final Tree tree, @Nullable final Void p) {
+                if (tree != null && !(tree instanceof BinaryTree) && !(tree instanceof MethodInvocationTree)) {
+                    check(tree);
+                }
+                return super.scan(tree, null);
+            }
 
-                    @Override
-                    protected void visitBinaryOperator(final BinaryTree node, final Void p) {
-                        check(node);
-                    }
+            @Override
+            protected void visitBinaryOperator(final BinaryTree node, final Void p) {
+                check(node);
+            }
 
-                    @Override
-                    protected void visitInvocation(final MethodInvocationTree node, final Void p) {
-                        check(node);
-                    }
+            @Override
+            protected void visitInvocation(final MethodInvocationTree node, final Void p) {
+                check(node);
+            }
 
-                    private void check(final Tree tree) {
-                        if (type.isInstance(tree)) {
-                            warning.apply(type.cast(tree))
-                                    .ifPresent(message -> diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(tree))));
-                        }
-                    }
-                });
+            private void check(final Tree tree) {
+                if (type.isInstance(tree)) {
+                    warning.apply(type.cast(tree)).ifPresent(message -> diagnostics.add(new Diagnostic.Warning(message, unit.positionOf(tree))));
+                }
+            }
+        });
     }
 }

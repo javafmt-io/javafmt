@@ -23,7 +23,8 @@ public record ProjectRelativeExcludes(List<String> sourceDirectory, List<String>
         return !patterns.isEmpty()
             && new PatternSet().include(patterns)
                     .getAsSpec()
-                    .isSatisfiedBy(new ProjectRelativeElement(element, element.getRelativePath().prepend(sourceDirectory.toArray(String[]::new))));
+                    .isSatisfiedBy(new ProjectRelativeElement(
+                            element, element.getRelativePath().prepend(sourceDirectory.toArray(String[]::new))));
     }
 
     private record ProjectRelativeElement(FileTreeElement element, RelativePath relativePath) implements FileTreeElement {

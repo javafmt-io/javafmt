@@ -4,7 +4,10 @@ class Fixture {
 
     void run(final List<String> xs) {
         xs.forEach(x -> {System.out.println(x);});
-        xs.stream().filter(x -> {return !x.isEmpty();}).map(String::trim).forEach(x -> {System.out.println(x);});
+        xs.stream()
+                .filter(x -> {return !x.isEmpty();})
+                .map(String::trim)
+                .forEach(x -> {System.out.println(x);});
         xs.forEach(x -> {
             System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" + x);
         });

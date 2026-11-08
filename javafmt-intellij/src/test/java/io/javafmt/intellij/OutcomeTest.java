@@ -34,7 +34,11 @@ class OutcomeTest {
 
     @Test
     void aSeverityThisBuildHasNeverHeardOfIsAFailure() {
-        final var formatted = new JavafmtBinary.Outcome.Formatted("x", List.of(Diagnostic.newBuilder().setSeverityValue(7).build()));
+        final var formatted = new JavafmtBinary.Outcome.Formatted(
+                "x",
+                List.of(Diagnostic.newBuilder()
+                        .setSeverityValue(7)
+                        .build()));
         assertThat(formatted.hasFailure()).isTrue();
     }
 }

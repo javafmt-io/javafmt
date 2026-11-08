@@ -32,11 +32,10 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
                 .toList();
         enterChain(spine);
         try {
-            spine.forEach(
-                    operator -> at(operator, () -> {
-                        visitBinaryOperator(operator, p);
-                        return null;
-                    }));
+            spine.forEach(operator -> at(operator, () -> {
+                visitBinaryOperator(operator, p);
+                return null;
+            }));
             final var innermost = spine.getLast();
             var result = at(innermost, () -> scan(innermost.getLeftOperand(), p));
             for (final var operator : spine.reversed()) {
@@ -67,7 +66,9 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
 
     @Nullable
     private R scanSelectorChain(final Tree node, final P p) {
-        final var spine = Stream.iterate(node, Objects::nonNull, ChainScanner::innerLink).map(Objects::requireNonNull).toList();
+        final var spine = Stream.iterate(node, Objects::nonNull, ChainScanner::innerLink)
+                .map(Objects::requireNonNull)
+                .toList();
         enterChain(spine);
         try {
             final var typeArguments = spine.stream()
@@ -79,8 +80,7 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
             }
             return IntStream.iterate(spine.size() - 1, i -> i >= 0, i -> i - 1)
                     .boxed()
-                    .reduce(
-                            at(innermost, () -> scan(leafOf(innermost), p)),
+                    .reduce(at(innermost, () -> scan(leafOf(innermost), p)),
                             (inner, i) -> scanArguments(spine.get(i), typeArguments.get(i), inner, p), (_, right) -> right);
         } finally {
             exitChain(spine);

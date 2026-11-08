@@ -39,7 +39,8 @@ final class TypeRenderers {
     }
 
     Doc renderPrimitiveType(final PrimitiveTypeTree node) {
-        return new Doc.Text(node.getPrimitiveTypeKind().name().toLowerCase(Locale.ROOT));
+        return new Doc.Text(
+                node.getPrimitiveTypeKind().name().toLowerCase(Locale.ROOT));
     }
 
     Doc renderLiteral(final LiteralTree node, final ParsedUnit unit) {
@@ -60,7 +61,9 @@ final class TypeRenderers {
     }
 
     private String withTabsExpandedInTheIndent(final String line) {
-        final var indentEnd = (int) line.chars().takeWhile(c -> c == ' ' || c == '\t').count();
+        final var indentEnd = (int) line.chars()
+                .takeWhile(c -> c == ' ' || c == '\t')
+                .count();
         return " ".repeat(expandedWidth(line.substring(0, indentEnd))) + line.substring(indentEnd);
     }
 
@@ -116,7 +119,8 @@ final class TypeRenderers {
         // has chosen to break; the fit check sees the whole statement and breaks here instead,
         // giving `List<\n Map.Entry<\n String,`. Type arguments wide enough to matter on their own
         // are rare, and this cure is worse.
-        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), arguments.stream().map(recursor::scan));
+        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), arguments.stream()
+                .map(recursor::scan));
         return new Doc.Concat(
                 Stream.concat(
                         Stream.of(recursor.scan(node.getType()), new Doc.Text("<")), Stream.concat(argumentDocs, Stream.<Doc>of(new Doc.Text(">")))));
@@ -128,11 +132,14 @@ final class TypeRenderers {
      * 174-character line.
      */
     Doc renderUnionType(final UnionTypeTree node, final Recursor recursor) {
-        return WrappableList.joined(List.of(Doc.LINE, new Doc.Text("| ")), node.getTypeAlternatives().stream().map(recursor::scan));
+        return WrappableList.joined(List.of(Doc.LINE, new Doc.Text("| ")), node.getTypeAlternatives().stream()
+                .map(recursor::scan));
     }
 
     Doc renderIntersectionType(final IntersectionTypeTree node, final Recursor recursor) {
-        return new Doc.Concat(Doc.intersperse(new Doc.Text(" & "), node.getBounds().stream().map(recursor::scan)));
+        return new Doc.Concat(
+                Doc.intersperse(new Doc.Text(" & "), node.getBounds().stream()
+                        .map(recursor::scan)));
     }
 
     Doc renderWildcard(final WildcardTree node, final Recursor recursor) {
@@ -147,18 +154,22 @@ final class TypeRenderers {
     Doc renderTypeParameter(final TypeParameterTree node, final Recursor recursor) {
         // `class Box<@Marker T>` is legal and the annotations were simply never read, so six files
         // of java.base's reference classes came back refused rather than formatted.
-        final var annotations = node.getAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
-        final var nameDoc = (Doc) new Doc.Concat(Stream.concat(annotations, Stream.of(new Doc.Text(node.getName().toString()))));
+        final var annotations = node.getAnnotations().stream()
+                .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
+        final var nameDoc = (Doc) new Doc.Concat(
+                Stream.concat(annotations, Stream.of(new Doc.Text(node.getName().toString()))));
         final var bounds = node.getBounds();
         if (bounds.isEmpty()) {
             return nameDoc;
         }
-        final var boundDocs = Doc.intersperse(new Doc.Text(" & "), bounds.stream().map(recursor::scan));
+        final var boundDocs = Doc.intersperse(new Doc.Text(" & "), bounds.stream()
+                .map(recursor::scan));
         return new Doc.Concat(Stream.concat(Stream.of(nameDoc, new Doc.Text(" extends ")), boundDocs));
     }
 
     Doc renderAnnotatedType(final AnnotatedTypeTree node, final Recursor recursor) {
-        final var annotations = node.getAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
+        final var annotations = node.getAnnotations().stream()
+                .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
         if (node.getUnderlyingType() instanceof ArrayTypeTree) {
             return renderArrayDimensions(node, recursor);
         }
@@ -186,7 +197,9 @@ final class TypeRenderers {
     }
 
     private Doc renderDimensions(final Tree type, final String innermost, final Recursor recursor) {
-        final var levels = Stream.<@Nullable Tree>iterate(type, Objects::nonNull, TypeRenderers::componentOf).map(Objects::requireNonNull).toList();
+        final var levels = Stream.<@Nullable Tree>iterate(type, Objects::nonNull, TypeRenderers::componentOf)
+                .map(Objects::requireNonNull)
+                .toList();
         final var dimensions = levels.size() - 1;
         final var brackets = IntStream.range(0, dimensions)
                 .mapToObj(i -> bracketsOf(levels.get(i), i + 1 == dimensions ? innermost : "[]", recursor));
@@ -197,7 +210,8 @@ final class TypeRenderers {
         if (!(level instanceof AnnotatedTypeTree annotated)) {
             return new Doc.Text(brackets);
         }
-        final var annotations = annotated.getAnnotations().stream().flatMap(a -> Stream.of(new Doc.Text(" "), recursor.scan(a)));
+        final var annotations = annotated.getAnnotations().stream()
+                .flatMap(a -> Stream.of(new Doc.Text(" "), recursor.scan(a)));
         return Doc.concatOf(Stream.of(annotations, Stream.of(new Doc.Text(" " + brackets))));
     }
 
@@ -219,7 +233,8 @@ final class TypeRenderers {
     private Doc renderQualifiedTypeAnnotation(final MemberSelectTree qualified, final Stream<Doc> annotations, final Recursor recursor) {
         return Doc.concatOf(
                 Stream.of(
-                        Stream.of(recursor.scan(qualified.getExpression()), new Doc.Text(".")), annotations,
+                        Stream.of(recursor.scan(qualified.getExpression()), new Doc.Text(".")),
+                        annotations,
                         Stream.of(new Doc.Text(qualified.getIdentifier().toString()))));
     }
 }

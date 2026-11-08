@@ -13,16 +13,17 @@ class MethodChainRendererTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source))).stripTrailing();
+        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source)))
+                .stripTrailing();
     }
 
     @Test
     void shortChain_fitsOnOneLine() {
-        assertThat(format("class Foo { void test() { result.stream().toList(); } }"))
+        assertThat(format("class Foo { void test() { result.items().toList(); } }"))
                 .isEqualTo("""
                            class Foo {
 
-                               void test() {result.stream().toList();}
+                               void test() {result.items().toList();}
                            }""".stripIndent());
     }
 
@@ -71,7 +72,7 @@ class MethodChainRendererTest {
     }
 
     @Test
-    void argumentList_doesNotFit_packsArgumentsOntoContinuationLines() {
+    void argumentList_doesNotFit_putsOneArgumentPerLine() {
         final var input = "class Foo { void test() { "
             + "someMethod(arg1111111111, arg2222222222, arg3333333333, arg4444444444, arg5555555555, "
             + "arg6666666666, arg7777777777, arg8888888888, arg9999999999); } }";
@@ -81,14 +82,21 @@ class MethodChainRendererTest {
 
                                void test() {
                                    someMethod(
-                                           arg1111111111, arg2222222222, arg3333333333, arg4444444444, arg5555555555, arg6666666666, arg7777777777, arg8888888888,
+                                           arg1111111111,
+                                           arg2222222222,
+                                           arg3333333333,
+                                           arg4444444444,
+                                           arg5555555555,
+                                           arg6666666666,
+                                           arg7777777777,
+                                           arg8888888888,
                                            arg9999999999);
                                }
                            }""".stripIndent());
     }
 
     @Test
-    void chainWithOneLongCall_onlyThatCallBreaks() {
+    void chainWithOneLongCall_keepsItsFirstArgumentOnTheCallsLine() {
         final var input = "class Foo { void test() { "
             + "result.stream().filter(x -> x > 0).process("
             + "argumentOne12345, argumentTwo12345, argumentThree12345, argumentFour12345, "
@@ -100,9 +108,8 @@ class MethodChainRendererTest {
                                void test() {
                                    result.stream()
                                            .filter(x -> x > 0)
-                                           .process(
-                                                   argumentOne12345, argumentTwo12345, argumentThree12345, argumentFour12345, argumentFive12345, argumentSix12345,
-                                                   argumentSeven12345);
+                                           .process(argumentOne12345,
+                                                   argumentTwo12345, argumentThree12345, argumentFour12345, argumentFive12345, argumentSix12345, argumentSeven12345);
                                }
                            }""".stripIndent());
     }
@@ -166,7 +173,7 @@ class MethodChainRendererTest {
             class Foo {
 
                 void test() {
-                    result.stream()
+                    result.entries()
                         .filter(x -> x.ok())
                         .toList();
                 }
@@ -176,7 +183,7 @@ class MethodChainRendererTest {
                            class Foo {
 
                                void test() {
-                                   result.stream().filter(x -> x.ok()).toList();
+                                   result.entries().filter(x -> x.ok()).toList();
                                }
                            }""".stripIndent());
     }
@@ -184,22 +191,21 @@ class MethodChainRendererTest {
     @ParameterizedTest
     @ValueSource(strings = {"stream", "parallelStream"})
     void brokenChain_keepsEverythingUpToItsStreamOnTheFirstLine(final String stream) {
-        final var input = "class Foo { void test() { final var productIds = countCompare.discrepantProducts()." + stream + "()"
+        final var input = "class Foo { void test() { final var productIds = countCompare.products()." + stream + "()"
             + ".map(Audit.CountCompare.DiscrepantProduct::id).filter(Objects::nonNull).sorted(Comparator.naturalOrder()).toList(); } }";
         assertThat(format(input))
-                .isEqualTo(
-                        """
-                        class Foo {
-
-                            void test() {
-                                final var productIds = countCompare.discrepantProducts().%s()
-                                        .map(Audit.CountCompare.DiscrepantProduct::id)
-                                        .filter(Objects::nonNull)
-                                        .sorted(Comparator.naturalOrder())
-                                        .toList();
-                            }
-                        }""".stripIndent()
-                                .formatted(stream));
+                .isEqualTo("""
+                           class Foo {
+   
+                               void test() {
+                                   final var productIds = countCompare.products().%s()
+                                           .map(Audit.CountCompare.DiscrepantProduct::id)
+                                           .filter(Objects::nonNull)
+                                           .sorted(Comparator.naturalOrder())
+                                           .toList();
+                               }
+                           }""".stripIndent()
+                        .formatted(stream));
     }
 
     @Test
@@ -224,11 +230,11 @@ class MethodChainRendererTest {
     @Test
     void singleLineChain_staysOnOneLine() {
         // Chain was inline in source; the group renders flat.
-        assertThat(format("class Foo { void test() { result.stream().filter(x -> x.ok()).toList(); } }"))
+        assertThat(format("class Foo { void test() { result.entries().filter(x -> x.ok()).toList(); } }"))
                 .isEqualTo("""
                            class Foo {
 
-                               void test() {result.stream().filter(x -> x.ok()).toList();}
+                               void test() {result.entries().filter(x -> x.ok()).toList();}
                            }""".stripIndent());
     }
 
@@ -239,24 +245,24 @@ class MethodChainRendererTest {
         // noise. So the chain-break rule requires >= 3 links; two-link chains rely on the
         // surrounding 150-char line width and the inner argument-list break.
         final var input = "class Foo { void test() { "
-            + "stmts.stream().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s)))); } }";
+            + "stmts.items().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s)))); } }";
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
 
-                               void test() {stmts.stream().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s))));}
+                               void test() {stmts.items().<Doc>map(s -> new Doc.Indent(new Doc.Concat(List.of(Doc.HARD_LINE, s))));}
                            }""".stripIndent());
     }
 
     @Test
     void chainThatFitsTheLine_staysOnOneLine() {
-        final var input = "class Foo { void test() { var foo = SomeServiceBuilder.builder()"
-            + ".withThing1(thing1).withThing2(thing2).withThing3(thing3).build(); } }";
+        final var input = "class Foo { void test() { var foo = ServiceFactory.create()"
+            + ".withThing1(thing1).build(); } }";
         assertThat(format(input))
                 .isEqualTo("""
                            class Foo {
 
-                               void test() {var foo = SomeServiceBuilder.builder().withThing1(thing1).withThing2(thing2).withThing3(thing3).build();}
+                               void test() {var foo = ServiceFactory.create().withThing1(thing1).build();}
                            }""".stripIndent());
     }
 

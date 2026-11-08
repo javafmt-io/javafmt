@@ -28,21 +28,19 @@ public final class FallThrough implements WarningRule {
     @Override
     public List<Diagnostic> warnings(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.collect(
-                context,
-                diagnostics -> new ChainScanner<>() {
-                    @Override
-                    public Void visitSwitch(final SwitchTree node, final Void p) {
-                        inspect(node.getCases(), diagnostics, unit);
-                        return super.visitSwitch(node, null);
-                    }
+        return LintScan.collect(context, diagnostics -> new ChainScanner<>() {
+            @Override
+            public Void visitSwitch(final SwitchTree node, final Void p) {
+                inspect(node.getCases(), diagnostics, unit);
+                return super.visitSwitch(node, null);
+            }
 
-                    @Override
-                    public Void visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
-                        inspect(node.getCases(), diagnostics, unit);
-                        return super.visitSwitchExpression(node, null);
-                    }
-                });
+            @Override
+            public Void visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
+                inspect(node.getCases(), diagnostics, unit);
+                return super.visitSwitchExpression(node, null);
+            }
+        });
     }
 
     private static void inspect(final List<? extends CaseTree> cases, final List<Diagnostic> diagnostics, final ParsedUnit unit) {

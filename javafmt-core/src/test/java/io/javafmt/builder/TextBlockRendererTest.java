@@ -20,7 +20,8 @@ class TextBlockRendererTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source))).stripTrailing();
+        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source)))
+                .stripTrailing();
     }
 
     @Test

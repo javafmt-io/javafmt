@@ -111,6 +111,12 @@ public final class DocBuilder {
         }
 
         @Override
+        public MethodChainRenderer.ChainDocs scanChain(final MethodInvocationTree node) {
+            Objects.requireNonNull(node, "node");
+            return DocBuilder.this.scanChain(node);
+        }
+
+        @Override
         @Nullable
         public Doc scanNullable(final Tree node) {
             Objects.requireNonNull(node, "node");
@@ -183,6 +189,11 @@ public final class DocBuilder {
         }
 
         @Override
+        public boolean lineBreakBetween(final Tree before, final Tree after) {
+            return facts.lineBreakBetween(before, after);
+        }
+
+        @Override
         public boolean hasEmptyArgumentList(final AnnotationTree annotation) {
             return facts.hasEmptyArgumentList(annotation);
         }
@@ -216,6 +227,11 @@ public final class DocBuilder {
         public boolean isField(final VariableTree variable) {
             return facts.isField(variable);
         }
+
+        @Override
+        public boolean isLoneLambdaBody(final Tree node) {
+            return facts.isLoneLambdaBody(node);
+        }
     };
 
     DocBuilder(final ParsedUnit unit) {
@@ -243,13 +259,31 @@ public final class DocBuilder {
             diagnostics.addAll(ready.diagnostics());
             doc = adjust.apply(ready.doc());
         } else {
-            final var reentry = reentryPoint(tree);
-            if (reentry != null) {
-                walk(reentry, DocBuilder::reentryPoint).toList().reversed().forEach(this::prerender);
-            }
+            prerenderReentryPoints(tree);
             doc = adjust.apply(dispatch(tree));
         }
         return withTrailing ? attacher.attach(tree, doc) : attacher.attachLeading(tree, doc);
+    }
+
+    private MethodChainRenderer.ChainDocs scanChain(final MethodInvocationTree node) {
+        final var ready = prerendered.remove(node);
+        if (ready != null) {
+            diagnostics.addAll(ready.diagnostics());
+            return new MethodChainRenderer.ChainDocs(attacher.attach(node, ready.doc()), Optional.empty());
+        }
+        prerenderReentryPoints(node);
+        final var chain = MethodChainRenderer.chainDocs(node, recursor);
+        return new MethodChainRenderer.ChainDocs(attacher.attach(node, chain.doc()), chain.brokenAfterHead());
+    }
+
+    private void prerenderReentryPoints(final Tree tree) {
+        final var reentry = reentryPoint(tree);
+        if (reentry != null) {
+            walk(reentry, DocBuilder::reentryPoint)
+                    .toList()
+                    .reversed()
+                    .forEach(this::prerender);
+        }
     }
 
     private void prerender(final Tree tree) {
@@ -266,7 +300,8 @@ public final class DocBuilder {
             case MethodInvocationTree call ->
                 innermost(call, DocBuilder::receiverCall).getMethodSelect() instanceof MemberSelectTree ms ? ms.getExpression() : null;
             case MemberSelectTree select ->
-                innermost(select, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null).getExpression();
+                innermost(select, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null)
+                        .getExpression();
             default -> null;
         };
         return receiver instanceof MethodInvocationTree || receiver instanceof MemberSelectTree ? receiver : null;
@@ -282,12 +317,14 @@ public final class DocBuilder {
     }
 
     private static <T> Stream<T> walk(final T start, final Function<T, @Nullable T> next) {
-        return Stream.<@Nullable T>iterate(start, Objects::nonNull, t -> next.apply(Objects.requireNonNull(t))).map(Objects::requireNonNull);
+        return Stream.<@Nullable T>iterate(start, Objects::nonNull, t -> next.apply(Objects.requireNonNull(t)))
+                .map(Objects::requireNonNull);
     }
 
     private Doc visitCompilationUnit(final CompilationUnitTree node) {
         final var hasPackage = node.getPackageName() != null;
-        final var packageAnnotations = node.getPackageAnnotations().stream().flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
+        final var packageAnnotations = node.getPackageAnnotations().stream()
+                .flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
         // The blank line after the package declaration normally comes from the import section. With
         // no imports there is no import section, and the first type ran straight into the package.
         final var packageSeparator = node.getImports().isEmpty() ? Stream.<Doc>of(Doc.HARD_LINE) : Stream.<Doc>empty();
@@ -295,13 +332,19 @@ public final class DocBuilder {
                 ? Stream.<Doc>empty()
                 : Stream.concat(Stream.of(packageLine(node.getPackage()), Doc.HARD_LINE), packageSeparator);
         final var module = node.getModule();
-        final var moduleStream = module == null ? Stream.<Doc>empty() : Optional.ofNullable(scan(module)).stream();
-        final var typeDeclarationsStream = Doc.intersperse(
-                Doc.BLANK_LINE, node.getTypeDecls().stream().flatMap(declaration -> Optional.ofNullable(scan(declaration)).stream()));
+        final var moduleStream = module == null
+                ? Stream.<Doc>empty()
+                : Optional.ofNullable(scan(module)).stream();
+        final var typeDeclarationsStream = Doc.intersperse(Doc.BLANK_LINE, node.getTypeDecls().stream()
+                .flatMap(declaration -> Optional.ofNullable(scan(declaration)).stream()));
         return Doc.concatOf(
                 Stream.of(
-                        CommentDocs.fileHeaderStream(unit.fileHeader()), packageAnnotations, pkgStream,
-                        ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit), moduleStream, typeDeclarationsStream,
+                        CommentDocs.fileHeaderStream(unit.fileHeader()),
+                        packageAnnotations,
+                        pkgStream,
+                        ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit),
+                        moduleStream,
+                        typeDeclarationsStream,
                         CommentDocs.fileFooterStream(unit.fileFooter())));
     }
 
@@ -334,7 +377,9 @@ public final class DocBuilder {
     }
 
     private Doc visitBlock(final BlockTree node) {
-        final var statements = node.getStatements().stream().flatMap(s -> Optional.ofNullable(scan(s)).stream()).toList();
+        final var statements = node.getStatements().stream()
+                .flatMap(s -> Optional.ofNullable(scan(s)).stream())
+                .toList();
         return BlockRenderer.buildBlock(new Doc.Text("{"), attacher.braceLine(node), statements, attacher.trailingInside(node));
     }
 
@@ -476,19 +521,26 @@ public final class DocBuilder {
             return from >= 0
                 && to <= unit.source().length()
                 && from <= to
-                && unit.source().substring(from, to).chars().allMatch(c -> c == ' ' || c == '\t');
+                && unit.source()
+                        .substring(from, to)
+                        .chars()
+                        .allMatch(c -> c == ' ' || c == '\t');
         }
 
         @Override
         public List<CommentToken> interior(final Tree node) {
             final var start = unit.startOf(node);
-            return unit.interiorOf(node).stream().filter(c -> c.start() >= start).toList();
+            return unit.interiorOf(node).stream()
+                    .filter(c -> c.start() >= start)
+                    .toList();
         }
 
         @Override
         public List<CommentToken> pastTheSeparatorBefore(final Tree item) {
             final var start = unit.startOf(item);
-            return unit.interiorOf(item).stream().filter(c -> c.start() < start).toList();
+            return unit.interiorOf(item).stream()
+                    .filter(c -> c.start() < start)
+                    .toList();
         }
 
         @Override

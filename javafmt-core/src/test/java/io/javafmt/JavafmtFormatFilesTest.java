@@ -52,21 +52,23 @@ class JavafmtFormatFilesTest {
 
     @Test
     void manyFilesStayAlignedWithTheirPaths(@TempDir final Path dir) throws Exception {
-        final var paths = IntStream.range(0, 150).mapToObj(i -> dir.resolve("F" + i + ".java")).toList();
+        final var paths = IntStream.range(0, 150)
+                .mapToObj(i -> dir.resolve("F" + i + ".java"))
+                .toList();
         IntStream.range(0, paths.size()).forEach(i -> write(paths.get(i), "class F" + i + " {   }\n"));
         final var results = Javafmt.formatFiles(paths, JavafmtConfig.defaults(), FormatCache.noop(), 4);
         assertThat(results).hasSameSizeAs(paths);
         IntStream.range(0, paths.size())
-                .forEach(
-                        i -> assertThat(results.get(i))
-                                .isEqualTo(
-                                        new FileResult.Formatted(
-                                                paths.get(i), "class F" + i + " {   }\n", new FormatResult("class F" + i + " {}\n", List.of()))));
+                .forEach(i -> assertThat(results.get(i))
+                        .isEqualTo(new FileResult.Formatted(
+                                paths.get(i), "class F" + i + " {   }\n", new FormatResult("class F" + i + " {}\n", List.of()))));
     }
 
     @Test
     void filesAreReadAndHashedOnTheFormatPoolRatherThanTheCallingThread(@TempDir final Path dir) {
-        final var paths = IntStream.range(0, 8).mapToObj(i -> dir.resolve("F" + i + ".java")).toList();
+        final var paths = IntStream.range(0, 8)
+                .mapToObj(i -> dir.resolve("F" + i + ".java"))
+                .toList();
         paths.forEach(path -> write(path, "class F {}\n"));
         final var hashingThreads = ConcurrentHashMap.<String>newKeySet();
         final var cache = new FormatCache() {
@@ -83,7 +85,9 @@ class JavafmtFormatFilesTest {
             public void save() {}
         };
         Javafmt.formatFiles(paths, JavafmtConfig.defaults(), cache, 4);
-        assertThat(hashingThreads).isNotEmpty().allSatisfy(name -> assertThat(name).startsWith("javafmt-"));
+        assertThat(hashingThreads)
+                .isNotEmpty()
+                .allSatisfy(name -> assertThat(name).startsWith("javafmt-"));
     }
 
     private static void write(final Path path, final String content) {

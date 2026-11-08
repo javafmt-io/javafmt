@@ -16,7 +16,8 @@ class FinalCatchParameterTest {
         return Stream.of(
                 Arguments.of("single type", "catch (IOException e) { log(e); }", "catch (final IOException e) { log(e); }"),
                 Arguments.of(
-                        "multi-catch", "catch (IllegalStateException | IllegalArgumentException e) {}",
+                        "multi-catch",
+                        "catch (IllegalStateException | IllegalArgumentException e) {}",
                         "catch (final IllegalStateException | IllegalArgumentException e) {}"),
                 Arguments.of("unnamed parameter", "catch (IllegalStateException _) {}", "catch (final IllegalStateException _) {}"),
                 Arguments.of("annotated parameter", "catch (@Annotated IOException e) {}", "catch (@Annotated final IOException e) {}"),
@@ -33,7 +34,8 @@ class FinalCatchParameterTest {
     @MethodSource("rewritten")
     void theFixedSourceNeedsNoFurtherFix(final String label, final String catchClause, final String expected) {
         final var unit = JavaParser.parseUnit(inMethod(expected));
-        assertThat(new FinalCatchParameter().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
+        assertThat(new FinalCatchParameter().apply(LintContext.parseOnly(unit)).edits())
+                .isEmpty();
     }
 
     @ParameterizedTest
@@ -48,6 +50,8 @@ class FinalCatchParameterTest {
 
     private static String fix(final String source) {
         final var unit = JavaParser.parseUnit(source);
-        return LintEngine.applyEdits(source, new FinalCatchParameter().apply(LintContext.parseOnly(unit)).edits());
+        return LintEngine.applyEdits(
+                source,
+                new FinalCatchParameter().apply(LintContext.parseOnly(unit)).edits());
     }
 }

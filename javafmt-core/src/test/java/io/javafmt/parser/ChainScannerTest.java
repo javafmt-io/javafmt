@@ -63,7 +63,8 @@ class ChainScannerTest {
     @ParameterizedTest
     @MethodSource("reductions")
     void reducesInTheSameOrderAsTreeScanner(final String field, final boolean concatenating) {
-        final var unit = JavaParser.parseUnit("class Sum {\n    " + field + "\n}\n").tree();
+        final var unit = JavaParser.parseUnit("class Sum {\n    " + field + "\n}\n")
+                .tree();
         final var javac = new TreeScanner<String, Void>() {
             @Override
             public String visitLiteral(final LiteralTree node, final Void unused) {
@@ -91,7 +92,13 @@ class ChainScannerTest {
 
     static Stream<Arguments> deepChains() {
         return Stream.of(
-                Arguments.of("int value = " + Stream.generate(() -> "1").limit(5_000).collect(Collectors.joining(" + ")) + ";", BinaryTree.class),
+                Arguments.of(
+                        "int value = "
+                                + Stream.generate(() -> "1")
+                                        .limit(5_000)
+                                        .collect(Collectors.joining(" + "))
+                                + ";",
+                        BinaryTree.class),
                 Arguments.of("Object value = new StringBuilder()" + ".append(1)".repeat(5_000) + ";", MethodInvocationTree.class),
                 Arguments.of("Object value = a" + ".f(1).b".repeat(5_000) + ";", MethodInvocationTree.class));
     }
@@ -104,20 +111,18 @@ class ChainScannerTest {
         final var unit = JavaParser.parseUnit(source).tree();
         final var literals = new AtomicInteger();
         assertThat(
-                onASmallStack(
-                        () -> new TreeScanner<Void, Void>() {
-                        }.scan(unit, null)))
+                onASmallStack(() -> new TreeScanner<Void, Void>() {
+                }.scan(unit, null)))
                 .isInstanceOf(StackOverflowError.class);
         assertThat(
-                onASmallStack(
-                        () -> new ChainPathScanner<Void, Void>() {
-                            @Override
-                            public Void visitLiteral(final LiteralTree node, final Void unused) {
-                                assertThat(getCurrentPath().getParentPath().getLeaf()).isInstanceOf(literalParent);
-                                literals.incrementAndGet();
-                                return null;
-                            }
-                        }.scan(new TreePath(unit), null)))
+                onASmallStack(() -> new ChainPathScanner<Void, Void>() {
+                    @Override
+                    public Void visitLiteral(final LiteralTree node, final Void unused) {
+                        assertThat(getCurrentPath().getParentPath().getLeaf()).isInstanceOf(literalParent);
+                        literals.incrementAndGet();
+                        return null;
+                    }
+                }.scan(new TreePath(unit), null)))
                 .isNull();
         assertThat(literals).hasValue(terms);
     }
@@ -134,7 +139,8 @@ class ChainScannerTest {
                         failure.set(t);
                     }
                 },
-                "small-stack", 128 * 1024);
+                "small-stack",
+                128 * 1024);
         thread.start();
         thread.join();
         return failure.get();
@@ -234,6 +240,8 @@ class ChainScannerTest {
     }
 
     private static String describe(final TreePath path) {
-        return StreamSupport.stream(path.spliterator(), false).map(tree -> tree.getKind().toString()).collect(Collectors.joining(" < "));
+        return StreamSupport.stream(path.spliterator(), false)
+                .map(tree -> tree.getKind().toString())
+                .collect(Collectors.joining(" < "));
     }
 }

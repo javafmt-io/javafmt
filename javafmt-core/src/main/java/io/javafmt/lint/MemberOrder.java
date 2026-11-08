@@ -41,26 +41,24 @@ public final class MemberOrder implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainPathScanner<>() {
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        if (!reorderable(getCurrentPath())) {
-                            return super.visitClass(node, null);
-                        }
-                        final var own = editsFor(node, unit);
-                        edits.addAll(own);
-                        if (own.isEmpty()) {
-                            return super.visitClass(node, null);
-                        }
-                        // A nested type that is moving is copied wholesale, so an edit inside it would land
-                        // in a span this round is about to delete — which the engine reports as overlapping
-                        // edits and refuses the whole file. The lint loop re-parses between rounds, so the
-                        // inner body gets its turn on the next pass.
-                        return null;
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                if (!reorderable(getCurrentPath())) {
+                    return super.visitClass(node, null);
+                }
+                final var own = editsFor(node, unit);
+                edits.addAll(own);
+                if (own.isEmpty()) {
+                    return super.visitClass(node, null);
+                }
+                // A nested type that is moving is copied wholesale, so an edit inside it would land
+                // in a span this round is about to delete — which the engine reports as overlapping
+                // edits and refuses the whole file. The lint loop re-parses between rounds, so the
+                // inner body gets its turn on the next pass.
+                return null;
+            }
+        });
     }
 
     private static boolean reorderable(final TreePath path) {
@@ -69,20 +67,29 @@ public final class MemberOrder implements LintRule {
     }
 
     private static List<LintEdit> editsFor(final ClassTree node, final ParsedUnit unit) {
-        final var members = node.getMembers().stream().filter(m -> unit.startOf(m) >= 0).toList();
+        final var members = node.getMembers().stream()
+                .filter(m -> unit.startOf(m) >= 0)
+                .toList();
         final var movers = membersToMove(node, members);
         if (movers.isEmpty() || alreadyInOrder(members, movers)) {
             return List.of();
         }
         final var bodyStart = unit.bodyBraceOf(node) + 1;
-        final var spans = members.stream().map(m -> span(unit, m, bodyStart)).toList();
+        final var spans = members.stream()
+                .map(m -> span(unit, m, bodyStart))
+                .toList();
         final var insertAt = spans.getLast().end();
         final var indent = " ".repeat(columnOf(unit.source(), spans.getFirst().start()));
         final var appended = movers.stream()
-                .map(m -> "\n\n" + indent + unit.source().substring(span(unit, m, bodyStart).start(), span(unit, m, bodyStart).end()))
+                .map(m -> "\n\n" + indent
+                        + unit.source()
+                                .substring(span(unit, m, bodyStart).start(),
+                                        span(unit, m, bodyStart).end()))
                 .reduce("", String::concat);
         return Stream.concat(
-                movers.stream().map(m -> span(unit, m, bodyStart)).map(s -> new LintEdit(s.start(), s.end(), "")),
+                movers.stream()
+                        .map(m -> span(unit, m, bodyStart))
+                        .map(s -> new LintEdit(s.start(), s.end(), "")),
                 Stream.of(LintEdit.insert(insertAt, appended)))
                 .toList();
     }
@@ -94,9 +101,15 @@ public final class MemberOrder implements LintRule {
      * author wrote them in.
      */
     private static List<Tree> membersToMove(final ClassTree node, final List<? extends Tree> members) {
-        final var nestedTypes = members.stream().filter(ClassTree.class::isInstance).filter(m -> !isJunitNestedClass(m)).<Tree>map(m -> m).toList();
+        final var nestedTypes = members.stream()
+                .filter(ClassTree.class::isInstance)
+                .filter(m -> !isJunitNestedClass(m))
+                .<Tree>map(m -> m)
+                .toList();
         final var constructor = utilityConstructor(node, members);
-        return constructor.isEmpty() ? nestedTypes : Stream.concat(nestedTypes.stream(), constructor.stream()).toList();
+        return constructor.isEmpty()
+                ? nestedTypes
+                : Stream.concat(nestedTypes.stream(), constructor.stream()).toList();
     }
 
     /** Whether {@code movers} are already the last members, in the order they would be moved into. */
@@ -105,13 +118,18 @@ public final class MemberOrder implements LintRule {
     }
 
     private static List<Tree> utilityConstructor(final ClassTree node, final List<? extends Tree> members) {
-        if (node.getKind() != Tree.Kind.CLASS || !node.getModifiers().getFlags().contains(Modifier.FINAL)) {
+        if (node.getKind() != Tree.Kind.CLASS
+            || !node.getModifiers().getFlags().contains(Modifier.FINAL)) {
             return List.of();
         }
-        if (members.stream().anyMatch(m -> isInstanceField(m) || isJunitNestedClass(m))) {
+        if (members.stream()
+                .anyMatch(m -> isInstanceField(m) || isJunitNestedClass(m))) {
             return List.of();
         }
-        final var constructors = members.stream().filter(MemberOrder::isConstructor).map(MethodTree.class::cast).toList();
+        final var constructors = members.stream()
+                .filter(MemberOrder::isConstructor)
+                .map(MethodTree.class::cast)
+                .toList();
         if (constructors.size() != 1) {
             return List.of();
         }
@@ -132,7 +150,8 @@ public final class MemberOrder implements LintRule {
     }
 
     private static boolean isInstanceField(final Tree member) {
-        return member instanceof VariableTree v && !v.getModifiers().getFlags().contains(Modifier.STATIC);
+        return member instanceof VariableTree v
+            && !v.getModifiers().getFlags().contains(Modifier.STATIC);
     }
 
     /**
@@ -146,7 +165,10 @@ public final class MemberOrder implements LintRule {
                 .filter(start -> start >= bodyStart)
                 .min()
                 .orElse(unit.startOf(member));
-        final var trailing = unit.trailingOf(member).stream().mapToInt(c -> c.end()).max().orElse(unit.endOf(member));
+        final var trailing = unit.trailingOf(member).stream()
+                .mapToInt(c -> c.end())
+                .max()
+                .orElse(unit.endOf(member));
         return new Span(Math.min(leading, unit.startOf(member)), Math.max(trailing, unit.endOf(member)));
     }
 

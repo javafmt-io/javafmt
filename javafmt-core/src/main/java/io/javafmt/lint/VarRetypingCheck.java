@@ -52,7 +52,9 @@ class VarRetypingCheck {
                                            final List<LocalVarUseVar.Proposal> proven,
                                            final List<LocalVarUseVar.Proposal> unproven) {
         final var accepted = accepted(context, attribution, proven, unproven);
-        return unproven.stream().filter(proposal -> proposal.keepsItsTypeWithoutTarget() || accepted.contains(proposal)).toList();
+        return unproven.stream()
+                .filter(proposal -> proposal.keepsItsTypeWithoutTarget() || accepted.contains(proposal))
+                .toList();
     }
 
     String rewrittenSource(final ParsedUnit unit, final List<LocalVarUseVar.Proposal> proven, final List<LocalVarUseVar.Proposal> unproven) {
@@ -60,7 +62,9 @@ class VarRetypingCheck {
     }
 
     private List<LintEdit> editsOf(final List<LocalVarUseVar.Proposal> proven, final List<LocalVarUseVar.Proposal> unproven) {
-        return Stream.concat(proven.stream(), unproven.stream()).flatMap(proposal -> proposal.edits().stream()).toList();
+        return Stream.concat(proven.stream(), unproven.stream())
+                .flatMap(proposal -> proposal.edits().stream())
+                .toList();
     }
 
     private List<LocalVarUseVar.Proposal> accepted(final LintContext context,
@@ -79,17 +83,27 @@ class VarRetypingCheck {
             return List.of();
         }
         final var shift = new Shift(edits);
-        final var failures = failures(unit, attribution, rewritten, shift, Stream.concat(proven.stream(), unproven.stream()).toList(), unproven);
+        final var failures = failures(
+                unit,
+                attribution,
+                rewritten,
+                shift,
+                Stream.concat(proven.stream(), unproven.stream()).toList(),
+                unproven);
         if (failures.isEmpty()) {
             return unproven;
         }
         if (failures.contains(-1L)) {
             return List.of();
         }
-        final var rejected = unproven.stream().filter(proposal -> failures.stream().anyMatch(f -> inScope(proposal, f, unit, shift))).toList();
+        final var rejected = unproven.stream()
+                .filter(proposal -> failures.stream()
+                        .anyMatch(f -> inScope(proposal, f, unit, shift)))
+                .toList();
         return unproven.stream()
                 .filter(proposal -> !rejected.contains(proposal))
-                .filter(proposal -> rejected.stream().noneMatch(outer -> inScope(outer, shift.start(unit.startOf(proposal.variable())), unit, shift)))
+                .filter(proposal -> rejected.stream()
+                        .noneMatch(outer -> inScope(outer, shift.start(unit.startOf(proposal.variable())), unit, shift)))
                 .toList();
     }
 
@@ -98,7 +112,8 @@ class VarRetypingCheck {
     }
 
     private boolean inAnyScope(final List<Scope> scopes, final long offset) {
-        return scopes.stream().anyMatch(scope -> offset >= scope.start() && offset < scope.end());
+        return scopes.stream()
+                .anyMatch(scope -> offset >= scope.start() && offset < scope.end());
     }
 
     private boolean inScope(final LocalVarUseVar.Proposal proposal, final long offset, final ParsedUnit unit, final Shift shift) {
@@ -114,7 +129,9 @@ class VarRetypingCheck {
         final var knownErrors = attribution.errorsIn(unit.tree()).stream()
                 .map(error -> new AttributionError(error.offset() < 0 ? -1 : shift.start((int) error.offset()), normalized(error.message())))
                 .collect(Collectors.toSet());
-        final var newErrors = rewritten.attribution().errorsIn(rewritten.unit().tree()).stream()
+        final var newErrors = rewritten.attribution()
+                .errorsIn(rewritten.unit().tree())
+                .stream()
                 .map(error -> new AttributionError(error.offset() < 0 ? -1 : error.offset(), normalized(error.message())))
                 .filter(Predicate.not(knownErrors::contains))
                 .map(AttributionError::offset);
@@ -127,12 +144,13 @@ class VarRetypingCheck {
                 .collect(Collectors.toCollection(() -> Collections.<Tree>newSetFromMap(new IdentityHashMap<>())));
         final var after = expressionsOf(rewritten.unit(), Set.of()).stream()
                 .collect(Collectors.toMap(path -> key(path.getLeaf(), rewritten.unit()), path -> path, (first, _) -> first));
-        final var scopes = unproven.stream().map(proposal -> scopeOf(proposal, unit, shift)).toList();
+        final var scopes = unproven.stream()
+                .map(proposal -> scopeOf(proposal, unit, shift))
+                .toList();
         final var changed = expressionsOf(unit, retypedDeclarations).stream()
                 .filter(path -> inAnyScope(scopes, shift.start(unit.startOf(path.getLeaf()))))
-                .filter(
-                        path -> !matches(
-                                path, after.get(shiftedKey(path.getLeaf(), unit, shift)), attribution, rewritten.attribution(), retypedVariables))
+                .filter(path -> !matches(
+                        path, after.get(shiftedKey(path.getLeaf(), unit, shift)), attribution, rewritten.attribution(), retypedVariables))
                 .map(path -> (long) shift.start(unit.startOf(path.getLeaf())));
         return Stream.concat(newErrors, changed).collect(Collectors.toSet());
     }
@@ -151,7 +169,8 @@ class VarRetypingCheck {
             && beforeElement != null
             && retypedVariables.contains(beforeElement);
         return (isRetypedReference
-            || typeName(beforeAttribution.trees().getTypeMirror(before)).equals(typeName(afterAttribution.trees().getTypeMirror(after))))
+            || typeName(beforeAttribution.trees().getTypeMirror(before))
+                    .equals(typeName(afterAttribution.trees().getTypeMirror(after))))
             && sameSymbol(beforeElement, afterElement, afterAttribution);
     }
 
@@ -178,7 +197,8 @@ class VarRetypingCheck {
         }
         final var ownerAfter = afterAttribution.elements().getTypeElement(overriddenOwner.getQualifiedName());
         return ownerAfter != null
-            && ElementFilter.methodsIn(ownerAfter.getEnclosedElements()).stream()
+            && ElementFilter.methodsIn(ownerAfter.getEnclosedElements())
+                    .stream()
                     .filter(method -> method.toString().equals(overridden.toString()))
                     .anyMatch(method -> afterAttribution.elements().overrides(overrider, method, overriderOwner));
     }
@@ -273,14 +293,20 @@ class VarRetypingCheck {
         }
 
         private static int movedBy(final NavigableMap<Integer, Integer> movedFrom, final int offset) {
-            return Optional.ofNullable(movedFrom.floorEntry(offset)).map(Map.Entry::getValue).orElse(0);
+            return Optional.ofNullable(movedFrom.floorEntry(offset))
+                    .map(Map.Entry::getValue)
+                    .orElse(0);
         }
 
         private static NavigableMap<Integer, Integer> movedFrom(final List<LintEdit> edits, final ToIntFunction<LintEdit> from) {
             final TreeMap<Integer, Integer> byOffset = edits.stream()
                     .collect(Collectors.toMap(from::applyAsInt, Shift::delta, Integer::sum, TreeMap::new));
-            final var offsets = byOffset.keySet().stream().mapToInt(Integer::intValue).toArray();
-            final var totals = byOffset.values().stream().mapToInt(Integer::intValue).toArray();
+            final var offsets = byOffset.keySet().stream()
+                    .mapToInt(Integer::intValue)
+                    .toArray();
+            final var totals = byOffset.values().stream()
+                    .mapToInt(Integer::intValue)
+                    .toArray();
             Arrays.parallelPrefix(totals, Integer::sum);
             final TreeMap<Integer, Integer> cumulative = IntStream.range(0, offsets.length)
                     .boxed()

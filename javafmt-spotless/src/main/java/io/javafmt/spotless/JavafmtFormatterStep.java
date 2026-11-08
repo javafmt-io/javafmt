@@ -51,7 +51,8 @@ public final class JavafmtFormatterStep {
      */
     FormatterStep createForVersion(final JavafmtConfig config, final File projectDirectory, final String formatterVersion) {
         Objects.requireNonNull(config, "config");
-        final var directory = Objects.requireNonNull(projectDirectory, "projectDirectory").getAbsolutePath();
+        final var directory = Objects.requireNonNull(projectDirectory, "projectDirectory")
+                .getAbsolutePath();
         return FormatterStep.createLazy(NAME, () -> new Setup(formatterVersion, config, directory), Setup::state, State::formatter);
     }
 
@@ -67,14 +68,16 @@ public final class JavafmtFormatterStep {
         final var config = JavafmtConfig.defaults().withRelease(release);
         return throwOnError(
                 Javafmt.formatWithResult(
-                        source, classpath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)),
+                        source,
+                        classpath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)),
                         ProjectFile.forFile(file.toPath())));
     }
 
     /** Package-private seam so tests can assert on the thrown message directly. */
     String throwOnError(final FormatResult result) {
         if (result.hasErrors()) {
-            throw new IllegalArgumentException("javafmt: " + result.errors().getFirst().describeBare());
+            throw new IllegalArgumentException(
+                    "javafmt: " + result.errors().getFirst().describeBare());
         }
         return result.output();
     }
@@ -113,7 +116,11 @@ public final class JavafmtFormatterStep {
 
         @Override
         public List<Lint> lint(final String content, final @Nullable File file) {
-            return Javafmt.formatWithResult(content, config, projectFileFor(file)).warnings().stream().map(JavafmtFormatterStep::toLint).toList();
+            return Javafmt.formatWithResult(content, config, projectFileFor(file))
+                    .warnings()
+                    .stream()
+                    .map(JavafmtFormatterStep::toLint)
+                    .toList();
         }
     }
 

@@ -55,7 +55,8 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
     @Override
     public boolean canFormat(@NotNull final PsiFile file) {
-        return file instanceof PsiJavaFile && JavafmtSettings.getInstance(file.getProject()).isEnabled();
+        return file instanceof PsiJavaFile
+            && JavafmtSettings.getInstance(file.getProject()).isEnabled();
     }
 
     @Override
@@ -108,11 +109,16 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
     }
 
     private static String describe(final JavafmtBinary.Outcome.Formatted formatted) {
-        return formatted.diagnostics().stream().map(Diagnostic::getMessage).collect(Collectors.joining("\n"));
+        return formatted.diagnostics().stream()
+                .map(Diagnostic::getMessage)
+                .collect(Collectors.joining("\n"));
     }
 
     private static void notifyUser(final Project project, final NotificationType type, final String message) {
-        NotificationGroupManager.getInstance().getNotificationGroup(NOTIFICATION_GROUP).createNotification("javafmt", message, type).notify(project);
+        NotificationGroupManager.getInstance()
+                .getNotificationGroup(NOTIFICATION_GROUP)
+                .createNotification("javafmt", message, type)
+                .notify(project);
     }
 
     /**
@@ -159,13 +165,19 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             final var project = context.getProject();
             final var fileName = context.getContainingFile().getName();
             final var content = request.getDocumentText();
-            final var scope = Optional.ofNullable(context.getVirtualFile()).map(file -> FileScope.of(project, file)).orElseGet(FileScope::none);
+            final var scope = Optional.ofNullable(context.getVirtualFile())
+                    .map(file -> FileScope.of(project, file))
+                    .orElseGet(FileScope::none);
             final var engine = JavafmtApplicationSettings.getInstance().getEngine();
             final var outcome = switch (engine) {
                 case IN_PROCESS -> Optional.of(timed(fileName, engine, scope, () -> InProcessFormatter.format(content, scope)));
                 case NATIVE ->
                     supportedBinary(project)
-                            .map(binary -> timed(fileName, engine, scope, () -> JavafmtDaemons.getInstance(project).format(binary, content, scope)));
+                            .map(binary -> timed(
+                                    fileName,
+                                    engine,
+                                    scope,
+                                    () -> JavafmtDaemons.getInstance(project).format(binary, content, scope)));
             };
             if (outcome.isEmpty()) {
                 request.onTextReady(content);
@@ -176,7 +188,8 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 case JavafmtBinary.Outcome.Refused refused -> {
                     LOG.warn("javafmt: " + refused.reason());
                     notifyUser(
-                            project, refused.internal() ? NotificationType.ERROR : NotificationType.WARNING,
+                            project,
+                            refused.internal() ? NotificationType.ERROR : NotificationType.WARNING,
                             fileName + " was left unformatted: " + refused.reason());
                     request.onTextReady(content);
                 }
@@ -212,7 +225,8 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             }
             if (!supported.get()) {
                 notifyUser(
-                        project, NotificationType.WARNING,
+                        project,
+                        NotificationType.WARNING,
                         "The javafmt binary at " + binary.path() + " is too old: javafmt " + JavafmtBinary.minimumVersion()
                                 + " or newer is required.");
                 return Optional.empty();
@@ -226,7 +240,8 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 final var found = JavafmtBinary.resolve(configured).flatMap(BinaryIdentity::of);
                 if (found.isEmpty()) {
                     notifyUser(
-                            project, NotificationType.WARNING,
+                            project,
+                            NotificationType.WARNING,
                             "No javafmt binary found at " + configured + ". Fix javafmt.binaryPath under Settings | Tools | javafmt, or clear it.");
                 }
                 return found;
@@ -250,7 +265,8 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             if (installation instanceof Installation.Failed failed && provider.claimFailureNotice()) {
                 LOG.warn("javafmt: " + failed.reason());
                 notifyUser(
-                        project, NotificationType.WARNING,
+                        project,
+                        NotificationType.WARNING,
                         "javafmt could not download its binary: " + failed.reason()
                                 + ". Set javafmt.binaryPath under Settings | Tools | javafmt, or put javafmt on your PATH.");
             }

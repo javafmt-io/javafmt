@@ -59,8 +59,11 @@ class JavafmtFormatAllTest {
     @Test
     void matchesTheSingleFilePathOnEveryFile() {
         final var sources = dirtyCorpus(12);
-        final var individually = sources.stream().map(Javafmt::format).toList();
-        assertThat(outputsOf(Javafmt.formatAll(sources, JavafmtConfig.defaults(), 4))).isEqualTo(individually);
+        final var individually = sources.stream()
+                .map(Javafmt::format)
+                .toList();
+        assertThat(outputsOf(Javafmt.formatAll(sources, JavafmtConfig.defaults(), 4)))
+                .isEqualTo(individually);
     }
 
     @Test
@@ -68,8 +71,11 @@ class JavafmtFormatAllTest {
         // The pipeline processes a bounded number of files per javac task; crossing that boundary
         // must not change any file's result or its position in the output.
         final var sources = dirtyCorpus(150);
-        final var individually = sources.stream().map(Javafmt::format).toList();
-        assertThat(outputsOf(Javafmt.formatAll(sources, JavafmtConfig.defaults(), 4))).isEqualTo(individually);
+        final var individually = sources.stream()
+                .map(Javafmt::format)
+                .toList();
+        assertThat(outputsOf(Javafmt.formatAll(sources, JavafmtConfig.defaults(), 4)))
+                .isEqualTo(individually);
     }
 
     @ParameterizedTest
@@ -91,10 +97,18 @@ class JavafmtFormatAllTest {
 
     @Test
     void chunksSplitTheSourcesInOrder() {
-        final var sources = IntStream.range(0, 32).mapToObj(i -> "class A" + i + " {}\n").toList();
+        final var sources = IntStream.range(0, 32)
+                .mapToObj(i -> "class A" + i + " {}\n")
+                .toList();
         final var chunks = BatchFormatter.chunks(sources, 2);
-        assertThat(chunks).hasSize(2).allSatisfy(chunk -> assertThat(chunk).hasSize(16));
-        assertThat(chunks.stream().flatMap(List::stream).toList()).isEqualTo(sources);
+        assertThat(chunks)
+                .hasSize(2)
+                .allSatisfy(chunk -> assertThat(chunk).hasSize(16));
+        assertThat(
+                chunks.stream()
+                        .flatMap(List::stream)
+                        .toList())
+                .isEqualTo(sources);
     }
 
     @Test
@@ -106,7 +120,10 @@ class JavafmtFormatAllTest {
         assertThat(results.get(2).hasErrors()).isFalse();
         // A file that cannot be parsed round-trips unchanged, exactly as the single-file path does.
         assertThat(results.get(1).output()).isEqualTo(sources.get(1));
-        assertThat(outputsOf(results)).isEqualTo(sources.stream().map(Javafmt::format).toList());
+        assertThat(outputsOf(results))
+                .isEqualTo(sources.stream()
+                        .map(Javafmt::format)
+                        .toList());
     }
 
     @Test
@@ -115,7 +132,10 @@ class JavafmtFormatAllTest {
         // result list index-aligned with their input.
         final var sources = List.of("", "class A {}\n", "", "class B {}\n");
         final var results = Javafmt.formatAll(sources, JavafmtConfig.defaults(), 2);
-        assertThat(outputsOf(results)).isEqualTo(sources.stream().map(Javafmt::format).toList());
+        assertThat(outputsOf(results))
+                .isEqualTo(sources.stream()
+                        .map(Javafmt::format)
+                        .toList());
     }
 
     @Test
@@ -126,7 +146,9 @@ class JavafmtFormatAllTest {
     @Test
     void analyzeBatchMatchesTheSingleFileAnalyzePath() {
         final var sources = analyzeSensitiveSources();
-        final var individually = sources.stream().map(s -> Javafmt.formatWithResult(s, ANALYZE).output()).toList();
+        final var individually = sources.stream()
+                .map(s -> Javafmt.formatWithResult(s, ANALYZE).output())
+                .toList();
         assertThat(outputsOf(Javafmt.formatAll(sources, ANALYZE, 2))).isEqualTo(individually);
     }
 
@@ -134,7 +156,9 @@ class JavafmtFormatAllTest {
     void aFileJavacCannotAttributeIsFormattedParseOnlyWithAWarning() {
         final var source = "class A {\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
         final var results = BatchFormatter.formatChunk(
-                List.of(source), ANALYZE, BatchFormatter.Renderer.INLINE,
+                List.of(source),
+                ANALYZE,
+                BatchFormatter.Renderer.INLINE,
                 chunk -> BatchFormatter.fromAttributed(chunk, List.of(new Staged.Failed<>(new IllegalStateException("javac crashed")))));
         assertThat(results.getFirst().output()).isEqualTo(Javafmt.format(source));
         assertThat(results.getFirst().diagnostics())
@@ -157,17 +181,24 @@ class JavafmtFormatAllTest {
     void aParseErrorUnderAnalyzeStaysAParseError() {
         final var source = "class Broken { this is not java";
         final var analyzed = Javafmt.formatWithResult(source, ANALYZE);
-        assertThat(analyzed.diagnostics()).isNotEmpty().allSatisfy(d -> assertThat(d).isInstanceOf(Diagnostic.ParseError.class));
+        assertThat(analyzed.diagnostics())
+                .isNotEmpty()
+                .allSatisfy(d -> assertThat(d).isInstanceOf(Diagnostic.ParseError.class));
         assertThat(analyzed).isEqualTo(Javafmt.formatWithResult(source));
     }
 
     @Test
     void aFailedAnalyzeChunkIsRetriedFileByFileWithAttribution() {
         final var sources = analyzeSensitiveSources();
-        final var analyzed = sources.stream().map(s -> Javafmt.formatWithResult(s, ANALYZE).output()).toList();
-        assertThat(analyzed).isNotEqualTo(sources.stream().map(Javafmt::format).toList());
-        final var retried = JavaParser.attributing(
-                "", session -> formatChunkFailingWhenBatched(sources, chunk -> BatchFormatter.attributedContexts(chunk, session)));
+        final var analyzed = sources.stream()
+                .map(s -> Javafmt.formatWithResult(s, ANALYZE).output())
+                .toList();
+        assertThat(analyzed)
+                .isNotEqualTo(sources.stream()
+                        .map(Javafmt::format)
+                        .toList());
+        final var retried = JavaParser.attributing("", session -> formatChunkFailingWhenBatched(sources, chunk -> BatchFormatter.attributedContexts(
+                chunk, session)));
         assertThat(outputsOf(retried)).isEqualTo(analyzed);
     }
 
@@ -178,14 +209,19 @@ class JavafmtFormatAllTest {
             throw new IllegalStateException("every chunk fails");
         });
         assertThat(outputsOf(results)).isEqualTo(sources);
-        assertThat(results).allSatisfy(r -> assertThat(r.diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class));
+        assertThat(results)
+                .allSatisfy(r -> assertThat(r.diagnostics())
+                        .singleElement()
+                        .isInstanceOf(Diagnostic.InternalError.class));
     }
 
     @Test
     void analyzeWithLintOffMatchesTheSingleFileAnalyzePath() {
         final var config = ANALYZE.withLint(false);
         final var sources = analyzeSensitiveSources();
-        final var individually = sources.stream().map(s -> Javafmt.formatWithResult(s, config).output()).toList();
+        final var individually = sources.stream()
+                .map(s -> Javafmt.formatWithResult(s, config).output())
+                .toList();
         assertThat(outputsOf(Javafmt.formatAll(sources, config, 2))).isEqualTo(individually);
     }
 
@@ -193,26 +229,26 @@ class JavafmtFormatAllTest {
     void aPooledRenderTurnsAnUncaughtErrorIntoThatFilesDiagnostic() {
         try (final var pool = Executors.newSingleThreadExecutor()) {
             final var results = BatchFormatter.Renderer.on(pool)
-                    .renderAll(
-                            List.of("class A {}\n", "class B {}\n"),
+                    .renderAll(List.of("class A {}\n", "class B {}\n"),
                             List.of(
                                     () -> {
                                         throw new LinkageError("broken class");
                                     },
                                     () -> new FormatResult("class B {}\n", List.of())));
-            assertThat(results.getFirst().diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class);
+            assertThat(results.getFirst().diagnostics())
+                    .singleElement()
+                    .isInstanceOf(Diagnostic.InternalError.class);
             assertThat(results.get(1).output()).isEqualTo("class B {}\n");
         }
     }
 
     @Test
     void anInlineRenderLetsAnUncaughtErrorReachTheCaller() {
-        assertThatThrownBy(
-                () -> BatchFormatter.Renderer.INLINE.renderAll(
-                        List.of("class A {}\n"),
-                        List.of(() -> {
-                            throw new LinkageError("broken class");
-                        })))
+        assertThatThrownBy(() -> BatchFormatter.Renderer.INLINE.renderAll(
+                List.of("class A {}\n"),
+                List.of(() -> {
+                    throw new LinkageError("broken class");
+                })))
                 .isInstanceOf(LinkageError.class);
     }
 
@@ -256,7 +292,11 @@ class JavafmtFormatAllTest {
         // at the shallower depths. All this test pins is the contract that holds in every case —
         // every file still gets a result, the neighbours are formatted, and the deep file either
         // formats or round-trips unchanged with a diagnostic. What it may never do is end the run.
-        final var deep = "class Deep {\n    int value = " + Stream.generate(() -> "1").limit(terms).collect(Collectors.joining(" + ")) + ";\n}\n";
+        final var deep = "class Deep {\n    int value = "
+                + Stream.generate(() -> "1")
+                        .limit(terms)
+                        .collect(Collectors.joining(" + "))
+                + ";\n}\n";
         final var sources = List.of("class Good {}\n", deep, "class AlsoGood {}\n");
         final var results = Javafmt.formatAll(sources, JavafmtConfig.defaults(), 2);
         assertThat(results).hasSize(3);
@@ -270,7 +310,11 @@ class JavafmtFormatAllTest {
 
     @Test
     void aFileTooDeepToParseOnASmallStackComesBackUnchangedWithAnInternalError() throws InterruptedException {
-        final var deep = "class Deep {\n    int value = " + Stream.generate(() -> "1").limit(100_000).collect(Collectors.joining(" + ")) + ";\n}\n";
+        final var deep = "class Deep {\n    int value = "
+                + Stream.generate(() -> "1")
+                        .limit(100_000)
+                        .collect(Collectors.joining(" + "))
+                + ";\n}\n";
         final var sources = List.of("class Good {}\n", deep);
         final var results = new AtomicReference<List<FormatResult>>();
         final var failure = new AtomicReference<Throwable>();
@@ -283,23 +327,29 @@ class JavafmtFormatAllTest {
                         failure.set(t);
                     }
                 },
-                "small-stack", 512 * 1024);
+                "small-stack",
+                512 * 1024);
         thread.start();
         thread.join();
         assertThat(failure.get()).isNull();
         assertThat(results.get().getFirst().output()).isEqualTo("class Good {}\n");
         assertThat(results.get().get(1).output()).isEqualTo(deep);
-        assertThat(results.get().get(1).diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class);
+        assertThat(results.get().get(1).diagnostics())
+                .singleElement()
+                .isInstanceOf(Diagnostic.InternalError.class);
     }
 
     private static List<String> outputsOf(final List<FormatResult> results) {
-        return results.stream().map(FormatResult::output).toList();
+        return results.stream()
+                .map(FormatResult::output)
+                .toList();
     }
 
     @Test
     void configReachesTheAttributedPath() {
         final var source = "class A {\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
         assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).contains("final var x");
-        assertThat(Javafmt.formatWithResult(source, ANALYZE.withLint(false)).output()).doesNotContain("final var x");
+        assertThat(Javafmt.formatWithResult(source, ANALYZE.withLint(false)).output())
+                .doesNotContain("final var x");
     }
 }

@@ -49,7 +49,9 @@ class LintEngineTest {
         final var earlier = new ReplaceOnce("Earlier", NAME_START, NAME_START + 8, "xxxxxxxx");
         final var later = new ReplaceOnce("Later", NAME_START + 4, NAME_START + 8, "cccc");
         final var outcome = new LintEngine(List.of(earlier, later)).lint(contextOf(SOURCE));
-        assertThat(outcome.unit().source()).contains("int xxxxxxxx = 1;").doesNotContain("cccc");
+        assertThat(outcome.unit().source())
+                .contains("int xxxxxxxx = 1;")
+                .doesNotContain("cccc");
         assertThat(outcome.diagnostics()).isEmpty();
     }
 
@@ -89,8 +91,13 @@ class LintEngineTest {
         final var sources = List.of(SOURCE, SOURCE.replace("aaaabbbb", "cccc"), "class Other {\n    int y = 2;\n}\n");
         final var rules = List.<LintRule>of(new ReplaceOnce("Earlier", NAME_START, NAME_START + 8, "xxxxxxxx"));
         final var engine = new LintEngine(rules);
-        final var individually = sources.stream().map(s -> engine.lint(contextOf(s)).unit().source()).toList();
-        final var batched = engine.lintAll(sources.stream().map(LintEngineTest::contextOf).toList()).stream()
+        final var individually = sources.stream()
+                .map(s -> engine.lint(contextOf(s)).unit().source())
+                .toList();
+        final var batched = engine.lintAll(
+                sources.stream()
+                        .map(LintEngineTest::contextOf)
+                        .toList()).stream()
                 .map(o -> o.orElseThrow().unit().source())
                 .toList();
         assertThat(batched).isEqualTo(individually);
@@ -102,7 +109,9 @@ class LintEngineTest {
         final var results = engine.lintAll(List.of(contextOf(SOURCE), contextOf(SOURCE)));
         assertThat(results)
                 .hasSize(2)
-                .allSatisfy(result -> assertThat(result.orElseThrow().diagnostics()).singleElement().isInstanceOf(Diagnostic.Warning.class));
+                .allSatisfy(result -> assertThat(result.orElseThrow().diagnostics())
+                        .singleElement()
+                        .isInstanceOf(Diagnostic.Warning.class));
     }
 
     @Test
@@ -118,9 +127,17 @@ class LintEngineTest {
 
     @Test
     void lintAllPreservesInputOrder() {
-        final var sources = IntStream.range(0, 5).mapToObj(i -> "class F" + i + " {\n    int v = " + i + ";\n}\n").toList();
-        final var results = new LintEngine(List.of(new AlwaysConverged("NoOp"))).lintAll(sources.stream().map(LintEngineTest::contextOf).toList());
-        assertThat(results.stream().map(o -> o.orElseThrow().unit().source()).toList()).isEqualTo(sources);
+        final var sources = IntStream.range(0, 5)
+                .mapToObj(i -> "class F" + i + " {\n    int v = " + i + ";\n}\n")
+                .toList();
+        final var results = new LintEngine(List.of(new AlwaysConverged("NoOp"))).lintAll(sources.stream()
+                .map(LintEngineTest::contextOf)
+                .toList());
+        assertThat(
+                results.stream()
+                        .map(o -> o.orElseThrow().unit().source())
+                        .toList())
+                .isEqualTo(sources);
     }
 
     @Test
@@ -131,7 +148,9 @@ class LintEngineTest {
         final var breaks = new ReplaceOnce("Breaks", NAME_START, NAME_START + 8, "not valid java");
         final var results = new LintEngine(List.of(breaks)).lintAll(List.of(contextOf(SOURCE)));
         assertThat(results.getFirst()).isInstanceOf(Staged.Failed.class);
-        assertThatThrownBy(() -> results.getFirst().orElseThrow()).isInstanceOf(LintRewriteException.class).hasMessageContaining("Breaks");
+        assertThatThrownBy(() -> results.getFirst().orElseThrow())
+                .isInstanceOf(LintRewriteException.class)
+                .hasMessageContaining("Breaks");
     }
 
     @Test
@@ -140,7 +159,9 @@ class LintEngineTest {
         final var editsOnce = new ReplaceOnce("Earlier", NAME_START, NAME_START + 8, "xxxxxxxx");
         final var outcome = new LintEngine(List.of(new RecordsSource(seen), editsOnce)).lint(contextOf(SOURCE));
         assertThat(seen).containsExactly(outcome.unit().source());
-        assertThat(outcome.diagnostics()).extracting(Diagnostic::message).containsExactly("seen");
+        assertThat(outcome.diagnostics())
+                .extracting(Diagnostic::message)
+                .containsExactly("seen");
     }
 
     @Test
@@ -149,7 +170,11 @@ class LintEngineTest {
         final var outcome = new LintEngine(List.of(new RecordsSource(seen), new AlwaysEdits("Runaway"))).lint(contextOf(SOURCE));
         final var lastRoundSource = SOURCE.replaceFirst("\n", "\n" + " ".repeat(9));
         assertThat(seen).containsExactly(lastRoundSource);
-        assertThat(outcome.diagnostics()).hasSize(2).first().extracting(Diagnostic::message).isEqualTo("seen");
+        assertThat(outcome.diagnostics())
+                .hasSize(2)
+                .first()
+                .extracting(Diagnostic::message)
+                .isEqualTo("seen");
     }
 
     private record RecordsSource(List<String> seen) implements WarningRule {
@@ -166,7 +191,10 @@ class LintEngineTest {
 
         @Override
         public LintResult apply(final LintContext context) {
-            return LintResult.ofEdits(List.of(LintEdit.insert(context.unit().source().indexOf('\n') + 1, " ")));
+            return LintResult.ofEdits(
+                    List.of(
+                            LintEdit.insert(
+                                    context.unit().source().indexOf('\n') + 1, " ")));
         }
     }
 

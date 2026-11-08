@@ -33,43 +33,41 @@ public final class NeedBraces implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitIf(final IfTree node, final Void p) {
-                        addEditsFor(node.getThenStatement(), edits, unit);
-                        final var elseStatement = node.getElseStatement();
-                        if (elseStatement != null && !(elseStatement instanceof IfTree)) {
-                            addEditsFor(elseStatement, edits, unit);
-                        }
-                        return super.visitIf(node, null);
-                    }
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitIf(final IfTree node, final Void p) {
+                addEditsFor(node.getThenStatement(), edits, unit);
+                final var elseStatement = node.getElseStatement();
+                if (elseStatement != null && !(elseStatement instanceof IfTree)) {
+                    addEditsFor(elseStatement, edits, unit);
+                }
+                return super.visitIf(node, null);
+            }
 
-                    @Override
-                    public Void visitWhileLoop(final WhileLoopTree node, final Void p) {
-                        addEditsFor(node.getStatement(), edits, unit);
-                        return super.visitWhileLoop(node, null);
-                    }
+            @Override
+            public Void visitWhileLoop(final WhileLoopTree node, final Void p) {
+                addEditsFor(node.getStatement(), edits, unit);
+                return super.visitWhileLoop(node, null);
+            }
 
-                    @Override
-                    public Void visitDoWhileLoop(final DoWhileLoopTree node, final Void p) {
-                        addEditsFor(node.getStatement(), edits, unit);
-                        return super.visitDoWhileLoop(node, null);
-                    }
+            @Override
+            public Void visitDoWhileLoop(final DoWhileLoopTree node, final Void p) {
+                addEditsFor(node.getStatement(), edits, unit);
+                return super.visitDoWhileLoop(node, null);
+            }
 
-                    @Override
-                    public Void visitForLoop(final ForLoopTree node, final Void p) {
-                        addEditsFor(node.getStatement(), edits, unit);
-                        return super.visitForLoop(node, null);
-                    }
+            @Override
+            public Void visitForLoop(final ForLoopTree node, final Void p) {
+                addEditsFor(node.getStatement(), edits, unit);
+                return super.visitForLoop(node, null);
+            }
 
-                    @Override
-                    public Void visitEnhancedForLoop(final EnhancedForLoopTree node, final Void p) {
-                        addEditsFor(node.getStatement(), edits, unit);
-                        return super.visitEnhancedForLoop(node, null);
-                    }
-                });
+            @Override
+            public Void visitEnhancedForLoop(final EnhancedForLoopTree node, final Void p) {
+                addEditsFor(node.getStatement(), edits, unit);
+                return super.visitEnhancedForLoop(node, null);
+            }
+        });
     }
 
     private static void addEditsFor(@Nullable final StatementTree body, final List<LintEdit> edits, final ParsedUnit unit) {

@@ -14,17 +14,23 @@ final class TryRenderer {
     Doc render(final TryTree node, final Recursor recursor) {
         final var header = buildHeader(node, recursor);
         final var tryStatements = BlockRenderer.blockStatements(node.getBlock(), recursor);
-        final var catchStream = node.getCatches().stream().flatMap(c -> catchParts(c, recursor));
+        final var catchStream = node.getCatches().stream()
+                .flatMap(c -> catchParts(c, recursor));
         final var finallyBlock = node.getFinallyBlock();
         final var finallyStream = finallyBlock == null
                 ? Stream.<Doc>empty()
                 : Stream.concat(
                         Stream.concat(Stream.<Doc>of(Doc.HARD_LINE), BlockRenderer.opened(new Doc.Text("} finally"), finallyBlock, recursor)),
-                        BlockRenderer.blockStatements(finallyBlock, recursor).stream().map(Doc::indentedLine));
+                        BlockRenderer.blockStatements(finallyBlock, recursor)
+                                .stream()
+                                .map(Doc::indentedLine));
         return Doc.concatOf(
                 Stream.of(
-                        Stream.concat(BlockRenderer.opened(header, node.getBlock(), recursor), tryStatements.stream().map(Doc::indentedLine)),
-                        catchStream, finallyStream, Doc.closeBrace()));
+                        Stream.concat(BlockRenderer.opened(header, node.getBlock(), recursor), tryStatements.stream()
+                                .map(Doc::indentedLine)),
+                        catchStream,
+                        finallyStream,
+                        Doc.closeBrace()));
     }
 
     private Doc buildHeader(final TryTree node, final Recursor recursor) {
@@ -33,9 +39,8 @@ final class TryRenderer {
             return new Doc.Text("try");
         }
         final var rendered = IntStream.range(0, resources.size())
-                .mapToObj(
-                        i -> CommentDocs.withSeparator(
-                                resources.get(i), BlockRenderer::stripTrailingSemicolonDoc, i + 1 < resources.size() ? ";" : "", recursor))
+                .mapToObj(i -> CommentDocs.withSeparator(
+                        resources.get(i), BlockRenderer::stripTrailingSemicolonDoc, i + 1 < resources.size() ? ";" : "", recursor))
                 .map(doc -> new WrappableList.Element(doc, Doc.endsWithLineComment(doc)))
                 .toList();
         return Doc.concat(
@@ -53,7 +58,9 @@ final class TryRenderer {
     Doc catchClause(final CatchTree c, final Recursor recursor) {
         final var param = c.getParameter();
         return Doc.concat(
-                new Doc.Text("catch ("), ModifierRenderer.prefixOf(param.getModifiers(), recursor), recursor.scan(param.getType()),
+                new Doc.Text("catch ("),
+                ModifierRenderer.prefixOf(param.getModifiers(), recursor),
+                recursor.scan(param.getType()),
                 new Doc.Text(" " + Names.of(param) + ")"));
     }
 
@@ -61,8 +68,7 @@ final class TryRenderer {
         final var header = Doc.concat(new Doc.Text("} "), catchClause(c, recursor));
         return Stream.concat(
                 Stream.of(Doc.HARD_LINE),
-                Stream.concat(
-                        BlockRenderer.opened(header, c.getBlock(), recursor),
-                        BlockRenderer.blockStatements(c.getBlock(), recursor).stream().map(Doc::indentedLine)));
+                Stream.concat(BlockRenderer.opened(header, c.getBlock(), recursor), BlockRenderer.blockStatements(c.getBlock(), recursor).stream()
+                        .map(Doc::indentedLine)));
     }
 }

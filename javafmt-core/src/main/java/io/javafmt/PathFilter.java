@@ -40,7 +40,9 @@ public final class PathFilter implements Serializable {
 
     public static PathFilter ofGlobs(final List<String> globs) {
         Objects.requireNonNull(globs, "globs");
-        return new PathFilter(globs.toArray(String[]::new), globs.stream().map(g -> FileSystems.getDefault().getPathMatcher("glob:" + g)).toList());
+        return new PathFilter(globs.toArray(String[]::new), globs.stream()
+                .map(g -> FileSystems.getDefault().getPathMatcher("glob:" + g))
+                .toList());
     }
 
     @Serial
@@ -50,7 +52,8 @@ public final class PathFilter implements Serializable {
 
     public boolean excludes(final Path path) {
         final var fileName = path.getFileName();
-        return matchers.stream().anyMatch(m -> m.matches(path) || (fileName != null && m.matches(fileName)));
+        return matchers.stream()
+                .anyMatch(m -> m.matches(path) || (fileName != null && m.matches(fileName)));
     }
 
     /** Whether {@code directory} is named as one of {@link #DEFAULT_EXCLUDED_DIRECTORIES}. */
@@ -61,6 +64,8 @@ public final class PathFilter implements Serializable {
     }
 
     public List<Path> keep(final List<Path> paths) {
-        return paths.stream().filter(p -> !excludes(p)).toList();
+        return paths.stream()
+                .filter(p -> !excludes(p))
+                .toList();
     }
 }

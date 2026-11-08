@@ -34,10 +34,9 @@ public class AnalyzeWitnessBenchmark {
     @Setup
     public void setUp() {
         source = IntStream.range(0, witnesses)
-                .mapToObj(
-                        i -> i % 2 == 0
-                                ? "    Stream<Integer> drop%d() {\n        return Stream.<Integer>of(%d);\n    }\n".formatted(i, i)
-                                : "    void keep%d() {\n        var x = Stream.<Number>of(%d);\n    }\n".formatted(i, i))
+                .mapToObj(i -> i % 2 == 0
+                        ? "    Stream<Integer> drop%d() {\n        return Stream.<Integer>of(%d);\n    }\n".formatted(i, i)
+                        : "    void keep%d() {\n        var x = Stream.<Number>of(%d);\n    }\n".formatted(i, i))
                 .collect(Collectors.joining("\n", "import java.util.stream.Stream;\n\nclass Witnesses {\n\n", "}\n"));
     }
 

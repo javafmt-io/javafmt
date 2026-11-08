@@ -32,7 +32,8 @@ class DocBuilderTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source))).stripTrailing();
+        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source)))
+                .stripTrailing();
     }
 
     @Test
@@ -83,15 +84,13 @@ class DocBuilderTest {
     @Test
     void switchExpression_renderedInsideMethod() {
         assertThat(format("class Foo { String bar(int x) { return switch (x) { case 1 -> \"one\"; default -> \"other\"; }; } }"))
-                .isEqualTo(
-                        "class Foo {\n\n    String bar(int x) {\n        return switch (x) {\n            case 1 -> \"one\";\n            default -> \"other\";\n        };\n    }\n}");
+                .isEqualTo("class Foo {\n\n    String bar(int x) {\n        return switch (x) {\n            case 1 -> \"one\";\n            default -> \"other\";\n        };\n    }\n}");
     }
 
     @Test
     void switchStatement_renderedInsideMethod() {
         assertThat(format("class Foo { void bar(int x) { switch (x) { case 1 -> doIt(); default -> doOther(); } } }"))
-                .isEqualTo(
-                        "class Foo {\n\n    void bar(int x) {\n        switch (x) {\n            case 1 -> doIt();\n            default -> doOther();\n        }\n    }\n}");
+                .isEqualTo("class Foo {\n\n    void bar(int x) {\n        switch (x) {\n            case 1 -> doIt();\n            default -> doOther();\n        }\n    }\n}");
     }
 
     @Test
@@ -115,8 +114,17 @@ class DocBuilderTest {
         };
         final var wrapped = new SyntheticCompilationUnit(realUnit.tree(), synthetic);
         final var unit = new ParsedUnit(
-                wrapped, "", realUnit.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
+                wrapped,
+                "",
+                realUnit.sourcePositions(),
+                List.of(),
+                List.of(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                List.of());
         assertThatThrownBy(() -> DocBuilder.build(unit, JavafmtConfig.defaults()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("OTHER")
@@ -129,15 +137,13 @@ class DocBuilderTest {
         @Test
         void tryCatch_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { try { doIt(); } catch (Exception e) { handle(e); } } }"))
-                    .isEqualTo(
-                            "class Foo {\n\n    void bar() {\n        try {\n            doIt();\n        } catch (Exception e) {\n            handle(e);\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        try {\n            doIt();\n        } catch (Exception e) {\n            handle(e);\n        }\n    }\n}");
         }
 
         @Test
         void ifElse_renderedInsideMethod() {
             assertThat(format("class Foo { void bar(boolean b) { if (b) { doIt(); } else { doOther(); } } }"))
-                    .isEqualTo(
-                            "class Foo {\n\n    void bar(boolean b) {\n        if (b) {\n            doIt();\n        } else {\n            doOther();\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar(boolean b) {\n        if (b) {\n            doIt();\n        } else {\n            doOther();\n        }\n    }\n}");
         }
 
         @Test
@@ -178,13 +184,13 @@ class DocBuilderTest {
         @Test
         void labeledStatement_renderedInsideMethod() {
             assertThat(format("class Foo { void bar() { outer: while (true) { break outer; } } }"))
-                    .isEqualTo(
-                            "class Foo {\n\n    void bar() {\n        outer:\n        while (true) {\n            break outer;\n        }\n    }\n}");
+                    .isEqualTo("class Foo {\n\n    void bar() {\n        outer:\n        while (true) {\n            break outer;\n        }\n    }\n}");
         }
 
         @Test
         void assertStatement_renderedInsideMethod() {
-            assertThat(format("class Foo { void bar(int x) { assert x > 0; } }")).isEqualTo("class Foo {\n\n    void bar(int x) {assert x > 0;}\n}");
+            assertThat(format("class Foo { void bar(int x) { assert x > 0; } }"))
+                    .isEqualTo("class Foo {\n\n    void bar(int x) {assert x > 0;}\n}");
         }
 
         @Test

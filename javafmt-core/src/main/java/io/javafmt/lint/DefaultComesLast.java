@@ -76,7 +76,8 @@ public final class DefaultComesLast implements LintRule {
 
     private static int indexOfDefault(final List<? extends CaseTree> cases) {
         return IntStream.range(0, cases.size())
-                .filter(i -> cases.get(i).getLabels().stream().anyMatch(l -> l instanceof DefaultCaseLabelTree))
+                .filter(i -> cases.get(i).getLabels().stream()
+                        .anyMatch(l -> l instanceof DefaultCaseLabelTree))
                 .findFirst()
                 .orElse(-1);
     }
@@ -110,7 +111,11 @@ public final class DefaultComesLast implements LintRule {
         final var defaultStart = unit.startOf(defaultCase);
         final var defaultEnd = unit.endOf(defaultCase);
         final var switchEnd = unit.endOf(switchNode);
-        if (defaultStart < 0 || defaultEnd < 0 || switchEnd < 0 || defaultEnd > switchEnd || switchEnd > unit.source().length()) {
+        if (defaultStart < 0
+            || defaultEnd < 0
+            || switchEnd < 0
+            || defaultEnd > switchEnd
+            || switchEnd > unit.source().length()) {
             return List.of();
         }
         final var defaultText = unit.source().substring(defaultStart, defaultEnd);

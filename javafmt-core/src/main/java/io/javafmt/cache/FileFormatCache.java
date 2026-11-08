@@ -133,7 +133,8 @@ public final class FileFormatCache implements FormatCache {
                     .map(e -> e.getValue() + " " + e.getKey())
                     .collect(Collectors.joining("\n", header + "\n", "\n"));
             final var directory = parent != null ? parent : Path.of(".");
-            final var temporary = Files.createTempFile(directory, cacheFile.getFileName().toString() + ".", ".tmp");
+            final var temporary = Files.createTempFile(
+                    directory, cacheFile.getFileName().toString() + ".", ".tmp");
             Files.writeString(temporary, body, StandardCharsets.UTF_8);
             try {
                 Files.move(temporary, cacheFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);

@@ -113,7 +113,9 @@ public final class JavafmtBinary {
      */
     public static boolean isSupportedVersion(final String versionOutput) {
         Objects.requireNonNull(versionOutput, "versionOutput");
-        return numericVersion(versionOutput).map(reported -> compare(reported, MINIMUM_VERSION) >= 0).orElse(false);
+        return numericVersion(versionOutput)
+                .map(reported -> compare(reported, MINIMUM_VERSION) >= 0)
+                .orElse(false);
     }
 
     /** The lowest javafmt version this plugin will drive, as its {@code --version} line reports it. */
@@ -162,7 +164,9 @@ public final class JavafmtBinary {
             if (output.isTimeout()) {
                 return new VersionProbe.Inconclusive();
             }
-            return output.getExitCode() == 0 ? new VersionProbe.Reported(output.getStdout().strip()) : new VersionProbe.Failed();
+            return output.getExitCode() == 0
+                    ? new VersionProbe.Reported(output.getStdout().strip())
+                    : new VersionProbe.Failed();
         } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
             destroy.run();
@@ -207,11 +211,13 @@ public final class JavafmtBinary {
             }
 
             public boolean hasInternalError() {
-                return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getKind() == Kind.KIND_INTERNAL);
+                return diagnostics.stream()
+                        .anyMatch(diagnostic -> diagnostic.getKind() == Kind.KIND_INTERNAL);
             }
 
             public boolean hasFailure() {
-                return diagnostics.stream().anyMatch(diagnostic -> diagnostic.getSeverity() != Severity.SEVERITY_WARNING);
+                return diagnostics.stream()
+                        .anyMatch(diagnostic -> diagnostic.getSeverity() != Severity.SEVERITY_WARNING);
             }
         }
 

@@ -25,12 +25,12 @@ class JavafmtDaemonsTest {
         final var binary = identity(JavafmtDaemonTest.script(dir, "echo started >> '" + starts + "'\n" + JavafmtDaemonTest.ECHO_REQUESTS));
         try {
             assertThat(
-                    List.of(
-                            daemons.format(binary, "a", FileScope.none()), daemons.format(binary, "b", FileScope.none()),
-                            daemons.format(binary, "c", FileScope.none())))
-                    .containsExactly(
-                            new JavafmtBinary.Outcome.Formatted("a", List.of()), new JavafmtBinary.Outcome.Formatted("b", List.of()),
-                            new JavafmtBinary.Outcome.Formatted("c", List.of()));
+                            List.of(
+                                    daemons.format(binary, "a", FileScope.none()),
+                                    daemons.format(binary, "b", FileScope.none()),
+                                    daemons.format(binary, "c", FileScope.none())))
+                    .containsExactly(new JavafmtBinary.Outcome.Formatted("a", List.of()),
+                            new JavafmtBinary.Outcome.Formatted("b", List.of()), new JavafmtBinary.Outcome.Formatted("c", List.of()));
             assertThat(Files.readAllLines(starts)).hasSize(1);
         } finally {
             daemons.dispose();
@@ -109,7 +109,8 @@ class JavafmtDaemonsTest {
         final var notExecutable = dir.resolve("javafmt");
         Files.writeString(notExecutable, "not a program");
         assertThat(daemons.format(identity(notExecutable), "a", FileScope.none()))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Refused.class, refused -> assertThat(refused.internal()).isFalse());
+                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Refused.class,
+                        refused -> assertThat(refused.internal()).isFalse());
     }
 
     private static BinaryIdentity identity(final Path path) {

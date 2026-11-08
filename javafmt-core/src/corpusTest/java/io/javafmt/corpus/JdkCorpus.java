@@ -37,7 +37,9 @@ final class JdkCorpus {
 
     private static Stream<Path> javaFilesUnder(final Path dir) {
         try (var walk = Files.walk(dir)) {
-            return walk.filter(p -> p.toString().endsWith(".java")).toList().stream();
+            return walk.filter(p -> p.toString().endsWith(".java"))
+                    .toList()
+                    .stream();
         } catch (final IOException e) {
             throw new UncheckedIOException("cannot walk " + dir, e);
         }

@@ -22,7 +22,9 @@ class StagedTest {
         final List<Staged<String>> items = List.of(new Staged.Ok<>("a"), new Staged.Failed<>(FAILURE), new Staged.Ok<>("c"));
         final var results = Staged.mapAll(items, values -> {
             seen.set(values);
-            return values.stream().<Staged<Integer>>map(v -> new Staged.Ok<>(v.charAt(0) - 'a')).toList();
+            return values.stream()
+                    .<Staged<Integer>>map(v -> new Staged.Ok<>(v.charAt(0) - 'a'))
+                    .toList();
         });
         assertThat(seen.get()).containsExactly("a", "c");
         assertThat(results).containsExactly(new Staged.Ok<>(0), new Staged.Failed<>(FAILURE), new Staged.Ok<>(2));
@@ -57,7 +59,8 @@ class StagedTest {
 
     @Test
     void orElseThrowThrowsTheFailureItself() {
-        assertThatThrownBy(() -> new Staged.Failed<String>(FAILURE).orElseThrow()).isSameAs(FAILURE);
+        assertThatThrownBy(() -> new Staged.Failed<String>(FAILURE).orElseThrow())
+                .isSameAs(FAILURE);
     }
 
     @ParameterizedTest

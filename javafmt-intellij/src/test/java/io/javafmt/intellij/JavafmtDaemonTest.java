@@ -60,7 +60,12 @@ class JavafmtDaemonTest {
     void aRequestCarriesTheFilesPathAndItsClasspath(final String classpath, @TempDir final Path dir) throws Exception {
         final var sent = dir.resolve("sent");
         final var file = dir.resolve("Order.java");
-        final var expected = FormatRequest.newBuilder().setId(1).setSource("class Order {}").setPath(file.toString()).setClasspath(classpath).build();
+        final var expected = FormatRequest.newBuilder()
+                .setId(1)
+                .setSource("class Order {}")
+                .setPath(file.toString())
+                .setClasspath(classpath)
+                .build();
         final var bytes = new ByteArrayOutputStream();
         expected.writeDelimitedTo(bytes);
         final var daemon = start(script(dir, "head -c " + bytes.size() + " > '" + sent + "'\n" + reply(1, "class Order {}\n") + "cat > /dev/null\n"));
@@ -82,11 +87,11 @@ class JavafmtDaemonTest {
         final var daemon = start(script(dir, replies + "cat > /dev/null\n"));
         try {
             assertThat(
-                    List.of(
-                            daemon.format("class A{}", FileScope.none()), daemon.format("class Broken {", FileScope.none()),
-                            daemon.format("", FileScope.none())))
-                    .containsExactly(
-                            new JavafmtBinary.Outcome.Formatted("class A {}\n", List.of()),
+                            List.of(
+                                    daemon.format("class A{}", FileScope.none()),
+                                    daemon.format("class Broken {", FileScope.none()),
+                                    daemon.format("", FileScope.none())))
+                    .containsExactly(new JavafmtBinary.Outcome.Formatted("class A {}\n", List.of()),
                             new JavafmtBinary.Outcome.Formatted(
                                     "class Broken {",
                                     List.of(
@@ -160,7 +165,8 @@ class JavafmtDaemonTest {
         final var daemon = start(script(dir, "exec sleep 15\n"));
         final var begun = Instant.now();
         assertThat(daemon.format("x".repeat(1_000_000), FileScope.none()))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Refused.class, r -> assertThat(r.internal()).isTrue());
+                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Refused.class,
+                        r -> assertThat(r.internal()).isTrue());
         assertThat(Duration.between(begun, Instant.now())).isLessThan(TIMEOUT.plusSeconds(2));
     }
 
@@ -231,7 +237,9 @@ class JavafmtDaemonTest {
         final var killed = new CompletableFuture<Process>();
         final var daemon = JavafmtDaemon.start(script(dir, "cat > /dev/null\n"), TIMEOUT, killed::complete);
         daemon.stop();
-        assertThat(killed).succeedsWithin(Duration.ofSeconds(5)).satisfies(process -> process.destroyForcibly().waitFor());
+        assertThat(killed)
+                .succeedsWithin(Duration.ofSeconds(5))
+                .satisfies(process -> process.destroyForcibly().waitFor());
     }
 
     @Test
@@ -286,14 +294,18 @@ class JavafmtDaemonTest {
 
     static void awaitExit(final long pid) throws InterruptedException {
         final var deadline = Instant.now().plusSeconds(5);
-        while (ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false) && Instant.now().isBefore(deadline)) {
+        while (ProcessHandle.of(pid).map(ProcessHandle::isAlive).orElse(false)
+            && Instant.now().isBefore(deadline)) {
             Thread.sleep(20);
         }
         assertThat(ProcessHandle.of(pid).filter(ProcessHandle::isAlive)).isEmpty();
     }
 
     static String reply(final int id, final String output) {
-        final var reply = FormatReply.newBuilder().setId(id).setOutput(output).build();
+        final var reply = FormatReply.newBuilder()
+                .setId(id)
+                .setOutput(output)
+                .build();
         final var bytes = new ByteArrayOutputStream();
         try {
             reply.writeDelimitedTo(bytes);

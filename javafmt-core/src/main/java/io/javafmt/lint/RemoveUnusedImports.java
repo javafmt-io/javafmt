@@ -46,18 +46,19 @@ public final class RemoveUnusedImports implements LintRule {
             return LintResult.EMPTY;
         }
         final var usedNames = collectUsedNames(unit);
-        return LintResult.ofEdits(
-                imports.stream()
-                        .filter(i -> !i.isModule())
-                        .filter(i -> !Declarations.isStarImport(i))
-                        .filter(i -> !usedNames.contains(simpleNameOf(i)))
-                        .flatMap(i -> deleteEdit(i, unit).stream())
-                        .toList());
+        return LintResult.ofEdits(imports.stream()
+                .filter(i -> !i.isModule())
+                .filter(i -> !Declarations.isStarImport(i))
+                .filter(i -> !usedNames.contains(simpleNameOf(i)))
+                .flatMap(i -> deleteEdit(i, unit).stream())
+                .toList());
     }
 
     private static String simpleNameOf(final ImportTree imp) {
         final var qualified = imp.getQualifiedIdentifier();
-        return qualified instanceof MemberSelectTree ms ? ms.getIdentifier().toString() : ((IdentifierTree) qualified).getName().toString();
+        return qualified instanceof MemberSelectTree ms
+                ? ms.getIdentifier().toString()
+                : ((IdentifierTree) qualified).getName().toString();
     }
 
     private static Set<String> collectUsedNames(final ParsedUnit unit) {
@@ -114,7 +115,8 @@ public final class RemoveUnusedImports implements LintRule {
         final var declarationEnd = semicolon + 1;
         final var lineStart = lineStartFor(source, start);
         final var lineEnd = lineEndFor(source, declarationEnd);
-        final var aloneOnLine = source.substring(lineStart, start).isBlank() && source.substring(declarationEnd, lineEnd).isBlank();
+        final var aloneOnLine = source.substring(lineStart, start).isBlank()
+            && source.substring(declarationEnd, lineEnd).isBlank();
         return Optional.of(aloneOnLine ? new Span(lineStart, lineEnd) : new Span(start, declarationEnd));
     }
 

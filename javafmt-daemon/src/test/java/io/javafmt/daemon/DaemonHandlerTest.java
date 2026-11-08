@@ -21,7 +21,10 @@ class DaemonHandlerTest {
     private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
 
     private static FormatRequest request(final int id, final String source) {
-        return FormatRequest.newBuilder().setId(id).setSource(source).build();
+        return FormatRequest.newBuilder()
+                .setId(id)
+                .setSource(source)
+                .build();
     }
 
     @Test
@@ -75,16 +78,22 @@ class DaemonHandlerTest {
 
     @Test
     void aClasspathTurnsOnTheRulesThatNeedIt() {
-        final var reply = DaemonHandler.handle(request(5, STAR_IMPORT).toBuilder().setClasspath("").build());
-        assertThat(reply.getOutput()).contains("import java.util.List;").doesNotContain("java.util.*");
+        final var reply = DaemonHandler.handle(request(5, STAR_IMPORT).toBuilder()
+                .setClasspath("")
+                .build());
+        assertThat(reply.getOutput())
+                .contains("import java.util.List;")
+                .doesNotContain("java.util.*");
     }
 
     @Test
     void theProjectFileForTheRequestsPathApplies(@TempDir final Path dir) throws IOException {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
-        final var reply = DaemonHandler.handle(
-                request(6, STAR_IMPORT).toBuilder().setClasspath("").setPath(dir.resolve("src/Order.java").toString()).build());
+        final var reply = DaemonHandler.handle(request(6, STAR_IMPORT).toBuilder()
+                .setClasspath("")
+                .setPath(dir.resolve("src/Order.java").toString())
+                .build());
         assertThat(reply.getOutput()).contains("import java.util.*;");
     }
 
@@ -92,7 +101,9 @@ class DaemonHandlerTest {
     void anInvalidProjectFileIsAConfigurationError(@TempDir final Path dir) throws IOException {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=FinalParameters\n");
-        final var reply = DaemonHandler.handle(request(7, STAR_IMPORT).toBuilder().setPath(dir.resolve("Order.java").toString()).build());
+        final var reply = DaemonHandler.handle(request(7, STAR_IMPORT).toBuilder()
+                .setPath(dir.resolve("Order.java").toString())
+                .build());
         assertThat(reply.getOutput()).isEqualTo(STAR_IMPORT);
         assertThat(reply.getDiagnosticsList()).singleElement().satisfies(d -> {
             assertThat(d.getSeverity()).isEqualTo(Severity.SEVERITY_ERROR);
@@ -104,25 +115,31 @@ class DaemonHandlerTest {
 
     @Test
     void aPathThatIsNotAPathIsAnErrorInTheRequest() {
-        final var reply = DaemonHandler.handle(request(8, STAR_IMPORT).toBuilder().setPath("bad\0path").build());
+        final var reply = DaemonHandler.handle(request(8, STAR_IMPORT).toBuilder()
+                .setPath("bad\0path")
+                .build());
         assertThat(reply.getOutput()).isEqualTo(STAR_IMPORT);
-        assertThat(reply.getDiagnosticsList()).extracting(Diagnostic::getKind).containsExactly(Kind.KIND_CLI);
+        assertThat(reply.getDiagnosticsList())
+                .extracting(Diagnostic::getKind)
+                .containsExactly(Kind.KIND_CLI);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"class Foo { }", "class Foo {{{", "", "class Foo { void m(int x) { switch (x) { case 1: m(1); case 2: break; } } }"})
     void everyReplyKeepsTheProtocolRules(final String source) {
-        assertThat(DaemonFixtures.violations(DaemonHandler.handle(request(1, source)))).isEmpty();
+        assertThat(DaemonFixtures.violations(DaemonHandler.handle(request(1, source))))
+                .isEmpty();
     }
 
     @Test
     void aFailureCarriesTheGivenKindAsAnError() {
-        assertThat(DaemonHandler.failure(7, "src", Kind.KIND_CLI, "request has no source").getDiagnosticsList())
-                .containsExactly(
-                        Diagnostic.newBuilder()
-                                .setSeverity(Severity.SEVERITY_ERROR)
-                                .setKind(Kind.KIND_CLI)
-                                .setMessage("request has no source")
-                                .build());
+        assertThat(
+                        DaemonHandler.failure(7, "src", Kind.KIND_CLI, "request has no source")
+                                .getDiagnosticsList())
+                .containsExactly(Diagnostic.newBuilder()
+                        .setSeverity(Severity.SEVERITY_ERROR)
+                        .setKind(Kind.KIND_CLI)
+                        .setMessage("request has no source")
+                        .build());
     }
 }

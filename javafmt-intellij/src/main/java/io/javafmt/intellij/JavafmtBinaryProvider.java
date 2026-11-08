@@ -34,7 +34,10 @@ public final class JavafmtBinaryProvider {
     private Optional<CompletableFuture<Installation>> inFlight = Optional.empty();
 
     public JavafmtBinaryProvider() {
-        this(BinaryInstaller.forThisPlugin(), task -> ProgressManager.getInstance().run(task), JavafmtBinary::searchPath);
+        this(
+                BinaryInstaller.forThisPlugin(),
+                task -> ProgressManager.getInstance().run(task),
+                JavafmtBinary::searchPath);
     }
 
     JavafmtBinaryProvider(final BinaryInstaller installer, final Consumer<Task.Backgroundable> runner, final Supplier<String> searchPath) {
@@ -95,11 +98,9 @@ public final class JavafmtBinaryProvider {
         return onPath()
                 .map(binary -> binary.path() + " (from PATH)")
                 .or(() -> installer.installed().map(path -> path + " (downloaded by the plugin)"))
-                .orElseGet(
-                        () -> switch (installer.asset()) {
-                            case ReleaseAsset.Published published -> "none yet: " + published.name() + " is downloaded on the first reformat";
-                            case ReleaseAsset.Unpublished unpublished ->
-                                "none: " + unpublished.reason() + ". Set a path above, or put javafmt on your PATH.";
-                        });
+                .orElseGet(() -> switch (installer.asset()) {
+                    case ReleaseAsset.Published published -> "none yet: " + published.name() + " is downloaded on the first reformat";
+                    case ReleaseAsset.Unpublished unpublished -> "none: " + unpublished.reason() + ". Set a path above, or put javafmt on your PATH.";
+                });
     }
 }

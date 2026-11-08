@@ -44,12 +44,16 @@ public final class ExplodeStarImports implements LintRule {
             return LintResult.EMPTY;
         }
         final var unit = context.unit();
-        final var stars = unit.tree().getImports().stream().filter(Declarations::isStarImport).toList();
+        final var stars = unit.tree().getImports().stream()
+                .filter(Declarations::isStarImport)
+                .toList();
         if (stars.isEmpty()) {
             return LintResult.EMPTY;
         }
         return resolveUses(unit, attribution.get())
-                .map(uses -> LintResult.ofEdits(stars.stream().flatMap(s -> editFor(s, uses, attribution.get(), unit).stream()).toList()))
+                .map(uses -> LintResult.ofEdits(stars.stream()
+                        .flatMap(s -> editFor(s, uses, attribution.get(), unit).stream())
+                        .toList()))
                 .orElse(LintResult.EMPTY);
     }
 
@@ -81,8 +85,11 @@ public final class ExplodeStarImports implements LintRule {
                 return null;
             }
         }.scan(new TreePath(unit.tree()), null);
-        final var elements = identifierPaths.stream().map(path -> attribution.trees().getElement(path)).toList();
-        final var anyUnresolved = elements.stream().anyMatch(e -> e == null || e.asType().getKind() == TypeKind.ERROR);
+        final var elements = identifierPaths.stream()
+                .map(path -> attribution.trees().getElement(path))
+                .toList();
+        final var anyUnresolved = elements.stream()
+                .anyMatch(e -> e == null || e.asType().getKind() == TypeKind.ERROR);
         return anyUnresolved ? Optional.empty() : Optional.of(elements);
     }
 
@@ -127,7 +134,8 @@ public final class ExplodeStarImports implements LintRule {
             return use instanceof TypeElement;
         }
         return switch (use.getKind()) {
-            case FIELD, ENUM_CONSTANT, METHOD, CLASS, INTERFACE, ENUM, RECORD, ANNOTATION_TYPE -> use.getModifiers().contains(Modifier.STATIC);
+            case FIELD, ENUM_CONSTANT, METHOD, CLASS, INTERFACE, ENUM, RECORD, ANNOTATION_TYPE ->
+                use.getModifiers().contains(Modifier.STATIC);
             default -> false;
         };
     }
@@ -152,7 +160,9 @@ public final class ExplodeStarImports implements LintRule {
                                          final RemoveUnusedImports.Span span,
                                          final ParsedUnit unit) {
         final var keyword = imp.isStatic() ? "import static " : "import ";
-        final var body = names.stream().map(name -> keyword + prefix + "." + name + ";").collect(Collectors.joining("\n"));
+        final var body = names.stream()
+                .map(name -> keyword + prefix + "." + name + ";")
+                .collect(Collectors.joining("\n"));
         final var replacedTrailingNewline = span.end() > 0 && unit.source().charAt(span.end() - 1) == '\n';
         return replacedTrailingNewline ? body + "\n" : body;
     }

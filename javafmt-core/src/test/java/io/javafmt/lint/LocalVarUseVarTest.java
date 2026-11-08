@@ -28,7 +28,9 @@ class LocalVarUseVarTest {
                     }
                 }
                 """.formatted(body));
-        return LintEngine.applyEdits(unit.source(), new LocalVarUseVar().apply(LintContext.parseOnly(unit)).edits());
+        return LintEngine.applyEdits(
+                unit.source(),
+                new LocalVarUseVar().apply(LintContext.parseOnly(unit)).edits());
     }
 
     @ParameterizedTest
@@ -85,7 +87,9 @@ class LocalVarUseVarTest {
             "Box<String> box = amount.new Box<>();",
     })
     void aLocalWhoseTypeCannotBeProvenKeepsIt(final String declaration) {
-        assertThat(rewritten(declaration)).contains(declaration).doesNotContain("var ");
+        assertThat(rewritten(declaration))
+                .contains(declaration)
+                .doesNotContain("var ");
     }
 
     @Test
@@ -203,7 +207,9 @@ class LocalVarUseVarTest {
                                               """);
         final var result = new LocalVarUseVar().apply(LintContext.parseOnly(unit));
         final var rewritten = LintEngine.applyEdits(unit.source(), result.edits());
-        assertThat(rewritten).contains("List<Path> files = List.<Path>of();").doesNotContain("var ");
+        assertThat(rewritten)
+                .contains("List<Path> files = List.<Path>of();")
+                .doesNotContain("var ");
         assertThat(result.diagnostics()).isEmpty();
     }
 

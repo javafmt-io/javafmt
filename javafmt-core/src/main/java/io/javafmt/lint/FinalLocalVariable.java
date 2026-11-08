@@ -26,22 +26,21 @@ public final class FinalLocalVariable implements LintRule {
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
         final var reassignments = new ReassignmentDetector();
-        return LintScan.edits(
-                context,
-                edits -> new ChainPathScanner<>() {
-                    @Override
-                    public Void visitVariable(final VariableTree node, final Void p) {
-                        final var path = getCurrentPath();
-                        if (isLocalDeclaration(path)
-                            && !Modifiers.hasFinal(node)
-                            && !node.getName().isEmpty()
-                            && !MultipleVariableDeclarations.isPartOfDeclarationGroup(path, unit)
-                            && !reassignments.reassigned(path.getParentPath().getLeaf(), node.getName().toString())) {
-                            Modifiers.insertFinal(unit, node).ifPresent(edits::add);
-                        }
-                        return super.visitVariable(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+            @Override
+            public Void visitVariable(final VariableTree node, final Void p) {
+                final var path = getCurrentPath();
+                if (isLocalDeclaration(path)
+                    && !Modifiers.hasFinal(node)
+                    && !node.getName().isEmpty()
+                    && !MultipleVariableDeclarations.isPartOfDeclarationGroup(path, unit)
+                    && !reassignments.reassigned(
+                            path.getParentPath().getLeaf(), node.getName().toString())) {
+                    Modifiers.insertFinal(unit, node).ifPresent(edits::add);
+                }
+                return super.visitVariable(node, null);
+            }
+        });
     }
 
     private static boolean isLocalDeclaration(final TreePath path) {

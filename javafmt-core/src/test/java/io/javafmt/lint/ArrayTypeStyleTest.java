@@ -146,7 +146,8 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        assertThat(new ArrayTypeStyle().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
+        assertThat(new ArrayTypeStyle().apply(LintContext.parseOnly(unit)).edits())
+                .isEmpty();
     }
 
     @ParameterizedTest

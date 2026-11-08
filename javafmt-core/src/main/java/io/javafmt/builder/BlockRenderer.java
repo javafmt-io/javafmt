@@ -18,11 +18,14 @@ final class BlockRenderer {
     List<Doc> blockStatements(final StatementTree statement, final Recursor recursor) {
         if (statement instanceof BlockTree block) {
             final var statementDocs = statementDocs(block.getStatements(), recursor);
-            final var tailDocs = recursor.trailingInside(block).stream().map(CommentDocs::renderComment);
+            final var tailDocs = recursor.trailingInside(block).stream()
+                    .map(CommentDocs::renderComment);
             return Stream.concat(statementDocs, tailDocs).toList();
         }
         recursor.emitWarning("added braces around single-statement body", statement);
-        return Optional.ofNullable(recursor.scan(statement)).map(List::of).orElse(List.of());
+        return Optional.ofNullable(recursor.scan(statement))
+                .map(List::of)
+                .orElse(List.of());
     }
 
     /**
@@ -35,12 +38,10 @@ final class BlockRenderer {
      */
     Stream<Doc> statementDocs(final List<? extends StatementTree> statements, final Recursor recursor) {
         return IntStream.range(0, statements.size())
-                .mapToObj(
-                        i -> Optional.ofNullable(recursor.scan(statements.get(i)))
-                                .map(
-                                        doc -> i > 0 && recursor.blankLineBetween(statements.get(i - 1), statements.get(i))
-                                                ? Doc.concat(Doc.HARD_LINE, doc)
-                                                : doc))
+                .mapToObj(i -> Optional.ofNullable(recursor.scan(statements.get(i)))
+                        .map(doc -> i > 0 && recursor.blankLineBetween(statements.get(i - 1), statements.get(i))
+                                ? Doc.concat(Doc.HARD_LINE, doc)
+                                : doc))
                 .flatMap(Optional::stream);
     }
 
@@ -49,7 +50,12 @@ final class BlockRenderer {
         if (statements.isEmpty() && braceLineOf(body, recursor).isEmpty()) {
             return Doc.concat(header, new Doc.Text(" {}"));
         }
-        return Doc.concatOf(Stream.of(opened(header, body, recursor), statements.stream().map(Doc::indentedLine), Doc.closeBrace()));
+        return Doc.concatOf(
+                Stream.of(
+                        opened(header, body, recursor),
+                        statements.stream()
+                                .map(Doc::indentedLine),
+                        Doc.closeBrace()));
     }
 
     Stream<Doc> opened(final Doc header, final StatementTree body, final Recursor recursor) {
@@ -65,15 +71,21 @@ final class BlockRenderer {
     }
 
     Stream<Doc> besideTheBrace(final List<CommentToken> braceLine) {
-        return braceLine.subList(0, besideCount(braceLine)).stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)));
+        return braceLine.subList(0, besideCount(braceLine)).stream()
+                .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)));
     }
 
     Stream<Doc> belowTheBrace(final List<CommentToken> braceLine) {
-        return braceLine.subList(besideCount(braceLine), braceLine.size()).stream().map(c -> Doc.indentedLine(CommentDocs.renderComment(c)));
+        return braceLine.subList(besideCount(braceLine), braceLine.size())
+                .stream()
+                .map(c -> Doc.indentedLine(CommentDocs.renderComment(c)));
     }
 
     private int besideCount(final List<CommentToken> braceLine) {
-        return IntStream.range(0, braceLine.size()).filter(i -> braceLine.get(i).text().startsWith("//")).findFirst().orElse(braceLine.size() - 1)
+        return IntStream.range(0, braceLine.size())
+                .filter(i -> braceLine.get(i).text().startsWith("//"))
+                .findFirst()
+                .orElse(braceLine.size() - 1)
                 + 1;
     }
 
@@ -88,19 +100,29 @@ final class BlockRenderer {
      * its first statement, which is not where the author left them.
      */
     Doc buildBlock(final Doc opening, final List<CommentToken> braceLine, final List<Doc> statements, final List<CommentToken> trailing) {
-        final var all = Stream.concat(statements.stream(), trailing.stream().map(CommentDocs::renderComment)).toList();
+        final var all = Stream.concat(
+                statements.stream(),
+                trailing.stream()
+                        .map(CommentDocs::renderComment))
+                .toList();
         if (all.isEmpty() && braceLine.isEmpty()) {
             return Doc.concat(opening, new Doc.Text("}"));
         }
-        return Doc.concatOf(Stream.of(Stream.of(opening), braceLineComments(braceLine), all.stream().map(Doc::indentedLine), Doc.closeBrace()));
+        return Doc.concatOf(
+                Stream.of(
+                        Stream.of(opening),
+                        braceLineComments(braceLine),
+                        all.stream()
+                                .map(Doc::indentedLine),
+                        Doc.closeBrace()));
     }
 
     Doc stripTrailingSemicolonDoc(final Doc doc) {
         if (doc instanceof Doc.Text(var value) && value.endsWith(";")) {
             return new Doc.Text(value.substring(0, value.length() - 1));
         }
-        if (doc instanceof Doc.Choice(var preferred, var fallback, var fit)) {
-            return new Doc.Choice(stripTrailingSemicolonDoc(preferred), stripTrailingSemicolonDoc(fallback), fit);
+        if (doc instanceof Doc.Choice(var preferred, var fallback, var fit, var chainWidth)) {
+            return new Doc.Choice(stripTrailingSemicolonDoc(preferred), stripTrailingSemicolonDoc(fallback), fit, chainWidth);
         }
         if (doc instanceof Doc.Indent(var contents)) {
             return new Doc.Indent(stripTrailingSemicolonDoc(contents));

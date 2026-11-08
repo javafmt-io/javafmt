@@ -38,7 +38,10 @@ class ExplodeStarImportsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted).contains("import java.util.List;").contains("import java.util.Map;").doesNotContain("java.util.*");
+        assertThat(formatted)
+                .contains("import java.util.List;")
+                .contains("import java.util.Map;")
+                .doesNotContain("java.util.*");
     }
 
     @Test
@@ -78,9 +81,11 @@ class ExplodeStarImportsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(
-                source, JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))))
+                        source, JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(System.getProperty("java.class.path"))))
                 .output();
-        assertThat(formatted).contains("import java.util.List;").doesNotContain("LintEdit;");
+        assertThat(formatted)
+                .contains("import java.util.List;")
+                .doesNotContain("LintEdit;");
     }
 
     @Test
@@ -115,7 +120,10 @@ class ExplodeStarImportsAnalyzeTest {
                 }
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
-        assertThat(formatted).doesNotContain("java.io.*").contains("import java.io.File;").contains("import java.util.HashMap;");
+        assertThat(formatted)
+                .doesNotContain("java.io.*")
+                .contains("import java.io.File;")
+                .contains("import java.util.HashMap;");
     }
 
     @Test

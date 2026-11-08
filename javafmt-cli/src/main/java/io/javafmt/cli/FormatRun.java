@@ -42,7 +42,11 @@ final class FormatRun {
             final var changed = changedFiles(parsed);
             final var expansion = expandDirectories(parsed, err);
             final var kept = dropExcludedFiles(expansion.arguments());
-            final var exit = runFiles(kept.withFiles(kept.files.stream().filter(changed).toList()), err);
+            final var exit = runFiles(
+                    kept.withFiles(kept.files.stream()
+                            .filter(changed)
+                            .toList()),
+                    err);
             return Math.max(exit, expansion.unreadable() ? 2 : 0);
         } catch (final GitRatchetException e) {
             final var message = Objects.requireNonNullElse(e.getMessage(), "git failed");
@@ -58,7 +62,8 @@ final class FormatRun {
                     .distinct()
                     .map(directory -> GitRatchet.since(ref, directory))
                     .toList();
-            return file -> ratchets.stream().anyMatch(ratchet -> ratchet.includes(file));
+            return file -> ratchets.stream()
+                    .anyMatch(ratchet -> ratchet.includes(file));
         })
                 .orElse(_ -> true);
     }
@@ -99,10 +104,9 @@ final class FormatRun {
             out.print(result.output());
             return 0;
         } catch (final IOException e) {
-            err.println(
-                    parsed.jsonDiagnostics()
-                            ? JsonDiagnostics.cliLine("", "read failed: " + describe(e))
-                            : "javafmt: <stdin>: read failed: " + describe(e));
+            err.println(parsed.jsonDiagnostics()
+                    ? JsonDiagnostics.cliLine("", "read failed: " + describe(e))
+                    : "javafmt: <stdin>: read failed: " + describe(e));
             return 2;
         }
     }
@@ -122,15 +126,21 @@ final class FormatRun {
      * fails: a CI gate that checked nothing must not look like a pass.
      */
     private Expansion expandDirectories(final Arguments parsed, final PrintStream err) {
-        if (parsed.files.stream().noneMatch(Files::isDirectory)) {
+        if (parsed.files.stream()
+                .noneMatch(Files::isDirectory)) {
             return new Expansion(parsed, false);
         }
         final var found = parsed.files.stream()
                 .map(path -> Files.isDirectory(path) ? javaFilesUnder(path, parsed) : new SourceFiles.Discovery(List.of(path), List.of()))
                 .toList();
-        found.stream().flatMap(discovery -> discovery.unreadable().stream()).forEach(u -> reportUnreadable(u, parsed.jsonDiagnostics(), err));
-        final var expanded = found.stream().flatMap(discovery -> discovery.files().stream()).toList();
-        return new Expansion(parsed.withFiles(expanded), found.stream().anyMatch(d -> !d.unreadable().isEmpty()));
+        found.stream()
+                .flatMap(discovery -> discovery.unreadable().stream())
+                .forEach(u -> reportUnreadable(u, parsed.jsonDiagnostics(), err));
+        final var expanded = found.stream()
+                .flatMap(discovery -> discovery.files().stream())
+                .toList();
+        return new Expansion(parsed.withFiles(expanded), found.stream()
+                .anyMatch(d -> !d.unreadable().isEmpty()));
     }
 
     private SourceFiles.Discovery javaFilesUnder(final Path dir, final Arguments parsed) {
@@ -144,10 +154,16 @@ final class FormatRun {
     }
 
     private int runFiles(final Arguments parsed, final PrintStream err) {
-        final var cache = parsed.cacheFile.<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed))).orElseGet(FormatCache::noop);
+        final var cache = parsed.cacheFile.<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed)))
+                .orElseGet(FormatCache::noop);
         final var outcomes = outcomesOf(parsed, cache);
-        outcomes.stream().flatMap(outcome -> outcome.report().stream()).forEach(err::println);
-        final var worstExit = outcomes.stream().mapToInt(FileOutcome::exitCode).max().orElse(0);
+        outcomes.stream()
+                .flatMap(outcome -> outcome.report().stream())
+                .forEach(err::println);
+        final var worstExit = outcomes.stream()
+                .mapToInt(FileOutcome::exitCode)
+                .max()
+                .orElse(0);
         if (worstExit <= 1) {
             persistCache(cache, parsed.jsonDiagnostics(), err);
         }
@@ -157,8 +173,10 @@ final class FormatRun {
     private List<FileOutcome> outcomesOf(final Arguments parsed, final FormatCache cache) {
         try (
                 final var files = Javafmt.formatFilesLazily(parsed.files, parsed.config(), cache, parsed.threads);
-                final var pool = Executors.newFixedThreadPool(
-                        Math.max(1, parsed.threads), Thread.ofPlatform().name("javafmt-write-", 0).daemon(true).factory())) {
+                final var pool = Executors.newFixedThreadPool(Math.max(1, parsed.threads), Thread.ofPlatform()
+                        .name("javafmt-write-", 0)
+                        .daemon(true)
+                        .factory())) {
             return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics()), pool))
                     .toList()
                     .stream()
@@ -196,10 +214,9 @@ final class FormatRun {
         try {
             cache.save();
         } catch (final RuntimeException e) {
-            err.println(
-                    jsonDiagnostics
-                            ? JsonDiagnostics.cliLine("", "failed to save cache: " + e.getMessage())
-                            : "javafmt: warning: failed to save cache: " + e.getMessage());
+            err.println(jsonDiagnostics
+                    ? JsonDiagnostics.cliLine("", "failed to save cache: " + e.getMessage())
+                    : "javafmt: warning: failed to save cache: " + e.getMessage());
         }
     }
 
@@ -290,9 +307,8 @@ final class FormatRun {
 
         JavafmtConfig config() {
             return JavafmtConfig.defaults()
-                    .withAnalysis(
-                            classpath.<JavafmtConfig.Analysis>map(JavafmtConfig.Analysis.Attributed::new)
-                                    .orElseGet(JavafmtConfig.Analysis.ParseOnly::new));
+                    .withAnalysis(classpath.<JavafmtConfig.Analysis>map(JavafmtConfig.Analysis.Attributed::new)
+                            .orElseGet(JavafmtConfig.Analysis.ParseOnly::new));
         }
 
         Arguments withFiles(final List<Path> files) {

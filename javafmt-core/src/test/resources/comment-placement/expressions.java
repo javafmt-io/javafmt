@@ -21,7 +21,10 @@ class Expressions {
         };
         task.run();
         final var empty = List.<String>of();
-        final var upper = names.stream().map(String::toUpperCase).filter(name -> !name.isEmpty()).toList();
+        final var upper = names.stream()
+                .map(String::toUpperCase)
+                .filter(name -> !name.isEmpty())
+                .toList();
         final var failure = new IllegalStateException("message", null);
         return new Object() {
             @Override

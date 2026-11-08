@@ -20,7 +20,9 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
 
     static CorpusRun over(final Path srcZip) {
         final var started = System.nanoTime();
-        final var outcomes = JdkCorpus.load(srcZip).stream().map(CorpusRun::formatOne).toList();
+        final var outcomes = JdkCorpus.load(srcZip).stream()
+                .map(CorpusRun::formatOne)
+                .toList();
         return new CorpusRun(outcomes, (System.nanoTime() - started) / 1_000_000);
     }
 
@@ -29,14 +31,22 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
         final var started = System.nanoTime();
         final var result = Javafmt.formatWithResult(entry.source(), config);
         final var millis = (System.nanoTime() - started) / 1_000_000;
-        final var unparseable = result.diagnostics().stream().anyMatch(d -> d instanceof Diagnostic.ParseError);
-        final var refused = result.diagnostics().stream().anyMatch(d -> d instanceof Diagnostic.InternalError);
+        final var unparseable = result.diagnostics().stream()
+                .anyMatch(d -> d instanceof Diagnostic.ParseError);
+        final var refused = result.diagnostics().stream()
+                .anyMatch(d -> d instanceof Diagnostic.InternalError);
         if (unparseable || refused) {
             return new FileOutcome(entry.name(), unparseable, refused, true, true, 0, millis);
         }
         final var output = result.output();
         return new FileOutcome(
-                entry.name(), false, false, reparses(output), Javafmt.format(output, config).equals(output), overWidthLines(output), millis);
+                entry.name(),
+                false,
+                false,
+                reparses(output),
+                Javafmt.format(output, config).equals(output),
+                overWidthLines(output),
+                millis);
     }
 
     private static boolean reparses(final String output) {
@@ -49,23 +59,34 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
     }
 
     private static int overWidthLines(final String output) {
-        return (int) output.lines().filter(line -> line.length() > LINE_WIDTH).count();
+        return (int) output.lines()
+                .filter(line -> line.length() > LINE_WIDTH)
+                .count();
     }
 
     long count(final java.util.function.Predicate<FileOutcome> property) {
-        return outcomes.stream().filter(property).count();
+        return outcomes.stream()
+                .filter(property)
+                .count();
     }
 
     List<String> names(final java.util.function.Predicate<FileOutcome> property) {
-        return outcomes.stream().filter(property).map(FileOutcome::name).toList();
+        return outcomes.stream()
+                .filter(property)
+                .map(FileOutcome::name)
+                .toList();
     }
 
     Optional<FileOutcome> slowest() {
-        return outcomes.stream().max(Comparator.comparingLong(FileOutcome::millis));
+        return outcomes.stream()
+                .max(Comparator.comparingLong(FileOutcome::millis));
     }
 
     List<FileOutcome> slowest(final int count) {
-        return outcomes.stream().sorted(Comparator.comparingLong(FileOutcome::millis).reversed()).limit(count).toList();
+        return outcomes.stream()
+                .sorted(Comparator.comparingLong(FileOutcome::millis).reversed())
+                .limit(count)
+                .toList();
     }
 
     /**

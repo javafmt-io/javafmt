@@ -33,8 +33,10 @@ final class ModuleRenderer {
                 ? Doc.concat(new Doc.Text(header), new Doc.Text(" {}"))
                 : Doc.concatOf(
                         Stream.of(
-                                Stream.of(new Doc.Text(header), new Doc.Text(" {")), bodyStream(directives, recursor),
-                                TypeBodyRenderer.tailLines(tail), Doc.closeBrace()));
+                                Stream.of(new Doc.Text(header), new Doc.Text(" {")),
+                                bodyStream(directives, recursor),
+                                TypeBodyRenderer.tailLines(tail),
+                                Doc.closeBrace()));
         return ModifierRenderer.prependOwnLineAnnotations(node.getAnnotations(), body, recursor);
     }
 
@@ -100,7 +102,9 @@ final class ModuleRenderer {
         if (targets == null || targets.isEmpty()) {
             return new Doc.Text(keyword + " " + subject + ";");
         }
-        final var inSourceOrder = targets.stream().map(ExpressionTree::toString).<Doc>map(Doc.Text::new);
+        final var inSourceOrder = targets.stream()
+                .map(ExpressionTree::toString)
+                .<Doc>map(Doc.Text::new);
         final var interior = new Doc.Concat(Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), inSourceOrder));
         final var continuation = Doc.continuationIndent(Doc.concat(Doc.LINE, interior));
         return new Doc.Group(Doc.concat(new Doc.Text(keyword + " " + subject + " " + connector), continuation, new Doc.Text(";")));

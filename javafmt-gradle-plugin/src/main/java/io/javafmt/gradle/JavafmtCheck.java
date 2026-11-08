@@ -21,7 +21,9 @@ public abstract class JavafmtCheck extends JavafmtTask {
 
     @TaskAction
     public void check(final InputChanges changes) {
-        final var files = changes.isIncremental() && !getAnalyze().get() && !getRatchetFrom().isPresent()
+        final var files = changes.isIncremental()
+            && !getAnalyze().get()
+            && !getRatchetFrom().isPresent()
                 ? StreamSupport.stream(changes.getFileChanges(getSources()).spliterator(), false)
                         .filter(change -> change.getFileType() == FileType.FILE && change.getChangeType() != ChangeType.REMOVED)
                         .map(FileChange::getFile)

@@ -62,30 +62,45 @@ class AnalyzeSkipTest {
     void skippingEveryRuleThatUsesTheClasspathFormatsAsWithoutIt(final String source) {
         final var skipped = Javafmt.formatWithResult(source, ANALYZE, skipping("ExplodeStarImports", "LocalVarUseVar", "RedundantTypeArguments"));
         assertThat(skipped).isEqualTo(Javafmt.formatWithResult(source));
-        assertThat(skipped.output()).isNotEqualTo(Javafmt.formatWithResult(source, ANALYZE).output());
+        assertThat(skipped.output())
+                .isNotEqualTo(Javafmt.formatWithResult(source, ANALYZE).output());
     }
 
     @Test
     void skippingExplodeStarImportsKeepsTheWildcard() {
-        assertThat(Javafmt.formatWithResult(STAR_IMPORT, ANALYZE, skipping("ExplodeStarImports")).output()).contains("import java.util.*;");
-        assertThat(Javafmt.formatWithResult(STAR_IMPORT, ANALYZE, ProjectFile.none()).output()).contains("import java.util.List;");
+        assertThat(
+                        Javafmt.formatWithResult(STAR_IMPORT, ANALYZE, skipping("ExplodeStarImports"))
+                                .output())
+                .contains("import java.util.*;");
+        assertThat(
+                        Javafmt.formatWithResult(STAR_IMPORT, ANALYZE, ProjectFile.none())
+                                .output())
+                .contains("import java.util.List;");
     }
 
     @Test
     void skippingLocalVarUseVarKeepsOnlyItsRewritesThatNeedNoClasspath() {
-        final var output = Javafmt.formatWithResult(FACTORY_LOCAL, ANALYZE, skipping("LocalVarUseVar")).output();
+        final var output = Javafmt.formatWithResult(FACTORY_LOCAL, ANALYZE, skipping("LocalVarUseVar"))
+                .output();
         assertThat(output).contains("final List<String> lines = Stream.of(\"a\").toList();", "final var copy = new ArrayList<String>();");
     }
 
     @Test
     void skippingRedundantTypeArgumentsKeepsTheTypeWitness() {
-        assertThat(Javafmt.formatWithResult(TYPE_WITNESS, ANALYZE, skipping("RedundantTypeArguments")).output()).contains("Stream.<String>of");
-        assertThat(Javafmt.formatWithResult(TYPE_WITNESS, ANALYZE, ProjectFile.none()).output()).doesNotContain("Stream.<String>of");
+        assertThat(
+                        Javafmt.formatWithResult(TYPE_WITNESS, ANALYZE, skipping("RedundantTypeArguments"))
+                                .output())
+                .contains("Stream.<String>of");
+        assertThat(
+                        Javafmt.formatWithResult(TYPE_WITNESS, ANALYZE, ProjectFile.none())
+                                .output())
+                .doesNotContain("Stream.<String>of");
     }
 
     @Test
     void skippingOneRuleLeavesTheOthersTheirClasspath() {
-        final var output = Javafmt.formatWithResult(FACTORY_LOCAL, ANALYZE, skipping("RedundantTypeArguments", "ExplodeStarImports")).output();
+        final var output = Javafmt.formatWithResult(FACTORY_LOCAL, ANALYZE, skipping("RedundantTypeArguments", "ExplodeStarImports"))
+                .output();
         assertThat(output).contains("final var lines = Stream.of(\"a\").toList();");
     }
 
@@ -103,7 +118,9 @@ class AnalyzeSkipTest {
                     }
                 }
                 """;
-        assertThat(Javafmt.formatWithResult(source, ANALYZE, skipping("RedundantTypeArguments")).output())
+        assertThat(
+                        Javafmt.formatWithResult(source, ANALYZE, skipping("RedundantTypeArguments"))
+                                .output())
                 .contains("final var boxes = new ArrayList<String>();");
     }
 
@@ -114,8 +131,8 @@ class AnalyzeSkipTest {
         assertThat(result.output()).isEqualTo(STAR_IMPORT);
         assertThat(result.diagnostics())
                 .singleElement()
-                .isInstanceOfSatisfying(
-                        Diagnostic.ConfigError.class, error -> assertThat(error.message()).contains("/repository/.javafmt", "FinalParameters"));
+                .isInstanceOfSatisfying(Diagnostic.ConfigError.class,
+                        error -> assertThat(error.message()).contains("/repository/.javafmt", "FinalParameters"));
     }
 
     @Test
@@ -128,7 +145,8 @@ class AnalyzeSkipTest {
         final var skipped = Files.writeString(skipping.resolve("Order.java"), STAR_IMPORT);
         final var exploded = Files.writeString(plain.resolve("Invoice.java"), STAR_IMPORT.replace("Order", "Invoice"));
         final var results = Javafmt.formatFiles(List.of(skipped, exploded), ANALYZE, FormatCache.noop(), 2);
-        assertThat(((FileResult.Formatted) results.getFirst()).result().output()).contains("import java.util.*;");
+        assertThat(((FileResult.Formatted) results.getFirst()).result().output())
+                .contains("import java.util.*;");
         assertThat(((FileResult.Formatted) results.get(1)).result().output()).contains("import java.util.List;");
     }
 
@@ -138,9 +156,13 @@ class AnalyzeSkipTest {
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=Unknown\n");
         final var source = Files.writeString(dir.resolve("Order.java"), STAR_IMPORT);
         final var results = Javafmt.formatFiles(List.of(source), JavafmtConfig.defaults(), FormatCache.noop(), 1);
-        assertThat(results).singleElement().isInstanceOfSatisfying(FileResult.Formatted.class, formatted -> {
-            assertThat(formatted.changed()).isFalse();
-            assertThat(formatted.result().errors()).singleElement().isInstanceOf(Diagnostic.ConfigError.class);
-        });
+        assertThat(results)
+                .singleElement()
+                .isInstanceOfSatisfying(FileResult.Formatted.class, formatted -> {
+                    assertThat(formatted.changed()).isFalse();
+                    assertThat(formatted.result().errors())
+                            .singleElement()
+                            .isInstanceOf(Diagnostic.ConfigError.class);
+                });
     }
 }

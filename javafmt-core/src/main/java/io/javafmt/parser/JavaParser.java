@@ -137,14 +137,19 @@ public final class JavaParser {
     }
 
     private boolean computeHasJavacInternalAccess() {
-        final var jdkCompiler = ModuleLayer.boot().findModule("jdk.compiler").orElse(null);
+        final var jdkCompiler = ModuleLayer.boot()
+                .findModule("jdk.compiler")
+                .orElse(null);
         if (jdkCompiler == null) {
             return false;
         }
         final var self = JavaParser.class.getModule();
         return Stream.of(
-                "com.sun.tools.javac.api", "com.sun.tools.javac.file", "com.sun.tools.javac.parser", "com.sun.tools.javac.tree",
-                "com.sun.tools.javac.util")
+                        "com.sun.tools.javac.api",
+                        "com.sun.tools.javac.file",
+                        "com.sun.tools.javac.parser",
+                        "com.sun.tools.javac.tree",
+                        "com.sun.tools.javac.util")
                 .allMatch(p -> jdkCompiler.isExported(p, self));
     }
 
@@ -170,14 +175,18 @@ public final class JavaParser {
     void rethrowOutOfMemory(final String compilerOutput) {
         final var reported = OUT_OF_MEMORY.matcher(compilerOutput);
         if (reported.find()) {
-            throw Optional.ofNullable(reported.group(1)).map(OutOfMemoryError::new).orElseGet(OutOfMemoryError::new);
+            throw Optional.ofNullable(reported.group(1))
+                    .map(OutOfMemoryError::new)
+                    .orElseGet(OutOfMemoryError::new);
         }
     }
 
     List<Staged<AttributedUnit>> attributeBatch(final List<String> sources, final AttributionSession session) {
         final var classpath = session.classpath();
         final var classpathOptions = classpath.isEmpty() ? List.<String>of() : List.of("-classpath", classpath);
-        final var options = Stream.of(TASK_OPTIONS, ATTRIBUTION_OPTIONS, classpathOptions).flatMap(List::stream).toList();
+        final var options = Stream.of(TASK_OPTIONS, ATTRIBUTION_OPTIONS, classpathOptions)
+                .flatMap(List::stream)
+                .toList();
         final var batch = parseBatch(sources, session.fileManager(), options);
         final var task = batch.task();
         try {
@@ -198,13 +207,16 @@ public final class JavaParser {
     }
 
     private Map<URI, List<AttributionError>> attributionErrors(final ParsedBatch batch) {
-        return errorsByUri(batch.diagnostics(), batch.fileObjects().getFirst().toUri()).entrySet().stream()
-                .collect(
-                        Collectors.toMap(
-                                Map.Entry::getKey,
-                                entry -> entry.getValue().stream()
-                                        .map(d -> new AttributionError(d.getStartPosition(), d.getMessage(Locale.ROOT)))
-                                        .toList()));
+        return errorsByUri(
+                        batch.diagnostics(),
+                        batch.fileObjects().getFirst().toUri())
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(d -> new AttributionError(d.getStartPosition(), d.getMessage(Locale.ROOT)))
+                                .toList()));
     }
 
     /**
@@ -218,7 +230,9 @@ public final class JavaParser {
         if (sources.size() == 1) {
             return List.of(new Staged.Failed<>(batchFailure));
         }
-        return sources.stream().map(source -> attributeBatch(List.of(source), session).getFirst()).toList();
+        return sources.stream()
+                .map(source -> attributeBatch(List.of(source), session).getFirst())
+                .toList();
     }
 
     /**
@@ -230,11 +244,10 @@ public final class JavaParser {
                                                                                          final URI fallbackUri) {
         return diagnostics.getDiagnostics().stream()
                 .filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR)
-                .collect(
-                        Collectors.groupingBy(d -> {
-                            final var src = d.getSource();
-                            return src == null ? fallbackUri : src.toUri();
-                        }));
+                .collect(Collectors.groupingBy(d -> {
+                    final var src = d.getSource();
+                    return src == null ? fallbackUri : src.toUri();
+                }));
     }
 
     /**
@@ -258,8 +271,12 @@ public final class JavaParser {
     }
 
     private ParseException toParseException(final List<javax.tools.Diagnostic<? extends JavaFileObject>> errors) {
-        final var message = errors.stream().map(d -> d.getMessage(Locale.ROOT)).collect(Collectors.joining("; "));
-        final var asDiagnostics = errors.stream().<Diagnostic>map(d -> new Diagnostic.ParseError(d.getMessage(Locale.ROOT), positionOf(d))).toList();
+        final var message = errors.stream()
+                .map(d -> d.getMessage(Locale.ROOT))
+                .collect(Collectors.joining("; "));
+        final var asDiagnostics = errors.stream()
+                .<Diagnostic>map(d -> new Diagnostic.ParseError(d.getMessage(Locale.ROOT), positionOf(d)))
+                .toList();
         return new ParseException(message, asDiagnostics);
     }
 
@@ -279,7 +296,9 @@ public final class JavaParser {
         try {
             final var batch = parseBatch(sources, fileManager, TASK_OPTIONS);
             final var positions = Trees.instance(batch.task()).getSourcePositions();
-            return IntStream.range(0, batch.stripped().size()).mapToObj(i -> resolve(batch, i, positions)).toList();
+            return IntStream.range(0, batch.stripped().size())
+                    .mapToObj(i -> resolve(batch, i, positions))
+                    .toList();
         } finally {
             IDLE_FILE_MANAGERS.offer(fileManager);
         }
@@ -292,7 +311,9 @@ public final class JavaParser {
      * {@code task.analyze()}.
      */
     private ParsedBatch parseBatch(final List<String> sources, final StandardJavaFileManager fileManager, final List<String> options) {
-        final var stripped = sources.stream().map(JavaParser::stripBom).toList();
+        final var stripped = sources.stream()
+                .map(JavaParser::stripBom)
+                .toList();
         final var fileObjects = IntStream.range(0, stripped.size())
                 .<JavaFileObject>mapToObj(i -> new InMemoryJavaFileObject(stripped.get(i), i))
                 .toList();

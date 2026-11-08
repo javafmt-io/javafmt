@@ -13,7 +13,8 @@ class CompileCheckTest {
 
     @Test
     void publicTypeCompilesDespiteTheSyntheticFileName() {
-        assertThat(CompileCheck.check("public class Widget {\n    int x = 1;\n}\n")).isInstanceOf(CompileCheck.Outcome.Compiles.class);
+        assertThat(CompileCheck.check("public class Widget {\n    int x = 1;\n}\n"))
+                .isInstanceOf(CompileCheck.Outcome.Compiles.class);
     }
 
     @Test
@@ -58,7 +59,8 @@ class CompileCheckTest {
 
     @Test
     void moduleDeclarationIsSkipped() {
-        assertThat(CompileCheck.check("module com.example.app {\n    requires java.base;\n}\n")).isInstanceOf(CompileCheck.Outcome.Skipped.class);
+        assertThat(CompileCheck.check("module com.example.app {\n    requires java.base;\n}\n"))
+                .isInstanceOf(CompileCheck.Outcome.Skipped.class);
     }
 
     @Test

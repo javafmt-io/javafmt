@@ -20,7 +20,8 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 class JavafmtFixtureTest {
 
-    private static final JavafmtConfig WITH_THE_CLASSPATH = JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
+    private static final JavafmtConfig WITH_THE_CLASSPATH = JavafmtConfig.defaults()
+            .withAnalysis(new JavafmtConfig.Analysis.Attributed(""));
 
     static Stream<Arguments> fixtures() throws URISyntaxException, IOException {
         return fixturesUnder("test-fixtures");
@@ -38,7 +39,12 @@ class JavafmtFixtureTest {
         final var root = Paths.get(fixturesRoot.toURI());
         try (final var listing = Files.list(root)) {
             return listing.filter(Files::isDirectory)
-                    .filter(dir -> !dir.getFileName().toString().equals("idempotent") && !dir.getFileName().toString().equals("with-classpath"))
+                    .filter(dir -> !dir.getFileName()
+                            .toString()
+                            .equals("idempotent")
+                        && !dir.getFileName()
+                                .toString()
+                                .equals("with-classpath"))
                     .flatMap(JavafmtFixtureTest::variants)
                     .sorted(Comparator.comparing(a -> ((String) a.get()[0])))
                     .toList()
@@ -56,7 +62,8 @@ class JavafmtFixtureTest {
         if (inputs.isEmpty()) {
             throw new IllegalStateException("Fixture '" + dir.getFileName() + "' has no input files");
         }
-        return inputs.stream().map(input -> Arguments.of(displayName(dir, input), read(input), expectedContent));
+        return inputs.stream()
+                .map(input -> Arguments.of(displayName(dir, input), read(input), expectedContent));
     }
 
     private static List<Path> inputFiles(final Path dir) {
@@ -89,10 +96,16 @@ class JavafmtFixtureTest {
         }
         final var dir = Paths.get(root.toURI());
         try (final var listing = Files.list(dir)) {
-            return listing.filter(path -> path.getFileName().toString().endsWith(".java")).<Arguments>map(path -> {
-                final var name = path.getFileName().toString();
-                return Arguments.of(name.substring(0, name.length() - ".java".length()), read(path));
-            }).sorted(Comparator.comparing(a -> ((String) a.get()[0]))).toList().stream();
+            return listing.filter(path -> path.getFileName()
+                            .toString()
+                            .endsWith(".java"))
+                    .<Arguments>map(path -> {
+                        final var name = path.getFileName().toString();
+                        return Arguments.of(name.substring(0, name.length() - ".java".length()), read(path));
+                    })
+                    .sorted(Comparator.comparing(a -> ((String) a.get()[0])))
+                    .toList()
+                    .stream();
         }
     }
 
@@ -145,10 +158,13 @@ class JavafmtFixtureTest {
     private static String formatVerified(final String name, final String source, final JavafmtConfig config) {
         final var result = Javafmt.formatWithResult(source, config.withVerifyOutput(true));
         final var internal = result.diagnostics().stream()
-                .filter(d -> d instanceof Diagnostic.InternalError || d.message().startsWith("formatting with the classpath failed"))
+                .filter(d -> d instanceof Diagnostic.InternalError
+                    || d.message().startsWith("formatting with the classpath failed"))
                 .map(Diagnostic::message)
                 .toList();
-        assertThat(internal).as("fixture '%s' must format without an internal error", name).isEmpty();
+        assertThat(internal)
+                .as("fixture '%s' must format without an internal error", name)
+                .isEmpty();
         return result.output();
     }
 

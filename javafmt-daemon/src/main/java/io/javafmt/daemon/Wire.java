@@ -28,9 +28,13 @@ public enum Wire {
 
     Stream<byte[]> frames(final InputStream in) {
         return switch (this) {
-            case BINARY -> Stream.generate(() -> frame(in)).takeWhile(Optional::isPresent).map(Optional::orElseThrow);
+            case BINARY ->
+                Stream.generate(() -> frame(in))
+                        .takeWhile(Optional::isPresent)
+                        .map(Optional::orElseThrow);
             case JSON ->
-                new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)).lines().map(line -> line.getBytes(StandardCharsets.UTF_8));
+                new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)).lines()
+                        .map(line -> line.getBytes(StandardCharsets.UTF_8));
         };
     }
 

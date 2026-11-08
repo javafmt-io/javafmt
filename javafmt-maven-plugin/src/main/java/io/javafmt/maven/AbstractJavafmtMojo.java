@@ -106,7 +106,13 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
 
     private List<Path> changedSinceRatchet(final MavenProject p, final List<Path> files) {
         final var ref = ratchetFrom;
-        return ref == null ? files : GitRatchet.since(ref, Objects.requireNonNull(p.getBasedir(), "basedir").toPath()).keep(files);
+        return ref == null
+                ? files
+                : GitRatchet.since(
+                                ref,
+                                Objects.requireNonNull(p.getBasedir(), "basedir")
+                                        .toPath())
+                        .keep(files);
     }
 
     /** What the goal does with the files that formatted without errors; throws MojoExecutionException to fail the build. */
@@ -117,21 +123,31 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
                 .flatMap(result -> result instanceof FileResult.Unreadable u ? Stream.of(u) : Stream.empty())
                 .findFirst();
         if (unreadable.isPresent()) {
-            throw new MojoExecutionException("javafmt: I/O error: Failed to read " + unreadable.get().path(), unreadable.get().error());
+            throw new MojoExecutionException(
+                    "javafmt: I/O error: Failed to read " + unreadable.get().path(),
+                    unreadable.get().error());
         }
     }
 
     private List<FileResult.Formatted> logErrorsAndKeepCleanFiles(final List<FileResult> results) {
-        final var formatted = results.stream().flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty()).toList();
-        formatted.forEach(f -> f.result().errors().forEach(d -> getLog().warn("javafmt: " + d.describe(f.path().toString()))));
-        return formatted.stream().filter(f -> !f.result().hasErrors()).toList();
+        final var formatted = results.stream()
+                .flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty())
+                .toList();
+        formatted.forEach(f -> f.result()
+                .errors()
+                .forEach(d -> getLog().warn("javafmt: " + d.describe(f.path().toString()))));
+        return formatted.stream()
+                .filter(f -> !f.result().hasErrors())
+                .toList();
     }
 
     private FormatCache resolveCache(final MavenProject p) {
         if (!cache) {
             return FormatCache.noop();
         }
-        final var path = cacheFile != null ? Path.of(cacheFile) : Path.of(p.getBuild().getDirectory(), "javafmt.cache");
+        final var path = cacheFile != null
+                ? Path.of(cacheFile)
+                : Path.of(p.getBuild().getDirectory(), "javafmt.cache");
         return FileFormatCache.load(path, CacheKey.of(JavafmtConfig.defaults()));
     }
 

@@ -13,7 +13,8 @@ class Descriptors {
     static Set<String> exportMetricsServiceMethod() {
         Set<String> exportMetricsServiceMethod;
         Descriptors.exportMetricsServiceMethod = exportMetricsServiceMethod =
-                Descriptors.<String, CopyOnWriteArrayList<Integer>>newExportMetricsServiceBuilder().keySet();
+                Descriptors.<String, CopyOnWriteArrayList<Integer>>newExportMetricsServiceBuilder()
+                        .keySet();
         return exportMetricsServiceMethod;
     }
 }

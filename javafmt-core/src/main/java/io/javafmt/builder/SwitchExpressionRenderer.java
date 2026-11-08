@@ -27,11 +27,15 @@ final class SwitchExpressionRenderer {
     }
 
     private Doc renderSwitchLike(final Tree node, final Doc selectorWithParens, final List<? extends CaseTree> cases, final Recursor recursor) {
-        final var caseDocs = cases.stream().map(recursor::scan).map(Doc::indentedLine);
+        final var caseDocs = cases.stream()
+                .map(recursor::scan)
+                .map(Doc::indentedLine);
         return Doc.concatOf(
                 Stream.of(
                         Stream.of(new Doc.Text("switch "), selectorWithParens, new Doc.Text(" {")),
-                        BlockRenderer.braceLineComments(recursor.braceLine(node)), caseDocs, Doc.closeBrace()));
+                        BlockRenderer.braceLineComments(recursor.braceLine(node)),
+                        caseDocs,
+                        Doc.closeBrace()));
     }
 
     Doc renderCase(final CaseTree node, final Recursor recursor) {
@@ -44,10 +48,14 @@ final class SwitchExpressionRenderer {
             return Doc.concat(prefixDoc, new Doc.Text(" ->"));
         }
         if (body instanceof BlockTree blockBody) {
-            final var statements = blockBody.getStatements().stream().flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream()).toList();
+            final var statements = blockBody.getStatements().stream()
+                    .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
+                    .toList();
             return BlockRenderer.buildBlock(
                     Doc.concat(prefixDoc, new Doc.Text(" -> {")),
-                    Stream.concat(recursor.braceLine(node).stream(), recursor.braceLine(blockBody).stream()).toList(), statements,
+                    Stream.concat(recursor.braceLine(node).stream(), recursor.braceLine(blockBody).stream())
+                            .toList(),
+                    statements,
                     recursor.trailingInside(blockBody));
         }
         final var bodyDoc = body instanceof StatementTree ? recursor.scan(body) : Doc.concat(recursor.scan(body), new Doc.Text(";"));
@@ -60,7 +68,8 @@ final class SwitchExpressionRenderer {
         }
         return new Doc.Group(
                 Doc.concat(
-                        prefixDoc, new Doc.Text(" ->"),
+                        prefixDoc,
+                        new Doc.Text(" ->"),
                         new Doc.IfBreak(new Doc.Indent(Doc.concat(Doc.HARD_LINE, bodyDoc)), Doc.concat(new Doc.Text(" "), bodyDoc))));
     }
 
@@ -110,13 +119,16 @@ final class SwitchExpressionRenderer {
     private Doc labelList(final List<? extends Tree> labels, final Recursor recursor) {
         return labels.size() == 1
                 ? recursor.scan(labels.getFirst())
-                : WrappableList.joined(List.of(new Doc.Text(","), Doc.LINE), labels.stream().map(recursor::scan));
+                : WrappableList.joined(List.of(new Doc.Text(","), Doc.LINE), labels.stream()
+                        .map(recursor::scan));
     }
 
     private Doc renderColonForm(final Doc prefixDoc, final CaseTree node, final Recursor recursor) {
         final var prefix = Doc.concatOf(
                 Stream.of(Stream.of(prefixDoc, new Doc.Text(":")), BlockRenderer.braceLineComments(recursor.braceLine(node))));
-        final var statements = node.getStatements().stream().flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream()).toList();
+        final var statements = node.getStatements().stream()
+                .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
+                .toList();
         if (statements.isEmpty()) {
             return prefix;
         }
@@ -128,7 +140,9 @@ final class SwitchExpressionRenderer {
             // in the file. Indenting the brace onto its own line is the one place javafmt did not.
             return Doc.concat(prefix, new Doc.Text(" "), statements.getFirst());
         }
-        return new Doc.Concat(Stream.concat(Stream.of(prefix), statements.stream().map(Doc::indentedLine)));
+        return new Doc.Concat(
+                Stream.concat(Stream.of(prefix), statements.stream()
+                        .map(Doc::indentedLine)));
     }
 
     private boolean startsWithComment(final Doc doc) {

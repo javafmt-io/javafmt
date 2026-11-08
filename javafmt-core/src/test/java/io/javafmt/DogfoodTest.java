@@ -25,16 +25,29 @@ class DogfoodTest {
         var lostTotal = 0;
         for (var i = 0; i < batch.paths.size(); i++) {
             final var before = CommentScanner.scan(batch.sources.get(i));
-            final var afterTexts = CommentScanner.scan(formatted.get(i)).stream().map(CommentToken::text).toList();
-            final var missing = before.stream().map(CommentToken::text).filter(t -> !afterTexts.contains(t)).toList();
+            final var afterTexts = CommentScanner.scan(formatted.get(i))
+                    .stream()
+                    .map(CommentToken::text)
+                    .toList();
+            final var missing = before.stream()
+                    .map(CommentToken::text)
+                    .filter(t -> !afterTexts.contains(t))
+                    .toList();
             if (!missing.isEmpty()) {
                 lostTotal += missing.size();
-                report.append(batch.root.relativize(batch.paths.get(i))).append(": lost ").append(missing.size()).append(" comment(s):\n");
-                missing.forEach(m -> report.append("    ").append(m.length() > 80 ? m.substring(0, 80) + "..." : m).append('\n'));
+                report.append(batch.root.relativize(batch.paths.get(i)))
+                        .append(": lost ")
+                        .append(missing.size())
+                        .append(" comment(s):\n");
+                missing.forEach(m -> report.append("    ")
+                        .append(m.length() > 80 ? m.substring(0, 80) + "..." : m)
+                        .append('\n'));
             }
         }
         final var lost = lostTotal;
-        assertThat(lost).withFailMessage("Lost %d comment(s) when formatting javafmt's own source:%n%s", lost, report).isZero();
+        assertThat(lost)
+                .withFailMessage("Lost %d comment(s) when formatting javafmt's own source:%n%s", lost, report)
+                .isZero();
     }
 
     @Test
@@ -54,7 +67,9 @@ class DogfoodTest {
             }
         }
         final var count = failures;
-        assertThat(count).withFailMessage("%d javafmt-core file(s) formatted to unparseable output:%n%s", count, report).isZero();
+        assertThat(count)
+                .withFailMessage("%d javafmt-core file(s) formatted to unparseable output:%n%s", count, report)
+                .isZero();
     }
 
     @Test
@@ -63,19 +78,28 @@ class DogfoodTest {
         // that Doc build and print changed nothing but layout, for every file in the module.
         final var batch = loadJavafmtCoreSources();
         final var results = Javafmt.formatAll(
-                batch.sources, JavafmtConfig.defaults().withVerifyOutput(true), Runtime.getRuntime().availableProcessors());
+                batch.sources,
+                JavafmtConfig.defaults().withVerifyOutput(true),
+                Runtime.getRuntime().availableProcessors());
         final var report = new StringBuilder();
         var failures = 0;
         for (var i = 0; i < batch.paths.size(); i++) {
             final var result = results.get(i);
-            final var internal = result.diagnostics().stream().filter(d -> d instanceof Diagnostic.InternalError).toList();
+            final var internal = result.diagnostics().stream()
+                    .filter(d -> d instanceof Diagnostic.InternalError)
+                    .toList();
             if (!internal.isEmpty()) {
                 failures++;
-                report.append(batch.root.relativize(batch.paths.get(i))).append(": ").append(internal.getFirst().message()).append('\n');
+                report.append(batch.root.relativize(batch.paths.get(i)))
+                        .append(": ")
+                        .append(internal.getFirst().message())
+                        .append('\n');
             }
         }
         final var count = failures;
-        assertThat(count).withFailMessage("%d javafmt-core file(s) did not survive output verification:%n%s", count, report).isZero();
+        assertThat(count)
+                .withFailMessage("%d javafmt-core file(s) did not survive output verification:%n%s", count, report)
+                .isZero();
     }
 
     @Test
@@ -92,7 +116,9 @@ class DogfoodTest {
             }
         }
         final var count = failures;
-        assertThat(count).withFailMessage("%d javafmt-core file(s) failed to round-trip:%n%s", count, report).isZero();
+        assertThat(count)
+                .withFailMessage("%d javafmt-core file(s) failed to round-trip:%n%s", count, report)
+                .isZero();
     }
 
     @Test
@@ -113,7 +139,9 @@ class DogfoodTest {
             }
         }
         final var count = failures;
-        assertThat(count).withFailMessage("%d javafmt-core test file(s) failed to round-trip:%n%s", count, report).isZero();
+        assertThat(count)
+                .withFailMessage("%d javafmt-core test file(s) failed to round-trip:%n%s", count, report)
+                .isZero();
     }
 
     private static JavafmtCoreSources loadJavafmtCoreSources() throws IOException {
@@ -127,14 +155,20 @@ class DogfoodTest {
     private static JavafmtCoreSources loadSourcesFrom(final Path root) throws IOException {
         assertThat(root).exists();
         try (final Stream<Path> stream = Files.walk(root)) {
-            final var paths = stream.filter(p -> p.toString().endsWith(".java")).sorted().toList();
-            final var sources = paths.stream().map(DogfoodTest::readString).toList();
+            final var paths = stream.filter(p -> p.toString().endsWith(".java"))
+                    .sorted()
+                    .toList();
+            final var sources = paths.stream()
+                    .map(DogfoodTest::readString)
+                    .toList();
             return new JavafmtCoreSources(root, paths, sources);
         }
     }
 
     private static List<String> batchFormat(final List<String> sources) {
-        return Javafmt.formatAll(sources, JavafmtConfig.defaults(), Runtime.getRuntime().availableProcessors()).stream()
+        return Javafmt.formatAll(
+                        sources, JavafmtConfig.defaults(), Runtime.getRuntime().availableProcessors())
+                .stream()
                 .map(FormatResult::output)
                 .toList();
     }

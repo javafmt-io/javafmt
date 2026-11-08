@@ -23,13 +23,21 @@ class BytecodeTargetTest {
     @Test
     void everyMainClassTargetsJava25() throws IOException {
         final var classesDir = Path.of("build/classes/java/main");
-        assertThat(Files.isDirectory(classesDir)).as("compile the module before running this test").isTrue();
+        assertThat(Files.isDirectory(classesDir))
+                .as("compile the module before running this test")
+                .isTrue();
         try (final var files = Files.walk(classesDir)) {
-            final var classFiles = files.filter(p -> p.toString().endsWith(".class")).toList();
+            final var classFiles = files.filter(p -> p.toString().endsWith(".class"))
+                    .toList();
             // An empty stream would trivially satisfy "no offenders" below, so require that we
             // actually examined something.
-            assertThat(classFiles).as("expected at least one compiled class under %s", classesDir).isNotEmpty();
-            final var offenders = classFiles.stream().filter(p -> majorVersion(p) != JAVA_25_MAJOR).map(Path::toString).toList();
+            assertThat(classFiles)
+                    .as("expected at least one compiled class under %s", classesDir)
+                    .isNotEmpty();
+            final var offenders = classFiles.stream()
+                    .filter(p -> majorVersion(p) != JAVA_25_MAJOR)
+                    .map(Path::toString)
+                    .toList();
             assertThat(offenders).isEmpty();
         }
     }
