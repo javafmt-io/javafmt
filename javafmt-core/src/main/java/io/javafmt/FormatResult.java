@@ -26,16 +26,21 @@ public record FormatResult(String output, List<Diagnostic> diagnostics) {
 
     /** Whether any {@link #diagnostics()} entry is an error rather than a warning. */
     public boolean hasErrors() {
-        return diagnostics.stream().anyMatch(Diagnostic::isError);
+        return diagnostics.stream()
+                .anyMatch(Diagnostic::isError);
     }
 
     /** The {@link #diagnostics()} entries that are errors. */
     public List<Diagnostic> errors() {
-        return diagnostics.stream().filter(Diagnostic::isError).toList();
+        return diagnostics.stream()
+                .filter(Diagnostic::isError)
+                .toList();
     }
 
     /** The {@link #diagnostics()} entries that are warnings, not errors. */
     public List<Diagnostic> warnings() {
-        return diagnostics.stream().filter(d -> !d.isError()).toList();
+        return diagnostics.stream()
+                .filter(d -> !d.isError())
+                .toList();
     }
 }

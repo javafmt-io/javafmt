@@ -38,16 +38,17 @@ public final class FinalParameters implements LintRule {
         final var facts = new TreeFacts(unit);
         final var reassignments = new ReassignmentDetector();
         return methodsWithBodies(context, facts).stream()
-                .flatMap(
-                        m -> m.getParameters().stream()
-                                .filter(p -> !Modifiers.hasFinal(p))
-                                .map(p -> Map.entry(p, reassignments.reassigned(m.getBody(), p.getName().toString()))))
-                .collect(
-                        Collectors.teeing(
-                                Collectors.filtering(
-                                        e -> !e.getValue(), Collectors.flatMapping(e -> editFor(e.getKey(), unit).stream(), Collectors.toList())),
-                                Collectors.filtering(e -> e.getValue(), Collectors.mapping(e -> warningFor(e.getKey(), unit), Collectors.toList())),
-                                LintResult::new));
+                .flatMap(m -> m.getParameters().stream()
+                        .filter(p -> !Modifiers.hasFinal(p))
+                        .map(p -> Map.entry(
+                                p,
+                                reassignments.reassigned(
+                                        m.getBody(), p.getName().toString()))))
+                .collect(Collectors.teeing(
+                        Collectors.filtering(
+                                e -> !e.getValue(), Collectors.flatMapping(e -> editFor(e.getKey(), unit).stream(), Collectors.toList())),
+                        Collectors.filtering(e -> e.getValue(), Collectors.mapping(e -> warningFor(e.getKey(), unit), Collectors.toList())),
+                        LintResult::new));
     }
 
     /**
@@ -56,17 +57,15 @@ public final class FinalParameters implements LintRule {
      * final} would break the re-parse.
      */
     private static List<MethodTree> methodsWithBodies(final LintContext context, final TreeFacts facts) {
-        return LintScan.collect(
-                context,
-                methods -> new ChainScanner<>() {
-                    @Override
-                    public Void visitMethod(final MethodTree node, final Void p) {
-                        if (node.getBody() != null && !facts.isCompactConstructor(node)) {
-                            methods.add(node);
-                        }
-                        return super.visitMethod(node, null);
-                    }
-                });
+        return LintScan.collect(context, methods -> new ChainScanner<>() {
+            @Override
+            public Void visitMethod(final MethodTree node, final Void p) {
+                if (node.getBody() != null && !facts.isCompactConstructor(node)) {
+                    methods.add(node);
+                }
+                return super.visitMethod(node, null);
+            }
+        });
     }
 
     private static Optional<LintEdit> editFor(final VariableTree param, final ParsedUnit unit) {

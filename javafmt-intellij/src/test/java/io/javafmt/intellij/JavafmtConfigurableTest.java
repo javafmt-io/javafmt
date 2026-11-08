@@ -44,7 +44,8 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
 
     @Test
     public void testFormStartsUncheckedAndUnmodified() {
-        assertThat(checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).isSelected()).isFalse();
+        assertThat(checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).isSelected())
+                .isFalse();
         assertThat(configurable.isModified()).isFalse();
     }
 
@@ -67,7 +68,8 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     public void testResetDiscardsUnappliedEdits() {
         checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).setSelected(true);
         configurable.reset();
-        assertThat(checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).isSelected()).isFalse();
+        assertThat(checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).isSelected())
+                .isFalse();
         assertThat(configurable.isModified()).isFalse();
         assertThat(JavafmtSettings.getInstance(getProject()).isEnabled()).isFalse();
     }
@@ -76,7 +78,8 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     public void testFormShowsWhatIsAlreadyPersisted() {
         JavafmtSettings.getInstance(getProject()).setEnabled(true);
         configurable.reset();
-        assertThat(checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).isSelected()).isTrue();
+        assertThat(checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).isSelected())
+                .isTrue();
         assertThat(configurable.isModified()).isFalse();
     }
 
@@ -113,21 +116,29 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
         // Ctrl+Alt+O runs IntelliJ's own import optimizer (static imports last, java.* grouped),
         // which javafmt rewrites back on the next reformat. The plugin cannot take that action
         // over without running the binary on the EDT, so the settings page has to say so.
-        assertThat(UIUtil.findComponentsOfType(form, JBLabel.class).stream().map(JBLabel::getText))
+        assertThat(
+                UIUtil.findComponentsOfType(form, JBLabel.class).stream()
+                        .map(JBLabel::getText))
                 .anySatisfy(text -> assertThat(text).contains("Optimize Imports"));
     }
 
     @Test
     public void testEngineStartsInProcess() {
         assertThat(engine().getSelectedItem()).isEqualTo(JavafmtApplicationSettings.Engine.IN_PROCESS);
-        assertThat(findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME).isEnabled()).isFalse();
+        assertThat(
+                        findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME)
+                                .isEnabled())
+                .isFalse();
     }
 
     @Test
     public void testChoosingTheNativeEngineIsAppliedAndEnablesTheBinaryPath() {
         engine().setSelectedItem(JavafmtApplicationSettings.Engine.NATIVE);
         assertThat(configurable.isModified()).isTrue();
-        assertThat(findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME).isEnabled()).isTrue();
+        assertThat(
+                        findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME)
+                                .isEnabled())
+                .isTrue();
         configurable.apply();
         assertThat(JavafmtApplicationSettings.getInstance().getEngine()).isEqualTo(JavafmtApplicationSettings.Engine.NATIVE);
         assertThat(configurable.isModified()).isFalse();

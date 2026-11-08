@@ -40,7 +40,9 @@ class JavaParserTest {
 
     @Test
     void attributionReportsEveryErrorInTheUnitWithItsOffset() {
-        final var body = IntStream.range(0, 150).mapToObj(i -> "int n" + i + " = \"x\";").collect(Collectors.joining(" "));
+        final var body = IntStream.range(0, 150)
+                .mapToObj(i -> "int n" + i + " = \"x\";")
+                .collect(Collectors.joining(" "));
         final var source = "class Invoices { void settle() { " + body + " } }";
         final var errors = JavaParser.attributing("", session -> {
             final var attributed = session.attribute(source);
@@ -56,7 +58,10 @@ class JavaParserTest {
         final var sessions = JavaParser.attributing("", session -> {
             final var original = session.attribute("class A { java.util.List<String> xs = java.util.List.of(); }");
             final var reattributed = JavaParser.reattribute("class A { java.util.List<String> ys = java.util.List.of(); }", original.attribution());
-            return List.of(session, original.attribution().session(), reattributed.attribution().session());
+            return List.of(
+                    session,
+                    original.attribution().session(),
+                    reattributed.attribution().session());
         });
         assertThat(sessions).allSatisfy(s -> assertThat(s).isSameAs(sessions.getFirst()));
     }
@@ -65,7 +70,12 @@ class JavaParserTest {
     void everyAttributionOfABatchCarriesTheSourcesOfTheWholeBatch() {
         final var sources = List.of("package p;\n\nclass A {}\n", "package p;\n\nclass B {}\n");
         final var batches = JavaParser.attributing(
-                "", session -> session.attribute(sources).stream().map(attributed -> attributed.orElseThrow().attribution().batch()).toList());
+                "",
+                session -> session.attribute(sources).stream()
+                        .map(attributed -> attributed.orElseThrow()
+                                .attribution()
+                                .batch())
+                        .toList());
         assertThat(batches).containsOnly(sources);
     }
 
@@ -75,13 +85,12 @@ class JavaParserTest {
         final var release = new CountDownLatch(1);
         final var first = new AtomicReference<StandardJavaFileManager>();
         final var holder = Thread.ofPlatform()
-                .start(
-                        () -> JavaParser.attributing("", session -> {
-                            first.set(session.fileManager());
-                            held.countDown();
-                            awaitUninterruptibly(release);
-                            return session;
-                        }));
+                .start(() -> JavaParser.attributing("", session -> {
+                    first.set(session.fileManager());
+                    held.countDown();
+                    awaitUninterruptibly(release);
+                    return session;
+                }));
         held.await();
         final var second = JavaParser.attributing("", session -> session.fileManager());
         release.countDown();
@@ -237,7 +246,9 @@ class JavaParserTest {
             package com.example;
             """;
         final var unit = JavaParser.parseUnit(source);
-        assertThat(unit.fileHeader()).extracting(CommentToken::text).containsExactly("/** package summary */");
+        assertThat(unit.fileHeader())
+                .extracting(CommentToken::text)
+                .containsExactly("/** package summary */");
     }
 
     @Test
@@ -264,7 +275,8 @@ class JavaParserTest {
 
     @Test
     void attribute_invalidSource_throwsParseException() {
-        assertThatThrownBy(() -> JavaParser.attributing("", session -> session.attribute("class {"))).isInstanceOf(ParseException.class);
+        assertThatThrownBy(() -> JavaParser.attributing("", session -> session.attribute("class {")))
+                .isInstanceOf(ParseException.class);
     }
 
     @Test
@@ -274,7 +286,10 @@ class JavaParserTest {
         assertThat(outcomes).hasSize(3);
         assertThat(outcomes).allMatch(o -> o instanceof Staged.Ok);
         // All units share the same Attribution since they come from one JavacTask.
-        final var attributions = outcomes.stream().map(o -> o.orElseThrow().attribution()).distinct().toList();
+        final var attributions = outcomes.stream()
+                .map(o -> o.orElseThrow().attribution())
+                .distinct()
+                .toList();
         assertThat(attributions).hasSize(1);
     }
 
@@ -311,7 +326,8 @@ class JavaParserTest {
     void attribute_batchCrossFileTypesResolve() {
         // Class B references type A — only resolvable when both are attributed together.
         final var sources = java.util.List.of("class A { int value() { return 42; } }", "class B { A field; }");
-        final var fieldType = JavaParser.attributing("", session -> firstFieldType(session.attribute(sources).get(1).orElseThrow()));
+        final var fieldType = JavaParser.attributing("", session -> firstFieldType(
+                session.attribute(sources).get(1).orElseThrow()));
         assertThat(fieldType).isEqualTo("A");
     }
 
@@ -341,8 +357,13 @@ class JavaParserTest {
         final var cls = (ClassTree) tree.getTypeDecls().getFirst();
         // Attribution synthesizes a default constructor at the head of the member list,
         // so pick the first VariableTree rather than the first member.
-        final var field = cls.getMembers().stream().filter(VariableTree.class::isInstance).findFirst().orElseThrow();
-        return String.valueOf(attributed.attribution().trees().getTypeMirror(com.sun.source.util.TreePath.getPath(tree, field)));
+        final var field = cls.getMembers().stream()
+                .filter(VariableTree.class::isInstance)
+                .findFirst()
+                .orElseThrow();
+        return String.valueOf(attributed.attribution()
+                .trees()
+                .getTypeMirror(com.sun.source.util.TreePath.getPath(tree, field)));
     }
 
     private static void awaitUninterruptibly(final CountDownLatch latch) {

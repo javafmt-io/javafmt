@@ -60,7 +60,8 @@ class ReassignmentDetectorTest {
 
     @Test
     void collectsEveryWrittenNameInTheScope() {
-        assertThat(new ReassignmentDetector().writtenIn(bodyOf("x = 1;\ny++;\na[0] = 2;\nint z = x;"))).containsExactlyInAnyOrder("x", "y");
+        assertThat(new ReassignmentDetector().writtenIn(bodyOf("x = 1;\ny++;\na[0] = 2;\nint z = x;")))
+                .containsExactlyInAnyOrder("x", "y");
     }
 
     @Test
@@ -75,14 +76,15 @@ class ReassignmentDetectorTest {
     }
 
     private static BlockTree bodyOf(final String statements) {
-        final var unit = JavaParser.parseUnit("""
-            class Fixture {
-
-                void test(int x, int y, int[] a) {
-            %s
+        final var unit = JavaParser.parseUnit(
+                """
+                class Fixture {
+    
+                    void test(int x, int y, int[] a) {
+                %s
+                    }
                 }
-            }
-            """.formatted(statements.stripTrailing().indent(8)));
+                """.formatted(statements.stripTrailing().indent(8)));
         return bodyOfTest(unit.tree());
     }
 

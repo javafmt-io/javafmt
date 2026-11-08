@@ -54,9 +54,12 @@ final class WrappableList {
 
     Doc openedSeparated(final String open, final List<Element> elements) {
         final var breaks = IntStream.range(1, elements.size())
-                .mapToObj(i -> Stream.of(elements.get(i - 1).endsItsLine() ? Doc.HARD_LINE : Doc.LINE, elements.get(i).doc()))
+                .mapToObj(i -> Stream.of(
+                        elements.get(i - 1).endsItsLine() ? Doc.HARD_LINE : Doc.LINE,
+                        elements.get(i).doc()))
                 .flatMap(Function.identity());
-        final var interior = new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE, elements.getFirst().doc()), breaks));
+        final var interior = new Doc.Concat(
+                Stream.concat(Stream.of(Doc.SOFT_LINE, elements.getFirst().doc()), breaks));
         return Doc.concat(new Doc.Text(open), Doc.continuationIndent(interior));
     }
 

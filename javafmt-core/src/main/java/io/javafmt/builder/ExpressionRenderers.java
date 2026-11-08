@@ -14,6 +14,7 @@ import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.InstanceOfTree;
 import com.sun.source.tree.MemberReferenceTree;
 import com.sun.source.tree.MemberSelectTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.ParenthesizedTree;
@@ -48,8 +49,10 @@ final class ExpressionRenderers {
         if (isLogical(node)) {
             return renderLogicalChain(node, recursor);
         }
-        final var spine = Stream.<@Nullable BinaryTree>iterate(
-                node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left && !isLogical(left) ? left : null)
+        final var spine = Stream.<@Nullable BinaryTree>iterate(node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left
+                    && !isLogical(left)
+                        ? left
+                        : null)
                 .map(Objects::requireNonNull)
                 .toList();
         var doc = recursor.scan(spine.getLast().getLeftOperand());
@@ -66,7 +69,8 @@ final class ExpressionRenderers {
                         left,
                         Doc.continuationIndent(
                                 Doc.concat(
-                                        breakBeforeOperator(left, recursor.tail(operator)), new Doc.Text(binaryOperatorText(operator) + " "),
+                                        breakBeforeOperator(left, recursor.tail(operator)),
+                                        new Doc.Text(binaryOperatorText(operator) + " "),
                                         recursor.scan(operator.getRightOperand())))));
     }
 
@@ -75,7 +79,10 @@ final class ExpressionRenderers {
             return Doc.endsWithLineComment(before) ? Doc.HARD_LINE : Doc.LINE;
         }
         return Doc.concatOf(
-                Stream.of(ownLine.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))), Stream.of(Doc.HARD_LINE)));
+                Stream.of(
+                        ownLine.stream()
+                                .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))),
+                        Stream.of(Doc.HARD_LINE)));
     }
 
     private boolean isLogical(final BinaryTree node) {
@@ -91,21 +98,26 @@ final class ExpressionRenderers {
      * operands' shape must not depend on it).
      */
     private Doc renderLogicalChain(final BinaryTree node, final Recursor recursor) {
-        final var spine = Stream.<@Nullable BinaryTree>iterate(
-                node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left && left.getKind() == node.getKind() ? left : null)
+        final var spine = Stream.<@Nullable BinaryTree>iterate(node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left
+                    && left.getKind() == node.getKind()
+                        ? left
+                        : null)
                 .map(Objects::requireNonNull)
                 .toList()
                 .reversed();
         final var first = spine.getFirst().getLeftOperand();
-        final var operands = Stream.concat(Stream.of(first), spine.stream().map(BinaryTree::getRightOperand)).toList();
-        final var docs = operands.stream().map(recursor::scan).toList();
+        final var operands = Stream.concat(
+                Stream.of(first),
+                spine.stream()
+                        .map(BinaryTree::getRightOperand))
+                .toList();
+        final var docs = operands.stream()
+                .map(recursor::scan)
+                .toList();
         final var operator = binaryOperatorText(node);
         final var tail = IntStream.range(0, spine.size())
-                .<Doc>mapToObj(
-                        i -> new Doc.Indent(
-                                Doc.concat(
-                                        breakBeforeOperator(docs.get(i), recursor.tail(spine.get(i))), new Doc.Text(operator + " "),
-                                        docs.get(i + 1))));
+                .<Doc>mapToObj(i -> new Doc.Indent(
+                        Doc.concat(breakBeforeOperator(docs.get(i), recursor.tail(spine.get(i))), new Doc.Text(operator + " "), docs.get(i + 1))));
         final var contents = new Doc.Concat(Stream.concat(Stream.of(docs.getFirst()), tail));
         return MethodChainRenderer.chainGroup(contents);
     }
@@ -159,7 +171,8 @@ final class ExpressionRenderers {
 
     /** Breaks before both {@code ?} and {@code :} together, so the two arms line up. */
     Doc renderConditionalExpression(final ConditionalExpressionTree node, final Recursor recursor) {
-        final var condition = recursor.scan(node.getCondition());
+        final var scannedCondition = recursor.scan(node.getCondition());
+        final var condition = node.getCondition() instanceof MethodInvocationTree ? Doc.continuationIndent(scannedCondition) : scannedCondition;
         final var whenTrue = recursor.scan(node.getTrueExpression());
         final var beforeColon = CommentDocs.inside(node, recursor);
         return new Doc.Group(
@@ -167,21 +180,35 @@ final class ExpressionRenderers {
                         condition,
                         Doc.continuationIndent(
                                 Doc.concat(
-                                        breakBeforeOperator(condition, recursor.tail(node)), new Doc.Text("? "), whenTrue,
-                                        breakBeforeOperator(whenTrue, beforeColon), new Doc.Text(": "), recursor.scan(node.getFalseExpression())))));
+                                        breakBeforeOperator(condition, recursor.tail(node)),
+                                        new Doc.Text("? "),
+                                        whenTrue,
+                                        breakBeforeOperator(whenTrue, beforeColon),
+                                        new Doc.Text(": "),
+                                        recursor.scan(node.getFalseExpression())))),
+                authorBrokeIt(node, recursor));
+    }
+
+    boolean authorBrokeIt(final ConditionalExpressionTree node, final Recursor recursor) {
+        return recursor.lineBreakBetween(node.getCondition(), node.getTrueExpression())
+            || recursor.lineBreakBetween(node.getTrueExpression(), node.getFalseExpression());
     }
 
     private Doc emptyInitializer(final String brace, final List<CommentToken> comments) {
         if (comments.isEmpty()) {
             return new Doc.Text(brace + "}");
         }
-        if (comments.stream().anyMatch(c -> c.text().startsWith("//"))) {
-            final var lines = new Doc.Concat(comments.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))));
+        if (comments.stream()
+                .anyMatch(c -> c.text().startsWith("//"))) {
+            final var lines = new Doc.Concat(comments.stream()
+                    .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))));
             return Doc.concat(new Doc.Text(brace), Doc.continuationIndent(lines), Doc.HARD_LINE, new Doc.Text("}"));
         }
         return Doc.concatOf(
                 Stream.of(
-                        Stream.of(new Doc.Text(brace)), comments.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
+                        Stream.of(new Doc.Text(brace)),
+                        comments.stream()
+                                .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
                         Stream.of(new Doc.Text(" }"))));
     }
 
@@ -190,9 +217,12 @@ final class ExpressionRenderers {
         final var dimensions = node.getDimensions();
         final var initializers = node.getInitializers();
         final var element = Optional.ofNullable(type).map(ExpressionRenderers::elementTypeOf);
-        final var prefix = element.stream().flatMap(e -> Stream.of(new Doc.Text("new "), recursor.scan(e.type())));
-        final var dims = dimensions.stream().flatMap(d -> Stream.of(new Doc.Text("["), recursor.scan(d), new Doc.Text("]")));
-        final var sizelessBrackets = Stream.<Doc>generate(() -> new Doc.Text("[]")).limit(element.map(ElementType::sizelessLevels).orElse(0));
+        final var prefix = element.stream()
+                .flatMap(e -> Stream.of(new Doc.Text("new "), recursor.scan(e.type())));
+        final var dims = dimensions.stream()
+                .flatMap(d -> Stream.of(new Doc.Text("["), recursor.scan(d), new Doc.Text("]")));
+        final var sizelessBrackets = Stream.<Doc>generate(() -> new Doc.Text("[]"))
+                .limit(element.map(ElementType::sizelessLevels).orElse(0));
         final var implicitBrackets = hasImplicitArrayBrackets(type, dimensions, initializers)
                 ? Stream.<Doc>of(new Doc.Text("[]"))
                 : Stream.<Doc>empty();
@@ -207,7 +237,11 @@ final class ExpressionRenderers {
         if (initializers.isEmpty()) {
             return Doc.concatOf(
                     Stream.of(
-                            prefix, dims, sizelessBrackets, implicitBrackets, beforeTheBrace,
+                            prefix,
+                            dims,
+                            sizelessBrackets,
+                            implicitBrackets,
+                            beforeTheBrace,
                             Stream.of(emptyInitializer(brace, recursor.interior(node)))));
         }
         final var elements = WrappableList.blockOf(
@@ -219,7 +253,9 @@ final class ExpressionRenderers {
                                                           final List<? extends Tree> items,
                                                           final Optional<Doc> trailingComma,
                                                           final Recursor recursor) {
-        return IntStream.range(0, items.size()).mapToObj(i -> separatedElement(list, items, i, trailingComma, recursor)).toList();
+        return IntStream.range(0, items.size())
+                .mapToObj(i -> separatedElement(list, items, i, trailingComma, recursor))
+                .toList();
     }
 
     /**
@@ -234,7 +270,8 @@ final class ExpressionRenderers {
                                                    final Recursor recursor) {
         final var last = index == items.size() - 1;
         final var comma = last ? trailingComma : Optional.<Doc>of(new Doc.Text(","));
-        final var element = recursor.scanBeforeComments(items.get(index), d -> comma.map(c -> Doc.concat(d, c)).orElse(d));
+        final var element = recursor.scanBeforeComments(
+                items.get(index), d -> comma.map(c -> Doc.concat(d, c)).orElse(d));
         final var commentsPastTheComma = last ? recursor.interior(list) : recursor.pastTheSeparatorBefore(items.get(index + 1));
         final var pastTheComma = CommentDocs.appendTrailing(element, commentsPastTheComma);
         final var doc = last ? Doc.concatOf(Stream.of(Stream.of(pastTheComma), ownLineTail(list, recursor))) : pastTheComma;
@@ -242,7 +279,8 @@ final class ExpressionRenderers {
     }
 
     private Stream<Doc> ownLineTail(final Tree node, final Recursor recursor) {
-        return recursor.tail(node).stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
+        return recursor.tail(node).stream()
+                .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
     }
 
     /**
@@ -280,11 +318,14 @@ final class ExpressionRenderers {
 
     Doc renderNewClass(final NewClassTree node, final Recursor recursor) {
         final var arguments = node.getArguments();
-        final var argumentsDoc = CallArguments.render(node, arguments, recursor).doc();
+        final var argumentsDoc = CallArguments.render(node, arguments, node.getClassBody() == null, recursor)
+                .doc();
         final var body = node.getClassBody();
         final var headParts = Doc.concatOf(
                 Stream.of(
-                        qualifier(node, recursor), Stream.of(new Doc.Text("new ")), constructorTypeWitness(node, recursor),
+                        qualifier(node, recursor),
+                        Stream.of(new Doc.Text("new ")),
+                        constructorTypeWitness(node, recursor),
                         Stream.of(recursor.scan(node.getIdentifier()), argumentsDoc)));
         if (body == null) {
             return headParts;
@@ -311,7 +352,9 @@ final class ExpressionRenderers {
         return Stream.of(
                 Doc.concatOf(
                         Stream.of(
-                                Stream.of(new Doc.Text("<")), Doc.intersperse(new Doc.Text(", "), typeArguments.stream().map(recursor::scan)),
+                                Stream.of(new Doc.Text("<")),
+                                Doc.intersperse(new Doc.Text(", "), typeArguments.stream()
+                                        .map(recursor::scan)),
                                 Stream.of(new Doc.Text(">")))));
     }
 
@@ -339,7 +382,8 @@ final class ExpressionRenderers {
     }
 
     Doc renderDeconstructionPattern(final DeconstructionPatternTree node, final Recursor recursor) {
-        final var nested = WrappableList.of("(", ",", ")", node.getNestedPatterns().stream().map(recursor::scan));
+        final var nested = WrappableList.of("(", ",", ")", node.getNestedPatterns().stream()
+                .map(recursor::scan));
         return Doc.concat(recursor.scan(node.getDeconstructor()), nested);
     }
 
@@ -352,13 +396,13 @@ final class ExpressionRenderers {
     }
 
     Doc renderMemberSelect(final MemberSelectTree node, final Recursor recursor) {
-        final var spine = Stream.<@Nullable MemberSelectTree>iterate(
-                node, Objects::nonNull, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null)
+        final var spine = Stream.<@Nullable MemberSelectTree>iterate(node, Objects::nonNull, s -> s.getExpression() instanceof MemberSelectTree inner
+                        ? inner
+                        : null)
                 .map(Objects::requireNonNull)
                 .toList();
         return spine.reversed().stream()
-                .reduce(
-                        recursor.scan(spine.getLast().getExpression()),
+                .reduce(recursor.scan(spine.getLast().getExpression()),
                         (receiver, select) -> {
                             final var selected = Doc.concat(receiver, new Doc.Text("." + select.getIdentifier()));
                             return select == node ? selected : recursor.attach(select, selected);
@@ -372,12 +416,15 @@ final class ExpressionRenderers {
 
     Doc renderMemberReference(final MemberReferenceTree node, final Recursor recursor) {
         final var qualifier = recursor.scan(node.getQualifierExpression());
-        final var name = node.getMode() == MemberReferenceTree.ReferenceMode.NEW ? "new" : node.getName().toString();
+        final var name = node.getMode() == MemberReferenceTree.ReferenceMode.NEW
+                ? "new"
+                : node.getName().toString();
         final var typeArguments = node.getTypeArguments();
         if (typeArguments == null || typeArguments.isEmpty()) {
             return Doc.concat(qualifier, new Doc.Text("::" + name));
         }
-        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), typeArguments.stream().map(recursor::scan));
+        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), typeArguments.stream()
+                .map(recursor::scan));
         return new Doc.Concat(
                 Stream.concat(Stream.concat(Stream.of(qualifier, new Doc.Text("::<")), argumentDocs), Stream.<Doc>of(new Doc.Text(">" + name))));
     }
@@ -401,7 +448,10 @@ final class ExpressionRenderers {
                             new Doc.Choice(huggingItsArray(name, arguments, last, array, recursor), exploded, Doc.Choice.Fit.OPENING_LINE),
                             exploded));
         }
-        if (arguments.size() == 1 && sole instanceof NewArrayTree && recursor.tail(node).isEmpty() && !recursor.hasLeadingComments(sole)) {
+        if (arguments.size() == 1
+            && sole instanceof NewArrayTree
+            && recursor.tail(node).isEmpty()
+            && !recursor.hasLeadingComments(sole)) {
             final var array = recursor.scan(sole);
             final var close = Doc.endsWithLineComment(array) ? Doc.concat(Doc.HARD_LINE, new Doc.Text(")")) : new Doc.Text(")");
             return Doc.concat(name, new Doc.Text("("), array, close);
@@ -415,19 +465,26 @@ final class ExpressionRenderers {
                                 final NewArrayTree array,
                                 final Recursor recursor) {
         final var leading = Stream.concat(
-                arguments.subList(0, arguments.size() - 1).stream().flatMap(argument -> Stream.of(recursor.scan(argument), new Doc.Text(", "))),
+                arguments.subList(0, arguments.size() - 1).stream()
+                        .flatMap(argument -> Stream.of(recursor.scan(argument), new Doc.Text(", "))),
                 Stream.of(recursor.scan(last.getVariable()), new Doc.Text(" = {")));
         final var elements = array.getInitializers();
         final var lines = IntStream.range(0, elements.size())
                 .boxed()
                 .flatMap(i -> Stream.of(Doc.HARD_LINE, recursor.scan(elements.get(i)), new Doc.Text(",")));
         return Doc.concat(
-                name, new Doc.Text("("), new Doc.Group(new Doc.Concat(leading.toList())), Doc.continuationIndent(new Doc.Concat(lines.toList())),
-                Doc.HARD_LINE, new Doc.Text("})"));
+                name,
+                new Doc.Text("("),
+                new Doc.Group(new Doc.Concat(leading.toList())),
+                Doc.continuationIndent(new Doc.Concat(lines.toList())),
+                Doc.HARD_LINE,
+                new Doc.Text("})"));
     }
 
     private Doc emptyArgumentList(final AnnotationTree node, final Recursor recursor) {
-        final var comments = new Doc.Concat(Doc.intersperse(new Doc.Text(" "), recursor.interior(node).stream().map(CommentDocs::renderComment)));
+        final var comments = new Doc.Concat(
+                Doc.intersperse(new Doc.Text(" "), recursor.interior(node).stream()
+                        .map(CommentDocs::renderComment)));
         return Doc.endsWithLineComment(comments)
                 ? Doc.concat(new Doc.Text("("), comments, Doc.HARD_LINE, new Doc.Text(")"))
                 : Doc.concat(new Doc.Text("("), comments, new Doc.Text(")"));

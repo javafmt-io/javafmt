@@ -139,7 +139,10 @@ final class JavafmtDaemon {
 
     private void readReplies() {
         try (final var stdout = new BufferedInputStream(process.getInputStream())) {
-            Stream.generate(() -> nextReply(stdout)).takeWhile(Optional::isPresent).map(Optional::orElseThrow).forEach(this::accept);
+            Stream.generate(() -> nextReply(stdout))
+                    .takeWhile(Optional::isPresent)
+                    .map(Optional::orElseThrow)
+                    .forEach(this::accept);
         } catch (final IOException e) {
             LOG.debug("javafmt daemon output closed", e);
         }

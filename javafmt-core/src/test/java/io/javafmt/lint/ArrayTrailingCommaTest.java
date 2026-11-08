@@ -105,7 +105,9 @@ class ArrayTrailingCommaTest {
             }
             """);
         final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("{\"a\", \"b\",}").doesNotContain(",,");
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .contains("{\"a\", \"b\",}")
+                .doesNotContain(",,");
     }
 
     @Test

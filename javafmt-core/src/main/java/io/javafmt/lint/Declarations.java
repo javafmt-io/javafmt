@@ -16,11 +16,13 @@ final class Declarations {
     }
 
     boolean isStarImport(final ImportTree imp) {
-        return imp.getQualifiedIdentifier() instanceof MemberSelectTree ms && ms.getIdentifier().contentEquals("*");
+        return imp.getQualifiedIdentifier() instanceof MemberSelectTree ms
+            && ms.getIdentifier().contentEquals("*");
     }
 
     boolean isOneArgumentEquals(final MethodTree method) {
-        return method.getName().contentEquals("equals") && method.getParameters().size() == 1;
+        return method.getName().contentEquals("equals")
+            && method.getParameters().size() == 1;
     }
 
     boolean isEqualsObject(final MethodTree method) {

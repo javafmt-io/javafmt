@@ -41,7 +41,8 @@ class PathFilterTest {
 
     @Test
     void noGlobsExcludesNothing() {
-        assertThat(PathFilter.ofGlobs(List.of()).keep(List.of(Path.of("A.java")))).containsExactly(Path.of("A.java"));
+        assertThat(PathFilter.ofGlobs(List.of()).keep(List.of(Path.of("A.java"))))
+                .containsExactly(Path.of("A.java"));
     }
 
     @Test

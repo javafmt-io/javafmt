@@ -32,8 +32,15 @@ record ProjectFiles(ProjectFile governing, List<ProjectFile> below, List<String>
             throw new UncheckedIOException("Failed to walk " + root, e);
         }
         return new ProjectFiles(
-                ProjectFile.forDirectory(root), finder.projectFiles.stream().sorted().map(ProjectFile::read).toList(),
-                finder.repositoryRoots.stream().sorted().map(Path::toString).toList());
+                ProjectFile.forDirectory(root),
+                finder.projectFiles.stream()
+                        .sorted()
+                        .map(ProjectFile::read)
+                        .toList(),
+                finder.repositoryRoots.stream()
+                        .sorted()
+                        .map(Path::toString)
+                        .toList());
     }
 
     private static final class Finder extends SimpleFileVisitor<Path> {

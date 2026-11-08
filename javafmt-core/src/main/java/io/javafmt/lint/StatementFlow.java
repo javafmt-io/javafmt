@@ -23,7 +23,9 @@ final class StatementFlow {
 
     boolean terminates(final StatementTree statement) {
         return switch (statement) {
-            case BlockTree block -> !block.getStatements().isEmpty() && transfersControl(block.getStatements().getLast());
+            case BlockTree block ->
+                !block.getStatements().isEmpty()
+                    && transfersControl(block.getStatements().getLast());
             default -> transfersControl(statement);
         };
     }

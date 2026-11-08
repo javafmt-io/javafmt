@@ -15,8 +15,12 @@ final class RecordRenderer {
 
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("record " + node.getSimpleName()));
-        final var components = node.getMembers().stream().filter(RecordRenderer::isRecordComponent).map(m -> (VariableTree) m).toList();
-        final var bodyMemberStream = node.getMembers().stream().filter(m -> !isRecordComponent(m));
+        final var components = node.getMembers().stream()
+                .filter(RecordRenderer::isRecordComponent)
+                .map(m -> (VariableTree) m)
+                .toList();
+        final var bodyMemberStream = node.getMembers().stream()
+                .filter(m -> !isRecordComponent(m));
         final var className = node.getSimpleName().toString();
         final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);
         final var componentListDoc = components.isEmpty()
@@ -25,7 +29,8 @@ final class RecordRenderer {
                         "(",
                         Doc.intersperse(
                                 List.of(new Doc.Text(","), Doc.LINE),
-                                components.stream().map(comp -> recursor.attach(comp, componentDoc(comp, recursor))))
+                                components.stream()
+                                        .map(comp -> recursor.attach(comp, componentDoc(comp, recursor))))
                                 .toList(),
                         ")");
         final var prefixAndComponents = Doc.concatOf(
@@ -43,7 +48,8 @@ final class RecordRenderer {
      * any other way.
      */
     private boolean isRecordComponent(final Tree member) {
-        return member instanceof VariableTree v && !v.getModifiers().getFlags().contains(Modifier.STATIC);
+        return member instanceof VariableTree v
+            && !v.getModifiers().getFlags().contains(Modifier.STATIC);
     }
 
     private Doc componentDoc(final VariableTree comp, final Recursor recursor) {

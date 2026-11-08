@@ -22,17 +22,28 @@ public final class JavafmtEngine {
     public static Outcome run(final Request request) {
         Objects.requireNonNull(request, "request");
         final var root = request.projectDirectory().toPath();
-        final var sources = request.files().stream().map(File::toPath).sorted().toList();
-        final var paths = request.ratchetFrom().map(ref -> GitRatchet.since(ref, root).keep(sources)).orElse(sources);
+        final var sources = request.files().stream()
+                .map(File::toPath)
+                .sorted()
+                .toList();
+        final var paths = request.ratchetFrom()
+                .map(ref -> GitRatchet.since(ref, root).keep(sources))
+                .orElse(sources);
         final var threads = request.threads();
         final var config = request.analysisClasspath()
                 .map(classpath -> JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)))
                 .orElseGet(JavafmtConfig::defaults);
         final var summaries = summaries(root, paths, config, threads, request.write());
         return new Outcome(
-                summaries.stream().flatMap(summary -> summary.changed().stream()).toList(),
-                summaries.stream().flatMap(summary -> summary.errors().stream()).toList(),
-                summaries.stream().flatMap(summary -> summary.warnings().stream()).toList());
+                summaries.stream()
+                        .flatMap(summary -> summary.changed().stream())
+                        .toList(),
+                summaries.stream()
+                        .flatMap(summary -> summary.errors().stream())
+                        .toList(),
+                summaries.stream()
+                        .flatMap(summary -> summary.warnings().stream())
+                        .toList());
     }
 
     private static List<Summary> summaries(final Path root,
@@ -56,8 +67,10 @@ public final class JavafmtEngine {
                 }
                 yield new Summary(
                         formatted.changed() ? Optional.of(source(root, formatted.path())) : Optional.empty(),
-                        findings(root, formatted, file -> file.result().errors()).toList(),
-                        findings(root, formatted, file -> file.result().warnings()).toList());
+                        findings(root, formatted, file -> file.result().errors())
+                                .toList(),
+                        findings(root, formatted, file -> file.result().warnings())
+                                .toList());
             }
         };
     }
@@ -69,7 +82,8 @@ public final class JavafmtEngine {
     private static Stream<Outcome.Finding> findings(final Path root,
                                                     final FileResult.Formatted file,
                                                     final Function<FileResult.Formatted, Collection<Diagnostic>> diagnostics) {
-        return diagnostics.apply(file).stream().map(diagnostic -> finding(source(root, file.path()), diagnostic));
+        return diagnostics.apply(file).stream()
+                .map(diagnostic -> finding(source(root, file.path()), diagnostic));
     }
 
     private static Outcome.Finding finding(final Outcome.Source source, final Diagnostic diagnostic) {
@@ -78,7 +92,9 @@ public final class JavafmtEngine {
     }
 
     private static Outcome.Source source(final Path root, final Path path) {
-        return new Outcome.Source(path.toAbsolutePath().toString(), path.startsWith(root) ? root.relativize(path).toString() : path.toString());
+        return new Outcome.Source(path.toAbsolutePath().toString(), path.startsWith(root)
+                ? root.relativize(path).toString()
+                : path.toString());
     }
 
     private record Summary(Optional<Outcome.Source> changed, List<Outcome.Finding> errors, List<Outcome.Finding> warnings) {}

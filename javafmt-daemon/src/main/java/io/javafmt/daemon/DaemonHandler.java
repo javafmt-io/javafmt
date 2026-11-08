@@ -30,7 +30,9 @@ final class DaemonHandler {
         return FormatReply.newBuilder()
                 .setId(request.getId())
                 .setOutput(result.output())
-                .addAllDiagnostics(result.diagnostics().stream().map(DaemonHandler::diagnostic).toList())
+                .addAllDiagnostics(result.diagnostics().stream()
+                        .map(DaemonHandler::diagnostic)
+                        .toList())
                 .build();
     }
 
@@ -38,7 +40,10 @@ final class DaemonHandler {
         return FormatReply.newBuilder()
                 .setId(id)
                 .setOutput(output)
-                .addDiagnostics(Diagnostic.newBuilder().setSeverity(Severity.SEVERITY_ERROR).setKind(kind).setMessage(message))
+                .addDiagnostics(Diagnostic.newBuilder()
+                        .setSeverity(Severity.SEVERITY_ERROR)
+                        .setKind(kind)
+                        .setMessage(message))
                 .build();
     }
 

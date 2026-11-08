@@ -28,7 +28,10 @@ class LintCompileSafetyTest {
         final var result = Javafmt.formatWithResult(
                 source,
                 JavafmtConfig.defaults().withAnalysis(analyze ? new JavafmtConfig.Analysis.Attributed("") : new JavafmtConfig.Analysis.ParseOnly()));
-        assertThat(result.diagnostics().stream().filter(d -> d instanceof Diagnostic.InternalError).toList())
+        assertThat(
+                result.diagnostics().stream()
+                        .filter(d -> d instanceof Diagnostic.InternalError)
+                        .toList())
                 .as("%s must not produce an internal error", name)
                 .isEmpty();
         final var before = CompileCheck.check(source);
@@ -42,9 +45,10 @@ class LintCompileSafetyTest {
 
     static Stream<Arguments> cases() {
         return Stream.of(
-                shapesThatOnceStoppedCompiling(), rulesThatRewriteADeclaratorGroupWaitForItToBeSplit(),
-                factoriesTakeTheDeclaredTypeArgumentsAsAWitnessOnlyWhenTheTypeParameterCountsAgree(),
-                aDiamondReplacesOnlyTypeArgumentsTheAuthorAlreadyWroteOnTheTarget())
+                        shapesThatOnceStoppedCompiling(),
+                        rulesThatRewriteADeclaratorGroupWaitForItToBeSplit(),
+                        factoriesTakeTheDeclaredTypeArgumentsAsAWitnessOnlyWhenTheTypeParameterCountsAgree(),
+                        aDiamondReplacesOnlyTypeArgumentsTheAuthorAlreadyWroteOnTheTarget())
                 .flatMap(group -> group);
     }
 
@@ -74,14 +78,18 @@ class LintCompileSafetyTest {
                 Arguments.argumentSet(
                         "widening-diamond",
                         wrap(
-                                "Map<String, List<Integer>> totals = new HashMap<>();\ntotals.put(\"a\", List.of(1));", "java.util.HashMap",
-                                "java.util.List", "java.util.Map"),
+                                "Map<String, List<Integer>> totals = new HashMap<>();\ntotals.put(\"a\", List.of(1));",
+                                "java.util.HashMap",
+                                "java.util.List",
+                                "java.util.Map"),
                         false),
                 Arguments.argumentSet(
                         "subtype-feeds-chain-inference",
                         wrap(
                                 "Collection<String> names = List.of(\"a\");\nList<Collection<String>> rows = Stream.of(names).toList();\nSystem.out.println(rows);",
-                                "java.util.Collection", "java.util.List", "java.util.stream.Stream"),
+                                "java.util.Collection",
+                                "java.util.List",
+                                "java.util.stream.Stream"),
                         true),
                 Arguments.argumentSet(
                         "anonymous-class",
@@ -89,7 +97,8 @@ class LintCompileSafetyTest {
                                 "Object o = new Object() {\n@Override public String toString() { return \"x\"; }\n};\no = \"y\";\nSystem.out.println(o);"),
                         false),
                 Arguments.argumentSet(
-                        "witness-comment", wrap("Optional<String> o = Optional /* a.b */.empty();\nSystem.out.println(o);", "java.util.Optional"),
+                        "witness-comment",
+                        wrap("Optional<String> o = Optional /* a.b */.empty();\nSystem.out.println(o);", "java.util.Optional"),
                         false),
                 Arguments.argumentSet(
                         "final-field", "class Fixture {\n    static final int LIMIT = 0;\n\n    int m() {\n        return LIMIT;\n    }\n}\n", false),
@@ -101,7 +110,8 @@ class LintCompileSafetyTest {
                 Arguments.argumentSet("modifier-order-comment", "class Fixture {\n    static public /* c */ final int X = 1;\n}\n", false),
                 Arguments.argumentSet(
                         "modifier-order-sealed",
-                        "public class Fixture {\n    static public sealed interface I permits R {}\n\n    record R() implements I {}\n}\n", false),
+                        "public class Fixture {\n    static public sealed interface I permits R {}\n\n    record R() implements I {}\n}\n",
+                        false),
                 Arguments.argumentSet(
                         "multiple variable declarations with a C-style array", wrap("int a, b[];\nSystem.out.println(a + b.length);"), false),
                 Arguments.argumentSet("multiple variable declarations of plain locals", wrap("int a, b;\nSystem.out.println(a + b);"), false));
@@ -111,16 +121,20 @@ class LintCompileSafetyTest {
         return Stream.of(
                 Arguments.argumentSet(
                         "a redundant modifier on an interface field group is removed once, after the group is split",
-                        "interface Fixture {\n    public static final int A = 1, B = 2;\n}\n", false),
+                        "interface Fixture {\n    public static final int A = 1, B = 2;\n}\n",
+                        false),
                 Arguments.argumentSet(
                         "the modifiers of a field group are reordered once, after the group is split",
-                        "class Fixture {\n    static private int a = 1, b = 2;\n}\n", false),
+                        "class Fixture {\n    static private int a = 1, b = 2;\n}\n",
+                        false),
                 Arguments.argumentSet(
                         "a local group becomes var once, after the group is split",
-                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"), false),
+                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"),
+                        false),
                 Arguments.argumentSet(
                         "a local group becomes var once, after the group is split, with analysis",
-                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"), true));
+                        wrap("StringBuilder a = new StringBuilder(), b = new StringBuilder();\nSystem.out.println(a + \"\" + b);"),
+                        true));
     }
 
     static Stream<Arguments> factoriesTakeTheDeclaredTypeArgumentsAsAWitnessOnlyWhenTheTypeParameterCountsAgree() {
@@ -133,9 +147,11 @@ class LintCompileSafetyTest {
                 Arguments.argumentSet("a map entry factory on the enclosing type of the declared type", mapEntryCase(), false),
                 Arguments.argumentSet(
                         "a factory with one type parameter for a declared type with one",
-                        wrap("Optional<String> o = Optional.empty();\nSystem.out.println(o);", "java.util.Optional"), false),
+                        wrap("Optional<String> o = Optional.empty();\nSystem.out.println(o);", "java.util.Optional"),
+                        false),
                 Arguments.argumentSet(
-                        "a list factory for a declared list", wrap("List<String> xs = List.of();\nSystem.out.println(xs);", "java.util.List"),
+                        "a list factory for a declared list",
+                        wrap("List<String> xs = List.of();\nSystem.out.println(xs);", "java.util.List"),
                         false));
     }
 
@@ -264,8 +280,10 @@ class LintCompileSafetyTest {
 
     private static String toMapCase() {
         return wrap(
-                "Collector<String, ?, Map<String, Integer>> c = Collectors.toMap(s -> s, String::length);\nSystem.out.println(c);", "java.util.Map",
-                "java.util.stream.Collector", "java.util.stream.Collectors");
+                "Collector<String, ?, Map<String, Integer>> c = Collectors.toMap(s -> s, String::length);\nSystem.out.println(c);",
+                "java.util.Map",
+                "java.util.stream.Collector",
+                "java.util.stream.Collectors");
     }
 
     private static String mapEntryCase() {
@@ -273,7 +291,9 @@ class LintCompileSafetyTest {
     }
 
     private static String wrap(final String body, final String... imports) {
-        final var importBlock = Stream.of(imports).map(i -> "import " + i + ";\n").reduce("", String::concat);
+        final var importBlock = Stream.of(imports)
+                .map(i -> "import " + i + ";\n")
+                .reduce("", String::concat);
         return importBlock + "\nclass Fixture {\n    void test() {\n        " + body.replace("\n", "\n        ") + "\n    }\n}\n";
     }
 }

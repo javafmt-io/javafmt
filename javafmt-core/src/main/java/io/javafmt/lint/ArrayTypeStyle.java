@@ -29,23 +29,21 @@ public final class ArrayTypeStyle implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainPathScanner<>() {
-                    @Override
-                    public Void visitVariable(final VariableTree node, final Void p) {
-                        if (!MultipleVariableDeclarations.isPartOfDeclarationGroup(getCurrentPath(), unit)) {
-                            fixFor(node, unit).ifPresent(edits::add);
-                        }
-                        return super.visitVariable(node, null);
-                    }
+        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+            @Override
+            public Void visitVariable(final VariableTree node, final Void p) {
+                if (!MultipleVariableDeclarations.isPartOfDeclarationGroup(getCurrentPath(), unit)) {
+                    fixFor(node, unit).ifPresent(edits::add);
+                }
+                return super.visitVariable(node, null);
+            }
 
-                    @Override
-                    public Void visitMethod(final MethodTree node, final Void p) {
-                        fixReturnType(node, unit).ifPresent(edits::add);
-                        return super.visitMethod(node, null);
-                    }
-                });
+            @Override
+            public Void visitMethod(final MethodTree node, final Void p) {
+                fixReturnType(node, unit).ifPresent(edits::add);
+                return super.visitMethod(node, null);
+            }
+        });
     }
 
     static boolean isCStyle(final VariableTree node, final ParsedUnit unit) {
@@ -68,11 +66,13 @@ public final class ArrayTypeStyle implements LintRule {
             return Optional.empty();
         }
         return bracketSuffix(typeSrc.substring(nameIndex + name.length()))
-                .map(
-                        suffix -> new LintEdit(
-                                typeStart, typeEnd,
-                                typeSrc.substring(0, nameIndex).stripTrailing() + "[]".repeat(suffix.dimensions()) + " " + name
-                                        + suffix.comments().stream().map(comment -> " " + comment).collect(Collectors.joining())));
+                .map(suffix -> new LintEdit(
+                        typeStart,
+                        typeEnd,
+                        typeSrc.substring(0, nameIndex).stripTrailing() + "[]".repeat(suffix.dimensions()) + " " + name
+                                + suffix.comments().stream()
+                                        .map(comment -> " " + comment)
+                                        .collect(Collectors.joining())));
     }
 
     /**
@@ -103,7 +103,8 @@ public final class ArrayTypeStyle implements LintRule {
             return Optional.empty();
         }
         final var elementType = typeSrc.substring(0, nameIndex).stripTrailing();
-        final var signature = typeSrc.substring(nameIndex, typeSrc.length() - brackets.length()).stripTrailing();
+        final var signature = typeSrc.substring(nameIndex, typeSrc.length() - brackets.length())
+                .stripTrailing();
         return Optional.of(new LintEdit(typeStart, typeEnd, elementType + brackets + " " + signature));
     }
 
@@ -137,9 +138,11 @@ public final class ArrayTypeStyle implements LintRule {
      */
     private static int indexOfCStyleName(final String typeSrc, final String name) {
         final var comments = CommentScanner.scan(typeSrc);
-        final var nameIndex = IntStream.iterate(
-                typeSrc.lastIndexOf(name), index -> index >= 0, index -> index == 0 ? -1 : typeSrc.lastIndexOf(name, index - 1))
-                .filter(index -> comments.stream().noneMatch(comment -> comment.start() <= index && index < comment.end()))
+        final var nameIndex = IntStream.iterate(typeSrc.lastIndexOf(name), index -> index >= 0, index -> index == 0
+                        ? -1
+                        : typeSrc.lastIndexOf(name, index - 1))
+                .filter(index -> comments.stream()
+                        .noneMatch(comment -> comment.start() <= index && index < comment.end()))
                 .findFirst()
                 .orElse(-1);
         return nameIndex > 0 && Character.isJavaIdentifierPart(typeSrc.charAt(nameIndex - 1)) ? -1 : nameIndex;

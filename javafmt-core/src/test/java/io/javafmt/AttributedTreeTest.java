@@ -108,7 +108,9 @@ class AttributedTreeTest {
         final var store = "package shop;\n\nimport java.sql.*;\n\npublic class Store {\n    Connection connection;\n}\n";
         final var results = Javafmt.formatAll(List.of(module, store), ANALYZE, 1);
         assertThat(results.getFirst()).isEqualTo(Javafmt.formatWithResult(module));
-        assertThat(results.get(1).output()).contains("import java.sql.Connection;").doesNotContain("java.sql.*");
+        assertThat(results.get(1).output())
+                .contains("import java.sql.Connection;")
+                .doesNotContain("java.sql.*");
     }
 
     @Test

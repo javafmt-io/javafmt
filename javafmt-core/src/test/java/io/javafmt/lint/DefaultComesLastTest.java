@@ -242,7 +242,8 @@ class DefaultComesLastTest {
     @Test
     void endToEndWarnOnlyExposesDiagnostic() {
         final var result = Javafmt.formatWithResult(COLON_FORM_WARN_ONLY);
-        assertThat(result.diagnostics()).anyMatch(d -> d instanceof Diagnostic.Warning && d.message().contains("default case should be last"));
+        assertThat(result.diagnostics())
+                .anyMatch(d -> d instanceof Diagnostic.Warning && d.message().contains("default case should be last"));
     }
 
     @Test
@@ -262,7 +263,8 @@ class DefaultComesLastTest {
 
     static Stream<Arguments> idempotencyCases() {
         return Stream.of(
-                Arguments.of("arrow-form-auto-fix", ARROW_FORM_AUTO_FIX), Arguments.of("colon-form-auto-fix", COLON_FORM_AUTO_FIX),
+                Arguments.of("arrow-form-auto-fix", ARROW_FORM_AUTO_FIX),
+                Arguments.of("colon-form-auto-fix", COLON_FORM_AUTO_FIX),
                 Arguments.of("colon-form-warn-only", COLON_FORM_WARN_ONLY));
     }
 

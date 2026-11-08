@@ -113,7 +113,8 @@ class MissingSwitchDefaultTest {
                 }
             }
             """);
-        assertThat(new MissingSwitchDefault().apply(LintContext.parseOnly(unit)).diagnostics()).isEmpty();
+        assertThat(new MissingSwitchDefault().apply(LintContext.parseOnly(unit)).diagnostics())
+                .isEmpty();
     }
 
     @Test
@@ -129,6 +130,7 @@ class MissingSwitchDefaultTest {
                 }
             }
             """);
-        assertThat(new MissingSwitchDefault().apply(LintContext.parseOnly(unit)).diagnostics()).hasSize(1);
+        assertThat(new MissingSwitchDefault().apply(LintContext.parseOnly(unit)).diagnostics())
+                .hasSize(1);
     }
 }

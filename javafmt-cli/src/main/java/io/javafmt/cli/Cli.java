@@ -58,7 +58,9 @@ public final class Cli {
     }
 
     private boolean stdinIsATerminal() {
-        return Optional.ofNullable(System.console()).map(Console::isTerminal).orElse(false);
+        return Optional.ofNullable(System.console())
+                .map(Console::isTerminal)
+                .orElse(false);
     }
 
     /**

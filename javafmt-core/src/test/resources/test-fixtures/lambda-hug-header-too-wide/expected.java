@@ -2,7 +2,8 @@ class Fixture {
 
     void reconcile(final Ledger ledger) {
         ledger.reconcile(
-                openingBalanceForTheCurrentAccountingPeriod, closingBalanceForTheCurrentAccountingPeriod,
+                openingBalanceForTheCurrentAccountingPeriod,
+                closingBalanceForTheCurrentAccountingPeriod,
                 (openingBalance, closingBalance) -> {
                     record(openingBalance, closingBalance);
                 });

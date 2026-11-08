@@ -32,19 +32,19 @@ public final class RedundantSuperCall implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitMethod(final MethodTree node, final Void p) {
-                        tryRemove(node, unit).ifPresent(edits::add);
-                        return super.visitMethod(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitMethod(final MethodTree node, final Void p) {
+                tryRemove(node, unit).ifPresent(edits::add);
+                return super.visitMethod(node, null);
+            }
+        });
     }
 
     private static Optional<LintEdit> tryRemove(final MethodTree node, final ParsedUnit unit) {
-        if (!node.getName().contentEquals("<init>") || node.getBody() == null || node.getBody().getStatements().isEmpty()) {
+        if (!node.getName().contentEquals("<init>")
+            || node.getBody() == null
+            || node.getBody().getStatements().isEmpty()) {
             return Optional.empty();
         }
         final var first = node.getBody().getStatements().getFirst();
@@ -59,7 +59,10 @@ public final class RedundantSuperCall implements LintRule {
         }
         final var inside = CommentScanner.scan(src.substring(start, end));
         if (!inside.isEmpty()) {
-            return Optional.of(new LintEdit(start, end, inside.stream().map(CommentToken::text).collect(Collectors.joining(" "))));
+            return Optional.of(
+                    new LintEdit(start, end, inside.stream()
+                            .map(CommentToken::text)
+                            .collect(Collectors.joining(" "))));
         }
         return Optional.of(deleteEdit(src, start, end));
     }
@@ -93,7 +96,8 @@ public final class RedundantSuperCall implements LintRule {
     }
 
     private static boolean lineCarriesAComment(final String src, final int lineStart, final int lineEnd) {
-        return !CommentScanner.scan(src.substring(lineStart, Math.min(lineEnd, src.length()))).isEmpty();
+        return !CommentScanner.scan(src.substring(lineStart, Math.min(lineEnd, src.length())))
+                .isEmpty();
     }
 
     private static boolean sharesLineWithOtherCode(final String src, final int lineStart, final int start) {

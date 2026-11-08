@@ -56,8 +56,11 @@ public final class Daemon {
         }
         final var replies = new Replies(out, new ReentrantLock());
         try (
-                final var pool = Executors.newFixedThreadPool(
-                        threads, Thread.ofPlatform().name("javafmt-daemon-", 0).daemon(true).stackSize(STACK_SIZE).factory())) {
+                final var pool = Executors.newFixedThreadPool(threads, Thread.ofPlatform()
+                        .name("javafmt-daemon-", 0)
+                        .daemon(true)
+                        .stackSize(STACK_SIZE)
+                        .factory())) {
             wire.frames(in).forEach(frame -> pool.execute(() -> respond(wire, frame, replies, handler, fatal)));
         }
     }
@@ -68,7 +71,9 @@ public final class Daemon {
                          final Function<FormatRequest, FormatReply> handler,
                          final Consumer<Error> fatal) {
         try {
-            reply(wire, frame, handler).map(wire::encode).ifPresent(replies::write);
+            reply(wire, frame, handler)
+                    .map(wire::encode)
+                    .ifPresent(replies::write);
         } catch (final RuntimeException e) {
             log.warn("dropped a reply that could not be written", e);
         } catch (final Error e) {
@@ -99,7 +104,10 @@ public final class Daemon {
             return handler.apply(request);
         } catch (final RuntimeException e) {
             return DaemonHandler.failure(
-                    request.getId(), request.getSource(), Kind.KIND_INTERNAL, e.getClass().getSimpleName() + ": " + e.getMessage());
+                    request.getId(),
+                    request.getSource(),
+                    Kind.KIND_INTERNAL,
+                    e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 

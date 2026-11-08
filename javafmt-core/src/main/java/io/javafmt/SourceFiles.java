@@ -139,9 +139,11 @@ public final class SourceFiles {
          * though an unreadable directory were empty.
          */
         public List<Path> filesOrThrow() {
-            unreadable.stream().findFirst().ifPresent(u -> {
-                throw new UncheckedIOException("Failed to walk " + u.path(), u.error());
-            });
+            unreadable.stream()
+                    .findFirst()
+                    .ifPresent(u -> {
+                        throw new UncheckedIOException("Failed to walk " + u.path(), u.error());
+                    });
             return files;
         }
     }
@@ -187,7 +189,11 @@ public final class SourceFiles {
         }
 
         private Discovery discovery() {
-            return new Discovery(files.stream().sorted().toList(), List.copyOf(unreadable));
+            return new Discovery(
+                    files.stream()
+                            .sorted()
+                            .toList(),
+                    List.copyOf(unreadable));
         }
     }
 }

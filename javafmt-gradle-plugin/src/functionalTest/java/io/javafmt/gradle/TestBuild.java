@@ -25,13 +25,15 @@ record TestBuild(Path dir) {
 
     static final String MINIMUM_GRADLE_VERSION = System.getProperty("javafmt.test.minimumGradleVersion", "");
 
-    private static final Optional<String> COVERAGE_AGENT = ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+    private static final Optional<String> COVERAGE_AGENT = ManagementFactory.getRuntimeMXBean()
+            .getInputArguments()
+            .stream()
             .filter(argument -> argument.startsWith("-javaagent:") && argument.contains("jacocoagent"))
             .findFirst()
-            .map(
-                    agent -> Pattern.compile("destfile=([^,]+)")
-                            .matcher(agent)
-                            .replaceFirst(match -> Matcher.quoteReplacement("destfile=" + Path.of(match.group(1)).toAbsolutePath())));
+            .map(agent -> Pattern.compile("destfile=([^,]+)")
+                    .matcher(agent)
+                    .replaceFirst(match -> Matcher.quoteReplacement(
+                            "destfile=" + Path.of(match.group(1)).toAbsolutePath())));
 
     TestBuild {
         Objects.requireNonNull(dir, "dir");
@@ -40,12 +42,17 @@ record TestBuild(Path dir) {
     static TestBuild singleProject(final Path dir, final String extraBuildScript) {
         final var build = new TestBuild(dir);
         build.write("settings.gradle", "rootProject.name = 'demo'\n");
-        build.write("build.gradle", """
+        build.write(
+                "build.gradle",
+                """
                 plugins {
                     id 'java'
                     id 'io.javafmt'
                 }
-                """ + COVERAGE_AGENT.map(agent -> "javafmt { jvmArgs.add('" + agent + "') }\n").orElse("") + extraBuildScript);
+                """
+                        + COVERAGE_AGENT.map(agent -> "javafmt { jvmArgs.add('" + agent + "') }\n")
+                                .orElse("")
+                        + extraBuildScript);
         build.gradleProperties(List.of());
         return build;
     }
@@ -53,8 +60,11 @@ record TestBuild(Path dir) {
     void gradleProperties(final List<String> extra) {
         final var lines = Stream.concat(
                 Stream.of(
-                        "org.gradle.configuration-cache=true", "org.gradle.isolated-projects=true", "org.gradle.java.installations.auto-detect=false",
-                        "org.gradle.java.installations.auto-download=false", "org.gradle.java.installations.paths=" + JAVA25_HOME),
+                        "org.gradle.configuration-cache=true",
+                        "org.gradle.isolated-projects=true",
+                        "org.gradle.java.installations.auto-detect=false",
+                        "org.gradle.java.installations.auto-download=false",
+                        "org.gradle.java.installations.paths=" + JAVA25_HOME),
                 Stream.concat(
                         COVERAGE_AGENT.map(agent -> "org.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=384m " + agent).stream(), extra.stream()));
         write("gradle.properties", lines.collect(Collectors.joining("\n", "", "\n")));
@@ -111,11 +121,11 @@ record TestBuild(Path dir) {
         return GradleRunner.create()
                 .withProjectDir(dir.toFile())
                 .withPluginClasspath()
-                .withEnvironment(
-                        System.getenv().entrySet().stream()
-                                .filter(variable -> !variable.getKey().startsWith("JAVA_HOME"))
-                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
-                .withArguments(Stream.concat(Stream.of("--stacktrace", "--no-watch-fs"), Stream.of(arguments)).toList())
+                .withEnvironment(System.getenv().entrySet().stream()
+                        .filter(variable -> !variable.getKey().startsWith("JAVA_HOME"))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
+                .withArguments(Stream.concat(Stream.of("--stacktrace", "--no-watch-fs"), Stream.of(arguments))
+                        .toList())
                 .forwardOutput();
     }
 }

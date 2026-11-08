@@ -44,7 +44,8 @@ final class LambdaRenderer {
 
     private boolean writtenOnOneLine(final LambdaExpressionTree node, final BlockTree block, final Recursor recursor) {
         final var lambda = recursor.sourceOf(node);
-        return recursor.sourceOf(block).lines().count() == 1 && CommentScanner.withoutComments(lambda).equals(lambda);
+        return recursor.sourceOf(block).lines().count() == 1
+            && CommentScanner.withoutComments(lambda).equals(lambda);
     }
 
     /**
@@ -59,10 +60,13 @@ final class LambdaRenderer {
         if (params.isEmpty()) {
             return new Doc.Text("()");
         }
-        if (params.size() == 1 && params.getFirst().getType() == null && recursor.sourceSpan(node).charAt(0) != '(') {
+        if (params.size() == 1
+            && params.getFirst().getType() == null
+            && recursor.sourceSpan(node).charAt(0) != '(') {
             return new Doc.Text(Names.of(params.getFirst()));
         }
-        return WrappableList.of("(", ",", ")", params.stream().map(p -> renderParam(p, recursor)));
+        return WrappableList.of("(", ",", ")", params.stream()
+                .map(p -> renderParam(p, recursor)));
     }
 
     /**

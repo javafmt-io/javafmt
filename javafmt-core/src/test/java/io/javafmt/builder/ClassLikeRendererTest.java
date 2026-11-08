@@ -18,7 +18,8 @@ class ClassLikeRendererTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source))).stripTrailing();
+        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source)))
+                .stripTrailing();
     }
 
     @ParameterizedTest
@@ -35,7 +36,8 @@ class ClassLikeRendererTest {
 
     static Stream<Arguments> packageVariants() {
         return Stream.of(
-                Arguments.of("a", "package a;\n\nclass Foo {}"), Arguments.of("foo.bar", "package foo.bar;\n\nclass Foo {}"),
+                Arguments.of("a", "package a;\n\nclass Foo {}"),
+                Arguments.of("foo.bar", "package foo.bar;\n\nclass Foo {}"),
                 Arguments.of("com.example.deeply.nested", "package com.example.deeply.nested;\n\nclass Foo {}"));
     }
 

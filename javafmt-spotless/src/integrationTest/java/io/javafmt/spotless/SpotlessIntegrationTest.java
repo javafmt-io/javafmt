@@ -74,8 +74,10 @@ class SpotlessIntegrationTest {
         writeProject(dir, PINNED_STEP);
         writeSource(dir, "Foo.java", Fixtures.FORMATTED_FOO);
         build(dir, "spotlessApply", "-PjavafmtVersion=1.0.0");
-        assertThat(outcomeOf(build(dir, "spotlessApply", "-PjavafmtVersion=1.0.0"), ":spotlessJava")).isEqualTo(TaskOutcome.UP_TO_DATE);
-        assertThat(outcomeOf(build(dir, "spotlessApply", "-PjavafmtVersion=2.0.0"), ":spotlessJava")).isEqualTo(TaskOutcome.SUCCESS);
+        assertThat(outcomeOf(build(dir, "spotlessApply", "-PjavafmtVersion=1.0.0"), ":spotlessJava"))
+                .isEqualTo(TaskOutcome.UP_TO_DATE);
+        assertThat(outcomeOf(build(dir, "spotlessApply", "-PjavafmtVersion=2.0.0"), ":spotlessJava"))
+                .isEqualTo(TaskOutcome.SUCCESS);
     }
 
     @Test
@@ -86,9 +88,12 @@ class SpotlessIntegrationTest {
         writeProject(dir, DEFAULT_STEP);
         final var source = writeSource(dir, "Foo.java", Fixtures.FORMATTED_FOO);
         final var stored = build(dir, "spotlessApply", "--configuration-cache");
-        assertThat(stored.getOutput()).contains("Configuration cache entry stored.").doesNotContain("problems were found");
+        assertThat(stored.getOutput())
+                .contains("Configuration cache entry stored.")
+                .doesNotContain("problems were found");
         assertThat(Files.readString(source)).isEqualTo(Fixtures.FORMATTED_FOO);
-        assertThat(build(dir, "spotlessApply", "--configuration-cache").getOutput()).contains("Reusing configuration cache");
+        assertThat(build(dir, "spotlessApply", "--configuration-cache").getOutput())
+                .contains("Reusing configuration cache");
     }
 
     @Test
@@ -120,10 +125,13 @@ class SpotlessIntegrationTest {
         Files.writeString(projectFile, "analyze.skip=RedundantTypeArguments\n");
         build(dir, "spotlessApply", "--configuration-cache");
         assertThat(Files.readString(source)).contains("Stream.<String>of");
-        assertThat(outcomeOf(build(dir, "spotlessApply", "--configuration-cache"), ":spotlessJava")).isEqualTo(TaskOutcome.UP_TO_DATE);
+        assertThat(outcomeOf(build(dir, "spotlessApply", "--configuration-cache"), ":spotlessJava"))
+                .isEqualTo(TaskOutcome.UP_TO_DATE);
         Files.writeString(projectFile, "");
         build(dir, "spotlessApply", "--configuration-cache");
-        assertThat(Files.readString(source)).contains("Stream.of(").doesNotContain("Stream.<String>of");
+        assertThat(Files.readString(source))
+                .contains("Stream.of(")
+                .doesNotContain("Stream.<String>of");
     }
 
     @Test
@@ -153,7 +161,10 @@ class SpotlessIntegrationTest {
     }
 
     private static GradleRunner runner(final Path dir, final String... arguments) {
-        return GradleRunner.create().withProjectDir(dir.toFile()).forwardOutput().withArguments(arguments);
+        return GradleRunner.create()
+                .withProjectDir(dir.toFile())
+                .forwardOutput()
+                .withArguments(arguments);
     }
 
     private static TaskOutcome outcomeOf(final BuildResult result, final String taskPath) {
@@ -199,7 +210,9 @@ class SpotlessIntegrationTest {
     /** The injected classpath as a Groovy argument list of quoted paths. */
     private static String generatedBuildClasspath() {
         final var raw = System.getProperty("javafmt.generatedBuildClasspath");
-        assertThat(raw).as("the integrationTest task must pass javafmt.generatedBuildClasspath").isNotBlank();
+        assertThat(raw)
+                .as("the integrationTest task must pass javafmt.generatedBuildClasspath")
+                .isNotBlank();
         return Arrays.stream(raw.split(File.pathSeparator))
                 .filter(entry -> !entry.isBlank())
                 .map(entry -> "'" + entry.replace("\\", "\\\\") + "'")

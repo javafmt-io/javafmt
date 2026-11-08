@@ -146,8 +146,12 @@ class RemoveUnusedImportsTest {
         final var result = new RemoveUnusedImports().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         final var edit = result.edits().getFirst();
-        final var rewritten = new StringBuilder(source).replace(edit.start(), edit.end(), edit.replacement()).toString();
-        assertThat(rewritten).contains("import java.util.List;").doesNotContain("java.util.Set");
+        final var rewritten = new StringBuilder(source)
+                .replace(edit.start(), edit.end(), edit.replacement())
+                .toString();
+        assertThat(rewritten)
+                .contains("import java.util.List;")
+                .doesNotContain("java.util.Set");
     }
 
     @Test

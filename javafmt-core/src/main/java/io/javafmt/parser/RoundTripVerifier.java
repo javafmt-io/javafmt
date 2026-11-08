@@ -99,11 +99,17 @@ public final class RoundTripVerifier {
         final var beforeBody = partition(normalizedTokens(before)).body();
         final var afterBody = partition(normalizedTokens(after)).body();
         final var shared = Math.min(beforeBody.size(), afterBody.size());
-        final var at = IntStream.range(0, shared).filter(i -> !beforeBody.get(i).text().equals(afterBody.get(i).text())).findFirst();
+        final var at = IntStream.range(0, shared)
+                .filter(i -> !beforeBody.get(i)
+                        .text()
+                        .equals(afterBody.get(i).text()))
+                .findFirst();
         if (at.isPresent()) {
             return OptionalInt.of(beforeBody.get(at.getAsInt()).start());
         }
-        return beforeBody.size() > shared ? OptionalInt.of(beforeBody.get(shared).start()) : OptionalInt.empty();
+        return beforeBody.size() > shared
+                ? OptionalInt.of(beforeBody.get(shared).start())
+                : OptionalInt.empty();
     }
 
     private List<Token> window(final List<Token> tokens, final int at) {
@@ -111,7 +117,9 @@ public final class RoundTripVerifier {
     }
 
     private List<String> texts(final List<Token> tokens) {
-        return tokens.stream().map(Token::text).toList();
+        return tokens.stream()
+                .map(Token::text)
+                .toList();
     }
 
     /**
@@ -142,13 +150,18 @@ public final class RoundTripVerifier {
     private List<Token> normalizedTokens(final String source) {
         final var tokens = TokenScanner.scan(source);
         return IntStream.range(0, tokens.size())
-                .filter(i -> !tokens.get(i).text().equals(",") || i + 1 == tokens.size() || !tokens.get(i + 1).text().equals("}"))
-                .mapToObj(i -> new Token(normalizeToken(tokens.get(i).text()), tokens.get(i).start()))
+                .filter(i -> !tokens.get(i).text().equals(",")
+                    || i + 1 == tokens.size()
+                    || !tokens.get(i + 1).text().equals("}"))
+                .mapToObj(i -> new Token(
+                        normalizeToken(tokens.get(i).text()), tokens.get(i).start()))
                 .toList();
     }
 
     private List<String> normalizedComments(final String source) {
-        return CommentScanner.scan(source).stream().map(c -> normalizeComment(c.text())).toList();
+        return CommentScanner.scan(source).stream()
+                .map(c -> normalizeComment(c.text()))
+                .toList();
     }
 
     /**
@@ -164,11 +177,18 @@ public final class RoundTripVerifier {
     }
 
     private String normalizeComment(final String text) {
-        return text.lines().map(String::strip).reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
+        return text.lines()
+                .map(String::strip)
+                .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
     }
 
     private Optional<String> compare(final String kind, final List<String> before, final List<String> after) {
-        if (before.stream().sorted().toList().equals(after.stream().sorted().toList())) {
+        if (before.stream()
+                .sorted()
+                .toList()
+                .equals(after.stream()
+                        .sorted()
+                        .toList())) {
             return Optional.empty();
         }
         final var dropped = describe(minus(before, after));
@@ -180,14 +200,19 @@ public final class RoundTripVerifier {
     /** Multiset difference {@code from - other}, preserving the order of {@code from}. */
     private List<String> minus(final List<String> from, final List<String> other) {
         final var remaining = new ArrayList<>(other);
-        return from.stream().filter(s -> !remaining.remove(s)).toList();
+        return from.stream()
+                .filter(s -> !remaining.remove(s))
+                .toList();
     }
 
     private String describe(final List<String> items) {
         if (items.isEmpty()) {
             return "nothing";
         }
-        final var shown = items.stream().limit(5).map(RoundTripVerifier::quote).collect(java.util.stream.Collectors.joining(", "));
+        final var shown = items.stream()
+                .limit(5)
+                .map(RoundTripVerifier::quote)
+                .collect(java.util.stream.Collectors.joining(", "));
         return items.size() > 5 ? shown + " and " + (items.size() - 5) + " more" : shown;
     }
 

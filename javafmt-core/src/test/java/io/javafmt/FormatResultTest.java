@@ -69,7 +69,9 @@ class FormatResultTest {
         // The counterpart to the test below: a ParseError must keep meaning "the input is at
         // fault", so that an InternalError unambiguously means "javafmt is at fault".
         final var result = Javafmt.formatWithResult("class Fixture { void m( }");
-        assertThat(result.diagnostics()).isNotEmpty().allMatch(d -> d instanceof Diagnostic.ParseError);
+        assertThat(result.diagnostics())
+                .isNotEmpty()
+                .allMatch(d -> d instanceof Diagnostic.ParseError);
     }
 
     @Test
@@ -94,8 +96,17 @@ class FormatResultTest {
         };
         final var wrapped = new SyntheticCompilationUnit(realUnit.tree(), synthetic);
         final var unit = new ParsedUnit(
-                wrapped, src, realUnit.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
+                wrapped,
+                src,
+                realUnit.sourcePositions(),
+                List.of(),
+                List.of(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                List.of());
         final var result = BatchFormatter.formatParsed(src, unit, JavafmtConfig.defaults());
         assertThat(result.output()).isEqualTo(src);
         assertThat(result.hasErrors()).isTrue();

@@ -35,23 +35,20 @@ public final class UnusedVariableShouldBeUnnamed implements LintRule {
         }
         final var unit = context.unit();
         final var namesByScope = new IdentityHashMap<Tree, Set<String>>();
-        return LintScan.edits(
-                context,
-                edits -> new ChainPathScanner<>() {
-                    @Override
-                    public Void visitVariable(final VariableTree node, final Void p) {
-                        final var name = node.getName().toString();
-                        if (!name.isEmpty() && !UNNAMED.equals(name)) {
-                            scopeOfRenamable(getCurrentPath(), node, unit)
-                                    .filter(
-                                            scope -> !namesByScope.computeIfAbsent(scope, UnusedVariableShouldBeUnnamed::identifiersIn)
-                                                    .contains(name))
-                                    .flatMap(_ -> rename(node, name, unit))
-                                    .ifPresent(edits::add);
-                        }
-                        return super.visitVariable(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+            @Override
+            public Void visitVariable(final VariableTree node, final Void p) {
+                final var name = node.getName().toString();
+                if (!name.isEmpty() && !UNNAMED.equals(name)) {
+                    scopeOfRenamable(getCurrentPath(), node, unit)
+                            .filter(scope -> !namesByScope.computeIfAbsent(scope, UnusedVariableShouldBeUnnamed::identifiersIn)
+                                    .contains(name))
+                            .flatMap(_ -> rename(node, name, unit))
+                            .ifPresent(edits::add);
+                }
+                return super.visitVariable(node, null);
+            }
+        });
     }
 
     private static Optional<Tree> scopeOfRenamable(final TreePath path, final VariableTree node, final ParsedUnit unit) {
@@ -91,7 +88,10 @@ public final class UnusedVariableShouldBeUnnamed implements LintRule {
     }
 
     private static boolean bracketsFollow(final String source, final int from) {
-        return IntStream.range(from, source.length()).filter(i -> !Character.isWhitespace(source.charAt(i))).findFirst().stream()
+        return IntStream.range(from, source.length())
+                .filter(i -> !Character.isWhitespace(source.charAt(i)))
+                .findFirst()
+                .stream()
                 .anyMatch(i -> source.charAt(i) == '[');
     }
 

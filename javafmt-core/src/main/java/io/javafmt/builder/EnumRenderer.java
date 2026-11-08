@@ -20,9 +20,13 @@ final class EnumRenderer {
     Doc render(final ClassTree node, final Recursor recursor) {
         final var prefix = Doc.concat(ModifierRenderer.modifiersDoc(node.getModifiers(), recursor), new Doc.Text("enum " + node.getSimpleName()));
         final var headerDoc = ClassLikeRenderer.buildTypeDeclarationHeader(prefix, null, node.getImplementsClause(), false, List.of(), recursor);
-        final var constants = node.getMembers().stream().filter(m -> isConstant(m, recursor)).map(m -> (VariableTree) m).toList();
+        final var constants = node.getMembers().stream()
+                .filter(m -> isConstant(m, recursor))
+                .map(m -> (VariableTree) m)
+                .toList();
         final var className = node.getSimpleName().toString();
-        final var bodyMemberStream = node.getMembers().stream().filter(m -> !isConstant(m, recursor));
+        final var bodyMemberStream = node.getMembers().stream()
+                .filter(m -> !isConstant(m, recursor));
         final var bodyMembers = TypeBodyRenderer.renderMembers(bodyMemberStream, className, recursor);
         if (constants.isEmpty() && bodyMembers.isEmpty() && authorsSeparator(recursor.sourceOf(node)) != ';') {
             return TypeBodyRenderer.withBody(node, headerDoc, List.of(), recursor.trailingInside(node), recursor);
@@ -33,18 +37,25 @@ final class EnumRenderer {
             final var constantsInner = new Doc.Indent(
                     Doc.concatOf(
                             Stream.of(
-                                    Stream.of(Doc.LINE), CommentDocs.commaList(constants, recursor, c -> renderConstant(c, recursor)),
+                                    Stream.of(Doc.LINE),
+                                    CommentDocs.commaList(constants, recursor, c -> renderConstant(c, recursor)),
                                     Stream.of(trailingSeparator(node, recursor)),
-                                    pastTheLastSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
+                                    pastTheLastSeparator.stream()
+                                            .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
                                     commentsAfterTheLastConstant(node, recursor))));
             final var braceLine = recursor.braceLine(node);
             return ModifierRenderer.prependOwnLineAnnotations(
                     node.getModifiers(),
                     new Doc.Group(
                             Doc.concat(
-                                    headerDoc, new Doc.Text(" {"), new Doc.Concat(BlockRenderer.braceLineComments(braceLine).toList()),
-                                    new Doc.IfBreak(Doc.HARD_LINE, new Doc.Text("")), constantsInner,
-                                    beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant), new Doc.Text("}")),
+                                    headerDoc,
+                                    new Doc.Text(" {"),
+                                    new Doc.Concat(BlockRenderer.braceLineComments(braceLine)
+                                            .toList()),
+                                    new Doc.IfBreak(Doc.HARD_LINE, new Doc.Text("")),
+                                    constantsInner,
+                                    beforeTheClosingBrace(pastTheLastSeparator, afterTheLastConstant),
+                                    new Doc.Text("}")),
                             !braceLine.isEmpty()),
                     recursor);
         }
@@ -53,7 +64,8 @@ final class EnumRenderer {
         // followed by declarations.
         final var constantsBlock = new TypeBodyRenderer.Member(
                 null, constants.isEmpty() ? new Doc.Text(";") : constantsBlockBeforeBodyMembers(constants, recursor));
-        final var members = Stream.concat(Stream.of(constantsBlock), bodyMembers.stream()).toList();
+        final var members = Stream.concat(Stream.of(constantsBlock), bodyMembers.stream())
+                .toList();
         return TypeBodyRenderer.withBody(node, headerDoc, members, recursor.tail(node), recursor);
     }
 
@@ -67,13 +79,10 @@ final class EnumRenderer {
     private Doc constantsBlockBeforeBodyMembers(final List<VariableTree> constants, final Recursor recursor) {
         final var n = constants.size();
         return new Doc.Concat(
-                Doc.intersperse(
-                        Doc.HARD_LINE,
-                        IntStream.range(0, n)
-                                .mapToObj(
-                                        i -> i < n - 1
-                                                ? constantAndComma(constants.get(i), recursor.pastTheSeparatorBefore(constants.get(i + 1)), recursor)
-                                                : lastConstant(constants.get(i), recursor))));
+                Doc.intersperse(Doc.HARD_LINE, IntStream.range(0, n)
+                        .mapToObj(i -> i < n - 1
+                                ? constantAndComma(constants.get(i), recursor.pastTheSeparatorBefore(constants.get(i + 1)), recursor)
+                                : lastConstant(constants.get(i), recursor))));
     }
 
     /**
@@ -85,7 +94,8 @@ final class EnumRenderer {
     private Doc constantAndComma(final VariableTree constant, final List<CommentToken> pastTheComma, final Recursor recursor) {
         final var withComma = recursor.attach(constant, Doc.concat(renderConstant(constant, recursor), new Doc.Text(",")));
         return new Doc.Concat(
-                Stream.concat(Stream.of(withComma), pastTheComma.stream().flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)))));
+                Stream.concat(Stream.of(withComma), pastTheComma.stream()
+                        .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)))));
     }
 
     /**
@@ -112,7 +122,11 @@ final class EnumRenderer {
      * leaving a blank line above the brace.
      */
     private Doc beforeTheClosingBrace(final List<CommentToken> pastTheLastSeparator, final List<CommentToken> afterTheLastConstant) {
-        return pastTheLastSeparator.isEmpty() && afterTheLastConstant.stream().noneMatch(c -> c.text().startsWith("//")) ? Doc.LINE : Doc.HARD_LINE;
+        return pastTheLastSeparator.isEmpty()
+            && afterTheLastConstant.stream()
+                    .noneMatch(c -> c.text().startsWith("//"))
+                ? Doc.LINE
+                : Doc.HARD_LINE;
     }
 
     /**
@@ -125,7 +139,8 @@ final class EnumRenderer {
      * arrives on {@code interior} instead, and the trailing separator has already written it there.
      */
     private Stream<Doc> commentsAfterTheLastConstant(final ClassTree node, final Recursor recursor) {
-        return recursor.tail(node).stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
+        return recursor.tail(node).stream()
+                .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
     }
 
     /**
@@ -147,7 +162,8 @@ final class EnumRenderer {
         if (close <= 0) {
             return 0;
         }
-        final var beforeBrace = CommentScanner.withoutComments(enumSource.substring(0, close)).stripTrailing();
+        final var beforeBrace = CommentScanner.withoutComments(enumSource.substring(0, close))
+                .stripTrailing();
         return beforeBrace.isEmpty() ? 0 : beforeBrace.charAt(beforeBrace.length() - 1);
     }
 
@@ -168,15 +184,20 @@ final class EnumRenderer {
         }
         final var arguments = nc.getArguments().isEmpty()
                 ? emptyParenthesesAsWritten(v, nc, recursor)
-                : Stream.of(CallArguments.render(nc, nc.getArguments(), recursor).doc());
+                : Stream.of(
+                        CallArguments.render(nc, nc.getArguments(), recursor).doc());
         final var body = nc.getClassBody() == null ? Stream.<Doc>empty() : Stream.of(ClassBodyRenderer.render(nc.getClassBody(), recursor));
         return new Doc.Concat(Stream.concat(head, Stream.concat(arguments, body)));
     }
 
     private Stream<Doc> emptyParenthesesAsWritten(final VariableTree v, final NewClassTree nc, final Recursor recursor) {
         final var written = nc.getClassBody() == null
-                ? CommentScanner.withoutComments(recursor.sourceOf(v)).stripTrailing().endsWith(")")
-                : CommentScanner.withoutComments(recursor.sourceOf(nc)).stripLeading().startsWith("(");
+                ? CommentScanner.withoutComments(recursor.sourceOf(v))
+                        .stripTrailing()
+                        .endsWith(")")
+                : CommentScanner.withoutComments(recursor.sourceOf(nc))
+                        .stripLeading()
+                        .startsWith("(");
         return written ? Stream.of(new Doc.Text("()")) : Stream.empty();
     }
 }

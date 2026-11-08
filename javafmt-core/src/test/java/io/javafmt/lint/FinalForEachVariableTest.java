@@ -18,14 +18,17 @@ class FinalForEachVariableTest {
                 Arguments.of("var", "for (var s : xs) { use(s); }", "for (final var s : xs) { use(s); }"),
                 Arguments.of("unnamed var", "for (var _ : xs) { tick(); }", "for (final var _ : xs) { tick(); }"),
                 Arguments.of(
-                        "generic type", "for (Map.Entry<String, Integer> e : xs) { use(e); }",
+                        "generic type",
+                        "for (Map.Entry<String, Integer> e : xs) { use(e); }",
                         "for (final Map.Entry<String, Integer> e : xs) { use(e); }"),
                 Arguments.of("annotated variable", "for (@Audited String s : xs) { use(s); }", "for (@Audited final String s : xs) { use(s); }"),
                 Arguments.of(
-                        "same-named write in a nested lambda", "for (String s : xs) { run(() -> { String s = \"x\"; s = s.trim(); }); }",
+                        "same-named write in a nested lambda",
+                        "for (String s : xs) { run(() -> { String s = \"x\"; s = s.trim(); }); }",
                         "for (final String s : xs) { run(() -> { String s = \"x\"; s = s.trim(); }); }"),
                 Arguments.of(
-                        "nested loops", "for (var a : xs) { for (var b : a) { use(b); } }",
+                        "nested loops",
+                        "for (var a : xs) { for (var b : a) { use(b); } }",
                         "for (final var a : xs) { for (final var b : a) { use(b); } }"));
     }
 
@@ -39,7 +42,8 @@ class FinalForEachVariableTest {
     @MethodSource("rewritten")
     void theFixedSourceNeedsNoFurtherFix(final String label, final String loop, final String expected) {
         final var unit = JavaParser.parseUnit(inMethod(expected));
-        assertThat(new FinalForEachVariable().apply(LintContext.parseOnly(unit)).edits()).isEmpty();
+        assertThat(new FinalForEachVariable().apply(LintContext.parseOnly(unit)).edits())
+                .isEmpty();
     }
 
     @ParameterizedTest
@@ -61,6 +65,8 @@ class FinalForEachVariableTest {
 
     private static String fix(final String source) {
         final var unit = JavaParser.parseUnit(source);
-        return LintEngine.applyEdits(source, new FinalForEachVariable().apply(LintContext.parseOnly(unit)).edits());
+        return LintEngine.applyEdits(
+                source,
+                new FinalForEachVariable().apply(LintContext.parseOnly(unit)).edits());
     }
 }

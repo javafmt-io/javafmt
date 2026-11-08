@@ -50,23 +50,28 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
         extension.getMaxHeapSize().convention("1g");
         final var workerSlot = project.getGradle()
                 .getSharedServices()
-                .registerIfAbsent(JavafmtWorkerSlot.NAME, JavafmtWorkerSlot.class, spec -> spec.getMaxParallelUsages().set(1));
+                .registerIfAbsent(JavafmtWorkerSlot.NAME,
+                        JavafmtWorkerSlot.class,
+                        spec -> spec.getMaxParallelUsages().set(1));
         final var checkAll = project.getTasks()
-                .register(
-                        CHECK,
+                .register(CHECK,
                         task -> describe(task, LifecycleBasePlugin.VERIFICATION_GROUP, "Checks that all Java sources are formatted with javafmt."));
         final var formatAll = project.getTasks().register(FORMAT, task -> describe(task, GROUP, "Formats all Java sources with javafmt."));
         project.getPluginManager()
-                .withPlugin(
-                        "java",
+                .withPlugin("java",
                         ignored -> registerSourceSetTasks(
                                 new SourceSetTasks(project, extension, pluginProperties(), workerSlot, checkAll, formatAll)));
     }
 
     private static void registerSourceSetTasks(final SourceSetTasks sourceSetTasks) {
         final var project = sourceSetTasks.project();
-        project.getExtensions().getByType(JavaPluginExtension.class).getSourceSets().all(sourceSetTasks::register);
-        project.getTasks().named(LifecycleBasePlugin.CHECK_TASK_NAME).configure(task -> task.dependsOn(sourceSetTasks.checkAll()));
+        project.getExtensions()
+                .getByType(JavaPluginExtension.class)
+                .getSourceSets()
+                .all(sourceSetTasks::register);
+        project.getTasks()
+                .named(LifecycleBasePlugin.CHECK_TASK_NAME)
+                .configure(task -> task.dependsOn(sourceSetTasks.checkAll()));
     }
 
     private static void describe(final Task task, final String group, final String description) {
@@ -119,7 +124,10 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             final var check = project.getTasks().register(CHECK + suffix, JavafmtCheck.class, task -> {
                 describe(task, LifecycleBasePlugin.VERIFICATION_GROUP, "Checks that the " + name + " Java sources are formatted with javafmt.");
                 configure(task, sourceSet);
-                task.getMarker().set(project.getLayout().getBuildDirectory().file("javafmt/" + name + ".checked"));
+                task.getMarker()
+                        .set(project.getLayout()
+                                .getBuildDirectory()
+                                .file("javafmt/" + name + ".checked"));
                 task.getOutputs().upToDateWhen(new RatchetFromSet(false));
                 task.getOutputs().doNotCacheIf("The files ratchetFrom selects depend on the state of the git repository.", new RatchetFromSet(true));
                 task.mustRunAfter(format);
@@ -147,8 +155,15 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
         }
 
         private List<Path> sourceDirectories(final SourceSet sourceSet) {
-            final var buildDirectory = project.getLayout().getBuildDirectory().get().getAsFile().toPath();
-            return sourceSet.getJava().getSrcDirs().stream().map(File::toPath).filter(directory -> !directory.startsWith(buildDirectory)).toList();
+            final var buildDirectory = project.getLayout()
+                    .getBuildDirectory()
+                    .get()
+                    .getAsFile()
+                    .toPath();
+            return sourceSet.getJava().getSrcDirs().stream()
+                    .map(File::toPath)
+                    .filter(directory -> !directory.startsWith(buildDirectory))
+                    .toList();
         }
 
         private List<Object> projectFiles(final SourceSet sourceSet) {
@@ -158,12 +173,14 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
                             .flatMap(SourceSetTasks::upToTheRepositoryRoot)
                             .distinct()
                             .map(directory -> directory.resolve(PROJECT_FILE).toFile()),
-                    directories.stream().map(directory -> project.fileTree(directory, tree -> tree.include("**/" + PROJECT_FILE))))
+                    directories.stream()
+                            .map(directory -> project.fileTree(directory, tree -> tree.include("**/" + PROJECT_FILE))))
                     .toList();
         }
 
         private static Stream<Path> upToTheRepositoryRoot(final Path directory) {
-            final var ancestors = Stream.iterate(directory.toAbsolutePath().normalize(), Objects::nonNull, Path::getParent).toList();
+            final var ancestors = Stream.iterate(directory.toAbsolutePath().normalize(), Objects::nonNull, Path::getParent)
+                    .toList();
             final var root = IntStream.range(0, ancestors.size())
                     .filter(i -> Files.exists(ancestors.get(i).resolve(".git")))
                     .findFirst()
@@ -175,21 +192,24 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             final var projectDirectory = project.getProjectDir().toPath();
             final var excludes = extension.getExcludes().get();
             return sourceDirectories(sourceSet).stream()
-                    .map(
-                            directory -> project.fileTree(
-                                    directory,
-                                    tree -> tree.include("**/*.java")
-                                            .exclude(new ProjectRelativeExcludes(segments(projectDirectory.relativize(directory)), excludes))))
+                    .map(directory -> project.fileTree(
+                            directory,
+                            tree -> tree.include("**/*.java")
+                                    .exclude(new ProjectRelativeExcludes(segments(projectDirectory.relativize(directory)), excludes))))
                     .toList();
         }
 
         private static List<String> segments(final Path relative) {
-            return StreamSupport.stream(relative.spliterator(), false).map(Path::toString).filter(segment -> !segment.isEmpty()).toList();
+            return StreamSupport.stream(relative.spliterator(), false)
+                    .map(Path::toString)
+                    .filter(segment -> !segment.isEmpty())
+                    .toList();
         }
 
         private static JavaLauncher java25(final JavaToolchainService toolchains, final String foojayVersion) {
             try {
-                return toolchains.launcherFor(spec -> spec.getLanguageVersion().set(JavaLanguageVersion.of(ENGINE_JAVA_VERSION))).get();
+                return toolchains.launcherFor(spec -> spec.getLanguageVersion().set(JavaLanguageVersion.of(ENGINE_JAVA_VERSION)))
+                        .get();
             } catch (final RuntimeException e) {
                 throw new GradleException("""
                                           javafmt needs a Java 25 toolchain to run on, and Gradle found none.

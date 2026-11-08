@@ -44,7 +44,9 @@ public class ParallelBatchBenchmark {
             case "mixed" -> {
                 final var large = RealWorldCorpus.jdk("java/util/concurrent/ConcurrentHashMap.java");
                 final var clean = cycled(RealWorldCorpus.clean(Integer.MAX_VALUE));
-                yield IntStream.range(0, files).mapToObj(i -> i < files / 16 ? large : clean.get(i)).toList();
+                yield IntStream.range(0, files)
+                        .mapToObj(i -> i < files / 16 ? large : clean.get(i))
+                        .toList();
             }
             default -> cycled(RealWorldCorpus.clean(Integer.MAX_VALUE));
         };
@@ -52,7 +54,9 @@ public class ParallelBatchBenchmark {
     }
 
     private List<String> cycled(final List<String> corpus) {
-        return IntStream.range(0, files).mapToObj(i -> corpus.get(i % corpus.size())).toList();
+        return IntStream.range(0, files)
+                .mapToObj(i -> corpus.get(i % corpus.size()))
+                .toList();
     }
 
     @Benchmark

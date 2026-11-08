@@ -50,29 +50,27 @@ public final class ModifierOrder implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainPathScanner<>() {
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        checkModifiers(node.getModifiers(), false, unit).ifPresent(edits::add);
-                        return super.visitClass(node, null);
-                    }
+        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                checkModifiers(node.getModifiers(), false, unit).ifPresent(edits::add);
+                return super.visitClass(node, null);
+            }
 
-                    @Override
-                    public Void visitMethod(final MethodTree node, final Void p) {
-                        checkModifiers(node.getModifiers(), hasAType(node), unit).ifPresent(edits::add);
-                        return super.visitMethod(node, null);
-                    }
+            @Override
+            public Void visitMethod(final MethodTree node, final Void p) {
+                checkModifiers(node.getModifiers(), hasAType(node), unit).ifPresent(edits::add);
+                return super.visitMethod(node, null);
+            }
 
-                    @Override
-                    public Void visitVariable(final VariableTree node, final Void p) {
-                        if (!MultipleVariableDeclarations.isPartOfDeclarationGroup(getCurrentPath(), unit)) {
-                            checkModifiers(node.getModifiers(), true, unit).ifPresent(edits::add);
-                        }
-                        return super.visitVariable(node, null);
-                    }
-                });
+            @Override
+            public Void visitVariable(final VariableTree node, final Void p) {
+                if (!MultipleVariableDeclarations.isPartOfDeclarationGroup(getCurrentPath(), unit)) {
+                    checkModifiers(node.getModifiers(), true, unit).ifPresent(edits::add);
+                }
+                return super.visitVariable(node, null);
+            }
+        });
     }
 
     private static boolean hasAType(final MethodTree method) {
@@ -94,13 +92,18 @@ public final class ModifierOrder implements LintRule {
         if (scan.keywords().equals(canonicalOrder) && !scan.annotationBetweenKeywords() && !movesInFront) {
             return Optional.empty();
         }
-        final var keywords = canonicalOrder.stream().map(Modifier::toString);
+        final var keywords = canonicalOrder.stream()
+                .map(Modifier::toString);
         final var rewritten = typed
                 ? Stream.of(
                         scan.annotationsBeforeTheKeywords().stream(), scan.comments().stream(), keywords, scan.annotationsAfterAKeyword().stream())
                 : Stream.of(
                         scan.annotationsBeforeTheKeywords().stream(), scan.annotationsAfterAKeyword().stream(), scan.comments().stream(), keywords);
-        return Optional.of(new LintEdit(scan.start(), scan.lastItemEnd(), rewritten.flatMap(part -> part).collect(Collectors.joining(" "))));
+        return Optional.of(
+                new LintEdit(
+                        scan.start(),
+                        scan.lastItemEnd(),
+                        rewritten.flatMap(part -> part).collect(Collectors.joining(" "))));
     }
 
     /**
@@ -171,8 +174,13 @@ public final class ModifierOrder implements LintRule {
             keywords.add(matched);
         }
         return new Scan(
-                start, List.copyOf(annotationsBeforeTheKeywords), List.copyOf(annotationsAfterAKeyword), List.copyOf(comments), keywords,
-                annotationBetweenKeywords, lastItemEnd);
+                start,
+                List.copyOf(annotationsBeforeTheKeywords),
+                List.copyOf(annotationsAfterAKeyword),
+                List.copyOf(comments),
+                keywords,
+                annotationBetweenKeywords,
+                lastItemEnd);
     }
 
     /**
@@ -182,7 +190,9 @@ public final class ModifierOrder implements LintRule {
      * them twice.
      */
     private static List<Modifier> canonicalOrderOfScannedModifiers(final List<Modifier> sourceOrder) {
-        return Modifiers.canonicalOrder().stream().filter(sourceOrder::contains).toList();
+        return Modifiers.canonicalOrder().stream()
+                .filter(sourceOrder::contains)
+                .toList();
     }
 
     @Nullable

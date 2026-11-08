@@ -21,7 +21,10 @@ public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, Stri
 
     public CacheKey {
         Objects.requireNonNull(classpath, "classpath");
-        projectFiles = projectFiles.stream().distinct().sorted().toList();
+        projectFiles = projectFiles.stream()
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     /** The key for a run under {@code config}. A run with a classpath also keys on it. */
@@ -31,7 +34,9 @@ public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, Stri
 
     public static CacheKey of(final JavafmtConfig config, final Collection<ProjectFile> projectFiles) {
         Objects.requireNonNull(config, "config");
-        final var described = projectFiles.stream().flatMap(projectFile -> describe(projectFile).stream()).toList();
+        final var described = projectFiles.stream()
+                .flatMap(projectFile -> describe(projectFile).stream())
+                .toList();
         return switch (config.analysis()) {
             case JavafmtConfig.Analysis.ParseOnly() -> new CacheKey(config.lint(), config.verifyOutput(), false, "", config.release(), described);
             case JavafmtConfig.Analysis.Attributed(var classpath) ->
@@ -42,8 +47,11 @@ public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, Stri
     private static List<String> describe(final ProjectFile projectFile) {
         return switch (projectFile) {
             case ProjectFile.None() -> List.of();
-            case ProjectFile.Settings(var location, var analyzeSkip) ->
-                List.of(location + " " + ProjectFile.ANALYZE_SKIP + "=" + analyzeSkip.stream().sorted().collect(Collectors.joining(",")));
+            case ProjectFile.Settings(var location, var analyzeSkip) -> List.of(
+                    location + " " + ProjectFile.ANALYZE_SKIP + "="
+                            + analyzeSkip.stream()
+                                    .sorted()
+                                    .collect(Collectors.joining(",")));
             case ProjectFile.Invalid(var location, var problem) -> List.of(location + " invalid: " + problem);
         };
     }

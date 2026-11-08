@@ -26,46 +26,46 @@ public final class EmptyBlock implements WarningRule {
     @Override
     public List<Diagnostic> warnings(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.collect(
-                context,
-                diagnostics -> new ChainScanner<>() {
-                    @Override
-                    public Void visitTry(final TryTree node, final Void p) {
-                        final var fin = node.getFinallyBlock();
-                        if (fin != null) {
-                            checkEmpty(fin, "finally block", unit, diagnostics);
-                        }
-                        return super.visitTry(node, null);
-                    }
+        return LintScan.collect(context, diagnostics -> new ChainScanner<>() {
+            @Override
+            public Void visitTry(final TryTree node, final Void p) {
+                final var fin = node.getFinallyBlock();
+                if (fin != null) {
+                    checkEmpty(fin, "finally block", unit, diagnostics);
+                }
+                return super.visitTry(node, null);
+            }
 
-                    @Override
-                    public Void visitCatch(final CatchTree node, final Void p) {
-                        checkEmpty(node.getBlock(), "catch block", unit, diagnostics);
-                        return super.visitCatch(node, null);
-                    }
+            @Override
+            public Void visitCatch(final CatchTree node, final Void p) {
+                checkEmpty(node.getBlock(), "catch block", unit, diagnostics);
+                return super.visitCatch(node, null);
+            }
 
-                    @Override
-                    public Void visitSynchronized(final SynchronizedTree node, final Void p) {
-                        checkEmpty(node.getBlock(), "synchronized block", unit, diagnostics);
-                        return super.visitSynchronized(node, null);
-                    }
+            @Override
+            public Void visitSynchronized(final SynchronizedTree node, final Void p) {
+                checkEmpty(node.getBlock(), "synchronized block", unit, diagnostics);
+                return super.visitSynchronized(node, null);
+            }
 
-                    @Override
-                    public Void visitBlock(final BlockTree node, final Void p) {
-                        if (node.isStatic() && node.getStatements().isEmpty() && unit.interiorOf(node).isEmpty()) {
-                            diagnostics.add(new Diagnostic.Warning("empty static initializer", unit.positionOf(node)));
-                        }
-                        return super.visitBlock(node, null);
-                    }
+            @Override
+            public Void visitBlock(final BlockTree node, final Void p) {
+                if (node.isStatic()
+                    && node.getStatements().isEmpty()
+                    && unit.interiorOf(node).isEmpty()) {
+                    diagnostics.add(new Diagnostic.Warning("empty static initializer", unit.positionOf(node)));
+                }
+                return super.visitBlock(node, null);
+            }
 
-                    @Override
-                    public Void visitSwitch(final SwitchTree node, final Void p) {
-                        if (node.getCases().isEmpty()) {
-                            diagnostics.add(new Diagnostic.Warning("empty switch body", unit.positionOf(node)));
-                        }
-                        return super.visitSwitch(node, null);
-                    }
-                });
+            @Override
+            public Void visitSwitch(final SwitchTree node, final Void p) {
+                if (node.getCases().isEmpty()) {
+                    diagnostics.add(new Diagnostic.Warning("empty switch body", unit.positionOf(node)));
+                }
+                return super.visitSwitch(node, null);
+            }
+        });
     }
 
     private static void checkEmpty(final BlockTree block, final String what, final ParsedUnit unit, final List<Diagnostic> diagnostics) {

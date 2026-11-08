@@ -25,21 +25,22 @@ public final class EnumTrailingComma implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        if (node.getKind() == Tree.Kind.ENUM) {
-                            editFor(node, unit).ifPresent(edits::add);
-                        }
-                        return super.visitClass(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                if (node.getKind() == Tree.Kind.ENUM) {
+                    editFor(node, unit).ifPresent(edits::add);
+                }
+                return super.visitClass(node, null);
+            }
+        });
     }
 
     private static Optional<LintEdit> editFor(final ClassTree node, final ParsedUnit unit) {
-        final var constants = node.getMembers().stream().filter(m -> isConstant(unit, m)).map(VariableTree.class::cast).toList();
+        final var constants = node.getMembers().stream()
+                .filter(m -> isConstant(unit, m))
+                .map(VariableTree.class::cast)
+                .toList();
         if (constants.isEmpty()) {
             return Optional.empty();
         }

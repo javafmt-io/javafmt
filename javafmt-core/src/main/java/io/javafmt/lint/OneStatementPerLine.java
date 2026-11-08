@@ -21,15 +21,13 @@ public final class OneStatementPerLine implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitBlock(final BlockTree node, final Void p) {
-                        checkBlock(node.getStatements(), unit, edits);
-                        return super.visitBlock(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitBlock(final BlockTree node, final Void p) {
+                checkBlock(node.getStatements(), unit, edits);
+                return super.visitBlock(node, null);
+            }
+        });
     }
 
     private static void checkBlock(final List<? extends StatementTree> statements, final ParsedUnit unit, final List<LintEdit> edits) {

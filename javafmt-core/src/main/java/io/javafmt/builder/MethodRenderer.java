@@ -28,7 +28,8 @@ final class MethodRenderer {
         final var afterTypeParams = Doc.concatOf(
                 Stream.of(
                         Stream.of(ModifierRenderer.annotationsAfterTypeParameters(modifiers, typeParameters, recursor)),
-                        returnTypeDoc(node, recursor), Stream.of(new Doc.Text(node.getName().toString()))));
+                        returnTypeDoc(node, recursor),
+                        Stream.of(new Doc.Text(node.getName().toString()))));
         final var leading = buildLeading(preamble.prefix(), typeParameters, afterTypeParams, recursor);
         final var signature = renderSignature(leading, parametersOf(node), node.getThrows(), recursor);
         final var signatureDoc = appendBody(signature, node, recursor);
@@ -36,7 +37,8 @@ final class MethodRenderer {
     }
 
     List<VariableTree> parametersOf(final MethodTree node) {
-        return Stream.concat(Stream.ofNullable(node.getReceiverParameter()), node.getParameters().stream()).toList();
+        return Stream.concat(Stream.ofNullable(node.getReceiverParameter()), node.getParameters().stream())
+                .toList();
     }
 
     /**
@@ -68,7 +70,9 @@ final class MethodRenderer {
     private Doc renderTypeParams(final List<? extends TypeParameterTree> typeParams, final Recursor recursor) {
         final var interior = new Doc.Concat(
                 Stream.concat(
-                        Stream.of(Doc.SOFT_LINE), Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), typeParams.stream().map(recursor::scan))));
+                        Stream.of(Doc.SOFT_LINE),
+                        Doc.intersperse(List.of(new Doc.Text(","), Doc.LINE), typeParams.stream()
+                                .map(recursor::scan))));
         return new Doc.Group(Doc.concat(new Doc.Text("<"), new Doc.Indent(interior), Doc.SOFT_LINE, new Doc.Text(">")));
     }
 
@@ -88,7 +92,8 @@ final class MethodRenderer {
     }
 
     private Doc buildParamsPart(final Doc leading, final List<? extends VariableTree> params, final Recursor recursor) {
-        final var interior = CommentDocs.commaList(params, recursor, p -> renderParam(p, recursor)).toList();
+        final var interior = CommentDocs.commaList(params, recursor, p -> renderParam(p, recursor))
+                .toList();
         return Doc.concat(leading, WrappableList.alignedOf("(", interior, ")"));
     }
 
@@ -114,7 +119,8 @@ final class MethodRenderer {
                     .orElseGet(() -> Doc.concat(header, new Doc.Text(";")));
         }
         final var body = node.getBody();
-        final var statements = BlockRenderer.statementDocs(body.getStatements(), recursor).toList();
+        final var statements = BlockRenderer.statementDocs(body.getStatements(), recursor)
+                .toList();
         final var block = BlockRenderer.buildBlock(
                 Doc.concat(header, new Doc.Text(" {")), recursor.braceLine(body), statements, recursor.trailingInside(body));
         if (statements.size() != 1 || !writtenOnOneLine(node, body, recursor)) {
@@ -126,6 +132,7 @@ final class MethodRenderer {
 
     private boolean writtenOnOneLine(final MethodTree node, final BlockTree body, final Recursor recursor) {
         final var declaration = recursor.sourceOf(node);
-        return recursor.sourceOf(body).lines().count() == 1 && CommentScanner.withoutComments(declaration).equals(declaration);
+        return recursor.sourceOf(body).lines().count() == 1
+            && CommentScanner.withoutComments(declaration).equals(declaration);
     }
 }

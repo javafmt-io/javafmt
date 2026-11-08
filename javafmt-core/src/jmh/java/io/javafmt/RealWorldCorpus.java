@@ -46,7 +46,9 @@ public final class RealWorldCorpus {
     }
 
     public static List<String> dirty(final int limit) {
-        return clean(limit).stream().map(source -> source.replace("final ", "")).toList();
+        return clean(limit).stream()
+                .map(source -> source.replace("final ", ""))
+                .toList();
     }
 
     public static String jdk(final String file) {

@@ -50,30 +50,43 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
         LOGGER.info("javafmt: processed {} file(s)", files.size());
         final var outcome = JavafmtEngine.run(
                 new Request(
-                        files, parameters.getAnalyze().get() ? Optional.of(parameters.getAnalysisClasspath().get()) : Optional.empty(),
-                        Optional.ofNullable(parameters.getRatchetFrom().getOrNull()), write, parameters.getProjectDirectory().get().getAsFile(),
+                        files,
+                        parameters.getAnalyze().get()
+                                ? Optional.of(parameters.getAnalysisClasspath().get())
+                                : Optional.empty(),
+                        Optional.ofNullable(parameters.getRatchetFrom().getOrNull()),
+                        write,
+                        parameters.getProjectDirectory().get().getAsFile(),
                         parameters.getThreads().get()));
         final var reporter = getProblems().getReporter();
         outcome.warnings().forEach(warning -> LOGGER.warn("javafmt: {}", warning.description()));
-        reporter.report(outcome.warnings().stream().map(warning -> problem(reporter, WARNING, warning)).toList());
+        reporter.report(outcome.warnings().stream()
+                .map(warning -> problem(reporter, WARNING, warning))
+                .toList());
         if (write) {
             outcome.changed().forEach(file -> LOGGER.info("javafmt: formatted {}", file.display()));
         }
         final var formatTaskPath = parameters.getFormatTaskPath().get();
         final var unformatted = write ? List.<Outcome.Source>of() : outcome.changed();
-        final var message = Stream.concat(unformatted(unformatted, formatTaskPath), outcome.errors().stream().map(Outcome.Finding::description))
+        final var message = Stream.concat(
+                unformatted(unformatted, formatTaskPath),
+                outcome.errors().stream()
+                        .map(Outcome.Finding::description))
                 .collect(Collectors.joining("\n"));
         if (!message.isEmpty()) {
             throw reporter.throwing(
                     new GradleException(message),
                     Stream.concat(
-                            unformatted.stream().map(source -> unformattedProblem(reporter, source, formatTaskPath)),
-                            outcome.errors().stream().map(error -> problem(reporter, ERROR, error)))
+                            unformatted.stream()
+                                    .map(source -> unformattedProblem(reporter, source, formatTaskPath)),
+                            outcome.errors().stream()
+                                    .map(error -> problem(reporter, ERROR, error)))
                             .toList());
         }
         if (parameters.getMarker().isPresent()) {
             try {
-                Files.writeString(parameters.getMarker().get().getAsFile().toPath(), "");
+                Files.writeString(
+                        parameters.getMarker().get().getAsFile().toPath(), "");
             } catch (final IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -85,11 +98,13 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
             return Stream.empty();
         }
         final var header = "javafmt: " + unformatted.size() + " file(s) not formatted, run 'gradle " + formatTaskPath + "' to fix:";
-        return Stream.concat(Stream.of(header), unformatted.stream().map(file -> "  " + file.display()));
+        return Stream.concat(Stream.of(header), unformatted.stream()
+                .map(file -> "  " + file.display()));
     }
 
     private static Problem unformattedProblem(final ProblemReporter reporter, final Outcome.Source source, final String formatTaskPath) {
-        return reporter.create(UNFORMATTED, spec -> spec.fileLocation(source.path()).solution("Run 'gradle " + formatTaskPath + "'"));
+        return reporter.create(
+                UNFORMATTED, spec -> spec.fileLocation(source.path()).solution("Run 'gradle " + formatTaskPath + "'"));
     }
 
     private static Problem problem(final ProblemReporter reporter, final ProblemId id, final Outcome.Finding finding) {

@@ -55,7 +55,9 @@ class DeepExpressionTest {
 
     private static int searchForTheDeepestCompilable(final Chain chain) {
         final var deepest = largestPassing(terms -> javacCompiles(chain.of(terms)));
-        assertThat(deepest).as("javac compiles at least a short chain").isGreaterThan(1);
+        assertThat(deepest)
+                .as("javac compiles at least a short chain")
+                .isGreaterThan(1);
         return deepest;
     }
 
@@ -68,7 +70,8 @@ class DeepExpressionTest {
             }
         };
         try {
-            return compiler.getTask(null, null, _ -> {}, List.of("-proc:none", "-d", classes.toString()), null, List.of(file)).call();
+            return compiler.getTask(null, null, _ -> {}, List.of("-proc:none", "-d", classes.toString()), null, List.of(file))
+                    .call();
         } catch (final RuntimeException | StackOverflowError _) {
             return false;
         }

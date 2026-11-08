@@ -36,7 +36,8 @@ class GitRatchetTest {
         final var repository = committedRepository();
         final var invoice = repository.write("Invoice.java", "class Invoice { int total; }\n");
         repository.git("add", "Invoice.java");
-        assertThat(GitRatchet.since("main", dir).keep(List.of(invoice, dir.resolve("Order.java")))).containsExactly(invoice);
+        assertThat(GitRatchet.since("main", dir).keep(List.of(invoice, dir.resolve("Order.java"))))
+                .containsExactly(invoice);
     }
 
     @Test
@@ -59,7 +60,8 @@ class GitRatchetTest {
         repository.git("checkout", "--quiet", "-b", "feature");
         final var order = repository.write("Order.java", "class Order { int total; }\n");
         repository.commitAll("change order");
-        assertThat(GitRatchet.since("main", dir).keep(List.of(order, dir.resolve("Invoice.java")))).containsExactly(order);
+        assertThat(GitRatchet.since("main", dir).keep(List.of(order, dir.resolve("Invoice.java"))))
+                .containsExactly(order);
     }
 
     @Test
@@ -70,14 +72,17 @@ class GitRatchetTest {
         repository.write("Invoice.java", "class Invoice { int total; }\n");
         repository.commitAll("change invoice on main");
         repository.git("checkout", "--quiet", "feature");
-        assertThat(GitRatchet.since("main", dir).keep(List.of(dir.resolve("Invoice.java"), dir.resolve("Order.java")))).isEmpty();
+        assertThat(GitRatchet.since("main", dir).keep(List.of(dir.resolve("Invoice.java"), dir.resolve("Order.java"))))
+                .isEmpty();
     }
 
     @Test
     void leavesADeletedFileOut() throws Exception {
         final var repository = committedRepository();
         repository.delete("Invoice.java");
-        assertThat(GitRatchet.since("main", dir).changedFiles()).doesNotContain(dir.toRealPath().resolve("Invoice.java")).isEmpty();
+        assertThat(GitRatchet.since("main", dir).changedFiles())
+                .doesNotContain(dir.toRealPath().resolve("Invoice.java"))
+                .isEmpty();
     }
 
     @Test
@@ -101,7 +106,9 @@ class GitRatchetTest {
     @Test
     void aRefThatLooksLikeAnOptionIsAnUnknownRef() {
         committedRepository();
-        assertThatThrownBy(() -> GitRatchet.since("--all", dir)).isInstanceOf(GitRatchetException.class).hasMessage("unknown git ref: --all");
+        assertThatThrownBy(() -> GitRatchet.since("--all", dir))
+                .isInstanceOf(GitRatchetException.class)
+                .hasMessage("unknown git ref: --all");
     }
 
     @Test

@@ -24,19 +24,23 @@ class PluginJarTest {
     @Test
     void protobufIsBundledRelocatedSoItCannotClashWithIntellijsOwn() throws IOException {
         assertThat(entries())
-                .contains(
-                        "io/javafmt/daemon/protocol/FormatRequest.class", "io/javafmt/intellij/protobuf/GeneratedMessage.class",
-                        "io/javafmt/intellij/validate/ValidateProto.class", "io/javafmt/intellij/native-checksums.txt")
+                .contains("io/javafmt/daemon/protocol/FormatRequest.class",
+                        "io/javafmt/intellij/protobuf/GeneratedMessage.class",
+                        "io/javafmt/intellij/validate/ValidateProto.class",
+                        "io/javafmt/intellij/native-checksums.txt")
                 .noneMatch(name -> name.startsWith("com/google/") || name.startsWith("build/buf/") || name.startsWith("dev/cel/"));
     }
 
     @Test
     void theBundledProtocolDecodesAReplyWithNothingElseOnTheClasspath() throws Exception {
-        final var jar = Path.of(System.getProperty("javafmt.pluginJar")).toUri().toURL();
+        final var jar = Path.of(System.getProperty("javafmt.pluginJar"))
+                .toUri()
+                .toURL();
         try (final var loader = new URLClassLoader(new URL[]{jar}, ClassLoader.getPlatformClassLoader())) {
             final var replyClass = loader.loadClass("io.javafmt.daemon.protocol.FormatReply");
             final var bytes = DaemonFixtures.bytes(List.of(DaemonFixtures.REPLIES_HEX.getFirst()));
-            final var reply = replyClass.getMethod("parseDelimitedFrom", InputStream.class).invoke(null, new ByteArrayInputStream(bytes));
+            final var reply = replyClass.getMethod("parseDelimitedFrom", InputStream.class)
+                    .invoke(null, new ByteArrayInputStream(bytes));
             assertThat(replyClass.getMethod("getOutput").invoke(reply)).isEqualTo("class A {}\n");
         }
     }
@@ -49,13 +53,17 @@ class PluginJarTest {
                             .filter(entry -> entry.getName().endsWith(".class"))
                             .filter(entry -> !entry.getName().startsWith("META-INF/versions/")))
                     .isNotEmpty()
-                    .allSatisfy(entry -> assertThat(majorVersion(jar, entry)).as(entry.getName()).isLessThanOrEqualTo(MAX_MAJOR));
+                    .allSatisfy(entry -> assertThat(majorVersion(jar, entry))
+                            .as(entry.getName())
+                            .isLessThanOrEqualTo(MAX_MAJOR));
         }
     }
 
     private static List<String> entries() throws IOException {
         try (final var jar = new JarFile(System.getProperty("javafmt.pluginJar"))) {
-            return jar.stream().map(ZipEntry::getName).toList();
+            return jar.stream()
+                    .map(ZipEntry::getName)
+                    .toList();
         }
     }
 

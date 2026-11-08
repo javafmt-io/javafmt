@@ -21,7 +21,9 @@ class InProcessFormatter {
         if (Thread.currentThread().isInterrupted()) {
             return new JavafmtBinary.Outcome.Cancelled();
         }
-        return new JavafmtBinary.Outcome.Formatted(result.output(), result.diagnostics().stream().map(InProcessFormatter::diagnostic).toList());
+        return new JavafmtBinary.Outcome.Formatted(result.output(), result.diagnostics().stream()
+                .map(InProcessFormatter::diagnostic)
+                .toList());
     }
 
     private Diagnostic diagnostic(final io.javafmt.Diagnostic diagnostic) {

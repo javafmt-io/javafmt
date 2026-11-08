@@ -71,7 +71,9 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
         }
         final var witnessCalls = new ArrayList<WitnessCall>();
         scan(context, new ArrayList<>(), witnessCalls);
-        return witnessCalls.isEmpty() ? Optional.empty() : Optional.of(stripAllWitnesses(context.unit().source(), sortedByWitness(witnessCalls)));
+        return witnessCalls.isEmpty()
+                ? Optional.empty()
+                : Optional.of(stripAllWitnesses(context.unit().source(), sortedByWitness(witnessCalls)));
     }
 
     private static void scan(final LintContext context, final List<LintEdit> edits, final List<WitnessCall> witnessCalls) {
@@ -93,7 +95,9 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
     }
 
     private static List<WitnessCall> sortedByWitness(final List<WitnessCall> candidates) {
-        return candidates.stream().sorted(Comparator.comparingInt(WitnessCall::witnessStart)).toList();
+        return candidates.stream()
+                .sorted(Comparator.comparingInt(WitnessCall::witnessStart))
+                .toList();
     }
 
     @Override
@@ -103,7 +107,8 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
 
     private static Optional<LintEdit> tryDiamondify(final NewClassTree node, final TreePath path, final LintContext context) {
         final var unit = context.unit();
-        if (!(node.getIdentifier() instanceof ParameterizedTypeTree pt) || pt.getTypeArguments().isEmpty()) {
+        if (!(node.getIdentifier() instanceof ParameterizedTypeTree pt)
+            || pt.getTypeArguments().isEmpty()) {
             return Optional.empty();
         }
         final var target = findTargetTypeArguments(path, node, context);
@@ -164,7 +169,9 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
     private static boolean typeArgumentsMatch(final List<? extends Tree> constructorArguments, final List<? extends Tree> targetArguments) {
         return constructorArguments.size() == targetArguments.size()
             && IntStream.range(0, constructorArguments.size())
-                    .allMatch(i -> constructorArguments.get(i).toString().equals(targetArguments.get(i).toString()));
+                    .allMatch(i -> constructorArguments.get(i)
+                            .toString()
+                            .equals(targetArguments.get(i).toString()));
     }
 
     private static Optional<LintEdit> diamondEdit(final ParameterizedTypeTree pt, final ParsedUnit unit) {
@@ -178,7 +185,9 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
         while (ltPos < src.length() && Character.isWhitespace(src.charAt(ltPos))) {
             ltPos++;
         }
-        if (ltPos >= src.length() || src.charAt(ltPos) != '<' || !CommentScanner.scan(src.substring(ltPos, typeEnd)).isEmpty()) {
+        if (ltPos >= src.length()
+            || src.charAt(ltPos) != '<'
+            || !CommentScanner.scan(src.substring(ltPos, typeEnd)).isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(new LintEdit(ltPos, typeEnd, "<>"));
@@ -278,7 +287,11 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
     }
 
     private static String stripAllWitnesses(final String src, final List<WitnessCall> sorted) {
-        final var segmentEdges = Stream.concat(Stream.of(0), sorted.stream().flatMap(c -> Stream.of(c.witnessStart(), c.witnessEnd()))).toList();
+        final var segmentEdges = Stream.concat(
+                Stream.of(0),
+                sorted.stream()
+                        .flatMap(c -> Stream.of(c.witnessStart(), c.witnessEnd())))
+                .toList();
         return IntStream.range(0, segmentEdges.size() / 2 + 1)
                 .mapToObj(i -> src.substring(segmentEdges.get(2 * i), 2 * i + 1 < segmentEdges.size() ? segmentEdges.get(2 * i + 1) : src.length()))
                 .collect(Collectors.joining());
@@ -296,7 +309,9 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
         if (newPath == null) {
             return;
         }
-        final var newType = reattributed.attribution().trees().getTypeMirror(newPath);
+        final var newType = reattributed.attribution()
+                .trees()
+                .getTypeMirror(newPath);
         if (newType == null || newType.getKind() == TypeKind.ERROR) {
             return;
         }
@@ -311,7 +326,10 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
      * intentionally direct rather than indexed.
      */
     private static int strippedLengthBefore(final List<WitnessCall> sorted, final int offset) {
-        return sorted.stream().filter(c -> c.witnessStart() < offset).mapToInt(c -> c.witnessEnd() - c.witnessStart()).sum();
+        return sorted.stream()
+                .filter(c -> c.witnessStart() < offset)
+                .mapToInt(c -> c.witnessEnd() - c.witnessStart())
+                .sum();
     }
 
     private static Map<Integer, TreePath> callsByMethodNameStart(final ParsedUnit unit) {

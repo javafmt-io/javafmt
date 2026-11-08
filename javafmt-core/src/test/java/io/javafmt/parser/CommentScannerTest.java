@@ -14,7 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CommentScannerTest {
 
     private static List<String> texts(final String source) {
-        return CommentScanner.scan(source).stream().map(CommentToken::text).toList();
+        return CommentScanner.scan(source).stream()
+                .map(CommentToken::text)
+                .toList();
     }
 
     @ParameterizedTest(name = "{1}")
@@ -39,7 +41,9 @@ class CommentScannerTest {
 
         @Test
         void lineCommentAtEofWithoutTrailingNewlineIsCaptured() {
-            assertThat(texts("class C {} // trailing")).singleElement().isEqualTo("// trailing");
+            assertThat(texts("class C {} // trailing"))
+                    .singleElement()
+                    .isEqualTo("// trailing");
         }
 
         @Test

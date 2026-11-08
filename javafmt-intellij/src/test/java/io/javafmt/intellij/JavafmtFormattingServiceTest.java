@@ -60,8 +60,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         getProject()
                 .getMessageBus()
                 .connect(getTestRootDisposable())
-                .subscribe(
-                        Notifications.TOPIC,
+                .subscribe(Notifications.TOPIC,
                         new Notifications() {
                             @Override
                             public void notify(@NotNull final Notification notification) {
@@ -113,7 +112,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     @Test
     public void testDisabledProjectNeverRunsJavafmt(@TempDir final Path dir) throws IOException {
         final var counter = dir.resolve("invocations");
-        JavafmtSettings.getInstance(getProject()).setBinaryPath(fakeBinaryCountingVersionProbes(dir, counter).toString());
+        JavafmtSettings.getInstance(getProject())
+                .setBinaryPath(fakeBinaryCountingVersionProbes(dir, counter).toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         reformat(file);
         assertThat(counter).doesNotExist();
@@ -163,7 +163,9 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         final var file = myFixture.configureByText("Internal.java", "class Internal {}");
         reformat(file);
         assertThat(file.getText()).isEqualTo("class Internal {}");
-        assertThat(notifications).singleElement().satisfies(notification -> assertThat(notification.getType()).isEqualTo(NotificationType.ERROR));
+        assertThat(notifications)
+                .singleElement()
+                .satisfies(notification -> assertThat(notification.getType()).isEqualTo(NotificationType.ERROR));
     }
 
     @Test
@@ -208,7 +210,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     public void testNoBinaryFoundWarnsAndLeavesFileUnformatted(@TempDir final Path dir) {
         enableJavafmt();
         // A path that resolves to nothing, regardless of what happens to be on this machine's PATH.
-        JavafmtSettings.getInstance(getProject()).setBinaryPath(dir.resolve("nope").toString());
+        JavafmtSettings.getInstance(getProject())
+                .setBinaryPath(dir.resolve("nope").toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         reformat(file);
         assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
@@ -220,7 +223,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     @Test
     public void testTooOldBinaryWarnsAndLeavesFileUnformatted(@TempDir final Path dir) throws IOException {
         enableJavafmt();
-        JavafmtSettings.getInstance(getProject()).setBinaryPath(fakeBinaryReportingVersion(dir, "javafmt 0.0.9").toString());
+        JavafmtSettings.getInstance(getProject())
+                .setBinaryPath(fakeBinaryReportingVersion(dir, "javafmt 0.0.9").toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         reformat(file);
         assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
@@ -258,7 +262,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     public void testVersionProbeIsCachedNotRepeatedPerFormat(@TempDir final Path dir) throws IOException {
         enableJavafmt();
         final var counter = dir.resolve("version-probes");
-        JavafmtSettings.getInstance(getProject()).setBinaryPath(fakeBinaryCountingVersionProbes(dir, counter).toString());
+        JavafmtSettings.getInstance(getProject())
+                .setBinaryPath(fakeBinaryCountingVersionProbes(dir, counter).toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         // Two formats against the same (unmodified) binary path must probe --version once, not twice.
         reformat(file);
@@ -338,10 +343,12 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
             reformat(file);
             reformat(file);
             assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
-            assertThat(notifications).singleElement().satisfies(notification -> {
-                assertThat(notification.getType()).isEqualTo(NotificationType.INFORMATION);
-                assertThat(notification.getContent()).contains("downloading");
-            });
+            assertThat(notifications)
+                    .singleElement()
+                    .satisfies(notification -> {
+                        assertThat(notification.getType()).isEqualTo(NotificationType.INFORMATION);
+                        assertThat(notification.getContent()).contains("downloading");
+                    });
             go.countDown();
             assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Installed.class);
             assertThat(release.requests()).isEqualTo(1);
@@ -371,9 +378,14 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
             final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
             reformat(file);
             PlatformTestUtil.waitWithEventsDispatching(
-                    "no download failure notice", () -> notifications.stream().anyMatch(n -> n.getType() == NotificationType.WARNING), 20);
+                    "no download failure notice",
+                    () -> notifications.stream()
+                            .anyMatch(n -> n.getType() == NotificationType.WARNING),
+                    20);
             assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
-            assertThat(notifications.stream().filter(n -> n.getType() == NotificationType.WARNING))
+            assertThat(
+                    notifications.stream()
+                            .filter(n -> n.getType() == NotificationType.WARNING))
                     .singleElement()
                     .satisfies(notification -> assertThat(notification.getContent()).contains("javafmt.binaryPath"));
         }
@@ -394,7 +406,9 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     private JavafmtBinaryProvider useDownloadsFrom(final FakeRelease release, final Path cache, final String sha256) {
         final var installer = new BinaryInstaller(release.base(), cache, new ReleaseAsset.Published(DOWNLOADED, sha256));
         final var provider = new JavafmtBinaryProvider(
-                installer, JavafmtBinaryProviderTest::runOnNewThread, () -> cache.resolve("empty-path").toString());
+                installer,
+                JavafmtBinaryProviderTest::runOnNewThread,
+                () -> cache.resolve("empty-path").toString());
         ServiceContainerUtil.replaceService(ApplicationManager.getApplication(), JavafmtBinaryProvider.class, provider, getTestRootDisposable());
         return provider;
     }
@@ -459,7 +473,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
 
     /** Reformats one range the way <em>Reformat Code</em> on a selection does. */
     private void reformatRange(final PsiFile file, final TextRange range) {
-        WriteCommandAction.runWriteCommandAction(getProject(), () -> CodeStyleManager.getInstance(getProject()).reformatText(file, List.of(range)));
+        WriteCommandAction.runWriteCommandAction(
+                getProject(), () -> CodeStyleManager.getInstance(getProject()).reformatText(file, List.of(range)));
         PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
     }
 }

@@ -18,8 +18,14 @@ class DocTest {
 
     static Stream<Doc> allVariants() {
         return Stream.of(
-                new Doc.Text("t"), Doc.LINE, Doc.SOFT_LINE, Doc.HARD_LINE, new Doc.Indent(new Doc.Text("i")), new Doc.Group(new Doc.Text("g")),
-                new Doc.Concat(List.of()), new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")));
+                new Doc.Text("t"),
+                Doc.LINE,
+                Doc.SOFT_LINE,
+                Doc.HARD_LINE,
+                new Doc.Indent(new Doc.Text("i")),
+                new Doc.Group(new Doc.Text("g")),
+                new Doc.Concat(List.of()),
+                new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")));
     }
 
     @ParameterizedTest
@@ -251,12 +257,14 @@ class DocTest {
 
         @Test
         void listSeparator_twoElements_interspersed() {
-            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of(A, B)).toList()).containsExactly(A, S1, S2, B);
+            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of(A, B)).toList())
+                    .containsExactly(A, S1, S2, B);
         }
 
         @Test
         void listSeparator_threeElements_interspersed() {
-            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of(A, B, C)).toList()).containsExactly(A, S1, S2, B, S1, S2, C);
+            assertThat(Doc.intersperse(List.of(S1, S2), Stream.of(A, B, C)).toList())
+                    .containsExactly(A, S1, S2, B, S1, S2, C);
         }
 
         @Test
@@ -266,7 +274,8 @@ class DocTest {
 
         @Test
         void listSeparator_singletonList_behavesLikeSingleSeparator() {
-            assertThat(Doc.intersperse(List.of(SEP), Stream.of(A, B, C)).toList()).containsExactly(A, SEP, B, SEP, C);
+            assertThat(Doc.intersperse(List.of(SEP), Stream.of(A, B, C)).toList())
+                    .containsExactly(A, SEP, B, SEP, C);
         }
 
         @Test
@@ -285,12 +294,14 @@ class DocTest {
 
         @Test
         void storesBreakContents() {
-            assertThat(new Doc.IfBreak(new Doc.Text("break"), new Doc.Text("flat")).breakContents()).isEqualTo(new Doc.Text("break"));
+            assertThat(new Doc.IfBreak(new Doc.Text("break"), new Doc.Text("flat")).breakContents())
+                    .isEqualTo(new Doc.Text("break"));
         }
 
         @Test
         void storesFlatContents() {
-            assertThat(new Doc.IfBreak(new Doc.Text("break"), new Doc.Text("flat")).flatContents()).isEqualTo(new Doc.Text("flat"));
+            assertThat(new Doc.IfBreak(new Doc.Text("break"), new Doc.Text("flat")).flatContents())
+                    .isEqualTo(new Doc.Text("flat"));
         }
 
         @Test
@@ -317,8 +328,11 @@ class DocTest {
 
         static Stream<Arguments> widths() {
             return Stream.of(
-                    Arguments.of(new Doc.Text("abc"), 3), Arguments.of(Doc.LINE, 1), Arguments.of(Doc.SOFT_LINE, 0),
-                    Arguments.of(new Doc.Verbatim("abcd", 0), 4), Arguments.of(new Doc.Indent(new Doc.Text("ab")), 2),
+                    Arguments.of(new Doc.Text("abc"), 3),
+                    Arguments.of(Doc.LINE, 1),
+                    Arguments.of(Doc.SOFT_LINE, 0),
+                    Arguments.of(new Doc.Verbatim("abcd", 0), 4),
+                    Arguments.of(new Doc.Indent(new Doc.Text("ab")), 2),
                     Arguments.of(new Doc.Group(new Doc.Text("ab")), 2),
                     Arguments.of(new Doc.Concat(List.of(new Doc.Text("ab"), Doc.LINE, new Doc.Text("c"))), 4));
         }
@@ -331,7 +345,8 @@ class DocTest {
 
         @Test
         void ifBreakIsMeasuredByItsFlatContents() {
-            assertThat(Doc.flatWidthOrBreak(new Doc.IfBreak(new Doc.Text("breaks"), new Doc.Text("fl")))).isEqualTo(2);
+            assertThat(Doc.flatWidthOrBreak(new Doc.IfBreak(new Doc.Text("breaks"), new Doc.Text("fl"))))
+                    .isEqualTo(2);
         }
 
         @Test
@@ -346,13 +361,35 @@ class DocTest {
 
         @Test
         void blockCommentReportsBreak() {
-            assertThat(Doc.flatWidthOrBreak(new Doc.BlockComment(List.of("/* a", "   b */"), 0))).isEqualTo(-1);
+            assertThat(Doc.flatWidthOrBreak(new Doc.BlockComment(List.of("/* a", "   b */"), 0)))
+                    .isEqualTo(-1);
         }
 
         @Test
         void breakNestedAnywhereReportsBreak() {
             final var doc = new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Group(new Doc.Indent(Doc.HARD_LINE))));
             assertThat(Doc.flatWidthOrBreak(doc)).isEqualTo(-1);
+        }
+    }
+
+    @Nested
+    class WidthBeforeFirstBreakTests {
+
+        static Stream<Arguments> widths() {
+            return Stream.of(
+                    Arguments.of(new Doc.Text("abc"), 3),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("ab"), Doc.LINE, new Doc.Text("c"))), 4),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("ab"), new Doc.Group(new Doc.Indent(Doc.HARD_LINE)), new Doc.Text("cdef"))), 2),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Verbatim("bc\nde", 0))), 3),
+                    Arguments.of(new Doc.Concat(List.of(new Doc.Text("ab"), new Doc.BlockComment(List.of("/* a", "   b */"), 0))), 2),
+                    Arguments.of(new Doc.IfBreak(new Doc.Text("breaks"), new Doc.Text("fl")), 2),
+                    Arguments.of(new Doc.Choice(new Doc.Text("ab"), new Doc.Text("fallback")), 2));
+        }
+
+        @ParameterizedTest
+        @MethodSource("widths")
+        void measuresTheFlatRenderingUpToTheFirstForcedBreak(final Doc doc, final int expected) {
+            assertThat(Doc.widthBeforeFirstBreak(doc)).isEqualTo(expected);
         }
     }
 

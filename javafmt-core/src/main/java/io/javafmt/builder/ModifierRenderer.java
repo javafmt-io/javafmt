@@ -24,22 +24,21 @@ final class ModifierRenderer {
      */
     Doc prefixOf(final ModifiersTree modifiers, final Recursor recursor) {
         return Doc.concat(
-                annotationsDoc(declarationAnnotations(modifiers, List.of(), recursor), recursor), commentsBeforeTheModifiers(modifiers, recursor),
+                annotationsDoc(declarationAnnotations(modifiers, List.of(), recursor), recursor),
+                commentsBeforeTheModifiers(modifiers, recursor),
                 modifiersDoc(modifiers, recursor));
     }
 
     private Doc commentsBeforeTheModifiers(final ModifiersTree modifiers, final Recursor recursor) {
-        return new Doc.Concat(
-                recursor.tail(modifiers).stream()
-                        .map(CommentDocs::renderComment)
-                        .flatMap(comment -> Stream.of(comment, Doc.endsWithLineComment(comment) ? Doc.HARD_LINE : new Doc.Text(" "))));
+        return new Doc.Concat(recursor.tail(modifiers).stream()
+                .map(CommentDocs::renderComment)
+                .flatMap(comment -> Stream.of(comment, Doc.endsWithLineComment(comment) ? Doc.HARD_LINE : new Doc.Text(" "))));
     }
 
     Doc annotationsDoc(final List<? extends AnnotationTree> annotations, final Recursor recursor) {
-        return new Doc.Concat(
-                annotations.stream()
-                        .map(recursor::scan)
-                        .flatMap(annotation -> Stream.of(annotation, Doc.endsWithLineComment(annotation) ? Doc.HARD_LINE : new Doc.Text(" "))));
+        return new Doc.Concat(annotations.stream()
+                .map(recursor::scan)
+                .flatMap(annotation -> Stream.of(annotation, Doc.endsWithLineComment(annotation) ? Doc.HARD_LINE : new Doc.Text(" "))));
     }
 
     Doc modifiersDoc(final ModifiersTree modifiers, final Recursor recursor) {
@@ -50,9 +49,8 @@ final class ModifierRenderer {
         return Doc.concat(
                 new Doc.Text(modifiersText(modifiers)),
                 annotationsDoc(
-                        annotations(
-                                modifiers,
-                                a -> recursor.followsAModifierKeyword(modifiers, a) && !followsTypeParameters(a, typeParameters, recursor)),
+                        annotations(modifiers, a -> recursor.followsAModifierKeyword(modifiers, a)
+                            && !followsTypeParameters(a, typeParameters, recursor)),
                         recursor));
     }
 
@@ -69,7 +67,9 @@ final class ModifierRenderer {
     }
 
     private List<? extends AnnotationTree> annotations(final ModifiersTree modifiers, final Predicate<AnnotationTree> placed) {
-        return modifiers.getAnnotations().stream().filter(placed).toList();
+        return modifiers.getAnnotations().stream()
+                .filter(placed)
+                .toList();
     }
 
     private boolean followsTypeParameters(final AnnotationTree annotation,
@@ -87,11 +87,17 @@ final class ModifierRenderer {
         if (flags.isEmpty()) {
             return "";
         }
-        final var unknown = flags.stream().filter((javax.lang.model.element.Modifier m) -> !JavaModifiers.KNOWN_MODIFIERS.contains(m)).toList();
+        final var unknown = flags.stream()
+                .filter((javax.lang.model.element.Modifier m) -> !JavaModifiers.KNOWN_MODIFIERS.contains(m))
+                .toList();
         if (!unknown.isEmpty()) {
             throw new IllegalStateException("Unknown modifier(s): " + unknown);
         }
-        return JavaModifiers.JLS_ORDER.stream().filter(flags::contains).map(Modifier::toString).collect(Collectors.joining(" ")) + " ";
+        return JavaModifiers.JLS_ORDER.stream()
+                .filter(flags::contains)
+                .map(Modifier::toString)
+                .collect(Collectors.joining(" "))
+                + " ";
     }
 
     /**
@@ -104,7 +110,9 @@ final class ModifierRenderer {
      */
     boolean rendersLocalAnnotationsInline(final ModifiersTree modifiers, final Recursor recursor) {
         final var annotations = declarationAnnotations(modifiers, List.of(), recursor);
-        return !annotations.isEmpty() && annotations.stream().allMatch(a -> a.getArguments().isEmpty() && !recursor.isFollowedByNewline(a));
+        return !annotations.isEmpty()
+            && annotations.stream()
+                    .allMatch(a -> a.getArguments().isEmpty() && !recursor.isFollowedByNewline(a));
     }
 
     /**
@@ -115,7 +123,8 @@ final class ModifierRenderer {
      */
     Preamble preambleOf(final ModifiersTree modifiers, final List<? extends TypeParameterTree> typeParameters, final Recursor recursor) {
         return new Preamble(
-                modifiersDoc(modifiers, typeParameters, recursor), declarationAnnotations(modifiers, typeParameters, recursor),
+                modifiersDoc(modifiers, typeParameters, recursor),
+                declarationAnnotations(modifiers, typeParameters, recursor),
                 recursor.tail(modifiers));
     }
 
@@ -140,7 +149,11 @@ final class ModifierRenderer {
         if (annotations.isEmpty()) {
             return doc;
         }
-        return new Doc.Concat(Stream.concat(annotations.stream().flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE)), Stream.of(doc)));
+        return new Doc.Concat(
+                Stream.concat(
+                        annotations.stream()
+                                .flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE)),
+                        Stream.of(doc)));
     }
 
     record Preamble(Doc prefix, List<? extends AnnotationTree> ownLine, List<CommentToken> afterAnnotations) {}

@@ -34,7 +34,18 @@ Invoice buildInvoice(final Customer customer,
 - A wrapped list whose first parameter starts with a `//` comment also wraps at +8, since the comment cannot sit right after `(`.
 - A wrapped list whose first parameter has a `//` comment after one of its annotations also wraps at +8, with the comment beside the annotation and the rest of the parameter on the next line.
 - A wrapped list that already fits on one line stays on one line.
-- Filled argument lists wrap at +8 and pack as many arguments per line as fit.
+- Arguments that do not fit on the call's line go on the next line at +8, all on that line when they fit there and one per line otherwise. They go one per line as well when one of them spans several lines.
+
+```java
+log.info(
+        "Published action notification event. eventId={}, topic={}, messageId={}, tenantId={}, spaceId={}",
+        event.getEventId(),
+        request.topic(),
+        messageId,
+        event.getTenantId(),
+        event.getSpaceId());
+```
+
 - `&&`/`||` wrapping indents +4.
 
 ## Braces
@@ -143,18 +154,126 @@ orders.stream()
         .forEach(totals::add);
 ```
 
-A lambda whose body is an expression is an ordinary argument: it wraps with the others and never takes the call's line on its own.
+A lambda whose body is an expression and that is the last argument of a call starts on the call's line too, when the call does not fit on one line. Its parameters and `->` stay after the other arguments, and its body breaks the way it would anywhere else, at +8 past the line the call starts on:
+
+```java
+return clients.stream()
+        .map(client -> update(
+                api, client, grantsByClient.get(client.getClientId()), REQUIRED_SCOPES, client.getName(), clock.instant(), tenant))
+        .toList();
+executor.execute(() -> service.process(
+        request.tenantId(), request.spaceId(), request.payload(), request.receivedAt(), request.correlationId(), request.source()));
+```
+
+This holds when the line up to the body's first break fits in 150 characters and the other arguments have no comments, nothing that spans several lines, and no block-bodied lambda. Otherwise the arguments wrap at +8 with the lambda among them, and so does a lambda that is not the last argument.
+
+When other arguments come before the lambda, it also has to keep its body's leading chain on one line by the column-80 chain rule (see Method chains). If staying on the call's line would split that chain, the arguments wrap at +8 instead, on one line when they fit there and otherwise one per line:
+
+```java
+super(
+        kafkaTemplate,
+        new TopicNameMapper(topicTemplate)::topicByTenant,
+        e -> e.value().getEpc());
+return entries.entrySet().stream()
+        .collect(Collectors.toUnmodifiableMap(
+                Map.Entry::getKey, e -> e.getValue().asText()));
+```
+
+A lambda that is a call's only argument stays on the call's line instead, and a body that is a chain of two calls stays on one line with it while the line fits in 150 characters, past column 80 if need be:
+
+```java
+oneArgument = someLongReceiverName.transformTheValueWithAVeryLongMethodName(element -> element.value().getEpc());
+```
 
 Lambda parameters are never `final`.
 
 ## Method chains
 
-- A chain that fits in 150 characters goes on one line, however the author broke it. One that does not breaks before each `.`. A chain that contains a multi-line text block always breaks.
-- When a chain breaks, its first line runs up to and including its first `.stream()` or `.parallelStream()` call, and each call after that goes on its own line.
+- A chain of three or more calls goes on one line, however the author broke it, when it fits in 150 characters and ends by column 80. Otherwise it breaks before each `.`. When its last call takes a block-bodied lambda, the line up to the lambda's `{` has to end by column 80. A chain of two calls only needs the text before its last `.` to end by column 80, so `assertThat(actual).isEqualTo(expected)` stays on one line for longer. The column counts from the start of the line, indentation included, and the rule holds inside another call's arguments too. A two-call chain that is the body of a lambda passed as a call's only argument is exempt while it fits in 150 characters (see Lambdas). So is a two-call chain whose last call is `.stream()`, `.parallelStream()`, `.builder()`, `.newBuilder()` or `.toBuilder()` is exempt. Stream and builder chains with a call after that point always break (next rule), and so does a chain that contains a multi-line text block.
+
+```java
+log.atInfo()
+        .addKeyValue("enabled", isEnabled)
+        .log("Received action notification event.");
+return tracer.map(Tracer::currentSpan)
+        .map(Span::context)
+        .map(TraceContext::traceId)
+        .filter(ObjectUtils::isNotEmpty)
+        .orElse(null);
+```
+
+- A chain with a call after its first `.stream()`, `.parallelStream()`, `.builder()`, `.newBuilder()` or `.toBuilder()` always breaks, however short it is. Its first line runs up to and including that call, and each call after it goes on its own line. `Arrays.stream(values)` counts, and so does a chain that starts by creating a builder (see below). When that first line does not fit in 150 characters or ends past column 80, the chain breaks before every `.` instead.
+
+```java
+return users.stream()
+        .map(User::name)
+        .toList();
+return audit.toBuilder()
+        .skus(skus)
+        .build();
+```
+
 - A chain whose last call ends in a block-bodied lambda stays on one line up to the lambda's `{` when that fits (see Lambdas). Any other part that spans several lines, such as a block lambda in an earlier call, breaks the chain before every `.`.
 - Continuation indent is 8 spaces past the statement. Dots are not aligned with each other.
-- The first call of a chain stays on the line of its receiver (`orders.stream()`, `return Shipments.builder()`).
+- When the first line of a broken chain wraps its own arguments, they go at +16, past the calls below them:
+
+```java
+return Stream.of(
+                new SimpleEntry<>("eventId", event.getEventId()),
+                new SimpleEntry<>("metadata", event.hasMetadata() ? event.getMetadata() : null))
+        .filter(entry -> !isEmpty(entry.getValue()))
+        .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
+```
+
+- A call that starts its own line in a broken chain keeps its first argument on that line. When the arguments do not fit, the others go on the next line at +8, all on that line when they fit there and one per line otherwise:
+
+```java
+log.atLevel(isValid ? Level.INFO : Level.WARN)
+        .log("Received action notification event. enabled={}, valid={}, topic={}, key={}, partition={}",
+                isEnable, isValid, record.topic(), record.key(), record.partition());
+return events.stream()
+        .collect(Collectors.groupingBy(
+                EventRecord::tenantIdentifier, Collectors.mapping(EventRecord::eventIdentifier, Collectors.toCollection(TreeSet::new))));
+```
+
+- The first call of a chain stays on the line of its receiver (`orders.stream()`, `Arrays.stream(values)`, `return Shipments.builder()`). The exception is a chain that starts by creating a builder, a `new` of a class whose name ends in `Builder` such as `new OkHttpClient.Builder()` or `new StringBuilder()`: its first call goes on the next line, and so does each call after it.
 - `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters. One that fits goes on one line, however the author broke it.
+
+A chain that is the last argument of a method call or of `new`, and that always breaks (see above) or does not fit on one line even on a line of its own below the call, starts on the call's line. That line holds what the chain's own first line would hold when it breaks (see above), and each later call goes on its own line at +8 past the start of that line:
+
+```java
+when(jwtDecoder.decode(VALID_TOKEN))
+        .thenReturn(Jwt.withTokenValue(VALID_TOKEN)
+                .header("alg", "none")
+                .claim("sub", "test-user")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(60))
+                .build());
+```
+
+This holds only when the call's line fits in 150 characters, no call follows the call's `)`, the other arguments go on that line with no comments, and the chain has no comments and nothing that spans several lines. A `new` without a class body counts as having no call after it. Otherwise the arguments go on the next line at +8.
+
+## Ternaries
+
+A ternary that fits in 150 characters goes on one line, unless the author broke it: one written with a line break before or after its `?` or `:` stays broken. A broken ternary starts each branch on its own line with `? ` or `: `, at +8 past the line the ternary starts on:
+
+```java
+final var toSave = stripClosedEpcs
+        ? stripAll(auditReports)
+        : auditReports;
+```
+
+When the condition is a method chain that breaks, such as a stream, its calls go at +16 so they stand apart from the `?` and `:` lines.
+
+A ternary that is the last argument of a call, and that breaks, starts on the call's line, so its `?` and `:` still sit at +8 past the line the call starts on:
+
+```java
+return Optional.of(requested.compareTo(database) >= 0
+        ? Direction.ROLLFORWARD
+        : Direction.ROLLBACK);
+```
+
+This holds when the line up to the condition's first break fits in 150 characters and the other arguments have no comments and nothing that spans several lines. A ternary the author wrote on one line first moves to the next line at +8, with the other arguments, when it fits there.
 
 ## Enums
 
@@ -163,7 +282,7 @@ Lambda parameters are never `final`.
 - Constants that fit on one line go on one line, with no trailing comma even if the author wrote one: `enum Size { SMALL, MEDIUM, LARGE }`.
 - Constants that go one per line end with a trailing comma after the last constant.
 - An enum with body declarations keeps its `;`. A `,` written directly before the `;` is removed.
-- A constant's arguments follow the call-site argument rule: when they do not fit they wrap at +8 and pack as many per line as fit.
+- A constant's arguments follow the call-site argument rule: when they do not fit they wrap at +8, all on one line when they fit there and one per line otherwise.
 - Empty parentheses after a constant, `A()`, stay as written.
 
 ## Arrays

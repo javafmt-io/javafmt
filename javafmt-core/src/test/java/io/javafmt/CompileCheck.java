@@ -38,7 +38,10 @@ import javax.tools.ToolProvider;
 public final class CompileCheck {
 
     private static final List<String> UNRESOLVABLE_CODE_PREFIXES = List.of(
-            "compiler.err.cant.resolve", "compiler.err.doesnt.exist", "compiler.err.cant.access", "compiler.err.package.not.visible",
+            "compiler.err.cant.resolve",
+            "compiler.err.doesnt.exist",
+            "compiler.err.cant.access",
+            "compiler.err.package.not.visible",
             "compiler.err.not.def.access");
 
     public static Outcome check(final String source) {
@@ -61,18 +64,24 @@ public final class CompileCheck {
         } catch (final IOException e) {
             throw new IllegalStateException("compile check failed to close its file manager", e);
         }
-        final var errors = collector.getDiagnostics().stream().filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR).toList();
-        if (errors.stream().anyMatch(d -> isUnresolvable(d.getCode()))) {
+        final var errors = collector.getDiagnostics().stream()
+                .filter(d -> d.getKind() == javax.tools.Diagnostic.Kind.ERROR)
+                .toList();
+        if (errors.stream()
+                .anyMatch(d -> isUnresolvable(d.getCode()))) {
             return new Outcome.Skipped("references symbols that aren't on the classpath");
         }
         if (errors.isEmpty()) {
             return new Outcome.Compiles();
         }
-        return new Outcome.Broken(errors.stream().map(d -> d.getLineNumber() + ": " + d.getMessage(Locale.ROOT)).toList());
+        return new Outcome.Broken(errors.stream()
+                .map(d -> d.getLineNumber() + ": " + d.getMessage(Locale.ROOT))
+                .toList());
     }
 
     private static boolean isUnresolvable(final String code) {
-        return UNRESOLVABLE_CODE_PREFIXES.stream().anyMatch(code::startsWith);
+        return UNRESOLVABLE_CODE_PREFIXES.stream()
+                .anyMatch(code::startsWith);
     }
 
     /**

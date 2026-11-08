@@ -48,7 +48,8 @@ public class FileScopeTest extends JavafmtIntellijTestCase {
                                     @NotNull final ModifiableRootModel model,
                                     @NotNull final ContentEntry contentEntry) {
             super.configureModule(module, model, contentEntry);
-            Stream.of(LIBRARY, TEST_LIBRARY, RUNTIME_LIBRARY, OUTPUT, TEST_OUTPUT, TEST_SOURCES).forEach(FileScopeTest::createDirectory);
+            Stream.of(LIBRARY, TEST_LIBRARY, RUNTIME_LIBRARY, OUTPUT, TEST_OUTPUT, TEST_SOURCES)
+                    .forEach(FileScopeTest::createDirectory);
             addLibrary(model, LIBRARY, DependencyScope.COMPILE);
             addLibrary(model, TEST_LIBRARY, DependencyScope.TEST);
             addLibrary(model, RUNTIME_LIBRARY, DependencyScope.RUNTIME);
@@ -67,7 +68,8 @@ public class FileScopeTest extends JavafmtIntellijTestCase {
 
     @Test
     public void testAMainSourceGetsItsModulesProductionCompileClasspath() {
-        final var file = myFixture.configureByText("Order.java", "class Order {}").getVirtualFile();
+        final var file = myFixture.configureByText("Order.java", "class Order {}")
+                .getVirtualFile();
         assertThat(classpath(FileScope.of(getProject(), file)))
                 .contains(LIBRARY.toString(), OUTPUT.toString())
                 .doesNotContain(TEST_LIBRARY.toString(), TEST_OUTPUT.toString(), RUNTIME_LIBRARY.toString());
@@ -84,7 +86,10 @@ public class FileScopeTest extends JavafmtIntellijTestCase {
     @Test
     public void testAFileOnDiskCarriesItsPath() throws IOException {
         final var path = TEST_SOURCES.resolve("InvoiceTest.java");
-        assertThat(FileScope.of(getProject(), localFile(path, "class InvoiceTest {}")).path()).contains(path);
+        assertThat(
+                        FileScope.of(getProject(), localFile(path, "class InvoiceTest {}"))
+                                .path())
+                .contains(path);
     }
 
     @Test
@@ -107,7 +112,8 @@ public class FileScopeTest extends JavafmtIntellijTestCase {
     }
 
     private static void addLibrary(final ModifiableRootModel model, final Path classes, final DependencyScope scope) {
-        final var library = model.getModuleLibraryTable().createLibrary(classes.getFileName().toString());
+        final var library = model.getModuleLibraryTable()
+                .createLibrary(classes.getFileName().toString());
         final var libraryModel = library.getModifiableModel();
         libraryModel.addRoot(url(classes), OrderRootType.CLASSES);
         libraryModel.commit();

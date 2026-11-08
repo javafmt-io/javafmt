@@ -41,7 +41,9 @@ final class BinaryInstaller {
 
     static BinaryInstaller forThisPlugin() {
         return new BinaryInstaller(
-                RELEASES.resolve("v" + JavafmtPluginVersion.VERSION + "/"), PathManager.getSystemDir().resolve("javafmt"), ReleaseAsset.forThisIde());
+                RELEASES.resolve("v" + JavafmtPluginVersion.VERSION + "/"),
+                PathManager.getSystemDir().resolve("javafmt"),
+                ReleaseAsset.forThisIde());
     }
 
     ReleaseAsset asset() {
@@ -60,7 +62,9 @@ final class BinaryInstaller {
         return switch (asset) {
             case ReleaseAsset.Unpublished unpublished -> new Installation.Failed(unpublished.reason());
             case ReleaseAsset.Published published ->
-                installed().<Installation>map(Installation.Installed::new).orElseGet(() -> download(published, indicator));
+                installed()
+                        .<Installation>map(Installation.Installed::new)
+                        .orElseGet(() -> download(published, indicator));
         };
     }
 
@@ -90,14 +94,13 @@ final class BinaryInstaller {
         final var downloader = service.createDownloader(List.of(service.createFileDescription(url, name)), name);
         try {
             return ProgressManager.getInstance()
-                    .runProcess(
-                            () -> {
-                                try {
-                                    return downloader.download(staging.toFile()).getFirst().first.toPath();
-                                } catch (final IOException e) {
-                                    throw new UncheckedIOException(e);
-                                }
-                            },
+                    .runProcess(() -> {
+                        try {
+                            return downloader.download(staging.toFile()).getFirst().first.toPath();
+                        } catch (final IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    },
                             indicator);
         } catch (final UncheckedIOException e) {
             throw e.getCause();

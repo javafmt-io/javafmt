@@ -61,10 +61,14 @@ public class GjfComparisonBenchmark {
         config = JavafmtConfig.defaults();
         layoutOnly = JavafmtConfig.defaults().withLint(false);
         final var candidates = RealWorldCorpus.clean(CANDIDATES);
-        shared = candidates.stream().filter(GjfComparisonBenchmark::bothFormattersAccept).toList();
+        shared = candidates.stream()
+                .filter(GjfComparisonBenchmark::bothFormattersAccept)
+                .toList();
         System.out.printf(
-                "%n[corpus] %d of %d files formatted by both tools; %d excluded (google-java-format could not parse them)%n", shared.size(),
-                candidates.size(), candidates.size() - shared.size());
+                "%n[corpus] %d of %d files formatted by both tools; %d excluded (google-java-format could not parse them)%n",
+                shared.size(),
+                candidates.size(),
+                candidates.size() - shared.size());
         if (shared.isEmpty()) {
             throw new IllegalStateException("no file is accepted by both formatters; the comparison would be vacuous");
         }

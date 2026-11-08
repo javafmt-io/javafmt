@@ -61,12 +61,10 @@ public final class JavafmtConfigurable implements Configurable {
         final var box = new ComboBox<>(JavafmtApplicationSettings.Engine.values());
         box.setName(ENGINE_COMBO_BOX_NAME);
         box.setRenderer(
-                SimpleListCellRenderer.create(
-                        "",
-                        engine -> switch (engine) {
-                            case IN_PROCESS -> "Inside the IDE";
-                            case NATIVE -> "Native javafmt binary";
-                        }));
+                SimpleListCellRenderer.create("", engine -> switch (engine) {
+                    case IN_PROCESS -> "Inside the IDE";
+                    case NATIVE -> "Native javafmt binary";
+                }));
         return box;
     }
 
@@ -109,12 +107,11 @@ public final class JavafmtConfigurable implements Configurable {
             // A later refresh may have started while this probe was running; only the newest one
             // is allowed to write the label, or a slow probe would overwrite a fresher answer.
             ApplicationManager.getApplication()
-                    .invokeLater(
-                            () -> {
-                                if (generation == statusGeneration.get()) {
-                                    binaryStatus.setText(status);
-                                }
-                            },
+                    .invokeLater(() -> {
+                        if (generation == statusGeneration.get()) {
+                            binaryStatus.setText(status);
+                        }
+                    },
                             ModalityState.any());
         });
     }
@@ -124,7 +121,10 @@ public final class JavafmtConfigurable implements Configurable {
             return JavafmtBinaryProvider.getInstance().describe();
         }
         return JavafmtBinary.resolve(configuredPath)
-                .map(path -> new JavafmtBinary(path).version().reportedVersion().map(v -> path + " (" + v + ")").orElse(path.toString()))
+                .map(path -> new JavafmtBinary(path).version()
+                        .reportedVersion()
+                        .map(v -> path + " (" + v + ")")
+                        .orElse(path.toString()))
                 .orElse("not found — fix the path above, or clear it to use javafmt from PATH or a downloaded one");
     }
 
@@ -150,13 +150,16 @@ public final class JavafmtConfigurable implements Configurable {
         form.addLabeledComponent("Formatter (all projects):", engine);
         form.addLabeledComponent("javafmt binary:", binaryPath);
         form.addComponent(binaryStatus);
-        return form.addComponent(hint).addComponentFillVertically(new JPanel(), 0).getPanel();
+        return form.addComponent(hint)
+                .addComponentFillVertically(new JPanel(), 0)
+                .getPanel();
     }
 
     @Override
     public boolean isModified() {
         final var settings = JavafmtSettings.getInstance(project);
-        return toggles.stream().anyMatch(t -> t.box().isSelected() != t.read().test(settings))
+        return toggles.stream()
+                .anyMatch(t -> t.box().isSelected() != t.read().test(settings))
             || engine.getItem() != JavafmtApplicationSettings.getInstance().getEngine()
             || !binaryPath.getText().trim().equals(settings.getBinaryPath());
     }

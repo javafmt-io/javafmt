@@ -4,7 +4,8 @@ class Reader {
 
     Reader copy(final String text) {
         return new Reader(
-                text.replaceAll("(^enum\\()|(\\)$)", ""), ',', // Separator
+                text.replaceAll("(^enum\\()|(\\)$)", ""),
+                ',', // Separator
                 '\'', // Quote character
                 true // Strict quotes
         );

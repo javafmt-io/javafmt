@@ -45,7 +45,8 @@ public final class JavafmtDaemons implements Disposable {
         if (disposed) {
             return Optional.empty();
         }
-        final var reusable = current.filter(running -> running.binary().equals(binary) && running.daemon().isAlive());
+        final var reusable = current.filter(running -> running.binary().equals(binary)
+            && running.daemon().isAlive());
         if (reusable.isPresent()) {
             return reusable.map(Running::daemon);
         }

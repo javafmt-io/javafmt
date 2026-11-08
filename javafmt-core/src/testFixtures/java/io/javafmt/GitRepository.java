@@ -45,7 +45,9 @@ public record GitRepository(Path root) {
     }
 
     public String git(final String... arguments) {
-        final var builder = new ProcessBuilder(Stream.concat(Stream.of("git"), Stream.of(arguments)).toList()).directory(root.toFile())
+        final var builder = new ProcessBuilder(
+                        Stream.concat(Stream.of("git"), Stream.of(arguments)).toList())
+                .directory(root.toFile())
                 .redirectErrorStream(true);
         final var environment = builder.environment();
         environment.put("GIT_CONFIG_GLOBAL", nullDevice());

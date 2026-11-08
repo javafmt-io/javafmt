@@ -33,9 +33,13 @@ final class Modifiers {
             return Optional.of(LintEdit.insert(typeStart, "final "));
         }
         if (!annotations.isEmpty()) {
-            return Optional.of(unit.endOf(annotations.getLast())).filter(pos -> pos >= 0).map(pos -> LintEdit.insert(pos, " final"));
+            return Optional.of(unit.endOf(annotations.getLast()))
+                    .filter(pos -> pos >= 0)
+                    .map(pos -> LintEdit.insert(pos, " final"));
         }
-        return Optional.of(unit.startOf(variable)).filter(pos -> pos >= 0).map(pos -> LintEdit.insert(pos, "final "));
+        return Optional.of(unit.startOf(variable))
+                .filter(pos -> pos >= 0)
+                .map(pos -> LintEdit.insert(pos, "final "));
     }
 
     /**

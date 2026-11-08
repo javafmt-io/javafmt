@@ -41,8 +41,16 @@ class TreeFactsTest {
                 """);
         final var facts = new TreeFacts(unit);
         final var enumTree = (ClassTree) unit.tree().getTypeDecls().getFirst();
-        final var vars = enumTree.getMembers().stream().filter(m -> m instanceof VariableTree).map(m -> (VariableTree) m).toList();
+        final var vars = enumTree.getMembers().stream()
+                .filter(m -> m instanceof VariableTree)
+                .map(m -> (VariableTree) m)
+                .toList();
         assertThat(facts.isEnumConstant(vars.getFirst())).isTrue();
-        assertThat(facts.isEnumConstant(vars.stream().filter(v -> v.getName().contentEquals("LOCK")).findFirst().orElseThrow())).isFalse();
+        assertThat(
+                facts.isEnumConstant(vars.stream()
+                        .filter(v -> v.getName().contentEquals("LOCK"))
+                        .findFirst()
+                        .orElseThrow()))
+                .isFalse();
     }
 }

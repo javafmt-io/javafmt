@@ -1,6 +1,7 @@
 package io.javafmt.builder;
 
 import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
@@ -18,6 +19,8 @@ interface Recursor extends LeadingCommentAttacher {
     Doc scanBeforeComments(Tree node, UnaryOperator<Doc> adjust);
 
     Doc scanLeavingTrailing(Tree node, UnaryOperator<Doc> adjust);
+
+    MethodChainRenderer.ChainDocs scanChain(MethodInvocationTree node);
 
     @Nullable
     Doc scanNullable(Tree node);
@@ -37,6 +40,8 @@ interface Recursor extends LeadingCommentAttacher {
 
     boolean isField(VariableTree variable);
 
+    boolean isLoneLambdaBody(Tree node);
+
     /**
      * Whether the source text immediately following {@code node} contains a newline before
      * the next non-whitespace character. Used to preserve annotation layout: an annotation
@@ -48,6 +53,8 @@ interface Recursor extends LeadingCommentAttacher {
     boolean followsAModifierKeyword(ModifiersTree modifiers, AnnotationTree annotation);
 
     boolean startsAfter(Tree node, Tree other);
+
+    boolean lineBreakBetween(Tree before, Tree after);
 
     boolean hasEmptyArgumentList(AnnotationTree annotation);
 

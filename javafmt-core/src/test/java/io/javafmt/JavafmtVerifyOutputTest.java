@@ -31,8 +31,17 @@ class JavafmtVerifyOutputTest {
     private static ParsedUnit unitThatLosesATrailingComment() {
         final var parsed = JavaParser.parseUnit(SOURCE);
         return new ParsedUnit(
-                parsed.tree(), SOURCE_WITH_NOTE, parsed.sourcePositions(), List.of(), List.of(), new IdentityHashMap<>(), new IdentityHashMap<>(),
-                new IdentityHashMap<>(), new IdentityHashMap<>(), new IdentityHashMap<>(), List.of());
+                parsed.tree(),
+                SOURCE_WITH_NOTE,
+                parsed.sourcePositions(),
+                List.of(),
+                List.of(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                List.of());
     }
 
     @Test
@@ -54,7 +63,9 @@ class JavafmtVerifyOutputTest {
     void withVerificationOnTheLostCommentBecomesAnInternalError() {
         final var config = JavafmtConfig.defaults().withVerifyOutput(true);
         final var result = BatchFormatter.formatParsed(SOURCE_WITH_NOTE, unitThatLosesATrailingComment(), config);
-        assertThat(result.diagnostics()).singleElement().isInstanceOf(Diagnostic.InternalError.class);
+        assertThat(result.diagnostics())
+                .singleElement()
+                .isInstanceOf(Diagnostic.InternalError.class);
         assertThat(result.diagnostics().getFirst().message()).contains("comment");
     }
 
@@ -82,7 +93,10 @@ class JavafmtVerifyOutputTest {
         final var source = "class Fixture {\n    void m(int n) {\n        String s = \"hi\";\n        if (n > 0) log(s);\n    }\n\n    void log(String s) {}\n}\n";
         final var result = Javafmt.formatWithResult(source, config);
         assertThat(result.diagnostics()).noneMatch(d -> d instanceof Diagnostic.InternalError);
-        assertThat(result.output()).contains("void m(final int n)").contains("final var s = \"hi\";").contains("if (n > 0) {");
+        assertThat(result.output())
+                .contains("void m(final int n)")
+                .contains("final var s = \"hi\";")
+                .contains("if (n > 0) {");
     }
 
     private static final String SUPER_CALL_WITH_NOTE = "class Fixture {\n    Fixture() {\n        super(); // keep this\n    }\n}\n";
@@ -97,7 +111,9 @@ class JavafmtVerifyOutputTest {
         // deleted is already missing from both sides — which is how two rules deleted comments for
         // as long as they did. Comments are held against what the user actually wrote instead.
         assertThat(FormatStages.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, SUPER_CALL_LINTED_AWAY, SUPER_CALL_PRINTED))
-                .hasValueSatisfying(message -> assertThat(message).contains("lint rule dropped one of your comments").contains("keep this"));
+                .hasValueSatisfying(message -> assertThat(message)
+                        .contains("lint rule dropped one of your comments")
+                        .contains("keep this"));
     }
 
     @Test
@@ -106,13 +122,15 @@ class JavafmtVerifyOutputTest {
         // the output. Neither check has anything to say.
         final var linted = "class Fixture {\n    Fixture() {\n        // keep this\n    }\n}\n";
         final var printed = "class Fixture {\n    Fixture() {\n        // keep this\n    }\n}\n";
-        assertThat(FormatStages.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, linted, printed)).isEmpty();
+        assertThat(FormatStages.verifyOutput(JavafmtConfig.defaults(), SUPER_CALL_WITH_NOTE, linted, printed))
+                .isEmpty();
     }
 
     @Test
     void verificationOffSkipsTheLintCommentCheckToo() {
         final var config = JavafmtConfig.defaults().withVerifyOutput(false);
-        assertThat(FormatStages.verifyOutput(config, SUPER_CALL_WITH_NOTE, SUPER_CALL_LINTED_AWAY, SUPER_CALL_PRINTED)).isEmpty();
+        assertThat(FormatStages.verifyOutput(config, SUPER_CALL_WITH_NOTE, SUPER_CALL_LINTED_AWAY, SUPER_CALL_PRINTED))
+                .isEmpty();
     }
 
     @Test

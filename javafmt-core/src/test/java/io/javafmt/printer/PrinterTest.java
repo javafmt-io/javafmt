@@ -87,7 +87,8 @@ class PrinterTest {
                             "indented", new Doc.Indent(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE_START, new Doc.Text("b")))), "a\n    b"),
                     Arguments.of(
                             "inside a group that would fit",
-                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE, Doc.LINE_START, new Doc.Text("b")))), "a\nb"));
+                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("a"), Doc.LINE, Doc.LINE_START, new Doc.Text("b")))),
+                            "a\nb"));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -163,7 +164,9 @@ class PrinterTest {
 
         static Stream<Arguments> lineFitCases() {
             return Stream.of(
-                    Arguments.of(11, "hello world"), Arguments.of(12, "hello world"), Arguments.of(10, "hello\nworld"),
+                    Arguments.of(11, "hello world"),
+                    Arguments.of(12, "hello world"),
+                    Arguments.of(10, "hello\nworld"),
                     Arguments.of(5, "hello\nworld"));
         }
     }
@@ -235,7 +238,8 @@ class PrinterTest {
 
         static Stream<Arguments> choiceCases() {
             return Stream.of(
-                    Arguments.of(80, "beta", "call(alpha, beta)"), Arguments.of(12, "beta", "call(alpha,\n     beta)"),
+                    Arguments.of(80, "beta", "call(alpha, beta)"),
+                    Arguments.of(12, "beta", "call(alpha,\n     beta)"),
                     Arguments.of(9, "beta", "call(\n    alpha,\n    beta)"),
                     Arguments.of(16, "betaGammaDelta", "call(\n    alpha,\n    betaGammaDelta)"));
         }
@@ -246,11 +250,14 @@ class PrinterTest {
                                                                                                final Doc beforeLambda,
                                                                                                final String expected) {
             final var lambda = Doc.concat(
-                    new Doc.Text("x -> {"), new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Text("statementLongerThanTheLine();"))), Doc.HARD_LINE,
+                    new Doc.Text("x -> {"),
+                    new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Text("statementLongerThanTheLine();"))),
+                    Doc.HARD_LINE,
                     new Doc.Text("}"));
             final var preferred = Doc.concat(new Doc.Text("("), beforeLambda, new Doc.Text(", "), lambda, new Doc.Text(")"));
             final var fallback = Doc.concat(
-                    new Doc.Text("("), new Doc.Indent(Doc.concat(Doc.HARD_LINE, beforeLambda, new Doc.Text(","), Doc.HARD_LINE, lambda)),
+                    new Doc.Text("("),
+                    new Doc.Indent(Doc.concat(Doc.HARD_LINE, beforeLambda, new Doc.Text(","), Doc.HARD_LINE, lambda)),
                     new Doc.Text(")"));
             final var doc = Doc.concat(new Doc.Text("call"), new Doc.Choice(preferred, fallback, Doc.Choice.Fit.OPENING_LINE));
             assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
@@ -264,7 +271,8 @@ class PrinterTest {
                     Arguments.of(15, key, "call(\n    key,\n    x -> {\n        statementLongerThanTheLine();\n    })"),
                     Arguments.of(80, authorBroken, "call(\n    a\n    b,\n    x -> {\n        statementLongerThanTheLine();\n    })"),
                     Arguments.of(
-                            80, Doc.concat(new Doc.Text("a"), Doc.LINE, new Doc.Text("b")),
+                            80,
+                            Doc.concat(new Doc.Text("a"), Doc.LINE, new Doc.Text("b")),
                             "call(\n    a\n    b,\n    x -> {\n        statementLongerThanTheLine();\n    })"));
         }
 
@@ -281,8 +289,32 @@ class PrinterTest {
 
         static Stream<Arguments> firstBreakCases() {
             return Stream.of(
-                    Arguments.of(80, "longName = call(argument)"), Arguments.of(16, "longName = call(\n    argument)"),
-                    Arguments.of(15, "longName =\n        call(\n            argument)"), Arguments.of(12, "longName = call(\n    argument)"));
+                    Arguments.of(80, "longName = call(argument)"),
+                    Arguments.of(16, "longName = call(\n    argument)"),
+                    Arguments.of(15, "longName =\n        call(\n            argument)"),
+                    Arguments.of(12, "longName = call(\n    argument)"));
+        }
+
+        @ParameterizedTest
+        @MethodSource("chainSplittingCases")
+        void firstBreakChoiceWithoutSplittingAChain_takesTheFallbackWhenAChainBeforeTheFirstBreakWouldPassColumn80(final Doc.Choice.Fit fit,
+                                                                                                                   final String expected) {
+            final var chain = Doc.Choice.unlessPastTheChainColumn(
+                    new Doc.Text("x.first().second()"),
+                    Doc.concat(new Doc.Text("x.first()"), new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Text(".second()")))),
+                    "x.first()".length());
+            final var preferred = Doc.concat(new Doc.Text("(a, "), chain, new Doc.Text(")"));
+            final var fallback = Doc.concat(
+                    new Doc.Text("("), new Doc.Indent(Doc.concat(Doc.HARD_LINE, new Doc.Text("a, "), chain)), new Doc.Text(")"));
+            final var doc = Doc.concat(new Doc.Text("c".repeat(70)), new Doc.Choice(preferred, fallback, fit));
+            assertThat(new Printer(150).print(doc)).isEqualTo(expected);
+        }
+
+        static Stream<Arguments> chainSplittingCases() {
+            final var call = "c".repeat(70);
+            return Stream.of(
+                    Arguments.of(Doc.Choice.Fit.FIRST_BREAK, call + "(a, x.first()\n    .second())"),
+                    Arguments.of(Doc.Choice.Fit.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN, call + "(\n    a, x.first().second())"));
         }
     }
 
@@ -291,8 +323,15 @@ class PrinterTest {
 
         @Test
         void fill_packsAsManyItemsPerLineAsFit() {
-            final var items = IntStream.rangeClosed(1, 7).mapToObj(i -> String.valueOf(i).repeat(30)).toList();
-            final var doc = new Doc.Fill(Doc.intersperse(Doc.LINE, items.stream().map(Doc.Text::new)).toList());
+            final var items = IntStream.rangeClosed(1, 7)
+                    .mapToObj(i -> String.valueOf(i).repeat(30))
+                    .toList();
+            final var doc = new Doc.Fill(
+                    Doc.intersperse(
+                            Doc.LINE,
+                            items.stream()
+                                    .map(Doc.Text::new))
+                            .toList());
             final var expected = String.join(" ", items.subList(0, 3)) + "\n" + String.join(" ", items.subList(3, 6)) + "\n" + items.getLast();
             assertThat(new Printer(100).print(doc)).isEqualTo(expected);
         }
@@ -320,34 +359,45 @@ class PrinterTest {
                                     new Doc.Text(");")),
                             "aa, bb,\ncc);"),
                     Arguments.of(
-                            8, new Doc.Fill(List.of(new Doc.Text("aa"), separator, nested, separator, new Doc.Text("bb"))),
+                            8,
+                            new Doc.Fill(List.of(new Doc.Text("aa"), separator, nested, separator, new Doc.Text("bb"))),
                             "aa,\ninner(\n    long),\nbb"),
                     Arguments.of(
                             12,
                             new Doc.Fill(
                                     List.of(
-                                            new Doc.Text("aa"), Doc.concat(new Doc.Text(","), Doc.HARD_LINE), new Doc.Text("bb"), separator,
+                                            new Doc.Text("aa"),
+                                            Doc.concat(new Doc.Text(","), Doc.HARD_LINE),
+                                            new Doc.Text("bb"),
+                                            separator,
                                             new Doc.Text("cc"))),
                             "aa,\nbb, cc"),
                     Arguments.of(
-                            80, new Doc.Fill(List.of(new Doc.Text("aa"), separator, new Doc.Verbatim("bb\ncc", -1), separator, new Doc.Text("dd"))),
+                            80,
+                            new Doc.Fill(List.of(new Doc.Text("aa"), separator, new Doc.Verbatim("bb\ncc", -1), separator, new Doc.Text("dd"))),
                             "aa,\nbb\ncc,\ndd"),
                     Arguments.of(
-                            80, new Doc.Fill(List.of(new Doc.Text("aa"), separator, authorBroken, separator, new Doc.Text("dd"))),
+                            80,
+                            new Doc.Fill(List.of(new Doc.Text("aa"), separator, authorBroken, separator, new Doc.Text("dd"))),
                             "aa,\nbb\ncc,\ndd"),
                     Arguments.of(
                             80,
                             new Doc.Fill(
                                     List.of(
-                                            new Doc.Text("aa"), separator,
-                                            new Doc.Group(Doc.concat(new Doc.Text("f("), authorBroken, new Doc.Text(")"))), separator,
+                                            new Doc.Text("aa"),
+                                            separator,
+                                            new Doc.Group(Doc.concat(new Doc.Text("f("), authorBroken, new Doc.Text(")"))),
+                                            separator,
                                             new Doc.Text("dd"))),
                             "aa,\nf(bb\ncc),\ndd"),
                     Arguments.of(
                             80,
                             new Doc.Fill(
                                     List.of(
-                                            new Doc.Text("aa"), separator, Doc.concat(new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc")), separator,
+                                            new Doc.Text("aa"),
+                                            separator,
+                                            Doc.concat(new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc")),
+                                            separator,
                                             new Doc.Text("dd"))),
                             "aa,\nbb\ncc,\ndd"));
         }
@@ -392,7 +442,11 @@ class PrinterTest {
         void printingTheOutputAgainIsStable(final String before, final int sourceCol, final List<String> lines, final String expected) {
             final var printedLines = List.of(expected.split("\n", -1));
             final var opener = printedLines.getFirst().indexOf("/*");
-            final var reparsed = Stream.concat(Stream.of(printedLines.getFirst().substring(opener)), printedLines.stream().skip(1)).toList();
+            final var reparsed = Stream.concat(
+                    Stream.of(printedLines.getFirst().substring(opener)),
+                    printedLines.stream()
+                            .skip(1))
+                    .toList();
             assertThat(printAfter(before, reparsed, opener)).isEqualTo(expected);
         }
 
@@ -509,7 +563,11 @@ class PrinterTest {
                             new Doc.Indent(
                                     new Doc.Concat(
                                             List.of(
-                                                    new Doc.Text("{"), Doc.HARD_LINE, new Doc.Text("a"), Doc.BLANK_LINE, Doc.BLANK_LINE,
+                                                    new Doc.Text("{"),
+                                                    Doc.HARD_LINE,
+                                                    new Doc.Text("a"),
+                                                    Doc.BLANK_LINE,
+                                                    Doc.BLANK_LINE,
                                                     new Doc.Text("b")))),
                             "{\n    a\n\n\n\n    b"),
                     Arguments.of(new Doc.Concat(List.of(new Doc.Text("a \t "), Doc.HARD_LINE, new Doc.Text("b  "))), "a\nb"),
@@ -553,7 +611,8 @@ class PrinterTest {
             // so the suffix Text("xxx") doesn't count against the candidate's fit decision.
             final var doc = new Doc.Concat(
                     List.of(
-                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("aa"), Doc.LINE, new Doc.Text("bb")))), Doc.HARD_LINE,
+                            new Doc.Group(new Doc.Concat(List.of(new Doc.Text("aa"), Doc.LINE, new Doc.Text("bb")))),
+                            Doc.HARD_LINE,
                             new Doc.Text("xxxxxxxxxx")));
             assertThat(new Printer(7).print(doc)).isEqualTo("aa bb\nxxxxxxxxxx");
         }
@@ -580,7 +639,8 @@ class PrinterTest {
                             List.of(
                                     new Doc.Text("{"),
                                     new Doc.Indent(new Doc.Concat(List.of(Doc.LINE, new Doc.Text("x: 1,"), Doc.LINE, new Doc.Text("y: 2")))),
-                                    Doc.LINE, new Doc.Text("}"))));
+                                    Doc.LINE,
+                                    new Doc.Text("}"))));
         }
 
         @Test

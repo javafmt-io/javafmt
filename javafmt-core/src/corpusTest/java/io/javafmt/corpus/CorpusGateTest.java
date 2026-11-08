@@ -46,7 +46,8 @@ class CorpusGateTest {
         // Every other assertion here is a count, and a count only means something against a known
         // denominator. A different JDK ships different files, and the numbers below would be noise.
         assertThat(run.outcomes())
-                .describedAs("files: set %s=%d in corpus-baseline.properties", BASELINE.keyFor("files"), run.outcomes().size())
+                .describedAs("files: set %s=%d in corpus-baseline.properties",
+                        BASELINE.keyFor("files"), run.outcomes().size())
                 .hasSize(BASELINE.files());
     }
 
@@ -81,26 +82,35 @@ class CorpusGateTest {
     @Test
     void everyFileFormatsWithinTheBudget() {
         assertThat(run.slowest())
-                .hasValueSatisfying(
-                        slowest -> assertThat(slowest.millis())
-                                .describedAs("%s took the longest to format", slowest.name())
-                                .isLessThanOrEqualTo(PER_FILE_BUDGET_MILLIS));
+                .hasValueSatisfying(slowest -> assertThat(slowest.millis())
+                        .describedAs("%s took the longest to format", slowest.name())
+                        .isLessThanOrEqualTo(PER_FILE_BUDGET_MILLIS));
     }
 
     private static void assertRecorded(final String key, final Predicate<FileOutcome> property, final int recorded) {
         final var offenders = run.names(property);
         assertThat(offenders.size())
-                .describedAs(
-                        "%s: %d files, baseline records %d. Set %s=%d in corpus-baseline.properties. First few: %s", key, offenders.size(), recorded,
-                        BASELINE.keyFor(key), offenders.size(), offenders.stream().limit(5).toList())
+                .describedAs("%s: %d files, baseline records %d. Set %s=%d in corpus-baseline.properties. First few: %s",
+                        key,
+                        offenders.size(),
+                        recorded,
+                        BASELINE.keyFor(key),
+                        offenders.size(),
+                        offenders.stream()
+                                .limit(5)
+                                .toList())
                 .isEqualTo(recorded);
     }
 
     private static Path sourceZip() {
         final var configured = System.getProperty("javafmt.corpus.srczip");
-        assertThat(configured).describedAs("javafmt.corpus.srczip is unset; run this suite through gradle :javafmt-core:corpusTest").isNotNull();
+        assertThat(configured)
+                .describedAs("javafmt.corpus.srczip is unset; run this suite through gradle :javafmt-core:corpusTest")
+                .isNotNull();
         final var path = Path.of(configured);
-        assertThat(path).describedAs("the toolchain at %s ships no lib/src.zip, so there is no corpus to format", path).exists();
+        assertThat(path)
+                .describedAs("the toolchain at %s ships no lib/src.zip, so there is no corpus to format", path)
+                .exists();
         return path;
     }
 
@@ -117,11 +127,24 @@ class CorpusGateTest {
                   total                   %5d ms
                   slowest files (budget %d ms each)
                 %s""".formatted(
-                corpus.outcomes().size(), corpus.count(FileOutcome::unparseable), BASELINE.unparseable(), corpus.count(FileOutcome::refused),
-                BASELINE.refused(), corpus.count(o -> o.formatted() && !o.reparses()), BASELINE.notReparsing(),
-                corpus.count(o -> o.formatted() && !o.idempotent()), BASELINE.notIdempotent(),
-                corpus.count(o -> o.formatted() && o.overWidthLines() > 0), BASELINE.overWidth(),
-                corpus.outcomes().stream().mapToLong(FileOutcome::overWidthLines).sum(), corpus.totalMillis(), PER_FILE_BUDGET_MILLIS,
-                corpus.slowest(SLOWEST_REPORTED).stream().map(o -> "    %5d ms  %s%n".formatted(o.millis(), o.name())).collect(Collectors.joining()));
+                corpus.outcomes().size(),
+                corpus.count(FileOutcome::unparseable),
+                BASELINE.unparseable(),
+                corpus.count(FileOutcome::refused),
+                BASELINE.refused(),
+                corpus.count(o -> o.formatted() && !o.reparses()),
+                BASELINE.notReparsing(),
+                corpus.count(o -> o.formatted() && !o.idempotent()),
+                BASELINE.notIdempotent(),
+                corpus.count(o -> o.formatted() && o.overWidthLines() > 0),
+                BASELINE.overWidth(),
+                corpus.outcomes().stream()
+                        .mapToLong(FileOutcome::overWidthLines)
+                        .sum(),
+                corpus.totalMillis(),
+                PER_FILE_BUDGET_MILLIS,
+                corpus.slowest(SLOWEST_REPORTED).stream()
+                        .map(o -> "    %5d ms  %s%n".formatted(o.millis(), o.name()))
+                        .collect(Collectors.joining()));
     }
 }

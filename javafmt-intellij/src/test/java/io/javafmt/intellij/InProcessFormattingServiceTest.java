@@ -35,8 +35,7 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
         getProject()
                 .getMessageBus()
                 .connect(getTestRootDisposable())
-                .subscribe(
-                        Notifications.TOPIC,
+                .subscribe(Notifications.TOPIC,
                         new Notifications() {
                             @Override
                             public void notify(@NotNull final Notification notification) {
@@ -89,19 +88,23 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
         assertThat(file.getText()).isEqualTo(STAR_IMPORT);
         assertThat(notifications).singleElement().satisfies(notification -> {
             assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
-            assertThat(notification.getContent()).contains("Order.java", dir.resolve(".javafmt").toString(), "FinalParameters");
+            assertThat(notification.getContent())
+                    .contains("Order.java", dir.resolve(".javafmt").toString(), "FinalParameters");
         });
     }
 
     @Test
     public void testTimingNamesTheFileTheDurationTheEngineAndWhetherItWasAnalyzed() {
         assertThat(
-                JavafmtFormattingService.timing(
-                        "Foo.java", JavafmtApplicationSettings.Engine.IN_PROCESS, new JavafmtConfig.Analysis.Attributed(""), Duration.ofMillis(12)))
+                        JavafmtFormattingService.timing(
+                                "Foo.java",
+                                JavafmtApplicationSettings.Engine.IN_PROCESS,
+                                new JavafmtConfig.Analysis.Attributed(""),
+                                Duration.ofMillis(12)))
                 .isEqualTo("javafmt: formatted Foo.java in 12 ms (in-process, analyzed)");
         assertThat(
-                JavafmtFormattingService.timing(
-                        "Foo.java", JavafmtApplicationSettings.Engine.NATIVE, new JavafmtConfig.Analysis.ParseOnly(), Duration.ofMillis(3)))
+                        JavafmtFormattingService.timing(
+                                "Foo.java", JavafmtApplicationSettings.Engine.NATIVE, new JavafmtConfig.Analysis.ParseOnly(), Duration.ofMillis(3)))
                 .isEqualTo("javafmt: formatted Foo.java in 3 ms (native, parse-only)");
     }
 

@@ -12,7 +12,8 @@ class Fixture {
     }
 
     List<String> twoParameters(final List<String> in) {
-        return in.stream().reduce(List.of(), (a, _) -> a, (a, _) -> a);
+        return in.stream()
+                .reduce(List.of(), (a, _) -> a, (a, _) -> a);
     }
 
     Predicate<String> typed() {

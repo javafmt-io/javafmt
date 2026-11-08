@@ -10,6 +10,10 @@ class FakeDaemonTest {
     @Test
     void everyCannedReplyKeepsTheProtocolRules() {
         assertThat(FakeDaemon.CANNED.values())
-                .allSatisfy(reply -> assertThat(DaemonFixtures.violations(reply.toBuilder().setId(1).build())).isEmpty());
+                .allSatisfy(reply -> assertThat(
+                        DaemonFixtures.violations(reply.toBuilder()
+                                .setId(1)
+                                .build()))
+                        .isEmpty());
     }
 }

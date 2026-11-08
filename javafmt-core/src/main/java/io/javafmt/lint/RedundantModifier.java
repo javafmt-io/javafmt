@@ -33,17 +33,15 @@ public final class RedundantModifier implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainPathScanner<>() {
-                    @Override
-                    public Void visitClass(final ClassTree node, final Void p) {
-                        final var path = getCurrentPath();
-                        checkNestedTypeModifiers(node, path, unit, edits);
-                        checkClassMemberModifiers(node, unit, edits);
-                        return super.visitClass(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+            @Override
+            public Void visitClass(final ClassTree node, final Void p) {
+                final var path = getCurrentPath();
+                checkNestedTypeModifiers(node, path, unit, edits);
+                checkClassMemberModifiers(node, unit, edits);
+                return super.visitClass(node, null);
+            }
+        });
     }
 
     private static void checkNestedTypeModifiers(final ClassTree node, final TreePath path, final ParsedUnit unit, final List<LintEdit> edits) {
@@ -58,14 +56,16 @@ public final class RedundantModifier implements LintRule {
 
     private static void checkClassMemberModifiers(final ClassTree classNode, final ParsedUnit unit, final List<LintEdit> edits) {
         final var isInterface = classNode.getKind() == Tree.Kind.INTERFACE;
-        final var isFinalClass = classNode.getKind() == Tree.Kind.CLASS && classNode.getModifiers().getFlags().contains(Modifier.FINAL);
+        final var isFinalClass = classNode.getKind() == Tree.Kind.CLASS
+            && classNode.getModifiers().getFlags().contains(Modifier.FINAL);
         for (final var member : classNode.getMembers()) {
             if (member instanceof MethodTree method) {
                 if (isInterface) {
                     checkInterfaceMethodModifiers(method, unit, edits);
                 } else if (isFinalClass) {
                     if (method.getReturnType() != null) {
-                        removeModifier(method.getModifiers(), Modifier.FINAL, unit).ifPresent(edits::add);
+                        removeModifier(method.getModifiers(), Modifier.FINAL, unit)
+                                .ifPresent(edits::add);
                     }
                 }
             } else if (member instanceof VariableTree field

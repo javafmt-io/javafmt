@@ -29,18 +29,19 @@ public sealed interface Staged<T> {
     }
 
     static <T, R> List<Staged<R>> mapAll(final List<Staged<T>> items, final Function<List<T>, List<Staged<R>>> batch) {
-        final var values = items.stream().flatMap(Staged::stream).toList();
+        final var values = items.stream()
+                .flatMap(Staged::stream)
+                .toList();
         final var batched = batch.apply(values);
         if (batched.size() != values.size()) {
             throw new IllegalStateException("batch returned " + batched.size() + " results for " + values.size() + " values");
         }
         final var results = batched.iterator();
         return items.stream()
-                .<Staged<R>>map(
-                        item -> switch (item) {
-                            case Ok<T> _ -> results.next();
-                            case Failed<T>(var failure) -> new Failed<>(failure);
-                        })
+                .<Staged<R>>map(item -> switch (item) {
+                    case Ok<T> _ -> results.next();
+                    case Failed<T>(var failure) -> new Failed<>(failure);
+                })
                 .toList();
     }
 

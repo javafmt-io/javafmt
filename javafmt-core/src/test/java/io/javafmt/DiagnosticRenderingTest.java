@@ -12,7 +12,8 @@ class DiagnosticRenderingTest {
     void describeUsesCanonicalFileLineColFormat() {
         final var d = new Diagnostic.ParseError("boom", new Position.At(3, 7, 42));
         assertThat(d.describe("Foo.java")).isEqualTo("Foo.java:3:7: error: boom");
-        assertThat(new Diagnostic.Warning("hm", new Position.Unknown()).describe("Foo.java")).isEqualTo("Foo.java: warning: hm");
+        assertThat(new Diagnostic.Warning("hm", new Position.Unknown()).describe("Foo.java"))
+                .isEqualTo("Foo.java: warning: hm");
         assertThat(d.describeBare()).isEqualTo("3:7: boom");
     }
 

@@ -20,11 +20,9 @@ final class BodyMemberRenderer {
     @Nullable
     static Doc render(final Tree member, final String className, final Recursor recursor) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
-            return recursor.attach(
-                    mt,
-                    recursor.isCompactConstructor(mt)
-                            ? CompactConstructorRenderer.render(mt, className, recursor)
-                            : ConstructorRenderer.render(mt, className, recursor));
+            return recursor.attach(mt, recursor.isCompactConstructor(mt)
+                    ? CompactConstructorRenderer.render(mt, className, recursor)
+                    : ConstructorRenderer.render(mt, className, recursor));
         }
         if (member instanceof BlockTree bt) {
             return recursor.attach(bt, InitializerBlockRenderer.render(bt, recursor));

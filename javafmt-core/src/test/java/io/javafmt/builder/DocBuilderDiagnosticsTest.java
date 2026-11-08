@@ -116,7 +116,9 @@ class DocBuilderDiagnosticsTest {
                 }
                 """;
         final var built = DocBuilder.buildWithFallbacks(JavaParser.parseUnit(source), JavafmtConfig.defaults());
-        assertThat(built.diagnostics()).extracting(d -> ((Position.At) d.position()).line()).containsExactly(15, 13, 11);
+        assertThat(built.diagnostics())
+                .extracting(d -> ((Position.At) d.position()).line())
+                .containsExactly(15, 13, 11);
     }
 
     @Test

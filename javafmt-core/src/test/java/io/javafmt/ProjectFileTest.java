@@ -32,8 +32,7 @@ class ProjectFileTest {
     @Test
     void anUnknownRuleIsAnErrorThatNamesItAndTheRulesThatUseTheClasspath() {
         assertThat(ProjectFile.parse(LOCATION, "analyze.skip=ExplodeStarImport\n"))
-                .isInstanceOfSatisfying(
-                        ProjectFile.Invalid.class,
+                .isInstanceOfSatisfying(ProjectFile.Invalid.class,
                         invalid -> assertThat(invalid.problem())
                                 .contains(LOCATION, "ExplodeStarImport", "ExplodeStarImports, LocalVarUseVar, RedundantTypeArguments"));
     }
@@ -41,24 +40,26 @@ class ProjectFileTest {
     @Test
     void aRuleThatDoesNotUseTheClasspathIsAnError() {
         assertThat(ProjectFile.parse(LOCATION, "analyze.skip=FinalParameters\n"))
-                .isInstanceOfSatisfying(
-                        ProjectFile.Invalid.class,
+                .isInstanceOfSatisfying(ProjectFile.Invalid.class,
                         invalid -> assertThat(invalid.problem()).contains("FinalParameters", "does not use the classpath"));
     }
 
     @Test
     void anUnknownSettingIsAnError() {
         assertThat(ProjectFile.parse(LOCATION, "analyse.skip=LocalVarUseVar\n"))
-                .isInstanceOfSatisfying(ProjectFile.Invalid.class, invalid -> assertThat(invalid.problem()).contains("analyse.skip", "analyze.skip"));
+                .isInstanceOfSatisfying(ProjectFile.Invalid.class,
+                        invalid -> assertThat(invalid.problem()).contains("analyse.skip", "analyze.skip"));
     }
 
     @Test
     void theNearestProjectFileAboveTheSourceApplies(@TempDir final Path dir) throws IOException {
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=LocalVarUseVar\n");
         Files.writeString(Files.createDirectories(dir.resolve("module")).resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
-        final var source = Files.createDirectories(dir.resolve("module/src/main/java")).resolve("Order.java");
+        final var source = Files.createDirectories(dir.resolve("module/src/main/java"))
+                .resolve("Order.java");
         assertThat(ProjectFile.forFile(source))
-                .isEqualTo(new ProjectFile.Settings(dir.resolve("module/.javafmt").toString(), Set.of("ExplodeStarImports")));
+                .isEqualTo(new ProjectFile.Settings(
+                        dir.resolve("module/.javafmt").toString(), Set.of("ExplodeStarImports")));
     }
 
     @Test
@@ -83,7 +84,8 @@ class ProjectFileTest {
     void aDirectoryIsSearchedFromItself(@TempDir final Path dir) throws IOException {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=LocalVarUseVar\n");
-        assertThat(ProjectFile.forDirectory(dir)).isEqualTo(new ProjectFile.Settings(dir.resolve(".javafmt").toString(), Set.of("LocalVarUseVar")));
+        assertThat(ProjectFile.forDirectory(dir))
+                .isEqualTo(new ProjectFile.Settings(dir.resolve(".javafmt").toString(), Set.of("LocalVarUseVar")));
     }
 
     @Test
@@ -94,8 +96,8 @@ class ProjectFileTest {
         Files.writeString(module.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
         final var files = List.of(dir.resolve("Order.java"), dir.resolve("Invoice.java"), module.resolve("Customer.java"));
         assertThat(ProjectFile.forFiles(files))
-                .containsExactlyInAnyOrder(
-                        new ProjectFile.Settings(dir.resolve(".javafmt").toString(), Set.of("LocalVarUseVar")),
+                .containsExactlyInAnyOrder(new ProjectFile.Settings(
+                        dir.resolve(".javafmt").toString(), Set.of("LocalVarUseVar")),
                         new ProjectFile.Settings(module.resolve(".javafmt").toString(), Set.of("ExplodeStarImports")));
     }
 

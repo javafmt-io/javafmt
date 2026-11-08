@@ -76,7 +76,9 @@ class SourceFilesTest {
         final var unreadable = Files.createDirectory(dir.resolve("locked"));
         Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("---------"));
         try {
-            assertThatThrownBy(() -> SourceFiles.walk(dir)).isInstanceOf(UncheckedIOException.class).hasCauseInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> SourceFiles.walk(dir))
+                    .isInstanceOf(UncheckedIOException.class)
+                    .hasCauseInstanceOf(AccessDeniedException.class);
         } finally {
             Files.setPosixFilePermissions(unreadable, PosixFilePermissions.fromString("rwx------"));
         }
@@ -103,7 +105,8 @@ class SourceFilesTest {
         final var before = Files.readAttributes(file, BasicFileAttributes.class).fileKey();
         SourceFiles.write(file, "class A {\n}\n");
         assertThat(Files.readString(file)).isEqualTo("class A {\n}\n");
-        assertThat(Files.readAttributes(file, BasicFileAttributes.class).fileKey()).isNotEqualTo(before);
+        assertThat(Files.readAttributes(file, BasicFileAttributes.class).fileKey())
+                .isNotEqualTo(before);
     }
 
     @Test

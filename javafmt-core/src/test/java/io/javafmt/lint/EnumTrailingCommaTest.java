@@ -24,12 +24,16 @@ class EnumTrailingCommaTest {
 
     @Test
     void anEnumTooWideForOneLineGetsATrailingComma() {
-        assertThat(lint(WIDE).edits()).singleElement().satisfies(edit -> assertThat(edit.replacement()).isEqualTo(","));
+        assertThat(lint(WIDE).edits())
+                .singleElement()
+                .satisfies(edit -> assertThat(edit.replacement()).isEqualTo(","));
     }
 
     @Test
     void anEnumThatFitsOnOneLineGetsATrailingCommaToo() {
-        assertThat(lint("enum Small { A, B }\n").edits()).singleElement().satisfies(edit -> assertThat(edit.replacement()).isEqualTo(","));
+        assertThat(lint("enum Small { A, B }\n").edits())
+                .singleElement()
+                .satisfies(edit -> assertThat(edit.replacement()).isEqualTo(","));
     }
 
     @Test
@@ -83,6 +87,7 @@ class EnumTrailingCommaTest {
 
     @Test
     void aBodylessEnumWithBothMarksFormatsWithoutBeingRefused() {
-        assertThat(Javafmt.formatWithResult("enum E { A, B,; }\n").diagnostics()).isEmpty();
+        assertThat(Javafmt.formatWithResult("enum E { A, B,; }\n").diagnostics())
+                .isEmpty();
     }
 }

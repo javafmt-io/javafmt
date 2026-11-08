@@ -35,18 +35,20 @@ public record GitRatchet(Set<Path> changedFiles) {
         if (!Files.isDirectory(directory)) {
             throw new GitRatchetException(notARepository);
         }
-        final var root = realPath(Path.of(run(git, directory, notARepository, "rev-parse", "--show-toplevel").strip()));
+        final var root = realPath(
+                Path.of(run(git, directory, notARepository, "rev-parse", "--show-toplevel")
+                        .strip()));
         final var commit = commit(git, root, ref);
-        final var base = run(git, root, "no common ancestor of HEAD and " + ref, "merge-base", "HEAD", commit).strip();
+        final var base = run(git, root, "no common ancestor of HEAD and " + ref, "merge-base", "HEAD", commit)
+                .strip();
         final var changed = run(
                 git, root, "git diff failed", "diff", "--name-only", "-z", "--no-renames", "--no-ext-diff", "--diff-filter=d", base, "--");
         final var untracked = run(git, root, "git ls-files failed", "ls-files", "--others", "--exclude-standard", "-z");
-        return new GitRatchet(
-                Stream.of(changed, untracked)
-                        .flatMap(NUL::splitAsStream)
-                        .filter(name -> !name.isEmpty())
-                        .map(name -> root.resolve(name).normalize())
-                        .collect(Collectors.toUnmodifiableSet()));
+        return new GitRatchet(Stream.of(changed, untracked)
+                .flatMap(NUL::splitAsStream)
+                .filter(name -> !name.isEmpty())
+                .map(name -> root.resolve(name).normalize())
+                .collect(Collectors.toUnmodifiableSet()));
     }
 
     public boolean includes(final Path file) {
@@ -54,7 +56,9 @@ public record GitRatchet(Set<Path> changedFiles) {
     }
 
     public List<Path> keep(final List<Path> files) {
-        return files.stream().filter(this::includes).toList();
+        return files.stream()
+                .filter(this::includes)
+                .toList();
     }
 
     private static String commit(final String git, final Path root, final String ref) {
@@ -62,7 +66,8 @@ public record GitRatchet(Set<Path> changedFiles) {
         if (ref.isBlank() || ref.startsWith("-")) {
             throw new GitRatchetException(unknown);
         }
-        return run(git, root, unknown, "rev-parse", "--verify", "--quiet", ref + "^{commit}").strip();
+        return run(git, root, unknown, "rev-parse", "--verify", "--quiet", ref + "^{commit}")
+                .strip();
     }
 
     private static String run(final String git, final Path directory, final String failure, final String... arguments) {
@@ -78,7 +83,10 @@ public record GitRatchet(Set<Path> changedFiles) {
 
     private static Process start(final String git, final Path directory, final String... arguments) {
         try {
-            return new ProcessBuilder(Stream.concat(Stream.of(git), Stream.of(arguments)).toList()).directory(directory.toFile()).start();
+            return new ProcessBuilder(
+                            Stream.concat(Stream.of(git), Stream.of(arguments)).toList())
+                    .directory(directory.toFile())
+                    .start();
         } catch (final IOException e) {
             throw new GitRatchetException("git is not installed or not on the PATH: " + git, e);
         }

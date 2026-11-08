@@ -98,7 +98,8 @@ final class IfRenderer {
         }
         final var thenParts = Stream.concat(
                 BlockRenderer.opened(header, thenStatement, recursor),
-                BlockRenderer.blockStatements(thenStatement, recursor).stream().map(Doc::indentedLine));
+                BlockRenderer.blockStatements(thenStatement, recursor).stream()
+                        .map(Doc::indentedLine));
         final var elseJoint = elseJointParts(node, recursor);
         if (node.getElseStatement() instanceof IfTree elseIf) {
             final var elseIfDoc = Objects.requireNonNull(recursor.scan(elseIf));
@@ -107,9 +108,15 @@ final class IfRenderer {
         final var elseStatement = node.getElseStatement();
         return Doc.concatOf(
                 Stream.of(
-                        thenParts, closeTheThenBranch(node, recursor), elseJoint, Stream.of(new Doc.Text("{")),
+                        thenParts,
+                        closeTheThenBranch(node, recursor),
+                        elseJoint,
+                        Stream.of(new Doc.Text("{")),
                         BlockRenderer.braceLineAfter(elseStatement, recursor),
-                        BlockRenderer.blockStatements(elseStatement, recursor).stream().map(Doc::indentedLine), Doc.closeBrace()));
+                        BlockRenderer.blockStatements(elseStatement, recursor)
+                                .stream()
+                                .map(Doc::indentedLine),
+                        Doc.closeBrace()));
     }
 
     private Stream<Doc> closeTheThenBranch(final IfTree node, final Recursor recursor) {
@@ -119,8 +126,10 @@ final class IfRenderer {
             return Stream.of(Doc.HARD_LINE, new Doc.Text("} else "));
         }
         return Stream.of(
-                Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("}")), BlockRenderer.braceLineComments(sameLine),
-                ownLine.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))),
+                Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("}")),
+                BlockRenderer.braceLineComments(sameLine),
+                ownLine.stream()
+                        .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))),
                 Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("else ")))
                 .flatMap(Function.identity());
     }

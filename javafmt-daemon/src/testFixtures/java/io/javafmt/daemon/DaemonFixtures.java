@@ -29,19 +29,24 @@ public final class DaemonFixtures {
 
     public static final String LARGE_REPLY_JSON = lines("large-reply.jsonl").getFirst();
 
-    private static final Validator VALIDATOR = ValidatorFactory.newBuilder().build();
+    private static final Validator VALIDATOR = ValidatorFactory.newBuilder()
+            .build();
 
     public static byte[] bytes(final List<String> hexFrames) {
         return HexFormat.of().parseHex(String.join("", hexFrames));
     }
 
     public static String text(final List<String> jsonLines) {
-        return jsonLines.stream().map(line -> line + "\n").reduce("", String::concat);
+        return jsonLines.stream()
+                .map(line -> line + "\n")
+                .reduce("", String::concat);
     }
 
     public static List<String> violations(final Message message) {
         try {
-            return VALIDATOR.validate(message).getViolations().stream().map(violation -> violation.toProto().getMessage()).toList();
+            return VALIDATOR.validate(message).getViolations().stream()
+                    .map(violation -> violation.toProto().getMessage())
+                    .toList();
         } catch (final ValidationException e) {
             throw new IllegalStateException(e);
         }
@@ -49,7 +54,10 @@ public final class DaemonFixtures {
 
     public static List<String> hexFrames(final byte[] stream) {
         final var in = CodedInputStream.newInstance(stream);
-        return Stream.generate(() -> frame(in, stream)).takeWhile(Optional::isPresent).map(Optional::orElseThrow).toList();
+        return Stream.generate(() -> frame(in, stream))
+                .takeWhile(Optional::isPresent)
+                .map(Optional::orElseThrow)
+                .toList();
     }
 
     private static Optional<String> frame(final CodedInputStream in, final byte[] stream) {
@@ -67,7 +75,8 @@ public final class DaemonFixtures {
 
     private static List<String> lines(final String name) {
         try (final var in = DaemonFixtures.class.getResourceAsStream(name)) {
-            return new String(Objects.requireNonNull(in, name).readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+            return new String(Objects.requireNonNull(in, name).readAllBytes(), StandardCharsets.UTF_8).lines()
+                    .toList();
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }

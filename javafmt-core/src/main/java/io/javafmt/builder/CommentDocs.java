@@ -27,7 +27,12 @@ final class CommentDocs {
             return new Doc.Text(lines.getFirst());
         }
         return new Doc.BlockComment(
-                Stream.concat(Stream.of(lines.getFirst()), lines.stream().skip(1).map(CommentDocs::expandLeadingWhitespace)).toList(),
+                Stream.concat(
+                        Stream.of(lines.getFirst()),
+                        lines.stream()
+                                .skip(1)
+                                .map(CommentDocs::expandLeadingWhitespace))
+                        .toList(),
                 comment.startColumn());
     }
 
@@ -47,7 +52,9 @@ final class CommentDocs {
     }
 
     private String expandLeadingWhitespace(final String line) {
-        final var indentEnd = (int) line.chars().takeWhile(c -> c == ' ' || c == '\t').count();
+        final var indentEnd = (int) line.chars()
+                .takeWhile(c -> c == ' ' || c == '\t')
+                .count();
         return " ".repeat(leadingCols(line)) + line.substring(indentEnd);
     }
 
@@ -67,15 +74,20 @@ final class CommentDocs {
         }
         return Doc.concatOf(
                 Stream.of(
-                        ownLine.stream().flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE)),
-                        inline.stream().flatMap(c -> Stream.of(renderComment(c), new Doc.Text(" "))), Stream.of(doc)));
+                        ownLine.stream()
+                                .flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE)),
+                        inline.stream()
+                                .flatMap(c -> Stream.of(renderComment(c), new Doc.Text(" "))),
+                        Stream.of(doc)));
     }
 
     Doc appendTrailing(final Doc doc, final List<CommentToken> comments) {
         if (comments.isEmpty()) {
             return doc;
         }
-        return new Doc.Concat(Stream.concat(Stream.of(doc), comments.stream().flatMap(c -> Stream.of(new Doc.Text(" "), renderComment(c)))));
+        return new Doc.Concat(
+                Stream.concat(Stream.of(doc), comments.stream()
+                        .flatMap(c -> Stream.of(new Doc.Text(" "), renderComment(c)))));
     }
 
     Doc withSeparator(final Tree tree, final UnaryOperator<Doc> adjust, final String separator, final Recursor recursor) {
@@ -100,17 +112,22 @@ final class CommentDocs {
 
     List<CommentToken> inside(final Tree node, final LeadingCommentAttacher attacher) {
         final var pastTheSeparator = attacher.pastTheSeparatorBefore(node);
-        return attacher.interior(node).stream().filter(c -> !pastTheSeparator.contains(c)).toList();
+        return attacher.interior(node).stream()
+                .filter(c -> !pastTheSeparator.contains(c))
+                .toList();
     }
 
     boolean hasLineComment(final List<CommentToken> comments) {
-        return comments.stream().anyMatch(c -> c.text().startsWith("//"));
+        return comments.stream()
+                .anyMatch(c -> c.text().startsWith("//"));
     }
 
     Doc closeAfter(final Doc doc, final List<CommentToken> ownLine, final String closer) {
         final var withComments = ownLine.isEmpty()
                 ? doc
-                : Doc.concatOf(Stream.of(Stream.of(doc), ownLine.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, renderComment(c)))));
+                : Doc.concatOf(
+                        Stream.of(Stream.of(doc), ownLine.stream()
+                                .flatMap(c -> Stream.of(Doc.HARD_LINE, renderComment(c)))));
         return Doc.endsWithLineComment(withComments)
                 ? Doc.concat(withComments, Doc.HARD_LINE, new Doc.Text(closer))
                 : Doc.concat(withComments, new Doc.Text(closer));
@@ -129,7 +146,10 @@ final class CommentDocs {
         }
         return Stream.concat(
                 Stream.<Doc>of(new Doc.Text(separator)),
-                Stream.concat(afterSeparator.stream().flatMap(c -> Stream.of(new Doc.Text(" "), renderComment(c))), Stream.of(Doc.HARD_LINE)))
+                Stream.concat(
+                        afterSeparator.stream()
+                                .flatMap(c -> Stream.of(new Doc.Text(" "), renderComment(c))),
+                        Stream.of(Doc.HARD_LINE)))
                 .toList();
     }
 
@@ -141,28 +161,21 @@ final class CommentDocs {
                 .toList();
         return IntStream.range(0, items.size())
                 .boxed()
-                .flatMap(
-                        i -> Stream.concat(
-                                i == 0 ? Stream.empty() : Stream.of(afterComma(rendered.get(i - 1), attacher.pastTheSeparatorBefore(items.get(i)))),
-                                Stream.of(rendered.get(i))));
+                .flatMap(i -> Stream.concat(
+                        i == 0 ? Stream.empty() : Stream.of(afterComma(rendered.get(i - 1), attacher.pastTheSeparatorBefore(items.get(i)))),
+                        Stream.of(rendered.get(i))));
     }
 
-    Doc commaFill(final List<? extends Tree> items, final List<Doc> renderedWithCommas, final LeadingCommentAttacher attacher) {
-        return commaFill(renderedWithCommas, items.stream().map(attacher::pastTheSeparatorBefore).toList());
+    Doc commaSeparated(final List<Doc> renderedWithCommas, final List<List<CommentToken>> pastTheSeparator) {
+        return new Doc.Concat(IntStream.range(0, renderedWithCommas.size())
+                .boxed()
+                .flatMap(i -> Stream.concat(
+                        i == 0 ? Stream.empty() : Stream.of(afterComma(renderedWithCommas.get(i - 1), pastTheSeparator.get(i))),
+                        Stream.of(renderedWithCommas.get(i))))
+                .toList());
     }
 
-    Doc commaFill(final List<Doc> renderedWithCommas, final List<List<CommentToken>> pastTheSeparator) {
-        return new Doc.Fill(
-                IntStream.range(0, renderedWithCommas.size())
-                        .boxed()
-                        .flatMap(
-                                i -> Stream.concat(
-                                        i == 0 ? Stream.empty() : Stream.of(afterComma(renderedWithCommas.get(i - 1), pastTheSeparator.get(i))),
-                                        Stream.of(renderedWithCommas.get(i))))
-                        .toList());
-    }
-
-    private Doc afterComma(final Doc previous, final List<CommentToken> afterSeparator) {
+    Doc afterComma(final Doc previous, final List<CommentToken> afterSeparator) {
         if (afterSeparator.isEmpty() && Doc.endsWithLineComment(previous)) {
             return Doc.HARD_LINE;
         }
@@ -190,7 +203,7 @@ final class CommentDocs {
                 case Doc.Align(var inner) -> work.push(inner);
                 case Doc.Group(var inner, var _) -> work.push(inner);
                 case Doc.IfBreak(var _, var flatContents) -> work.push(flatContents);
-                case Doc.Choice(var preferred, var _, var _) -> work.push(preferred);
+                case Doc.Choice(var preferred, var _, var _, var _) -> work.push(preferred);
                 case Doc.Concat(var parts) -> parts.reversed().forEach(work::push);
                 case Doc.Fill(var parts) -> parts.reversed().forEach(work::push);
             }
@@ -202,13 +215,15 @@ final class CommentDocs {
         if (comments.isEmpty()) {
             return Stream.empty();
         }
-        return comments.stream().flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE));
+        return comments.stream()
+                .flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE));
     }
 
     Stream<Doc> fileFooterStream(final List<CommentToken> comments) {
         if (comments.isEmpty()) {
             return Stream.empty();
         }
-        return comments.stream().flatMap(c -> Stream.of(Doc.HARD_LINE, renderComment(c)));
+        return comments.stream()
+                .flatMap(c -> Stream.of(Doc.HARD_LINE, renderComment(c)));
     }
 }

@@ -46,7 +46,15 @@ class AnalyzeIdempotencyTest {
             """})
     void aBatchFormattedAgainWithTheClasspathChangesNothing(final String source) {
         final var once = Javafmt.formatAll(List.of(source, "class Reader {}\n"), ANALYZE, 2);
-        final var twice = Javafmt.formatAll(once.stream().map(FormatResult::output).toList(), ANALYZE, 2);
-        assertThat(twice).isEqualTo(once.stream().map(result -> new FormatResult(result.output(), result.diagnostics())).toList());
+        final var twice = Javafmt.formatAll(
+                once.stream()
+                        .map(FormatResult::output)
+                        .toList(),
+                ANALYZE,
+                2);
+        assertThat(twice)
+                .isEqualTo(once.stream()
+                        .map(result -> new FormatResult(result.output(), result.diagnostics()))
+                        .toList());
     }
 }

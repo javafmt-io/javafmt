@@ -38,7 +38,9 @@ class BinaryInstallerTest {
         try (final var release = FakeRelease.serving(Map.of(NAME, BINARY))) {
             final var installation = new BinaryInstaller(release.base(), dir, ASSET).install(new EmptyProgressIndicator());
             assertThat(installation).isEqualTo(new Installation.Installed(dir.resolve(NAME)));
-            assertThat(dir.resolve(NAME)).isExecutable().hasBinaryContent(BINARY);
+            assertThat(dir.resolve(NAME))
+                    .isExecutable()
+                    .hasBinaryContent(BINARY);
             assertThat(files(dir)).containsExactly(dir.resolve(NAME));
         }
     }
@@ -47,7 +49,9 @@ class BinaryInstallerTest {
     void aDownloadThatDoesNotMatchItsChecksumIsDiscarded(@TempDir final Path dir) throws Exception {
         try (final var release = FakeRelease.serving(Map.of(NAME, "tampered".getBytes(StandardCharsets.UTF_8)))) {
             final var installation = new BinaryInstaller(release.base(), dir, ASSET).install(new EmptyProgressIndicator());
-            assertThat(installation).isInstanceOfSatisfying(Installation.Failed.class, failed -> assertThat(failed.reason()).contains("SHA-256"));
+            assertThat(installation)
+                    .isInstanceOfSatisfying(Installation.Failed.class,
+                            failed -> assertThat(failed.reason()).contains("SHA-256"));
             assertThat(files(dir)).isEmpty();
         }
     }
@@ -56,7 +60,9 @@ class BinaryInstallerTest {
     void aMissingReleaseAssetFails(@TempDir final Path dir) throws Exception {
         try (final var release = FakeRelease.serving(Map.of())) {
             final var installation = new BinaryInstaller(release.base(), dir, ASSET).install(new EmptyProgressIndicator());
-            assertThat(installation).isInstanceOfSatisfying(Installation.Failed.class, failed -> assertThat(failed.reason()).contains("404"));
+            assertThat(installation)
+                    .isInstanceOfSatisfying(Installation.Failed.class,
+                            failed -> assertThat(failed.reason()).contains("404"));
             assertThat(files(dir)).isEmpty();
         }
     }
@@ -64,7 +70,9 @@ class BinaryInstallerTest {
     @Test
     void anUnreachableServerFails(@TempDir final Path dir) throws Exception {
         final var installation = new BinaryInstaller(FakeRelease.unreachable(), dir, ASSET).install(new EmptyProgressIndicator());
-        assertThat(installation).isInstanceOfSatisfying(Installation.Failed.class, failed -> assertThat(failed.reason()).contains(NAME));
+        assertThat(installation)
+                .isInstanceOfSatisfying(Installation.Failed.class,
+                        failed -> assertThat(failed.reason()).contains(NAME));
         assertThat(files(dir)).isEmpty();
     }
 

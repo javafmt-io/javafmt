@@ -71,32 +71,69 @@ import javax.lang.model.type.TypeMirror;
 public final class LocalVarUseVar implements RewriteVerifyingRule {
 
     private static final Map<String, Integer> DIAMOND_TARGET_ARITY = Map.ofEntries(
-            Map.entry("Iterable", 1), Map.entry("Collection", 1), Map.entry("SequencedCollection", 1), Map.entry("List", 1), Map.entry("Set", 1),
-            Map.entry("SequencedSet", 1), Map.entry("SortedSet", 1), Map.entry("NavigableSet", 1), Map.entry("Queue", 1), Map.entry("Deque", 1),
-            Map.entry("BlockingQueue", 1), Map.entry("BlockingDeque", 1), Map.entry("TransferQueue", 1), Map.entry("Map", 2),
-            Map.entry("SequencedMap", 2), Map.entry("SortedMap", 2), Map.entry("NavigableMap", 2), Map.entry("ConcurrentMap", 2),
+            Map.entry("Iterable", 1),
+            Map.entry("Collection", 1),
+            Map.entry("SequencedCollection", 1),
+            Map.entry("List", 1),
+            Map.entry("Set", 1),
+            Map.entry("SequencedSet", 1),
+            Map.entry("SortedSet", 1),
+            Map.entry("NavigableSet", 1),
+            Map.entry("Queue", 1),
+            Map.entry("Deque", 1),
+            Map.entry("BlockingQueue", 1),
+            Map.entry("BlockingDeque", 1),
+            Map.entry("TransferQueue", 1),
+            Map.entry("Map", 2),
+            Map.entry("SequencedMap", 2),
+            Map.entry("SortedMap", 2),
+            Map.entry("NavigableMap", 2),
+            Map.entry("ConcurrentMap", 2),
             Map.entry("ConcurrentNavigableMap", 2));
 
     private static final Map<String, Integer> DIAMOND_SOURCE_ARITY = Map.ofEntries(
-            Map.entry("ArrayList", 1), Map.entry("LinkedList", 1), Map.entry("CopyOnWriteArrayList", 1), Map.entry("HashSet", 1),
-            Map.entry("LinkedHashSet", 1), Map.entry("TreeSet", 1), Map.entry("CopyOnWriteArraySet", 1), Map.entry("ConcurrentSkipListSet", 1),
-            Map.entry("ArrayDeque", 1), Map.entry("PriorityQueue", 1), Map.entry("ConcurrentLinkedQueue", 1), Map.entry("ConcurrentLinkedDeque", 1),
-            Map.entry("LinkedBlockingQueue", 1), Map.entry("LinkedBlockingDeque", 1), Map.entry("ArrayBlockingQueue", 1),
-            Map.entry("PriorityBlockingQueue", 1), Map.entry("LinkedTransferQueue", 1), Map.entry("HashMap", 2), Map.entry("LinkedHashMap", 2),
-            Map.entry("TreeMap", 2), Map.entry("IdentityHashMap", 2), Map.entry("WeakHashMap", 2), Map.entry("ConcurrentHashMap", 2),
+            Map.entry("ArrayList", 1),
+            Map.entry("LinkedList", 1),
+            Map.entry("CopyOnWriteArrayList", 1),
+            Map.entry("HashSet", 1),
+            Map.entry("LinkedHashSet", 1),
+            Map.entry("TreeSet", 1),
+            Map.entry("CopyOnWriteArraySet", 1),
+            Map.entry("ConcurrentSkipListSet", 1),
+            Map.entry("ArrayDeque", 1),
+            Map.entry("PriorityQueue", 1),
+            Map.entry("ConcurrentLinkedQueue", 1),
+            Map.entry("ConcurrentLinkedDeque", 1),
+            Map.entry("LinkedBlockingQueue", 1),
+            Map.entry("LinkedBlockingDeque", 1),
+            Map.entry("ArrayBlockingQueue", 1),
+            Map.entry("PriorityBlockingQueue", 1),
+            Map.entry("LinkedTransferQueue", 1),
+            Map.entry("HashMap", 2),
+            Map.entry("LinkedHashMap", 2),
+            Map.entry("TreeMap", 2),
+            Map.entry("IdentityHashMap", 2),
+            Map.entry("WeakHashMap", 2),
+            Map.entry("ConcurrentHashMap", 2),
             Map.entry("ConcurrentSkipListMap", 2));
 
     @Override
     public LintResult apply(final LintContext context) {
         final var proposals = proposalsIn(context);
-        final var proven = proposals.stream().filter(Proposal::proven).toList();
-        final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
+        final var proven = proposals.stream()
+                .filter(Proposal::proven)
+                .toList();
+        final var unproven = proposals.stream()
+                .filter(proposal -> !proposal.proven())
+                .toList();
         final var verified = unproven.isEmpty()
                 ? List.<Proposal>of()
                 : context.attributionFor(LocalVarUseVar.class)
                         .map(attribution -> VarRetypingCheck.verified(context, attribution, proven, unproven))
                         .orElse(List.of());
-        return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream()).flatMap(proposal -> proposal.edits().stream()).toList());
+        return LintResult.ofEdits(Stream.concat(proven.stream(), verified.stream())
+                .flatMap(proposal -> proposal.edits().stream())
+                .toList());
     }
 
     @Override
@@ -105,23 +142,29 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
             return Optional.empty();
         }
         final var proposals = proposalsIn(context);
-        final var unproven = proposals.stream().filter(proposal -> !proposal.proven()).toList();
+        final var unproven = proposals.stream()
+                .filter(proposal -> !proposal.proven())
+                .toList();
         return unproven.isEmpty()
                 ? Optional.empty()
-                : Optional.of(VarRetypingCheck.rewrittenSource(context.unit(), proposals.stream().filter(Proposal::proven).toList(), unproven));
+                : Optional.of(
+                        VarRetypingCheck.rewrittenSource(
+                                context.unit(),
+                                proposals.stream()
+                                        .filter(Proposal::proven)
+                                        .toList(),
+                                unproven));
     }
 
     private static List<Proposal> proposalsIn(final LintContext context) {
         final var reassignments = new ReassignmentDetector();
-        return LintScan.collect(
-                context,
-                sink -> new ChainPathScanner<>() {
-                    @Override
-                    public Void visitVariable(final VariableTree node, final Void p) {
-                        proposalFor(getCurrentPath(), context, reassignments).ifPresent(sink::add);
-                        return super.visitVariable(node, null);
-                    }
-                });
+        return LintScan.collect(context, sink -> new ChainPathScanner<>() {
+            @Override
+            public Void visitVariable(final VariableTree node, final Void p) {
+                proposalFor(getCurrentPath(), context, reassignments).ifPresent(sink::add);
+                return super.visitVariable(node, null);
+            }
+        });
     }
 
     @Override
@@ -138,7 +181,8 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         if (!isCandidate(path, unit) || !(path.getLeaf() instanceof VariableTree node)) {
             return Optional.empty();
         }
-        final var reassigned = reassignments.reassigned(path.getParentPath().getLeaf(), node.getName().toString());
+        final var reassigned = reassignments.reassigned(
+                path.getParentPath().getLeaf(), node.getName().toString());
         final var proven = provenEdits(node, path, context, reassigned);
         if (!proven.isEmpty()) {
             return Optional.of(new Proposal(path, proven, true, true));
@@ -147,9 +191,8 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
             return Optional.empty();
         }
         return context.attributionFor(LocalVarUseVar.class)
-                .flatMap(
-                        attribution -> unprovenEdits(node, path, attribution, context)
-                                .map(edits -> new Proposal(path, edits, false, keepsItsTypeWithoutTarget(node, path, attribution))));
+                .flatMap(attribution -> unprovenEdits(node, path, attribution, context)
+                        .map(edits -> new Proposal(path, edits, false, keepsItsTypeWithoutTarget(node, path, attribution))));
     }
 
     private static Optional<List<LintEdit>> unprovenEdits(final VariableTree node,
@@ -165,7 +208,9 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         if (!edits.isEmpty() || node.getInitializer() instanceof NewClassTree) {
             return edits.isEmpty() ? Optional.empty() : Optional.of(edits);
         }
-        return isAnalyzeCandidate(node, path, attribution) ? replaceTypeEdit(node, unit).map(List::of) : Optional.empty();
+        return isAnalyzeCandidate(node, path, attribution)
+                ? replaceTypeEdit(node, unit).map(List::of)
+                : Optional.empty();
     }
 
     private static boolean keepsItsTypeWithoutTarget(final VariableTree node, final TreePath path, final Attribution attribution) {
@@ -173,11 +218,13 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         final var isPoly = switch (initializer) {
             case NewClassTree newClass ->
                 newClass.getClassBody() != null
-                    || (newClass.getIdentifier() instanceof ParameterizedTypeTree diamond && diamond.getTypeArguments().isEmpty());
+                    || (newClass.getIdentifier() instanceof ParameterizedTypeTree diamond
+                        && diamond.getTypeArguments().isEmpty());
             case MethodInvocationTree call ->
                 attribution.trees().getElement(new TreePath(new TreePath(path, call), call.getMethodSelect())) instanceof ExecutableElement method
                     && !method.getTypeParameters().isEmpty();
-            case ConditionalExpressionTree conditional -> !isPrimitive(attribution.trees().getTypeMirror(new TreePath(path, conditional)));
+            case ConditionalExpressionTree conditional ->
+                !isPrimitive(attribution.trees().getTypeMirror(new TreePath(path, conditional)));
             default -> hasNoTypeOfItsOwn(initializer, path, attribution);
         };
         if (isPoly) {
@@ -185,7 +232,9 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         }
         final var declaredType = attribution.trees().getTypeMirror(new TreePath(path, node.getType()));
         final var initializerType = attribution.trees().getTypeMirror(new TreePath(path, node.getInitializer()));
-        return isUsable(declaredType) && isUsable(initializerType) && attribution.types().isSameType(initializerType, declaredType);
+        return isUsable(declaredType)
+            && isUsable(initializerType)
+            && attribution.types().isSameType(initializerType, declaredType);
     }
 
     private static boolean isCandidate(final TreePath path, final ParsedUnit unit) {
@@ -205,10 +254,12 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         return switch (node.getInitializer()) {
             case NewClassTree newClass -> newClassEdits(node, newClass, unit, reassigned);
             case MethodInvocationTree call -> staticFactoryEdits(node, call, path, context, true);
-            case TypeCastTree cast when !reassigned && sameText(cast.getType(), node.getType(), unit) ->
-                replaceTypeEdit(node, unit).stream().toList();
-            case LiteralTree literal when !reassigned && literalMatches(literal, node.getType(), unit) ->
-                replaceTypeEdit(node, unit).stream().toList();
+            case TypeCastTree cast when !reassigned && sameText(cast.getType(), node.getType(), unit) -> replaceTypeEdit(node, unit)
+                    .stream()
+                    .toList();
+            case LiteralTree literal when !reassigned && literalMatches(literal, node.getType(), unit) -> replaceTypeEdit(node, unit)
+                    .stream()
+                    .toList();
             case null, default -> List.of();
         };
     }
@@ -221,7 +272,8 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
             return List.of();
         }
         if (sameText(newClass.getIdentifier(), node.getType(), unit)) {
-            return replaceTypeEdit(node, unit).stream().toList();
+            return replaceTypeEdit(node, unit).stream()
+                    .toList();
         }
         if (!reassigned
             && newClass.getIdentifier() instanceof ParameterizedTypeTree diamond
@@ -239,25 +291,31 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         }
         return switch (newClass.getIdentifier()) {
             case ParameterizedTypeTree diamond when diamond.getTypeArguments().isEmpty() -> diamondEdits(node, diamond, unit);
-            default -> replaceTypeEdit(node, unit).stream().toList();
+            default -> replaceTypeEdit(node, unit).stream()
+                    .toList();
         };
     }
 
     private static List<LintEdit> diamondEdits(final VariableTree node, final ParameterizedTypeTree diamond, final ParsedUnit unit) {
         if (!(node.getType() instanceof ParameterizedTypeTree declared)
             || declared.getTypeArguments().isEmpty()
-            || declared.getTypeArguments().stream().anyMatch(WildcardTree.class::isInstance)
+            || declared.getTypeArguments().stream()
+                    .anyMatch(WildcardTree.class::isInstance)
             || !typeParametersLineUp(declared, diamond, unit)) {
             return List.of();
         }
         final var closeAt = unit.endOf(diamond) - 1;
         final var argumentsStart = unit.startOf(declared.getTypeArguments().getFirst());
         final var argumentsEnd = unit.endOf(declared.getTypeArguments().getLast());
-        if (closeAt <= 0 || argumentsStart < 0 || argumentsEnd <= argumentsStart || unit.source().charAt(closeAt) != '>') {
+        if (closeAt <= 0
+            || argumentsStart < 0
+            || argumentsEnd <= argumentsStart
+            || unit.source().charAt(closeAt) != '>') {
             return List.of();
         }
         return replaceTypeEdit(node, unit)
-                .map(edit -> List.of(edit, LintEdit.insert(closeAt, unit.source().substring(argumentsStart, argumentsEnd))))
+                .map(edit -> List.of(
+                        edit, LintEdit.insert(closeAt, unit.source().substring(argumentsStart, argumentsEnd))))
                 .orElse(List.of());
     }
 
@@ -285,7 +343,9 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
                 case CHAR -> literal.getKind() == Tree.Kind.CHAR_LITERAL;
                 default -> false;
             };
-            case IdentifierTree _ -> literal.getKind() == Tree.Kind.STRING_LITERAL && unit.sourceOf(declared).trim().equals("String");
+            case IdentifierTree _ ->
+                literal.getKind() == Tree.Kind.STRING_LITERAL
+                    && unit.sourceOf(declared).trim().equals("String");
             default -> false;
         };
     }
@@ -302,7 +362,8 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         }
         return declaredType.getKind().isPrimitive()
                 ? attribution.types().isSameType(initializerType, declaredType)
-                : !initializerType.getKind().isPrimitive() && attribution.types().isSubtype(initializerType, declaredType);
+                : !initializerType.getKind().isPrimitive()
+                    && attribution.types().isSubtype(initializerType, declaredType);
     }
 
     private static boolean isPrimitive(final TypeMirror type) {
@@ -363,7 +424,9 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
     }
 
     private static boolean sameText(final Tree a, final Tree b, final ParsedUnit unit) {
-        return unit.startOf(a) >= 0 && unit.startOf(b) >= 0 && withoutWhitespace(unit.sourceOf(a)).equals(withoutWhitespace(unit.sourceOf(b)));
+        return unit.startOf(a) >= 0
+            && unit.startOf(b) >= 0
+            && withoutWhitespace(unit.sourceOf(a)).equals(withoutWhitespace(unit.sourceOf(b)));
     }
 
     private static String withoutWhitespace(final String text) {
@@ -429,7 +492,8 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
                     ? List.of(typeToVar(typeStart, typeEnd, unit))
                     : List.of();
         }
-        if (proven || !witnessFitsTheMethod(call, path, context, pt.getTypeArguments().size())) {
+        if (proven
+            || !witnessFitsTheMethod(call, path, context, pt.getTypeArguments().size())) {
             return List.of();
         }
         final var selectEnd = unit.endOf(mst);
@@ -450,7 +514,9 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
                 .filter(attribution -> {
                     final var callType = attribution.trees().getTypeMirror(new TreePath(path, call));
                     final var declaredType = attribution.trees().getTypeMirror(new TreePath(path, node.getType()));
-                    return isUsable(callType) && isUsable(declaredType) && attribution.types().isSameType(callType, declaredType);
+                    return isUsable(callType)
+                        && isUsable(declaredType)
+                        && attribution.types().isSameType(callType, declaredType);
                 })
                 .isPresent();
     }
@@ -489,7 +555,10 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
                                                        final List<? extends Tree> witness,
                                                        final ParsedUnit unit) {
         return declared.size() == witness.size()
-            && IntStream.range(0, declared.size()).allMatch(i -> unit.sourceOf(declared.get(i)).trim().equals(unit.sourceOf(witness.get(i)).trim()));
+            && IntStream.range(0, declared.size())
+                    .allMatch(i -> unit.sourceOf(declared.get(i))
+                            .trim()
+                            .equals(unit.sourceOf(witness.get(i)).trim()));
     }
 
     record Proposal(TreePath path, List<LintEdit> edits, boolean proven, boolean keepsItsTypeWithoutTarget) {

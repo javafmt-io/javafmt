@@ -13,19 +13,17 @@ public final class UpperEll implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitLiteral(final LiteralTree node, final Void p) {
-                        if (node.getKind() == Tree.Kind.LONG_LITERAL) {
-                            final var end = unit.endOf(node);
-                            if (end > 0 && unit.source().charAt(end - 1) == 'l') {
-                                edits.add(new LintEdit(end - 1, end, "L"));
-                            }
-                        }
-                        return null;
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitLiteral(final LiteralTree node, final Void p) {
+                if (node.getKind() == Tree.Kind.LONG_LITERAL) {
+                    final var end = unit.endOf(node);
+                    if (end > 0 && unit.source().charAt(end - 1) == 'l') {
+                        edits.add(new LintEdit(end - 1, end, "L"));
                     }
-                });
+                }
+                return null;
+            }
+        });
     }
 }

@@ -49,6 +49,7 @@ class RedundantSuperCallTest {
         // Deleting the whole line took the author's comment with it, and nothing could see that:
         // the output verifier compares against the post-lint source, where the comment is already
         // gone. Drop the statement only and leave the line for the comment.
-        assertThat(format("class Foo {\n\n    Foo() {\n        super(); // keep this\n    }\n}\n")).contains("keep this");
+        assertThat(format("class Foo {\n\n    Foo() {\n        super(); // keep this\n    }\n}\n"))
+                .contains("keep this");
     }
 }

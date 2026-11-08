@@ -19,11 +19,17 @@ final class ImportSectionRenderer {
         if (imports.isEmpty()) {
             return Stream.empty();
         }
-        final var sorted = imports.stream().map(NamedImport::of).sorted(Comparator.comparing(NamedImport::name)).toList();
+        final var sorted = imports.stream()
+                .map(NamedImport::of)
+                .sorted(Comparator.comparing(NamedImport::name))
+                .toList();
         final var groups = IntStream.rangeClosed(0, 3)
-                .mapToObj(key -> sorted.stream().filter(i -> i.groupKey() == key).toList())
+                .mapToObj(key -> sorted.stream()
+                        .filter(i -> i.groupKey() == key)
+                        .toList())
                 .filter(group -> !group.isEmpty())
-                .flatMap(group -> Stream.concat(Stream.of(Doc.HARD_LINE), group.stream().flatMap(i -> renderImport(i, unit))))
+                .flatMap(group -> Stream.concat(Stream.of(Doc.HARD_LINE), group.stream()
+                        .flatMap(i -> renderImport(i, unit))))
                 .skip(1);
         return Stream.of(hasPackage ? Stream.<Doc>of(Doc.HARD_LINE) : Stream.<Doc>empty(), groups, Stream.<Doc>of(Doc.HARD_LINE))
                 .flatMap(Function.identity());

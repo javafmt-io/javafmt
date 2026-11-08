@@ -27,15 +27,15 @@ public final class ArrayTrailingComma implements LintRule {
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(
-                context,
-                edits -> new ChainScanner<>() {
-                    @Override
-                    public Void visitNewArray(final NewArrayTree node, final Void p) {
-                        editFor(node, unit).filter(edit -> !edits.contains(edit)).ifPresent(edits::add);
-                        return super.visitNewArray(node, null);
-                    }
-                });
+        return LintScan.edits(context, edits -> new ChainScanner<>() {
+            @Override
+            public Void visitNewArray(final NewArrayTree node, final Void p) {
+                editFor(node, unit)
+                        .filter(edit -> !edits.contains(edit))
+                        .ifPresent(edits::add);
+                return super.visitNewArray(node, null);
+            }
+        });
     }
 
     private static Optional<LintEdit> editFor(final NewArrayTree node, final ParsedUnit unit) {
