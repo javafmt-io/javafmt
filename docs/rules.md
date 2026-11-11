@@ -167,7 +167,7 @@ executor.execute(() -> service.process(
 
 This holds when the line up to the body's first break fits in 150 characters and the other arguments have no comments, nothing that spans several lines, and no block-bodied lambda. Otherwise the arguments wrap at +8 with the lambda among them, and so does a lambda that is not the last argument.
 
-When other arguments come before the lambda, it also has to keep its body's leading chain on one line by the column-80 chain rule (see Method chains). If staying on the call's line would split that chain, the arguments wrap at +8 instead, on one line when they fit there and otherwise one per line:
+When other arguments come before the lambda, it also has to keep its body's leading chain on one line by the column-80 chain rule (see Method chains), and every chain among those other arguments has to meet that rule on the call's line too. If staying on the call's line would split the body's chain or leave another argument's chain past column 80, the arguments wrap at +8 instead, on one line when they fit there and otherwise one per line:
 
 ```java
 super(
@@ -189,7 +189,7 @@ Lambda parameters are never `final`.
 
 ## Method chains
 
-- A chain of three or more calls goes on one line, however the author broke it, when it fits in 150 characters and ends by column 80. Otherwise it breaks before each `.`. When its last call takes a block-bodied lambda, the line up to the lambda's `{` has to end by column 80. A chain of two calls only needs the text before its last `.` to end by column 80, so `assertThat(actual).isEqualTo(expected)` stays on one line for longer. The column counts from the start of the line, indentation included, and the rule holds inside another call's arguments too. A two-call chain that is the body of a lambda passed as a call's only argument is exempt while it fits in 150 characters (see Lambdas). So is a two-call chain whose last call is `.stream()`, `.parallelStream()`, `.builder()`, `.newBuilder()` or `.toBuilder()` is exempt. Stream and builder chains with a call after that point always break (next rule), and so does a chain that contains a multi-line text block.
+- A chain of three or more calls goes on one line, however the author broke it, when it fits in 150 characters and ends by column 80. Otherwise it breaks before each `.`. When its last call takes a block-bodied lambda, the line up to the lambda's `{` has to end by column 80. A chain of two calls only needs the text before its last `.` to end by column 80, so `assertThat(actual).isEqualTo(expected)` stays on one line for longer. The column counts from the start of the line, indentation included, and the rule holds inside another call's arguments too. A two-call chain that is the body of a lambda passed as a call's only argument is exempt while it fits in 150 characters (see Lambdas). So is a two-call chain whose last call is `.stream()`, `.parallelStream()`, `.builder()`, `.newBuilder()` or `.toBuilder()`. Stream and builder chains with a call after that point always break (next rule), and so does a chain that contains a multi-line text block.
 
 ```java
 log.atInfo()
@@ -273,7 +273,7 @@ return Optional.of(requested.compareTo(database) >= 0
         : Direction.ROLLBACK);
 ```
 
-This holds when the line up to the condition's first break fits in 150 characters and the other arguments have no comments and nothing that spans several lines. A ternary the author wrote on one line first moves to the next line at +8, with the other arguments, when it fits there.
+This holds when the line up to the condition's first break fits in 150 characters, the other arguments have no comments and nothing that spans several lines, and no chain on that line breaks the column-80 chain rule (see Method chains). A ternary the author wrote on one line first moves to the next line at +8, with the other arguments, when it fits there.
 
 ## Enums
 

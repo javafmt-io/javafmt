@@ -69,20 +69,20 @@ final class CallArguments {
                     new Doc.Choice(hugged, firstOnTheCallLine, Doc.Choice.Fit.OPENING_LINE),
                     true);
         }
+        final var callLineFit = others.isEmpty() ? Doc.Choice.Fit.FIRST_BREAK : Doc.Choice.Fit.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
         if (isExpressionLambda(arguments.getLast()) && hugsLastArgument(arguments, rendered, pastTheSeparator)) {
             final var hugged = onTheCallLine(flattenedEach(others), rendered.getLast());
-            final var fit = others.isEmpty() ? Doc.Choice.Fit.FIRST_BREAK : Doc.Choice.Fit.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
             return new Rendered(
-                    new Doc.Choice(hugged, onTheNextLine(rendered, pastTheSeparator, closing), fit),
+                    new Doc.Choice(hugged, onTheNextLine(rendered, pastTheSeparator, closing), callLineFit),
                     new Doc.Choice(hugged, firstOnTheCallLine, Doc.Choice.Fit.OPENING_LINE),
                     false);
         }
         if (arguments.getLast() instanceof ConditionalExpressionTree ternary
             && startsOnTheCallLine(ternary, others, pastTheSeparator, trailing, recursor)) {
             final var onTheCallLine = onTheCallLine(flattenedEach(others), rendered.getLast());
-            final var hugged = new Doc.Choice(onTheCallLine, onTheNextLine(rendered, pastTheSeparator, closing), Doc.Choice.Fit.FIRST_BREAK);
+            final var hugged = new Doc.Choice(onTheCallLine, onTheNextLine(rendered, pastTheSeparator, closing), callLineFit);
             if (!printsFlat(rendered.getLast())) {
-                return new Rendered(hugged, new Doc.Choice(onTheCallLine, firstOnTheCallLine, Doc.Choice.Fit.FIRST_BREAK), false);
+                return new Rendered(hugged, new Doc.Choice(onTheCallLine, firstOnTheCallLine, callLineFit), false);
             }
             return new Rendered(
                     new Doc.Group(
@@ -266,6 +266,8 @@ final class CallArguments {
             case Doc.SoftLine _ -> new Doc.Text("");
             case Doc.Group(var contents, var _) -> flattened(contents);
             case Doc.IfBreak(var _, var flatContents) -> flattened(flatContents);
+            case Doc.Choice(var preferred, var fallback, var fit, var chainWidth) when chainWidth >= 0 ->
+                new Doc.Choice(flattened(preferred), fallback, fit, chainWidth);
             case Doc.Choice(var preferred, var _, var _, var _) -> flattened(preferred);
             case Doc.Concat(var parts) -> new Doc.Concat(parts.stream()
                     .map(CallArguments::flattened)

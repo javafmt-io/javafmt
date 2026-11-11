@@ -141,7 +141,8 @@ public final class LintEngine {
                                                                 final List<LintContext> contexts) {
         final var batch = attribution.batch();
         final var replacements = rewrites.stream()
-                .collect(Collectors.toMap(rewrite -> contexts.get(rewrite.index()).unit().source(), Rewrite::source, (first, _) -> first));
+                .collect(Collectors.toMap(
+                        rewrite -> contexts.get(rewrite.index()).unit().source(), Rewrite::source, (first, _) -> first));
         final List<Staged<AttributedUnit>> attributed;
         try {
             attributed = attribution.session()
