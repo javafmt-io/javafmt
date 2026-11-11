@@ -21,6 +21,7 @@ import org.gradle.workers.WorkerExecutor;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
 
@@ -28,6 +29,8 @@ import javax.inject.Inject;
 public abstract class JavafmtTask extends DefaultTask {
 
     private static final int MAX_THREADS = 4;
+
+    private static final List<String> WORKER_JVM_ARGS = List.of("-XX:+UseCompactObjectHeaders");
 
     @InputFiles
     @SkipWhenEmpty
@@ -91,6 +94,7 @@ public abstract class JavafmtTask extends DefaultTask {
             spec.forkOptions(fork -> {
                 fork.setExecutable(executable);
                 fork.setMaxHeapSize(maxHeapSize);
+                fork.jvmArgs(WORKER_JVM_ARGS);
                 fork.jvmArgs(jvmArgs);
             });
         });

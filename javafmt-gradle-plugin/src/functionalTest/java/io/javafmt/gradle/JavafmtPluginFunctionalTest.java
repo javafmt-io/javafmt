@@ -7,6 +7,8 @@ import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
@@ -122,6 +124,20 @@ class JavafmtPluginFunctionalTest {
         final var build = TestBuild.singleProject(dir, "javafmt { jvmArgs.add('-XX:+JavafmtNoSuchFlag') }");
         build.write(FOO, Fixtures.FORMATTED_FOO);
         assertThat(build.fail("javafmtCheck").getOutput()).contains("JavafmtNoSuchFlag");
+    }
+
+    @ParameterizedTest
+    @MethodSource("compactObjectHeaderSettings")
+    void theWorkerUsesCompactObjectHeadersUnlessJvmArgsTurnThemOff(final String jvmArgs, final String flag, @TempDir final Path dir) {
+        final var build = TestBuild.singleProject(dir, "javafmt { jvmArgs.addAll(" + jvmArgs + ") }");
+        build.write(FOO, Fixtures.FORMATTED_FOO);
+        assertThat(build.run("javafmtCheck").getOutput()).contains(flag);
+    }
+
+    static Stream<Arguments> compactObjectHeaderSettings() {
+        return Stream.of(
+                Arguments.of("['-XX:+PrintCommandLineFlags']", "-XX:+UseCompactObjectHeaders"),
+                Arguments.of("['-XX:+PrintCommandLineFlags', '-XX:-UseCompactObjectHeaders']", "-XX:-UseCompactObjectHeaders"));
     }
 
     @Test
