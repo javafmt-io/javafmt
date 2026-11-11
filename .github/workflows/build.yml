@@ -69,8 +69,6 @@ jobs:
         if: ${{ success() && env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v8.4.1
 
-  # The IntelliJ module's tests and searchable-options build are the longest serial stretch of the
-  # build, so they run beside it instead of after it.
   intellij:
     runs-on: ubuntu-latest
     permissions:
