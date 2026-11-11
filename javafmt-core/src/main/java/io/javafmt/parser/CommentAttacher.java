@@ -534,21 +534,7 @@ final class CommentAttacher {
         }
 
         private int skipWhitespaceAndComments(final int from) {
-            var at = from;
-            while (at < source.length()) {
-                if (Character.isWhitespace(source.charAt(at))) {
-                    at++;
-                } else if (source.startsWith("//", at)) {
-                    final var newline = source.indexOf('\n', at);
-                    at = newline < 0 ? source.length() : newline;
-                } else if (source.startsWith("/*", at)) {
-                    final var close = source.indexOf("*/", at + 2);
-                    at = close < 0 ? source.length() : close + 2;
-                } else {
-                    return at;
-                }
-            }
-            return at;
+            return CommentScanner.skipWhitespaceAndComments(source, from);
         }
 
         @Override
