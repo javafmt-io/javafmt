@@ -10,7 +10,6 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.problems.Problem;
-import org.gradle.api.problems.ProblemGroup;
 import org.gradle.api.problems.ProblemId;
 import org.gradle.api.problems.ProblemReporter;
 import org.gradle.api.problems.Problems;
@@ -31,14 +30,6 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
 
     private static final Logger LOGGER = Logging.getLogger(JavafmtAction.class);
 
-    private static final ProblemGroup GROUP = ProblemGroup.create("javafmt", "javafmt");
-
-    private static final ProblemId UNFORMATTED = ProblemId.create("unformatted-file", "File not formatted by javafmt", GROUP);
-
-    private static final ProblemId ERROR = ProblemId.create("error", "javafmt error", GROUP);
-
-    private static final ProblemId WARNING = ProblemId.create("warning", "javafmt warning", GROUP);
-
     @Inject
     protected abstract Problems getProblems();
 
@@ -58,10 +49,13 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
                         write,
                         parameters.getProjectDirectory().get().getAsFile(),
                         parameters.getThreads().get()));
-        final var reporter = getProblems().getReporter();
+        final var problems = getProblems();
+        final var reporter = problems.getReporter();
+        final var javafmt = problems.getGroups().getVerification().getCodeQuality().group("javafmt");
+        final var warningId = javafmt.problemId("javafmt warning");
         outcome.warnings().forEach(warning -> LOGGER.warn("javafmt: {}", warning.description()));
         reporter.report(outcome.warnings().stream()
-                .map(warning -> problem(reporter, WARNING, warning))
+                .map(warning -> problem(reporter, warningId, warning))
                 .toList());
         if (write) {
             outcome.changed().forEach(file -> LOGGER.info("javafmt: formatted {}", file.display()));
@@ -74,13 +68,15 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
                         .map(Outcome.Finding::description))
                 .collect(Collectors.joining("\n"));
         if (!message.isEmpty()) {
+            final var unformattedId = javafmt.problemId("File not formatted by javafmt");
+            final var errorId = javafmt.problemId("javafmt error");
             throw reporter.throwing(
                     new GradleException(message),
                     Stream.concat(
                             unformatted.stream()
-                                    .map(source -> unformattedProblem(reporter, source, formatTaskPath)),
+                                    .map(source -> unformattedProblem(reporter, unformattedId, source, formatTaskPath)),
                             outcome.errors().stream()
-                                    .map(error -> problem(reporter, ERROR, error)))
+                                    .map(error -> problem(reporter, errorId, error)))
                             .toList());
         }
         if (parameters.getMarker().isPresent()) {
@@ -102,9 +98,11 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
                 .map(file -> "  " + file.display()));
     }
 
-    private static Problem unformattedProblem(final ProblemReporter reporter, final Outcome.Source source, final String formatTaskPath) {
-        return reporter.create(
-                UNFORMATTED, spec -> spec.fileLocation(source.path()).solution("Run 'gradle " + formatTaskPath + "'"));
+    private static Problem unformattedProblem(final ProblemReporter reporter,
+                                              final ProblemId id,
+                                              final Outcome.Source source,
+                                              final String formatTaskPath) {
+        return reporter.create(id, spec -> spec.fileLocation(source.path()).solution("Run 'gradle " + formatTaskPath + "'"));
     }
 
     private static Problem problem(final ProblemReporter reporter, final ProblemId id, final Outcome.Finding finding) {
