@@ -33,7 +33,7 @@ runs:
 
     - name: Set up Temurin
       if: inputs.graalvm != 'true'
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         java-version-file: .sdkmanrc
 
