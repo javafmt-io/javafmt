@@ -8,9 +8,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.TextBrowseFolderListener;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
-import com.intellij.ui.SimpleListCellRenderer;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.UIUtil;
@@ -61,7 +61,7 @@ public final class JavafmtConfigurable implements Configurable {
         final var box = new ComboBox<>(JavafmtApplicationSettings.Engine.values());
         box.setName(ENGINE_COMBO_BOX_NAME);
         box.setRenderer(
-                SimpleListCellRenderer.create("", engine -> switch (engine) {
+                BuilderKt.textListCellRenderer("", engine -> switch (engine) {
                     case IN_PROCESS -> "Inside the IDE";
                     case NATIVE -> "Native javafmt binary";
                 }));
@@ -83,7 +83,7 @@ public final class JavafmtConfigurable implements Configurable {
     private static TextFieldWithBrowseButton binaryPathField() {
         final var field = new TextFieldWithBrowseButton();
         field.setName(BINARY_PATH_FIELD_NAME);
-        field.addBrowseFolderListener(new TextBrowseFolderListener(FileChooserDescriptorFactory.createSingleFileDescriptor()));
+        field.addBrowseFolderListener(new TextBrowseFolderListener(FileChooserDescriptorFactory.singleFile()));
         return field;
     }
 

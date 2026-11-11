@@ -18,7 +18,7 @@ dependencies {
 // Gradle user's build works is the harness around it — the buildscript classpath, Spotless's
 // up-to-date check, the configuration cache — so integrationTest drives a real Gradle build with
 // Gradle TestKit instead.
-val integrationTest: SourceSet by sourceSets.creating
+val integrationTest = sourceSets.create("integrationTest")
 
 /**
  * The Spotless Gradle plugin, fetched so the generated build can put it on its buildscript
