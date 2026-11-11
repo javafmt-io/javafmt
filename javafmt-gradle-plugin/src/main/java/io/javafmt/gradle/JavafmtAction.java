@@ -51,7 +51,10 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
                         parameters.getThreads().get()));
         final var problems = getProblems();
         final var reporter = problems.getReporter();
-        final var javafmt = problems.getGroups().getVerification().getCodeQuality().group("javafmt");
+        final var javafmt = problems.getGroups()
+                .getVerification()
+                .getCodeQuality()
+                .group("javafmt");
         final var warningId = javafmt.problemId("javafmt warning");
         outcome.warnings().forEach(warning -> LOGGER.warn("javafmt: {}", warning.description()));
         reporter.report(outcome.warnings().stream()
