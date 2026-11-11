@@ -4,7 +4,9 @@ import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Lexes Java source into the token stream that must survive formatting: identifiers,
@@ -82,7 +84,7 @@ public final class TokenScanner {
      * not two {@code -} marks.
      */
     private int endOfOperator(final String source, final int start, final int n) {
-        for (final var operator : OPERATORS) {
+        for (final var operator : OPERATORS_BY_FIRST_CHARACTER.getOrDefault(source.charAt(start), List.of())) {
             if (start + operator.length() <= n && source.startsWith(operator, start)) {
                 return start + operator.length();
             }
@@ -120,6 +122,9 @@ public final class TokenScanner {
             "|=",
             "^=",
             "<<");
+
+    private final Map<Character, List<String>> OPERATORS_BY_FIRST_CHARACTER = OPERATORS.stream()
+            .collect(Collectors.groupingBy(operator -> operator.charAt(0), Collectors.toList()));
 
     private boolean isDigit(final char c) {
         return c >= '0' && c <= '9';
