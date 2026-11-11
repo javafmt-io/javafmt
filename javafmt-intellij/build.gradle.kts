@@ -79,7 +79,7 @@ val relocatedPluginJar = tasks.register<ShadowJar>("relocatedPluginJar") {
     from(zipTree(composedJar.flatMap { it.archiveFile })) {
         exclude("META-INF/MANIFEST.MF")
     }
-    manifest.inheritFrom(composedJar.get().manifest)
+    manifest.from(composedJar.get().manifest)
     configurations.add(protocolRuntime)
     relocate("com.google.protobuf", "io.javafmt.intellij.protobuf")
     relocate("build.buf.validate", "io.javafmt.intellij.validate")

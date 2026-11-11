@@ -7,13 +7,19 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.testFramework.EdtTestUtil;
 import com.intellij.testFramework.VfsTestUtil;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
-import com.intellij.testFramework.junit5.RunInEdt;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.InvocationInterceptor;
+import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,8 +28,8 @@ import java.util.Objects;
 /** Base class for javafmt IntelliJ plugin tests on the light Java fixture. Resets {@link JavafmtSettings} after every test. */
 // LightJavaCodeInsightFixtureTestCase's JUnit 3-era runBare() used to dispatch every test onto the
 // EDT, which PSI/document APIs require. The platform doesn't do that automatically once tests run
-// on the JUnit Platform, so @RunInEdt (the platform's own JUnit 5 extension) restores it here.
-@RunInEdt(writeIntent = true)
+// on the JUnit Platform, so OnTheEdt restores it here.
+@ExtendWith(JavafmtIntellijTestCase.OnTheEdt.class)
 public abstract class JavafmtIntellijTestCase extends LightJavaCodeInsightFixtureTestCase {
 
     @Override
@@ -67,5 +73,52 @@ public abstract class JavafmtIntellijTestCase extends LightJavaCodeInsightFixtur
     @AfterEach
     final void bridgeTearDown() throws Exception {
         tearDown();
+    }
+
+    static final class OnTheEdt implements InvocationInterceptor {
+
+        @Override
+        public <T> T interceptTestClassConstructor(final Invocation<T> invocation,
+                                                   final ReflectiveInvocationContext<Constructor<T>> context,
+                                                   final ExtensionContext extension)
+                throws Throwable {
+            return onTheEdt(invocation);
+        }
+
+        @Override
+        public void interceptBeforeEachMethod(final Invocation<Void> invocation,
+                                              final ReflectiveInvocationContext<Method> context,
+                                              final ExtensionContext extension)
+                throws Throwable {
+            onTheEdt(invocation);
+        }
+
+        @Override
+        public void interceptTestMethod(final Invocation<Void> invocation,
+                                        final ReflectiveInvocationContext<Method> context,
+                                        final ExtensionContext extension)
+                throws Throwable {
+            onTheEdt(invocation);
+        }
+
+        @Override
+        public void interceptTestTemplateMethod(final Invocation<Void> invocation,
+                                                final ReflectiveInvocationContext<Method> context,
+                                                final ExtensionContext extension)
+                throws Throwable {
+            onTheEdt(invocation);
+        }
+
+        @Override
+        public void interceptAfterEachMethod(final Invocation<Void> invocation,
+                                             final ReflectiveInvocationContext<Method> context,
+                                             final ExtensionContext extension)
+                throws Throwable {
+            onTheEdt(invocation);
+        }
+
+        private static <T> T onTheEdt(final Invocation<T> invocation) throws Throwable {
+            return EdtTestUtil.runInEdtAndGet(invocation::proceed, true);
+        }
     }
 }
