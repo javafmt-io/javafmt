@@ -1,6 +1,7 @@
 package io.javafmt;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -51,6 +52,14 @@ class DeepExpressionTest {
         final var results = Javafmt.formatAll(sources, JavafmtConfig.defaults(), 2);
         assertThat(results).allSatisfy(result -> assertThat(result.diagnostics()).isEmpty());
         assertThat(results.get(1).output()).isEqualTo(Javafmt.format(sources.get(1)));
+    }
+
+    @ParameterizedTest
+    @EnumSource(SharedLayout.class)
+    @Timeout(value = 10, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    void formatsNestingWhoseAlternativeLayoutsShareTheirParts(final SharedLayout nesting) {
+        final var output = Javafmt.format(nesting.of(30));
+        assertThat(Javafmt.format(output)).isEqualTo(output);
     }
 
     private static int searchForTheDeepestCompilable(final Chain chain) {
@@ -129,6 +138,41 @@ class DeepExpressionTest {
                         %s value = %s;
                     }
                     """.formatted(type, prefix + link.repeat(links) + suffix);
+        }
+    }
+
+    enum SharedLayout {
+
+        CALLS_BEFORE_A_LOOSE_COMMENT("""
+                class Nested {
+
+                    int calls() {
+                        return %s;
+                    }
+
+                    public /* loose */ int after() {
+                        return 0;
+                    }
+                }
+                """, "f(a, ", "1", ")");
+
+        private final String template;
+
+        private final String open;
+
+        private final String innermost;
+
+        private final String close;
+
+        SharedLayout(final String template, final String open, final String innermost, final String close) {
+            this.template = template;
+            this.open = open;
+            this.innermost = innermost;
+            this.close = close;
+        }
+
+        String of(final int depth) {
+            return template.formatted(open.repeat(depth) + innermost + close.repeat(depth));
         }
     }
 }

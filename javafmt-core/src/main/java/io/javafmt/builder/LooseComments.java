@@ -8,7 +8,10 @@ import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 @UtilityClass
@@ -46,6 +49,10 @@ final class LooseComments {
 
     private record Insertion(int significantBefore, CommentToken comment, boolean ownLine) {}
 
+    private record State(int next, int count, boolean spaceBeforeCode) {}
+
+    private record Woven(Doc doc, State after) {}
+
     private static final class Weaver {
 
         private final List<Insertion> insertions;
@@ -56,6 +63,8 @@ final class LooseComments {
 
         private boolean spaceBeforeCode;
 
+        private final IdentityHashMap<Doc, Map<State, Woven>> woven = new IdentityHashMap<>();
+
         Weaver(final List<Insertion> insertions) {
             this.insertions = insertions;
         }
@@ -64,6 +73,18 @@ final class LooseComments {
             if (next >= insertions.size() && !spaceBeforeCode) {
                 return doc;
             }
+            final var before = state();
+            final var known = woven.computeIfAbsent(doc, _ -> new HashMap<>()).get(before);
+            if (known != null) {
+                restore(known.after());
+                return known.doc();
+            }
+            final var result = weave(doc);
+            woven.get(doc).put(before, new Woven(result, state()));
+            return result;
+        }
+
+        private Doc weave(final Doc doc) {
             return switch (doc) {
                 case Doc.Text(var text) -> text(doc, text);
                 case Doc.Verbatim(var text, var _) -> atom(doc, significantBefore(text)[text.length()]);
@@ -89,21 +110,23 @@ final class LooseComments {
         }
 
         private List<Doc> branches(final Doc first, final Doc second) {
-            final var startNext = next;
-            final var startCount = count;
-            final var startSpace = spaceBeforeCode;
+            final var start = state();
             final var firstWoven = transform(first);
-            final var endNext = next;
-            final var endCount = count;
-            final var endSpace = spaceBeforeCode;
-            next = startNext;
-            count = startCount;
-            spaceBeforeCode = startSpace;
+            final var end = state();
+            restore(start);
             final var secondWoven = transform(second);
-            next = endNext;
-            count = endCount;
-            spaceBeforeCode = endSpace;
+            restore(end);
             return List.of(firstWoven, secondWoven);
+        }
+
+        private State state() {
+            return new State(next, count, spaceBeforeCode);
+        }
+
+        private void restore(final State state) {
+            next = state.next();
+            count = state.count();
+            spaceBeforeCode = state.spaceBeforeCode();
         }
 
         private Doc atom(final Doc doc, final int significant) {
