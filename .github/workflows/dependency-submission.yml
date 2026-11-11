@@ -14,14 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Java 25
-        uses: actions/setup-java@v5
+      - name: Set up Java
+        id: setup
+        uses: ./.github/actions/setup-build
         with:
-          java-version: '25.0.5'
-          distribution: 'temurin'
+          setup-gradle: 'false'
 
       - name: Submit the Gradle dependency graph
         uses: gradle/actions/dependency-submission@v6
         with:
-          gradle-version: '9.8.2'
+          gradle-version: ${{ steps.setup.outputs.gradle-version }}
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}

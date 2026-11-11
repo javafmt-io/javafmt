@@ -42,15 +42,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: graalvm/setup-graalvm@v1
+      - name: Set up GraalVM and Gradle
+        uses: ./.github/actions/setup-build
         with:
-          java-version: '25'
-          distribution: 'graalvm-community'
-          native-image-job-reports: 'true'
-
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '9.8.2'
+          graalvm: 'true'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Compile CLI native binary

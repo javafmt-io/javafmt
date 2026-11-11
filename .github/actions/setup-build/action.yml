@@ -1,0 +1,53 @@
+name: Set up the build
+description: Installs the JDK and Gradle that .sdkmanrc pins, so every workflow builds with the same versions as a local sdkman shell.
+
+inputs:
+  graalvm:
+    description: Install GraalVM Community for the pinned Java feature release instead of Temurin, for native-image builds.
+    default: 'false'
+  setup-gradle:
+    description: Install Gradle. Turn it off when a later gradle/actions step installs Gradle itself, and pass that step the gradle-version output.
+    default: 'true'
+  cache-encryption-key:
+    description: The key setup-gradle encrypts the configuration cache with.
+    default: ''
+
+outputs:
+  gradle-version:
+    description: The Gradle version .sdkmanrc pins.
+    value: ${{ steps.versions.outputs.gradle }}
+
+runs:
+  using: composite
+  steps:
+    - name: Read the versions .sdkmanrc pins
+      id: versions
+      shell: bash
+      run: |
+        java_feature=$(sed -nE 's/^java=([0-9]+).*/\1/p' .sdkmanrc | tr -d '\r')
+        gradle=$(sed -n 's/^gradle=//p' .sdkmanrc | tr -d '\r')
+        test -n "$java_feature"
+        test -n "$gradle"
+        echo "java-feature=$java_feature" >> "$GITHUB_OUTPUT"
+        echo "gradle=$gradle" >> "$GITHUB_OUTPUT"
+
+    - name: Set up Temurin
+      if: inputs.graalvm != 'true'
+      uses: actions/setup-java@v5
+      with:
+        java-version-file: .sdkmanrc
+
+    - name: Set up GraalVM
+      if: inputs.graalvm == 'true'
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: ${{ steps.versions.outputs.java-feature }}
+        distribution: graalvm-community
+        native-image-job-reports: 'true'
+
+    - name: Set up Gradle
+      if: inputs.setup-gradle == 'true'
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        gradle-version: ${{ steps.versions.outputs.gradle }}
+        cache-encryption-key: ${{ inputs.cache-encryption-key }}
