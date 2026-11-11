@@ -17,7 +17,6 @@ import io.javafmt.parser.ParsedUnit;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -224,13 +223,12 @@ class VarRetypingCheck {
     }
 
     private List<TreePath> expressionsOf(final ParsedUnit unit, final Set<Tree> retypedDeclarations) {
-        final var found = new ArrayList<TreePath>();
-        new ChainPathScanner<Void, Void>() {
+        return LintScan.collect(unit, sink -> new ChainPathScanner<>() {
             @Override
             public Void scan(@Nullable final Tree tree, @Nullable final Void p) {
                 if (tree instanceof ExpressionTree) {
                     final var path = new TreePath(getCurrentPath(), tree);
-                    found.add(path);
+                    sink.add(path);
                     addSelectLinks(path);
                 }
                 return super.scan(tree, null);
@@ -247,13 +245,13 @@ class VarRetypingCheck {
 
             @Override
             protected void visitInvocation(final MethodInvocationTree node, final Void p) {
-                found.add(getCurrentPath());
+                sink.add(getCurrentPath());
                 addSelectLinks(getCurrentPath());
             }
 
             @Override
             protected void visitBinaryOperator(final BinaryTree node, final Void p) {
-                found.add(getCurrentPath());
+                sink.add(getCurrentPath());
             }
 
             private void addSelectLinks(final TreePath path) {
@@ -264,12 +262,11 @@ class VarRetypingCheck {
                 };
                 if (inner instanceof MemberSelectTree select) {
                     final var selectPath = new TreePath(path, select);
-                    found.add(selectPath);
+                    sink.add(selectPath);
                     addSelectLinks(selectPath);
                 }
             }
-        }.scan(new TreePath(unit.tree()), null);
-        return List.copyOf(found);
+        });
     }
 
     private record Key(Tree.Kind kind, long start, long end) {}

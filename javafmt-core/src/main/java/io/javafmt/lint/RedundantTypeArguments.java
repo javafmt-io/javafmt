@@ -333,14 +333,13 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
     }
 
     private static Map<Integer, TreePath> callsByMethodNameStart(final ParsedUnit unit) {
-        final var calls = new ArrayList<TreePath>();
-        new ChainPathScanner<Void, Void>() {
+        return LintScan.<TreePath>collect(unit, calls -> new ChainPathScanner<>() {
             @Override
             protected void visitInvocation(final MethodInvocationTree node, final Void p) {
                 calls.add(getCurrentPath());
             }
-        }.scan(new TreePath(unit.tree()), null);
-        return calls.stream()
+        })
+                .stream()
                 .collect(Collectors.toMap(path -> methodNameStart((MethodInvocationTree) path.getLeaf(), unit), path -> path, (first, _) -> first));
     }
 

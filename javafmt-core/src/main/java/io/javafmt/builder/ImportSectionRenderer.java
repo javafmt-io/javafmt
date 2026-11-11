@@ -7,8 +7,9 @@ import lombok.experimental.UtilityClass;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.TreeMap;
 import java.util.function.Function;
-import java.util.stream.IntStream;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -19,15 +20,12 @@ final class ImportSectionRenderer {
         if (imports.isEmpty()) {
             return Stream.empty();
         }
-        final var sorted = imports.stream()
+        final var groups = imports.stream()
                 .map(NamedImport::of)
                 .sorted(Comparator.comparing(NamedImport::name))
-                .toList();
-        final var groups = IntStream.rangeClosed(0, 3)
-                .mapToObj(key -> sorted.stream()
-                        .filter(i -> i.groupKey() == key)
-                        .toList())
-                .filter(group -> !group.isEmpty())
+                .collect(Collectors.groupingBy(NamedImport::groupKey, TreeMap::new, Collectors.toList()))
+                .values()
+                .stream()
                 .flatMap(group -> Stream.concat(Stream.of(Doc.HARD_LINE), group.stream()
                         .flatMap(i -> renderImport(i, unit))))
                 .skip(1);
