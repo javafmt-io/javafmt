@@ -462,7 +462,7 @@ final class BatchFormatter {
                                                 final Renderer renderer,
                                                 final Function<List<String>, List<Prepared>> parser) {
         try {
-            final var parsed = rejectingCommentsBetweenCode(sources, parser.apply(sources));
+            final var parsed = rejectingMisplacedComments(parser.apply(sources));
             final var settled = settled(
                     new Settled(
                             sources,
@@ -499,15 +499,13 @@ final class BatchFormatter {
         }
     }
 
-    private List<Prepared> rejectingCommentsBetweenCode(final List<String> sources, final List<Prepared> parsed) {
-        return IntStream.range(0, parsed.size())
-                .mapToObj(i -> parsed.get(i).context() instanceof Staged.Ok<LintContext>
-                        ? CommentPlacement.commentsBetweenCode(sources.get(i))
-                                .map(rejected -> new Prepared(
-                                        new Staged.Failed<>(rejected),
-                                        parsed.get(i).warnings()))
-                                .orElse(parsed.get(i))
-                        : parsed.get(i))
+    private List<Prepared> rejectingMisplacedComments(final List<Prepared> parsed) {
+        return parsed.stream()
+                .map(prepared -> prepared.context() instanceof Staged.Ok<LintContext>(var context)
+                        ? CommentPlacement.misplacedComments(context.unit())
+                                .map(rejected -> new Prepared(new Staged.Failed<>(rejected), prepared.warnings()))
+                                .orElse(prepared)
+                        : prepared)
                 .toList();
     }
 

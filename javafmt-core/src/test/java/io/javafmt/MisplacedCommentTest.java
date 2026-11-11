@@ -14,6 +14,34 @@ class MisplacedCommentTest {
 
     private static final String MESSAGE = "a comment goes on its own line or at the end of a line, not between code";
 
+    private static final String UNSUPPORTED = "javafmt cannot keep a comment here; move it above the statement or to the end of a line";
+
+    @ParameterizedTest
+    @MethodSource("commentsInUnsupportedPositions")
+    void aCommentWhereNoCodeCanCarryItIsAnErrorAndTheFileIsLeftAsWritten(final String source,
+                                                                         final String comment,
+                                                                         final int line,
+                                                                         final int column) {
+        final var result = Javafmt.formatWithResult(source, JavafmtConfig.defaults());
+        assertThat(result.output()).isEqualTo(source);
+        assertThat(result.diagnostics())
+                .containsExactly(new Diagnostic.LintError(UNSUPPORTED, new Position.At(line, column, source.indexOf(comment))));
+    }
+
+    static Stream<Arguments> commentsInUnsupportedPositions() {
+        return Stream.of(
+                Arguments.of(
+                        "class A {\n\n    int f(StringBuilder b) {\n        return b.append(1)\n                // between two calls\n                .length();\n    }\n}\n",
+                        "// between two calls",
+                        5,
+                        17),
+                Arguments.of(
+                        "class A {\n\n    void f(int x) {\n        switch (x) {\n            default:\n                // nothing to do\n        }\n    }\n}\n",
+                        "// nothing to do",
+                        6,
+                        17));
+    }
+
     @ParameterizedTest
     @MethodSource("commentsBetweenCode")
     void aCommentWithCodeOnBothSidesOfItIsAnErrorAndTheFileIsLeftAsWritten(final String source,

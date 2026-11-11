@@ -143,20 +143,6 @@ class DeepExpressionTest {
 
     enum SharedLayout {
 
-        CALLS_BEFORE_A_LOOSE_COMMENT("""
-                class Nested {
-
-                    int calls() {
-                        return %s;
-                    }
-
-                    int after(final StringBuilder builder) {
-                        return builder.append(1)
-                                // loose
-                                .length();
-                    }
-                }
-                """, "f(a, ", "1", ")"),
         ANNOTATION_ARRAYS("""
                 class Nested {
 

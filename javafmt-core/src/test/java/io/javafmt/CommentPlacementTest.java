@@ -75,9 +75,13 @@ class CommentPlacementTest {
                 .map(Diagnostic::message)
                 .toList();
         assertThat(internalErrors).as("formatting %s", name).isEmpty();
-        assertThat(result.diagnostics())
-                .as("diagnostics formatting %s", name)
-                .noneMatch(Diagnostic.LintError.class::isInstance);
+        if (result.diagnostics().stream()
+                .anyMatch(Diagnostic.LintError.class::isInstance)) {
+            assertThat(result.output())
+                    .as("a rejected file is left as written: %s", name)
+                    .isEqualTo(input);
+            return;
+        }
         final var output = result.output();
         final var scanned = TokenScanner.scan(output);
         final var outputTokens = IntStream.range(0, scanned.size())

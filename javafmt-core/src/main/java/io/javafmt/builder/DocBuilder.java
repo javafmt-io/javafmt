@@ -506,7 +506,7 @@ public final class DocBuilder {
         Objects.requireNonNull(unit, "unit");
         Objects.requireNonNull(config, "config");
         final var builder = new DocBuilder(unit);
-        final var doc = LooseComments.weave(builder.visitCompilationUnit(unit.tree()), unit);
+        final var doc = builder.visitCompilationUnit(unit.tree());
         return new BuildResult(Objects.requireNonNull(doc, "visitCompilationUnit returned null"), List.copyOf(builder.diagnostics));
     }
 

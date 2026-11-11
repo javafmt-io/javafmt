@@ -7,6 +7,8 @@ import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ConditionalExpressionTree;
+import com.sun.source.tree.DoWhileLoopTree;
+import com.sun.source.tree.EnhancedForLoopTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ForLoopTree;
 import com.sun.source.tree.IfTree;
@@ -19,12 +21,14 @@ import com.sun.source.tree.ModuleTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.PackageTree;
+import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TryTree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.tree.WhileLoopTree;
 import com.sun.source.util.SourcePositions;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
@@ -808,6 +812,7 @@ final class CommentAttacher {
          */
         @Override
         public Void visitIf(final IfTree node, final Void p) {
+            collectUnbracedBody(node, node.getThenStatement());
             final var elseStatement = node.getElseStatement();
             if (elseStatement != null) {
                 final var thenEnd = pos.getEndPosition(cu, node.getThenStatement());
@@ -817,6 +822,9 @@ final class CommentAttacher {
                     slots.add(new Slot(null, node, thenEnd, elseKeyword, Kind.BRACE_LINE, Reach.SAME_LINE));
                     slots.add(new Slot(null, node, thenEnd, elseKeyword, Kind.INTERIOR));
                     slots.add(new Slot(null, node, elseKeyword + 4L, elseStart, Kind.TAIL));
+                    if (!(elseStatement instanceof IfTree)) {
+                        collectUnbracedBody(node, elseStatement);
+                    }
                 }
             }
             return super.visitIf(node, null);
@@ -833,7 +841,35 @@ final class CommentAttacher {
             IntStream.range(0, parts.size() - 1).forEach(i -> collectBeforeInitializerSeparator(parts.get(i), parts.get(i + 1)));
             IntStream.range(0, parts.size() - 1).forEach(i -> collectPastTheSeparator(parts.get(i), parts.get(i + 1)));
             collectBeforeClosingParenthesis(node, parts);
+            collectUnbracedBody(node, node.getStatement());
             return super.visitForLoop(node, null);
+        }
+
+        @Override
+        public Void visitEnhancedForLoop(final EnhancedForLoopTree node, final Void p) {
+            collectUnbracedBody(node, node.getStatement());
+            return super.visitEnhancedForLoop(node, null);
+        }
+
+        @Override
+        public Void visitWhileLoop(final WhileLoopTree node, final Void p) {
+            collectUnbracedBody(node, node.getStatement());
+            return super.visitWhileLoop(node, null);
+        }
+
+        @Override
+        public Void visitDoWhileLoop(final DoWhileLoopTree node, final Void p) {
+            collectUnbracedBody(node, node.getStatement());
+            return super.visitDoWhileLoop(node, null);
+        }
+
+        private void collectUnbracedBody(final Tree compound, final StatementTree body) {
+            final var headerEnd = CompoundHeaders.endBefore(body, compound, cu, pos, source);
+            final var bodyStart = pos.getStartPosition(cu, body);
+            if (!(body instanceof BlockTree) && headerEnd >= 0 && bodyStart > headerEnd) {
+                slots.add(new Slot(null, body, headerEnd, bodyStart, Kind.BRACE_LINE, Reach.SAME_LINE));
+                slots.add(new Slot(null, body, headerEnd, bodyStart, Kind.LEADING));
+            }
         }
 
         private void collectPastTheSeparator(final Tree part, final Tree next) {
