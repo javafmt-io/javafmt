@@ -10,6 +10,7 @@ import io.javafmt.doc.Doc;
 import io.javafmt.doc.LeadingCommentAttacher;
 import org.jspecify.annotations.Nullable;
 
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 interface Recursor extends LeadingCommentAttacher {
@@ -24,6 +25,8 @@ interface Recursor extends LeadingCommentAttacher {
 
     @Nullable
     Doc scanNullable(Tree node);
+
+    <T> T renderingEachTreeOnce(Supplier<T> layouts);
 
     void emitWarning(String message, Tree at);
 
