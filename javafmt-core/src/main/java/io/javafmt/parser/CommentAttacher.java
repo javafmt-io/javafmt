@@ -270,16 +270,9 @@ final class CommentAttacher {
                                         final SourcePositions pos,
                                         final List<Slot> slots,
                                         final List<long[]> opaque) {
-        final var cuChildren = new ArrayList<Tree>();
-        if (cu.getPackage() != null) {
-            cuChildren.add(cu.getPackage());
-        }
-        cuChildren.addAll(cu.getImports());
-        if (cu.getModule() != null) {
-            cuChildren.add(cu.getModule());
-        }
-        cuChildren.addAll(cu.getTypeDecls());
-        final var ordered = cuChildren.stream()
+        final var ordered = Stream.of(
+                        Stream.ofNullable(cu.getPackage()), cu.getImports().stream(), Stream.ofNullable(cu.getModule()), cu.getTypeDecls().stream())
+                .<Tree>flatMap(stream -> stream)
                 .filter(t -> pos.getStartPosition(cu, t) >= 0)
                 .sorted(Comparator.comparingLong(t -> pos.getStartPosition(cu, t)))
                 .toList();
@@ -832,11 +825,9 @@ final class CommentAttacher {
 
         @Override
         public Void visitForLoop(final ForLoopTree node, final Void p) {
-            final var parts = new ArrayList<Tree>(node.getInitializer());
-            if (node.getCondition() != null) {
-                parts.add(node.getCondition());
-            }
-            parts.addAll(node.getUpdate());
+            final var parts = Stream.of(node.getInitializer().stream(), Stream.ofNullable(node.getCondition()), node.getUpdate().stream())
+                    .<Tree>flatMap(stream -> stream)
+                    .toList();
             collect(node, parts, false);
             IntStream.range(0, parts.size() - 1).forEach(i -> collectBeforeInitializerSeparator(parts.get(i), parts.get(i + 1)));
             IntStream.range(0, parts.size() - 1).forEach(i -> collectPastTheSeparator(parts.get(i), parts.get(i + 1)));

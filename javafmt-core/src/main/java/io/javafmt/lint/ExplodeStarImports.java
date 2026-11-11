@@ -8,7 +8,6 @@ import io.javafmt.parser.Attribution;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ParsedUnit;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -72,8 +71,7 @@ public final class ExplodeStarImports implements LintRule {
      * be exploded without that name, which costs a {@code -Xdoclint} warning rather than a build.
      */
     private static Optional<List<Element>> resolveUses(final ParsedUnit unit, final Attribution attribution) {
-        final var identifierPaths = new ArrayList<TreePath>();
-        new ChainPathScanner<Void, Void>() {
+        final var elements = LintScan.<TreePath>collect(unit, identifierPaths -> new ChainPathScanner<>() {
             @Override
             public Void visitImport(final ImportTree node, final Void p) {
                 return null;
@@ -84,8 +82,8 @@ public final class ExplodeStarImports implements LintRule {
                 identifierPaths.add(getCurrentPath());
                 return null;
             }
-        }.scan(new TreePath(unit.tree()), null);
-        final var elements = identifierPaths.stream()
+        })
+                .stream()
                 .map(path -> attribution.trees().getElement(path))
                 .toList();
         final var anyUnresolved = elements.stream()
