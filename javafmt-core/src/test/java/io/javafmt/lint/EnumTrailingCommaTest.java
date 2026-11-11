@@ -80,7 +80,7 @@ class EnumTrailingCommaTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"enum WithBody { A, B /* c */,; void m() { call(); } }\n", "enum E { A, B /* c */,; }\n"})
+    @ValueSource(strings = {"enum WithBody { A, B /* c */\n,; void m() { call(); } }\n", "enum E { A, B /* c */\n,; }\n"})
     void aCommaAfterACommentInFrontOfTheSemicolonFormatsWithoutBeingRefused(final String source) {
         assertThat(Javafmt.formatWithResult(source).diagnostics()).isEmpty();
     }

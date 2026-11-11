@@ -8,11 +8,13 @@ class Fixture {
                 });
         visits.compute(
                 id,
-                /* the key */ (_, count) -> {
+                /* the key */
+                (_, count) -> {
                     return count + 1;
                 });
         visits.compute(
-                /* the key */ id,
+                /* the key */
+                id,
                 (_, count) -> {
                     return count + 1;
                 });

@@ -208,7 +208,7 @@ final class MethodChainRenderer {
         return new Link(
                 CommentDocs.appendTrailing(link.doc(), comments),
                 CommentDocs.appendTrailing(link.onItsOwnLine(), comments),
-                CommentDocs.hasLineComment(comments),
+                CommentDocs.endsTheLine(comments),
                 true,
                 false,
                 link.endsTheFirstLine());

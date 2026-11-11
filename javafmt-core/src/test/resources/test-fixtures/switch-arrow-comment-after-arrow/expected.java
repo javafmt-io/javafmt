@@ -4,7 +4,6 @@ class Fixture {
         switch (kind) {
             case 1 -> // one item
                 runOne();
-            case 2 -> /* two items */ runOne();
             case 3 -> { // three items
                 runOne();
             }

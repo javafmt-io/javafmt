@@ -15,8 +15,6 @@ class Fixture {
         // three is left out
     };
 
-    static final int[] EMPTY = { /* nothing yet */ };
-
     static final int[] EMPTY_LINE = {
         // nothing yet
     };

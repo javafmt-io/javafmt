@@ -92,11 +92,7 @@ final class BlockRenderer {
     }
 
     private int besideCount(final List<CommentToken> braceLine) {
-        return IntStream.range(0, braceLine.size())
-                .filter(i -> braceLine.get(i).text().startsWith("//"))
-                .findFirst()
-                .orElse(braceLine.size() - 1)
-                + 1;
+        return Math.min(1, braceLine.size());
     }
 
     private List<CommentToken> braceLineOf(final StatementTree body, final Recursor recursor) {

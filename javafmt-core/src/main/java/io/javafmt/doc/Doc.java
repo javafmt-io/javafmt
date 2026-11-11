@@ -94,7 +94,9 @@ public sealed interface Doc
     static boolean endsWithLineComment(final Doc doc) {
         return switch (doc) {
             case Text(var s) ->
-                s.stripTrailing().startsWith("//") || s.stripTrailing().contains("\n//");
+                s.stripTrailing().startsWith("//")
+                    || s.stripTrailing().contains("\n//")
+                    || s.strip().startsWith("/*");
             case Verbatim(var s, var _) -> s.stripTrailing().startsWith("//");
             case Indent(var inner) -> endsWithLineComment(inner);
             case Align(var inner) -> endsWithLineComment(inner);

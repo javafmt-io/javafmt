@@ -15,8 +15,5 @@ class Fixture {
         ) {
             reader.read();
         }
-        try (in /* given */) {
-            in.read();
-        }
     }
 }

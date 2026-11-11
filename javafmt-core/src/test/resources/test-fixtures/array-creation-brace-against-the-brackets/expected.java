@@ -7,5 +7,4 @@ class Fixture {
             "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
             "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
     };
-    int[] sized = new int[] /* sized below */ {1, 2};
 }
