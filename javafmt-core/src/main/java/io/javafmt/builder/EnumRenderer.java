@@ -122,7 +122,7 @@ final class EnumRenderer {
      * leaving a blank line above the brace.
      */
     private Doc beforeTheClosingBrace(final List<CommentToken> pastTheLastSeparator, final List<CommentToken> afterTheLastConstant) {
-        return pastTheLastSeparator.isEmpty() && !CommentDocs.endsTheLine(afterTheLastConstant) ? Doc.LINE : Doc.HARD_LINE;
+        return pastTheLastSeparator.isEmpty() && afterTheLastConstant.isEmpty() ? Doc.LINE : Doc.HARD_LINE;
     }
 
     /**

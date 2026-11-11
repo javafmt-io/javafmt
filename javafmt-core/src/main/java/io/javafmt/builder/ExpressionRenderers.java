@@ -181,11 +181,8 @@ final class ExpressionRenderers {
         if (comments.isEmpty()) {
             return new Doc.Text(brace + "}");
         }
-        if (CommentDocs.endsTheLine(comments)) {
-            final var lines = new Doc.Concat(CommentDocs.eachOnItsOwnLine(comments));
-            return Doc.concat(new Doc.Text(brace), Doc.continuationIndent(lines), Doc.HARD_LINE, new Doc.Text("}"));
-        }
-        return Doc.concat(CommentDocs.appendTrailing(new Doc.Text(brace), comments), new Doc.Text(" }"));
+        final var lines = new Doc.Concat(CommentDocs.eachOnItsOwnLine(comments));
+        return Doc.concat(new Doc.Text(brace), Doc.continuationIndent(lines), Doc.HARD_LINE, new Doc.Text("}"));
     }
 
     Doc renderNewArray(final NewArrayTree node, final Recursor recursor) {
