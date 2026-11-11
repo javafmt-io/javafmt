@@ -73,7 +73,7 @@ final class CommentDocs {
         if (separator.isEmpty()) {
             return recursor.scanBeforeComments(tree, adjust);
         }
-        if (endsTheLine(recursor.trailing(tree))) {
+        if (!recursor.trailing(tree).isEmpty()) {
             return recursor.scanBeforeComments(tree, d -> Doc.concat(adjust.apply(d), new Doc.Text(separator)));
         }
         return Doc.concat(recursor.scanBeforeComments(tree, adjust), new Doc.Text(separator));
@@ -84,14 +84,10 @@ final class CommentDocs {
     }
 
     private Doc attachedWithSeparator(final Tree item, final Doc doc, final Doc separator, final LeadingCommentAttacher attacher) {
-        if (endsTheLine(attacher.trailing(item))) {
+        if (!attacher.trailing(item).isEmpty()) {
             return attacher.attach(item, Doc.concat(doc, separator));
         }
         return Doc.concat(attacher.attach(item, doc), separator);
-    }
-
-    boolean endsTheLine(final List<CommentToken> comments) {
-        return !comments.isEmpty();
     }
 
     Doc closeAfter(final Doc doc, final List<CommentToken> ownLine, final String closer) {

@@ -27,32 +27,20 @@ final class CallArguments {
         final var trailing = IntStream.range(0, arguments.size())
                 .mapToObj(i -> i + 1 < arguments.size() ? recursor.trailing(arguments.get(i)) : List.<CommentToken>of())
                 .toList();
-        final var lineCommentAfter = IntStream.range(0, arguments.size())
-                .mapToObj(i -> CommentDocs.endsTheLine(trailing.get(i))
-                    || (i + 1 < arguments.size() && CommentDocs.endsTheLine(recursor.pastTheSeparatorBefore(arguments.get(i + 1)))))
-                .toList();
-        final var inline = IntStream.range(0, arguments.size())
-                .mapToObj(i -> lineCommentAfter.get(i) ? List.<CommentToken>of() : trailing.get(i))
-                .toList();
         final var pastTheSeparator = IntStream.range(0, arguments.size())
                 .mapToObj(i -> i == 0
                         ? recursor.pastTheSeparatorBefore(arguments.getFirst())
-                        : Stream.concat(
-                                        lineCommentAfter.get(i - 1)
-                                                ? trailing.get(i - 1).stream()
-                                                : Stream.<CommentToken>empty(),
-                                        recursor.pastTheSeparatorBefore(arguments.get(i)).stream())
+                        : Stream.concat(trailing.get(i - 1).stream(), recursor.pastTheSeparatorBefore(arguments.get(i)).stream())
                                 .toList())
                 .toList();
         final var others = IntStream.range(0, arguments.size() - 1)
-                .mapToObj(i -> withInlineComments(i, inline, renderArgument(arguments, i, trailing, recursor)))
+                .mapToObj(i -> renderArgument(arguments, i, trailing, recursor))
                 .toList();
         final var chain = lastCall && arguments.getLast() instanceof MethodInvocationTree last
                 ? Optional.of(recursor.scanChain(last))
                 : Optional.<MethodChainRenderer.ChainDocs>empty();
         final var lastDoc = chain.map(MethodChainRenderer.ChainDocs::doc).orElseGet(() -> recursor.scan(arguments.getLast()));
-        final var rendered = Stream.concat(others.stream(), Stream.of(withInlineComments(arguments.size() - 1, inline, lastDoc)))
-                .toList();
+        final var rendered = Stream.concat(others.stream(), Stream.of(lastDoc)).toList();
         final var closing = Doc.endsWithLineComment(rendered.getLast()) ? Doc.concat(Doc.HARD_LINE, new Doc.Text(")")) : new Doc.Text(")");
         final var packed = new Doc.Group(
                 Doc.concat(
@@ -121,10 +109,6 @@ final class CallArguments {
                         ? new Doc.Choice(onTheCallLine, firstOnTheCallLine, Doc.Choice.Fit.OPENING_LINE)
                         : firstOnTheCallLine,
                 false);
-    }
-
-    private Doc withInlineComments(final int index, final List<List<CommentToken>> inline, final Doc argument) {
-        return CommentDocs.prepend(index == 0 ? List.of() : inline.get(index - 1), argument);
     }
 
     private Doc onTheCallLine(final List<Doc> others, final Doc last) {

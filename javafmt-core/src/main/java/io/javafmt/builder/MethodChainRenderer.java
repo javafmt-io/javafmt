@@ -86,7 +86,7 @@ final class MethodChainRenderer {
 
     private boolean everyLinkStaysOnOneLine(final List<Link> links) {
         return links.stream()
-                .allMatch(link -> !link.endsTheLine() && !link.endsWithComment() && Doc.flatWidthOrBreak(link.doc()) >= 0);
+                .allMatch(link -> !link.endsTheLine() && Doc.flatWidthOrBreak(link.doc()) >= 0);
     }
 
     private OptionalInt choppedAfter(final List<Link> links) {
@@ -129,16 +129,13 @@ final class MethodChainRenderer {
     }
 
     private Doc separatorAfter(final Link link) {
-        if (link.endsTheLine()) {
-            return Doc.HARD_LINE;
-        }
-        return link.endsWithComment() ? Doc.LINE : Doc.SOFT_LINE;
+        return link.endsTheLine() ? Doc.HARD_LINE : Doc.SOFT_LINE;
     }
 
     private Doc joined(final List<Link> links) {
         return new Doc.Concat(IntStream.range(0, links.size())
                 .boxed()
-                .flatMap(i -> i > 0 && links.get(i - 1).endsWithComment()
+                .flatMap(i -> i > 0 && links.get(i - 1).endsTheLine()
                         ? Stream.of(new Doc.Text(" "), links.get(i).doc())
                         : Stream.of(links.get(i).doc()))
                 .toList());
@@ -158,22 +155,22 @@ final class MethodChainRenderer {
             final var endsTheFirstLine = FIRST_LINE_ENDS.contains(
                     ms.getIdentifier().toString());
             if (ms.getExpression() instanceof MethodInvocationTree) {
-                return List.of(new Link(callSuffix, onItsOwnLine, false, false, arguments.hugsLastArgument(), endsTheFirstLine));
+                return List.of(new Link(callSuffix, onItsOwnLine, false, arguments.hugsLastArgument(), endsTheFirstLine));
             }
             final var receiver = recursor.scan(ms.getExpression());
             if (createsABuilder(ms.getExpression())) {
                 final var commented = Doc.endsWithLineComment(receiver);
                 return List.of(
-                        new Link(receiver, receiver, commented, commented, false, true),
-                        new Link(callSuffix, onItsOwnLine, false, false, arguments.hugsLastArgument(), endsTheFirstLine));
+                        new Link(receiver, receiver, commented, false, true),
+                        new Link(callSuffix, onItsOwnLine, false, arguments.hugsLastArgument(), endsTheFirstLine));
             }
             final var first = Doc.concat(receiver, callSuffix);
-            return List.of(new Link(first, first, false, false, arguments.hugsLastArgument(), endsTheFirstLine));
+            return List.of(new Link(first, first, false, arguments.hugsLastArgument(), endsTheFirstLine));
         }
         final var head = new Doc.Concat(Stream.concat(typeArguments(call, recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
         final var arguments = CallArguments.render(call, call.getArguments(), lastCall, recursor);
         final var first = Doc.concat(head, arguments.doc());
-        return List.of(new Link(first, first, false, false, arguments.hugsLastArgument(), false));
+        return List.of(new Link(first, first, false, arguments.hugsLastArgument(), false));
     }
 
     private boolean createsABuilder(final ExpressionTree receiver) {
@@ -208,7 +205,6 @@ final class MethodChainRenderer {
         return new Link(
                 CommentDocs.appendTrailing(link.doc(), comments),
                 CommentDocs.appendTrailing(link.onItsOwnLine(), comments),
-                CommentDocs.endsTheLine(comments),
                 true,
                 false,
                 link.endsTheFirstLine());
@@ -227,17 +223,7 @@ final class MethodChainRenderer {
                         Stream.of(new Doc.Text(">"))));
     }
 
-    /**
-     * One link of the chain. {@code endsTheLine} marks a link whose own trailing {@code //}
-     * comment closes the line, so the link after it has to start a new one however the enclosing
-     * group prints.
-     */
-    private record Link(Doc doc,
-                        Doc onItsOwnLine,
-                        boolean endsTheLine,
-                        boolean endsWithComment,
-                        boolean hugsLastArgument,
-                        boolean endsTheFirstLine) {}
+    private record Link(Doc doc, Doc onItsOwnLine, boolean endsTheLine, boolean hugsLastArgument, boolean endsTheFirstLine) {}
 
     record ChainDocs(Doc doc, Optional<Doc> brokenAfterHead) {}
 }
