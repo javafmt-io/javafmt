@@ -5,9 +5,14 @@ import lombok.experimental.UtilityClass;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @UtilityClass
 public final class CommentScanner {
+
+    final String WHITESPACE_OR_COMMENT = "\\p{javaWhitespace}++|//[^\\n]*+|/\\*(?s:.*?)\\*/";
+
+    private final Pattern WHITESPACE_AND_COMMENTS = Pattern.compile("(?:" + WHITESPACE_OR_COMMENT + ")*+");
 
     public List<CommentToken> scan(final String source) {
         Objects.requireNonNull(source, "source");
@@ -37,6 +42,12 @@ public final class CommentScanner {
             i++;
         }
         return List.copyOf(comments);
+    }
+
+    public int skipWhitespaceAndComments(final String source, final int from) {
+        final var matcher = WHITESPACE_AND_COMMENTS.matcher(source).region(from, source.length());
+        matcher.lookingAt();
+        return matcher.end();
     }
 
     /**

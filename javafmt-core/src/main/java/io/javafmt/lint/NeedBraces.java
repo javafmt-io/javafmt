@@ -6,8 +6,10 @@ import com.sun.source.tree.EnhancedForLoopTree;
 import com.sun.source.tree.ForLoopTree;
 import com.sun.source.tree.IfTree;
 import com.sun.source.tree.StatementTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.WhileLoopTree;
 import io.javafmt.parser.ChainScanner;
+import io.javafmt.parser.CompoundHeaders;
 import io.javafmt.parser.ParsedUnit;
 import org.jspecify.annotations.Nullable;
 
@@ -36,50 +38,50 @@ public final class NeedBraces implements LintRule {
         return LintScan.edits(context, edits -> new ChainScanner<>() {
             @Override
             public Void visitIf(final IfTree node, final Void p) {
-                addEditsFor(node.getThenStatement(), edits, unit);
+                addEditsFor(node, node.getThenStatement(), edits, unit);
                 final var elseStatement = node.getElseStatement();
                 if (elseStatement != null && !(elseStatement instanceof IfTree)) {
-                    addEditsFor(elseStatement, edits, unit);
+                    addEditsFor(node, elseStatement, edits, unit);
                 }
                 return super.visitIf(node, null);
             }
 
             @Override
             public Void visitWhileLoop(final WhileLoopTree node, final Void p) {
-                addEditsFor(node.getStatement(), edits, unit);
+                addEditsFor(node, node.getStatement(), edits, unit);
                 return super.visitWhileLoop(node, null);
             }
 
             @Override
             public Void visitDoWhileLoop(final DoWhileLoopTree node, final Void p) {
-                addEditsFor(node.getStatement(), edits, unit);
+                addEditsFor(node, node.getStatement(), edits, unit);
                 return super.visitDoWhileLoop(node, null);
             }
 
             @Override
             public Void visitForLoop(final ForLoopTree node, final Void p) {
-                addEditsFor(node.getStatement(), edits, unit);
+                addEditsFor(node, node.getStatement(), edits, unit);
                 return super.visitForLoop(node, null);
             }
 
             @Override
             public Void visitEnhancedForLoop(final EnhancedForLoopTree node, final Void p) {
-                addEditsFor(node.getStatement(), edits, unit);
+                addEditsFor(node, node.getStatement(), edits, unit);
                 return super.visitEnhancedForLoop(node, null);
             }
         });
     }
 
-    private static void addEditsFor(@Nullable final StatementTree body, final List<LintEdit> edits, final ParsedUnit unit) {
+    private static void addEditsFor(final Tree compound, @Nullable final StatementTree body, final List<LintEdit> edits, final ParsedUnit unit) {
         if (body == null || body instanceof BlockTree) {
             return;
         }
-        final var start = unit.startOf(body);
+        final var headerEnd = CompoundHeaders.endBefore(body, compound, unit.tree(), unit.sourcePositions(), unit.source());
         final var end = unit.endOf(body);
-        if (start < 0 || end < 0) {
+        if (headerEnd < 0 || end < 0) {
             return;
         }
-        edits.add(LintEdit.insert(start, "{ "));
+        edits.add(LintEdit.insert((int) headerEnd, " {"));
         edits.add(LintEdit.insert(end, " }"));
     }
 }
