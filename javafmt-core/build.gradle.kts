@@ -187,3 +187,7 @@ if (jmhProfile != null) {
         }
     }
 }
+
+tasks.named<Test>("test") {
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+}

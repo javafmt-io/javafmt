@@ -171,10 +171,13 @@ class JavafmtFormatAllTest {
     @Test
     void aFileThatCrashesJavacAttributionDoesNotCostItsNeighbourItsAttribution() {
         final var neighbour = analyzeSensitiveSources().getLast();
-        final var pathological = "class Deep {\n    int value = " + "1 + ".repeat(100_000) + "1;\n}\n";
+        final var pathological = "class Deep {\n    int value = " + "1 + ".repeat(20_000) + "1;\n}\n";
         final var results = Javafmt.formatAll(List.of(neighbour, pathological), ANALYZE, 1);
         assertThat(results.getFirst()).isEqualTo(Javafmt.formatWithResult(neighbour, ANALYZE));
-        assertThat(results.get(1).diagnostics()).isNotEmpty();
+        assertThat(results.get(1).diagnostics())
+                .singleElement()
+                .extracting(Diagnostic::message, InstanceOfAssertFactories.STRING)
+                .contains("attribution failed");
     }
 
     @Test
