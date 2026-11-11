@@ -1,11 +1,11 @@
 package io.javafmt.builder;
 
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.Pairs;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -53,13 +53,14 @@ final class WrappableList {
     }
 
     Doc openedSeparated(final String open, final List<Element> elements) {
-        final var breaks = IntStream.range(1, elements.size())
-                .mapToObj(i -> Stream.of(
-                        elements.get(i - 1).endsItsLine() ? Doc.HARD_LINE : Doc.LINE,
-                        elements.get(i).doc()))
-                .flatMap(Function.identity());
-        final var interior = new Doc.Concat(
-                Stream.concat(Stream.of(Doc.SOFT_LINE, elements.getFirst().doc()), breaks));
+        final var interior = new Doc.Concat(elements.stream()
+                .gather(Pairs.<Element, Stream<Doc>>withPrevious((
+                        previous,
+                        element) -> Stream.of(
+                        previous.map(p -> p.endsItsLine() ? Doc.HARD_LINE : Doc.LINE)
+                                .orElse(Doc.SOFT_LINE),
+                        element.doc())))
+                .flatMap(Function.identity()));
         return Doc.concat(new Doc.Text(open), Doc.continuationIndent(interior));
     }
 

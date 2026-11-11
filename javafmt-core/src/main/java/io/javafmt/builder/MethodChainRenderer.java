@@ -8,6 +8,7 @@ import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.ParameterizedTypeTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.Pairs;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
@@ -121,10 +122,9 @@ final class MethodChainRenderer {
     }
 
     private Doc tail(final List<Link> links, final int from, final Function<Link, Doc> separator) {
-        return new Doc.Concat(IntStream.range(from, links.size())
-                .boxed()
-                .flatMap(i -> Stream.of(
-                        separator.apply(links.get(i - 1)), links.get(i).onItsOwnLine()))
+        return new Doc.Concat(links.subList(from - 1, links.size()).stream()
+                .gather(Pairs.<Link, Stream<Doc>>pairwise((previous, link) -> Stream.of(separator.apply(previous), link.onItsOwnLine())))
+                .flatMap(Function.identity())
                 .toList());
     }
 
@@ -133,11 +133,13 @@ final class MethodChainRenderer {
     }
 
     private Doc joined(final List<Link> links) {
-        return new Doc.Concat(IntStream.range(0, links.size())
-                .boxed()
-                .flatMap(i -> i > 0 && links.get(i - 1).endsTheLine()
-                        ? Stream.of(new Doc.Text(" "), links.get(i).doc())
-                        : Stream.of(links.get(i).doc()))
+        return new Doc.Concat(links.stream()
+                .gather(Pairs.<Link, Stream<Doc>>withPrevious((
+                        previous,
+                        link) -> previous.filter(Link::endsTheLine).isPresent()
+                        ? Stream.of(new Doc.Text(" "), link.doc())
+                        : Stream.of(link.doc())))
+                .flatMap(Function.identity())
                 .toList());
     }
 

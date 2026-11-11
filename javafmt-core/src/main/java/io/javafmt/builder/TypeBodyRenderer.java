@@ -4,13 +4,14 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.Pairs;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -59,18 +60,17 @@ final class TypeBodyRenderer {
      * those blank lines are how a reader is told which constants or fields belong together.
      */
     private Stream<Doc> separated(final List<Member> members, final Recursor recursor) {
-        var previousWantedBlankLine = false;
-        final var parts = new ArrayList<Doc>();
-        for (var i = 0; i < members.size(); i++) {
-            final var member = members.get(i);
-            final var wantsBlankLine = wantsBlankLineAround(member, recursor);
-            if (i > 0 && separatedByBlankLine(members.get(i - 1), member, wantsBlankLine, previousWantedBlankLine, recursor)) {
-                parts.add(Doc.HARD_LINE);
-            }
-            parts.add(Doc.indentedLine(member.doc()));
-            previousWantedBlankLine = wantsBlankLine;
-        }
-        return parts.stream();
+        return members.stream()
+                .map(member -> new Wanting(member, wantsBlankLineAround(member, recursor)))
+                .gather(Pairs.<Wanting, Stream<Doc>>withPrevious((
+                        previous,
+                        current) -> Stream.concat(
+                        previous.filter(p -> separatedByBlankLine(
+                                        p.member(), current.member(), current.wantsBlankLine(), p.wantsBlankLine(), recursor))
+                                .<Doc>map(_ -> Doc.HARD_LINE)
+                                .stream(),
+                        Stream.of(Doc.indentedLine(current.member().doc())))))
+                .flatMap(Function.identity());
     }
 
     private boolean separatedByBlankLine(final Member previous,
@@ -99,6 +99,8 @@ final class TypeBodyRenderer {
                         .stream())
                 .toList();
     }
+
+    private record Wanting(Member member, boolean wantsBlankLine) {}
 
     /** One rendered member of a type body, kept with its tree so the separation rule can read it. */
     record Member(@Nullable Tree tree, Doc doc) {}

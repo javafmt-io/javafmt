@@ -9,10 +9,10 @@ import com.sun.source.tree.ProvidesTree;
 import com.sun.source.tree.RequiresTree;
 import com.sun.source.tree.UsesTree;
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.Pairs;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -46,15 +46,15 @@ final class ModuleRenderer {
     }
 
     private Stream<Doc> bodyStream(final List<? extends DirectiveTree> directives, final Recursor recursor) {
-        return IntStream.range(0, directives.size()).mapToObj(i -> {
-            final var d = directives.get(i);
-            final var doc = recursor.attach(d, renderDirective(d));
-            final var indented = Doc.indentedLine(doc);
-            if (i > 0 && directives.get(i - 1).getKind() != d.getKind()) {
-                return Doc.concat(Doc.HARD_LINE, indented);
-            }
-            return indented;
-        });
+        return directives.stream()
+                .gather(Pairs.<DirectiveTree, Doc>withPrevious((previous, d) -> {
+                    final var doc = recursor.attach(d, renderDirective(d));
+                    final var indented = Doc.indentedLine(doc);
+                    if (previous.filter(p -> p.getKind() != d.getKind()).isPresent()) {
+                        return Doc.concat(Doc.HARD_LINE, indented);
+                    }
+                    return indented;
+                }));
     }
 
     private Doc renderDirective(final DirectiveTree directive) {
