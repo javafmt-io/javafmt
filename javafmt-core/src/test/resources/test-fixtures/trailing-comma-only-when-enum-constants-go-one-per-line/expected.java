@@ -4,8 +4,6 @@ class Fixture {
 
     public enum Action { INGEST }
 
-    enum Kind { FIRST, LAST /* three */ /* four */ }
-
     enum Priority {
 
         HIGH, // first

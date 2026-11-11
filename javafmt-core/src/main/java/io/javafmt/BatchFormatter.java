@@ -5,6 +5,7 @@ import io.javafmt.lint.LintContext;
 import io.javafmt.lint.LintEngine;
 import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.AttributionSession;
+import io.javafmt.parser.CommentPlacement;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParseException;
 import io.javafmt.parser.ParsedUnit;
@@ -461,7 +462,7 @@ final class BatchFormatter {
                                                 final Renderer renderer,
                                                 final Function<List<String>, List<Prepared>> parser) {
         try {
-            final var parsed = parser.apply(sources);
+            final var parsed = rejectingCommentsBetweenCode(sources, parser.apply(sources));
             final var settled = settled(
                     new Settled(
                             sources,
@@ -496,6 +497,18 @@ final class BatchFormatter {
                     .flatMap(i -> formatNormalized(List.of(sources.get(i)), List.of(analyzeSkips.get(i)), config, renderer, parser).stream())
                     .toList();
         }
+    }
+
+    private List<Prepared> rejectingCommentsBetweenCode(final List<String> sources, final List<Prepared> parsed) {
+        return IntStream.range(0, parsed.size())
+                .mapToObj(i -> parsed.get(i).context() instanceof Staged.Ok<LintContext>
+                        ? CommentPlacement.commentsBetweenCode(sources.get(i))
+                                .map(rejected -> new Prepared(
+                                        new Staged.Failed<>(rejected),
+                                        parsed.get(i).warnings()))
+                                .orElse(parsed.get(i))
+                        : parsed.get(i))
+                .toList();
     }
 
     /** Lints every successfully parsed source in one batch, leaving parse failures untouched. */

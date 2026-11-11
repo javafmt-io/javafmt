@@ -75,6 +75,9 @@ class CommentPlacementTest {
                 .map(Diagnostic::message)
                 .toList();
         assertThat(internalErrors).as("formatting %s", name).isEmpty();
+        assertThat(result.diagnostics())
+                .as("diagnostics formatting %s", name)
+                .noneMatch(Diagnostic.LintError.class::isInstance);
         final var output = result.output();
         final var scanned = TokenScanner.scan(output);
         final var outputTokens = IntStream.range(0, scanned.size())
@@ -94,7 +97,7 @@ class CommentPlacementTest {
                 .filter(token -> token.end() <= probeAt)
                 .count()
                 - (index + 1);
-        assertThat(moved == 0 || AllowedMove.allows(probe, tokens.get(index + 1).text(), moved))
+        assertThat(moved == 0 || AllowedMove.allows(tokens.get(index + 1).text(), moved))
                 .as("%s moved %d tokens in%n%s", name, moved, output)
                 .isTrue();
         assertThat(
@@ -113,10 +116,12 @@ class CommentPlacementTest {
                     .as("indentation of the comment's own line in%n%s", output)
                     .isEqualTo(indentOf(lines.get(probeLine + 1)));
         }
-        assertThat(
-                        Javafmt.formatWithResult(
-                                        output, JavafmtConfig.defaults().withVerifyOutput(true))
-                                .output())
+        final var again = Javafmt.formatWithResult(
+                output, JavafmtConfig.defaults().withVerifyOutput(true));
+        assertThat(again.diagnostics())
+                .as("diagnostics formatting %s a second time", name)
+                .noneMatch(Diagnostic.LintError.class::isInstance);
+        assertThat(again.output())
                 .as("formatting %s a second time", name)
                 .isEqualTo(output);
     }
@@ -133,7 +138,7 @@ class CommentPlacementTest {
 
     enum Probe {
 
-        BLOCK(" /* probe */ ", "/* probe */"),
+        BLOCK(" /* probe */\n", "/* probe */"),
         LINE(" // probe\n", "// probe");
 
         private final String inserted;
@@ -148,23 +153,20 @@ class CommentPlacementTest {
 
     enum AllowedMove {
 
-        COMMA_MOVES_BEFORE_THE_COMMENT(",", false),
-        SEMICOLON_MOVES_BEFORE_A_LINE_COMMENT(";", true),
-        BRACE_MOVES_UP_BEFORE_A_LINE_COMMENT("{", true);
+        COMMA_MOVES_BEFORE_THE_COMMENT(","),
+        SEMICOLON_MOVES_BEFORE_THE_COMMENT(";"),
+        BRACE_MOVES_UP_BEFORE_THE_COMMENT("{");
 
         private final String token;
 
-        private final boolean lineCommentsOnly;
-
-        AllowedMove(final String token, final boolean lineCommentsOnly) {
+        AllowedMove(final String token) {
             this.token = token;
-            this.lineCommentsOnly = lineCommentsOnly;
         }
 
-        static boolean allows(final Probe probe, final String next, final int moved) {
+        static boolean allows(final String next, final int moved) {
             return moved == 1
                 && Arrays.stream(values())
-                        .anyMatch(move -> move.token.equals(next) && (probe == Probe.LINE || !move.lineCommentsOnly));
+                        .anyMatch(move -> move.token.equals(next));
         }
     }
 }

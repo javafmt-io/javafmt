@@ -150,8 +150,10 @@ class DeepExpressionTest {
                         return %s;
                     }
 
-                    public /* loose */ int after() {
-                        return 0;
+                    int after(final StringBuilder builder) {
+                        return builder.append(1)
+                                // loose
+                                .length();
                     }
                 }
                 """, "f(a, ", "1", ")"),

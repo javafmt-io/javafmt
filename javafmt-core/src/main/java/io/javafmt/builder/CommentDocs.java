@@ -9,6 +9,7 @@ import lombok.experimental.UtilityClass;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.UnaryOperator;
@@ -49,25 +50,13 @@ final class CommentDocs {
     }
 
     Doc prepend(final List<CommentToken> comments, final Doc doc) {
-        return prepend(comments, List.of(), doc);
-    }
-
-    /**
-     * The leading comments in front of {@code doc}: {@code ownLine} ones each take a line, while
-     * {@code inline} ones — the ones the author wrote on the node's own line, as in
-     * <code>f(/* count *&#47; 3)</code> — stay on it. Giving an inline comment a line of its own puts a
-     * forced break inside the enclosing list, which breaks it however well it would have fitted.
-     */
-    Doc prepend(final List<CommentToken> ownLine, final List<CommentToken> inline, final Doc doc) {
-        if (ownLine.isEmpty() && inline.isEmpty()) {
+        if (comments.isEmpty()) {
             return doc;
         }
         return Doc.concatOf(
                 Stream.of(
-                        ownLine.stream()
+                        comments.stream()
                                 .flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE)),
-                        inline.stream()
-                                .flatMap(c -> Stream.of(renderComment(c), new Doc.Text(" "))),
                         Stream.of(doc)));
     }
 
@@ -84,25 +73,25 @@ final class CommentDocs {
         if (separator.isEmpty()) {
             return recursor.scanBeforeComments(tree, adjust);
         }
-        if (hasLineComment(recursor.trailing(tree))) {
+        if (endsTheLine(recursor.trailing(tree))) {
             return recursor.scanBeforeComments(tree, d -> Doc.concat(adjust.apply(d), new Doc.Text(separator)));
         }
         return Doc.concat(recursor.scanBeforeComments(tree, adjust), new Doc.Text(separator));
     }
 
     Doc attachedWithSeparator(final Tree item, final Doc doc, final String separator, final LeadingCommentAttacher attacher) {
-        if (separator.isEmpty()) {
-            return attacher.attach(item, doc);
-        }
-        if (hasLineComment(attacher.trailing(item))) {
-            return attacher.attach(item, Doc.concat(doc, new Doc.Text(separator)));
-        }
-        return Doc.concat(attacher.attach(item, doc), new Doc.Text(separator));
+        return separator.isEmpty() ? attacher.attach(item, doc) : attachedWithSeparator(item, doc, new Doc.Text(separator), attacher);
     }
 
-    boolean hasLineComment(final List<CommentToken> comments) {
-        return comments.stream()
-                .anyMatch(c -> c.text().startsWith("//"));
+    private Doc attachedWithSeparator(final Tree item, final Doc doc, final Doc separator, final LeadingCommentAttacher attacher) {
+        if (endsTheLine(attacher.trailing(item))) {
+            return attacher.attach(item, Doc.concat(doc, separator));
+        }
+        return Doc.concat(attacher.attach(item, doc), separator);
+    }
+
+    boolean endsTheLine(final List<CommentToken> comments) {
+        return !comments.isEmpty();
     }
 
     Doc closeAfter(final Doc doc, final List<CommentToken> ownLine, final String closer) {
@@ -115,8 +104,18 @@ final class CommentDocs {
     <T extends Tree> Stream<Doc> commaList(final List<? extends T> items,
                                            final LeadingCommentAttacher attacher,
                                            final Function<? super T, Doc> render) {
+        return commaList(items, attacher, render, Optional.empty());
+    }
+
+    <T extends Tree> Stream<Doc> commaList(final List<? extends T> items,
+                                           final LeadingCommentAttacher attacher,
+                                           final Function<? super T, Doc> render,
+                                           final Optional<Doc> lastSeparator) {
         final var rendered = IntStream.range(0, items.size())
-                .mapToObj(i -> attachedWithSeparator(items.get(i), render.apply(items.get(i)), i + 1 < items.size() ? "," : "", attacher))
+                .mapToObj(i -> i + 1 < items.size()
+                        ? attachedWithSeparator(items.get(i), render.apply(items.get(i)), new Doc.Text(","), attacher)
+                        : lastSeparator.map(separator -> attachedWithSeparator(items.get(i), render.apply(items.get(i)), separator, attacher))
+                                .orElseGet(() -> attacher.attach(items.get(i), render.apply(items.get(i)))))
                 .toList();
         return interleaved(rendered, i -> attacher.pastTheSeparatorBefore(items.get(i)));
     }

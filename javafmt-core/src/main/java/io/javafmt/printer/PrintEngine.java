@@ -28,17 +28,20 @@ final class PrintEngine {
         var column = 0;
         var verbatimEnd = 0;
         var lineCommentOpen = false;
+        var blockCommentOpen = false;
         while (!stack.isEmpty()) {
             final var frame = stack.pop();
-            if (lineCommentOpen && isContent(frame.doc())) {
+            if ((lineCommentOpen && isContent(frame.doc())) || (blockCommentOpen && isCode(frame.doc()))) {
                 column = newline(output, verbatimEnd, Math.max(frame.indent(), leadingSpaces(currentLine(output)) + 2 * INDENT_SIZE));
                 lineCommentOpen = false;
+                blockCommentOpen = false;
             }
             switch (frame.doc()) {
                 case Doc.Text(var text) -> {
                     output.append(text);
                     column += text.length();
                     lineCommentOpen = lineCommentOpen || startsALineComment(text);
+                    blockCommentOpen = blockCommentOpen || startsABlockComment(text);
                 }
                 case Doc.Verbatim(var text, var sourceColumn) -> {
                     if (text.startsWith("\n")) {
@@ -59,10 +62,12 @@ final class PrintEngine {
                         column = newline(output, verbatimEnd, frame.indent());
                     }
                     lineCommentOpen = false;
+                    blockCommentOpen = false;
                 }
                 case Doc.Line _, Doc.SoftLine _, Doc.HardLine _ -> {
                     column = newline(output, verbatimEnd, frame.indent());
                     lineCommentOpen = false;
+                    blockCommentOpen = false;
                 }
                 case Doc.Indent(var contents) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
                 case Doc.Align(var contents) -> stack.push(new Frame(column, frame.mode(), contents));
@@ -132,8 +137,16 @@ final class PrintEngine {
         };
     }
 
+    private boolean isCode(final Doc doc) {
+        return isContent(doc) && !(doc instanceof Doc.Text(var text) && (startsALineComment(text) || startsABlockComment(text)));
+    }
+
     private boolean startsALineComment(final String text) {
         return text.stripLeading().startsWith("//");
+    }
+
+    private boolean startsABlockComment(final String text) {
+        return text.stripLeading().startsWith("/*");
     }
 
     private String currentLine(final StringBuilder output) {
@@ -222,6 +235,7 @@ final class PrintEngine {
         final var iterator = upcoming.iterator();
         var consumedCandidate = false;
         var lineCommentEnded = false;
+        var blockCommentEnded = false;
         while (column <= lineWidth) {
             final Frame frame;
             if (!work.isEmpty()) {
@@ -232,10 +246,10 @@ final class PrintEngine {
             } else {
                 return true;
             }
-            if (lineCommentEnded && consumedCandidate) {
+            if ((lineCommentEnded || blockCommentEnded) && consumedCandidate) {
                 return true;
             }
-            if (lineCommentEnded && isContent(frame.doc())) {
+            if ((lineCommentEnded && isContent(frame.doc())) || (blockCommentEnded && isCode(frame.doc()))) {
                 return false;
             }
             switch (frame.doc()) {
@@ -247,6 +261,16 @@ final class PrintEngine {
                         return true;
                     }
                     lineCommentEnded = true;
+                }
+                case Doc.Text(var comment) when startsABlockComment(comment) -> {
+                    if (column + comment.length() > lineWidth) {
+                        return false;
+                    }
+                    if (consumedCandidate) {
+                        return true;
+                    }
+                    column += comment.length();
+                    blockCommentEnded = true;
                 }
                 case Doc.Text(var text) -> column += text.length();
                 case Doc.Verbatim(var text, var _) -> {
@@ -263,6 +287,7 @@ final class PrintEngine {
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
                 case Doc.HardLine _, Doc.LineStart _ -> {
                     lineCommentEnded = false;
+                    blockCommentEnded = false;
                     if (consumedCandidate || effectiveReach == Reach.OPENING_LINE || stopsAtTheFirstBreak(effectiveReach)) {
                         return true;
                     }

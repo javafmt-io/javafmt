@@ -8,10 +8,6 @@ class Account extends Ledger {
         System.out.println(balance);
     }
 
-    Account(long balance) {
-        super(/* opening balance */);
-    }
-
     Account(boolean frozen) {
         super (frozen);
     }

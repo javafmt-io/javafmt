@@ -1,6 +1,7 @@
 package io.javafmt.corpus;
 
 import io.javafmt.Diagnostic;
+import io.javafmt.FormatResult;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
@@ -31,22 +32,27 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
         final var started = System.nanoTime();
         final var result = Javafmt.formatWithResult(entry.source(), config);
         final var millis = (System.nanoTime() - started) / 1_000_000;
-        final var unparseable = result.diagnostics().stream()
-                .anyMatch(d -> d instanceof Diagnostic.ParseError);
-        final var refused = result.diagnostics().stream()
-                .anyMatch(d -> d instanceof Diagnostic.InternalError);
-        if (unparseable || refused) {
-            return new FileOutcome(entry.name(), unparseable, refused, true, true, 0, millis);
+        if (reports(result, Diagnostic.ParseError.class)) {
+            return new FileOutcome.Unparseable(entry.name(), millis);
+        }
+        if (reports(result, Diagnostic.InternalError.class)) {
+            return new FileOutcome.Refused(entry.name(), millis);
+        }
+        if (reports(result, Diagnostic.LintError.class)) {
+            return new FileOutcome.Rejected(entry.name(), millis);
         }
         final var output = result.output();
-        return new FileOutcome(
+        return new FileOutcome.Formatted(
                 entry.name(),
-                false,
-                false,
+                millis,
                 reparses(output),
                 Javafmt.format(output, config).equals(output),
-                overWidthLines(output),
-                millis);
+                overWidthLines(output));
+    }
+
+    private static boolean reports(final FormatResult result, final Class<? extends Diagnostic> kind) {
+        return result.diagnostics().stream()
+                .anyMatch(kind::isInstance);
     }
 
     private static boolean reparses(final String output) {
@@ -89,15 +95,18 @@ record CorpusRun(List<FileOutcome> outcomes, long totalMillis) {
                 .toList();
     }
 
-    /**
-    * What one corpus file did. {@code refused} and {@code unparseable} are mutually exclusive and
-    * both mean javafmt handed the source back untouched, so the layout properties below are only
-    * meaningful — and only counted — for a file that actually produced output.
-    */
-    record FileOutcome(String name, boolean unparseable, boolean refused, boolean reparses, boolean idempotent, int overWidthLines, long millis) {
+    sealed interface FileOutcome {
 
-        boolean formatted() {
-            return !unparseable && !refused;
-        }
+        String name();
+
+        long millis();
+
+        record Unparseable(String name, long millis) implements FileOutcome {}
+
+        record Refused(String name, long millis) implements FileOutcome {}
+
+        record Rejected(String name, long millis) implements FileOutcome {}
+
+        record Formatted(String name, long millis, boolean reparses, boolean idempotent, int overWidthLines) implements FileOutcome {}
     }
 }

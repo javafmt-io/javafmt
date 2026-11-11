@@ -4,7 +4,9 @@ class Fixture {
         call(
                 1, // first
                 2);
-        call(1, /* first */ 2);
+        call(
+                1, /* first */
+                2);
         return new Order(
                 1, // first
                 2);

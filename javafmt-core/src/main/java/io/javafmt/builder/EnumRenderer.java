@@ -11,6 +11,7 @@ import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -38,8 +39,9 @@ final class EnumRenderer {
                     Doc.concatOf(
                             Stream.of(
                                     Stream.of(Doc.LINE),
-                                    CommentDocs.commaList(constants, recursor, c -> renderConstant(c, recursor)),
-                                    Stream.of(trailingSeparator(node, recursor)),
+                                    CommentDocs.commaList(
+                                            constants, recursor, c -> renderConstant(c, recursor), Optional.of(trailingSeparator(node, recursor))),
+                                    constants.isEmpty() ? Stream.of(trailingSeparator(node, recursor)) : Stream.empty(),
                                     pastTheLastSeparator.stream()
                                             .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
                                     commentsAfterTheLastConstant(node, recursor))));
@@ -120,7 +122,7 @@ final class EnumRenderer {
      * leaving a blank line above the brace.
      */
     private Doc beforeTheClosingBrace(final List<CommentToken> pastTheLastSeparator, final List<CommentToken> afterTheLastConstant) {
-        return pastTheLastSeparator.isEmpty() && !CommentDocs.hasLineComment(afterTheLastConstant) ? Doc.LINE : Doc.HARD_LINE;
+        return pastTheLastSeparator.isEmpty() && !CommentDocs.endsTheLine(afterTheLastConstant) ? Doc.LINE : Doc.HARD_LINE;
     }
 
     /**

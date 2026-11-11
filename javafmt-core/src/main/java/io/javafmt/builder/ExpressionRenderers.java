@@ -181,7 +181,7 @@ final class ExpressionRenderers {
         if (comments.isEmpty()) {
             return new Doc.Text(brace + "}");
         }
-        if (CommentDocs.hasLineComment(comments)) {
+        if (CommentDocs.endsTheLine(comments)) {
             final var lines = new Doc.Concat(CommentDocs.eachOnItsOwnLine(comments));
             return Doc.concat(new Doc.Text(brace), Doc.continuationIndent(lines), Doc.HARD_LINE, new Doc.Text("}"));
         }

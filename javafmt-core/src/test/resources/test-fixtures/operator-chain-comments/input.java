@@ -22,7 +22,6 @@ class Fixture {
         final var flags = 1
                 // the second flag
                 | 2;
-        final var total = count * 2 + /* the base */ 3;
         return ok
                 // when everything is ready
                 ? label

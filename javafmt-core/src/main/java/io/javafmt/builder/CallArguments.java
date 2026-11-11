@@ -28,8 +28,8 @@ final class CallArguments {
                 .mapToObj(i -> i + 1 < arguments.size() ? recursor.trailing(arguments.get(i)) : List.<CommentToken>of())
                 .toList();
         final var lineCommentAfter = IntStream.range(0, arguments.size())
-                .mapToObj(i -> CommentDocs.hasLineComment(trailing.get(i))
-                    || (i + 1 < arguments.size() && CommentDocs.hasLineComment(recursor.pastTheSeparatorBefore(arguments.get(i + 1)))))
+                .mapToObj(i -> CommentDocs.endsTheLine(trailing.get(i))
+                    || (i + 1 < arguments.size() && CommentDocs.endsTheLine(recursor.pastTheSeparatorBefore(arguments.get(i + 1)))))
                 .toList();
         final var inline = IntStream.range(0, arguments.size())
                 .mapToObj(i -> lineCommentAfter.get(i) ? List.<CommentToken>of() : trailing.get(i))
@@ -124,7 +124,7 @@ final class CallArguments {
     }
 
     private Doc withInlineComments(final int index, final List<List<CommentToken>> inline, final Doc argument) {
-        return CommentDocs.prepend(List.of(), index == 0 ? List.of() : inline.get(index - 1), argument);
+        return CommentDocs.prepend(index == 0 ? List.of() : inline.get(index - 1), argument);
     }
 
     private Doc onTheCallLine(final List<Doc> others, final Doc last) {
@@ -239,7 +239,8 @@ final class CallArguments {
                     }
                 }
                 case Doc.Text(var text) -> {
-                    if (text.stripLeading().startsWith("//")) {
+                    if (text.stripLeading().startsWith("//")
+                        || text.stripLeading().startsWith("/*")) {
                         return false;
                     }
                 }

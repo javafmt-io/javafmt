@@ -53,12 +53,12 @@ class CorpusGateTest {
 
     @Test
     void noMoreFilesFailToParseThanTheBaselineRecords() {
-        assertRecorded("unparseable", FileOutcome::unparseable, BASELINE.unparseable());
+        assertRecorded("unparseable", FileOutcome.Unparseable.class::isInstance, BASELINE.unparseable());
     }
 
     @Test
     void noMoreFilesAreRefusedThanTheBaselineRecords() {
-        assertRecorded("refused", FileOutcome::refused, BASELINE.refused());
+        assertRecorded("refused", FileOutcome.Refused.class::isInstance, BASELINE.refused());
     }
 
     @Test
@@ -66,17 +66,17 @@ class CorpusGateTest {
         // The only entry here that is corruption rather than a shortfall: javafmt wrote the file
         // and javac cannot read what it wrote. It is recorded the same way as the rest only so the
         // gate could be introduced against the formatter as it is; it belongs at zero.
-        assertRecorded("notReparsing", o -> o.formatted() && !o.reparses(), BASELINE.notReparsing());
+        assertRecorded("notReparsing", o -> o instanceof FileOutcome.Formatted formatted && !formatted.reparses(), BASELINE.notReparsing());
     }
 
     @Test
     void noMoreFilesAreNonIdempotentThanTheBaselineRecords() {
-        assertRecorded("notIdempotent", o -> o.formatted() && !o.idempotent(), BASELINE.notIdempotent());
+        assertRecorded("notIdempotent", o -> o instanceof FileOutcome.Formatted formatted && !formatted.idempotent(), BASELINE.notIdempotent());
     }
 
     @Test
     void noMoreFilesExceedTheLineWidthThanTheBaselineRecords() {
-        assertRecorded("overWidth", o -> o.formatted() && o.overWidthLines() > 0, BASELINE.overWidth());
+        assertRecorded("overWidth", o -> o instanceof FileOutcome.Formatted formatted && formatted.overWidthLines() > 0, BASELINE.overWidth());
     }
 
     @Test
@@ -120,6 +120,7 @@ class CorpusGateTest {
                 javafmt corpus gate — %d files from java.base
                   parse errors            %5d   baseline %d
                   refused (internal)      %5d   baseline %d
+                  rejected (comments)     %5d
                   output does not reparse %5d   baseline %d
                   not idempotent          %5d   baseline %d
                   files over 150 chars    %5d   baseline %d
@@ -128,18 +129,19 @@ class CorpusGateTest {
                   slowest files (budget %d ms each)
                 %s""".formatted(
                 corpus.outcomes().size(),
-                corpus.count(FileOutcome::unparseable),
+                corpus.count(FileOutcome.Unparseable.class::isInstance),
                 BASELINE.unparseable(),
-                corpus.count(FileOutcome::refused),
+                corpus.count(FileOutcome.Refused.class::isInstance),
                 BASELINE.refused(),
-                corpus.count(o -> o.formatted() && !o.reparses()),
+                corpus.count(FileOutcome.Rejected.class::isInstance),
+                corpus.count(o -> o instanceof FileOutcome.Formatted formatted && !formatted.reparses()),
                 BASELINE.notReparsing(),
-                corpus.count(o -> o.formatted() && !o.idempotent()),
+                corpus.count(o -> o instanceof FileOutcome.Formatted formatted && !formatted.idempotent()),
                 BASELINE.notIdempotent(),
-                corpus.count(o -> o.formatted() && o.overWidthLines() > 0),
+                corpus.count(o -> o instanceof FileOutcome.Formatted formatted && formatted.overWidthLines() > 0),
                 BASELINE.overWidth(),
                 corpus.outcomes().stream()
-                        .mapToLong(FileOutcome::overWidthLines)
+                        .mapToLong(o -> o instanceof FileOutcome.Formatted formatted ? formatted.overWidthLines() : 0)
                         .sum(),
                 corpus.totalMillis(),
                 PER_FILE_BUDGET_MILLIS,

@@ -310,11 +310,7 @@ class JavafmtFormatAllTest {
 
     @Test
     void aFileTooDeepToParseOnASmallStackComesBackUnchangedWithAnInternalError() throws InterruptedException {
-        final var deep = "class Deep {\n    int value = "
-                + Stream.generate(() -> "1")
-                        .limit(100_000)
-                        .collect(Collectors.joining(" + "))
-                + ";\n}\n";
+        final var deep = "class Deep {\n    int value = " + "(".repeat(100_000) + "1" + ")".repeat(100_000) + ";\n}\n";
         final var sources = List.of("class Good {}\n", deep);
         final var results = new AtomicReference<List<FormatResult>>();
         final var failure = new AtomicReference<Throwable>();

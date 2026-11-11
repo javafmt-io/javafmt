@@ -522,38 +522,7 @@ public final class DocBuilder {
         }
 
         Doc attachLeading(final Tree node, final Doc doc) {
-            final var leading = unit.leadingOf(node);
-            final var inlineFrom = firstInlineComment(node, leading);
-            return CommentDocs.prepend(leading.subList(0, inlineFrom), leading.subList(inlineFrom, leading.size()), doc);
-        }
-
-        /**
-         * The index of the first leading comment the author wrote on {@code node}'s own line —
-         * everything from there to the node is separated by spaces alone. Those comments are
-         * rendered inline; the ones before them still take a line each.
-         */
-        private int firstInlineComment(final Tree node, final List<CommentToken> leading) {
-            final var nodeStart = unit.startOf(node);
-            if (leading.isEmpty() || nodeStart < 0) {
-                return leading.size();
-            }
-            var next = nodeStart;
-            var index = leading.size();
-            while (index > 0 && spacesOnly(leading.get(index - 1).end(), next)) {
-                index--;
-                next = leading.get(index).start();
-            }
-            return index;
-        }
-
-        private boolean spacesOnly(final int from, final int to) {
-            return from >= 0
-                && to <= unit.source().length()
-                && from <= to
-                && unit.source()
-                        .substring(from, to)
-                        .chars()
-                        .allMatch(c -> c == ' ' || c == '\t');
+            return CommentDocs.prepend(unit.leadingOf(node), doc);
         }
 
         @Override
