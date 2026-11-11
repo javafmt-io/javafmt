@@ -41,7 +41,7 @@ jobs:
         run: sudo apt-get install -y xvfb
 
       - name: Build
-        run: xvfb-run -a gradle build
+        run: xvfb-run -a gradle build -x :javafmt-intellij:build
 
       - name: Publish test results
         if: ${{ !cancelled() }}
@@ -68,6 +68,44 @@ jobs:
       - name: SonarQube Cloud analysis
         if: ${{ success() && env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v8.4.1
+
+  # The IntelliJ module's tests and searchable-options build are the longest serial stretch of the
+  # build, so they run beside it instead of after it.
+  intellij:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-build
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: Build
+        run: gradle :javafmt-intellij:build
+
+      - name: Publish test results
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: 'javafmt-intellij/build/test-results/**/TEST-*.xml'
+          check_name: IntelliJ test results
+          detailed_summary: true
+          annotate_only: ${{ github.event.pull_request.head.repo.fork == true }}
+
+      - name: Upload test reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: intellij-reports
+          path: javafmt-intellij/build/reports/
+          if-no-files-found: ignore
 
   native:
     uses: ./.github/workflows/native.yml
