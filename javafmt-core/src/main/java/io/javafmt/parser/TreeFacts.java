@@ -30,17 +30,27 @@ public final class TreeFacts {
 
     private final Set<Tree> loneLambdaBodies = Collections.newSetFromMap(new IdentityHashMap<>());
 
+    private boolean indexed;
+
     public TreeFacts(final ParsedUnit unit) {
         this.unit = Objects.requireNonNull(unit, "unit");
-        index(unit.tree());
     }
 
     public boolean isField(final VariableTree variable) {
+        indexOnce();
         return fields.contains(variable);
     }
 
     public boolean isLoneLambdaBody(final Tree node) {
+        indexOnce();
         return loneLambdaBodies.contains(node);
+    }
+
+    private void indexOnce() {
+        if (!indexed) {
+            indexed = true;
+            index(unit.tree());
+        }
     }
 
     private void index(final CompilationUnitTree tree) {
