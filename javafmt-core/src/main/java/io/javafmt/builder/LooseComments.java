@@ -77,9 +77,6 @@ final class LooseComments {
                 case Doc.Concat(var parts) -> new Doc.Concat(parts.stream()
                         .map(this::transform)
                         .toList());
-                case Doc.Fill(var parts) -> new Doc.Fill(parts.stream()
-                        .map(this::transform)
-                        .toList());
                 case Doc.IfBreak(var breakContents, var flatContents) -> {
                     final var both = branches(breakContents, flatContents);
                     yield new Doc.IfBreak(both.getFirst(), both.getLast());

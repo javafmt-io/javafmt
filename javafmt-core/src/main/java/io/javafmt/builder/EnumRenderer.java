@@ -93,9 +93,7 @@ final class EnumRenderer {
      */
     private Doc constantAndComma(final VariableTree constant, final List<CommentToken> pastTheComma, final Recursor recursor) {
         final var withComma = recursor.attach(constant, Doc.concat(renderConstant(constant, recursor), new Doc.Text(",")));
-        return new Doc.Concat(
-                Stream.concat(Stream.of(withComma), pastTheComma.stream()
-                        .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)))));
+        return CommentDocs.appendTrailing(withComma, pastTheComma);
     }
 
     /**
@@ -122,11 +120,7 @@ final class EnumRenderer {
      * leaving a blank line above the brace.
      */
     private Doc beforeTheClosingBrace(final List<CommentToken> pastTheLastSeparator, final List<CommentToken> afterTheLastConstant) {
-        return pastTheLastSeparator.isEmpty()
-            && afterTheLastConstant.stream()
-                    .noneMatch(c -> c.text().startsWith("//"))
-                ? Doc.LINE
-                : Doc.HARD_LINE;
+        return pastTheLastSeparator.isEmpty() && !CommentDocs.hasLineComment(afterTheLastConstant) ? Doc.LINE : Doc.HARD_LINE;
     }
 
     /**
@@ -139,8 +133,7 @@ final class EnumRenderer {
      * arrives on {@code interior} instead, and the trailing separator has already written it there.
      */
     private Stream<Doc> commentsAfterTheLastConstant(final ClassTree node, final Recursor recursor) {
-        return recursor.tail(node).stream()
-                .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
+        return CommentDocs.eachOnItsOwnLine(recursor.tail(node));
     }
 
     /**
@@ -184,8 +177,8 @@ final class EnumRenderer {
         }
         final var arguments = nc.getArguments().isEmpty()
                 ? emptyParenthesesAsWritten(v, nc, recursor)
-                : Stream.of(
-                        CallArguments.render(nc, nc.getArguments(), recursor).doc());
+                : Stream.of(CallArguments.render(nc, nc.getArguments(), false, recursor)
+                        .doc());
         final var body = nc.getClassBody() == null ? Stream.<Doc>empty() : Stream.of(ClassBodyRenderer.render(nc.getClassBody(), recursor));
         return new Doc.Concat(Stream.concat(head, Stream.concat(arguments, body)));
     }

@@ -132,7 +132,7 @@ final class ModifierRenderer {
     Preamble preambleOf(final ModifiersTree modifiers, final Recursor recursor, final boolean inline) {
         return inline
                 ? new Preamble(prefixOf(modifiers, recursor), List.of(), List.of())
-                : new Preamble(modifiersDoc(modifiers, recursor), declarationAnnotations(modifiers, List.of(), recursor), recursor.tail(modifiers));
+                : preambleOf(modifiers, List.of(), recursor);
     }
 
     /** Closes out a {@link Preamble}: own-line annotations prepended, unless already rendered inline. */

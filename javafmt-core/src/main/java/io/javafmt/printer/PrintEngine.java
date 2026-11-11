@@ -30,25 +30,15 @@ final class PrintEngine {
         var lineCommentOpen = false;
         while (!stack.isEmpty()) {
             final var frame = stack.pop();
-            final var startsContent = switch (frame.doc()) {
-                case Doc.Text(var text) -> !text.isBlank();
-                case Doc.Verbatim(var text, var _) -> !text.isEmpty();
-                case Doc.BlockComment _ -> true;
-                default -> false;
-            };
-            if (lineCommentOpen && startsContent) {
-                final var lineStart = output.lastIndexOf("\n") + 1;
-                final var continuation = Math.max(frame.indent(), leadingSpaces(output.substring(lineStart)) + 2 * INDENT_SIZE);
-                stripTrailingWhitespace(output, verbatimEnd);
-                output.append('\n').repeat(' ', continuation);
-                column = continuation;
+            if (lineCommentOpen && isContent(frame.doc())) {
+                column = newline(output, verbatimEnd, Math.max(frame.indent(), leadingSpaces(currentLine(output)) + 2 * INDENT_SIZE));
                 lineCommentOpen = false;
             }
             switch (frame.doc()) {
                 case Doc.Text(var text) -> {
                     output.append(text);
                     column += text.length();
-                    lineCommentOpen = lineCommentOpen || text.stripLeading().startsWith("//");
+                    lineCommentOpen = lineCommentOpen || startsALineComment(text);
                 }
                 case Doc.Verbatim(var text, var sourceColumn) -> {
                     if (text.startsWith("\n")) {
@@ -65,17 +55,13 @@ final class PrintEngine {
                 }
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
                 case Doc.LineStart _ -> {
-                    if (!output.substring(output.lastIndexOf("\n") + 1).isBlank()) {
-                        stripTrailingWhitespace(output, verbatimEnd);
-                        output.append('\n').repeat(' ', frame.indent());
-                        column = frame.indent();
+                    if (!currentLine(output).isBlank()) {
+                        column = newline(output, verbatimEnd, frame.indent());
                     }
                     lineCommentOpen = false;
                 }
                 case Doc.Line _, Doc.SoftLine _, Doc.HardLine _ -> {
-                    stripTrailingWhitespace(output, verbatimEnd);
-                    output.append('\n').repeat(' ', frame.indent());
-                    column = frame.indent();
+                    column = newline(output, verbatimEnd, frame.indent());
                     lineCommentOpen = false;
                 }
                 case Doc.Indent(var contents) -> stack.push(new Frame(frame.indent() + INDENT_SIZE, frame.mode(), contents));
@@ -84,7 +70,7 @@ final class PrintEngine {
                     if (column + chainWidth <= CHAIN_COLUMN) {
                         stack.push(new Frame(frame.indent(), frame.mode(), preferred));
                     } else {
-                        final var indent = frame.mode() == Mode.FLAT ? leadingSpaces(output.substring(output.lastIndexOf("\n") + 1)) : frame.indent();
+                        final var indent = frame.mode() == Mode.FLAT ? leadingSpaces(currentLine(output)) : frame.indent();
                         stack.push(new Frame(indent, Mode.BREAK, fallback));
                     }
                 }
@@ -101,8 +87,6 @@ final class PrintEngine {
                         stack.push(new Frame(frame.indent(), frame.mode(), parts.get(index)));
                     }
                 }
-                case Doc.Fill(var parts) when frame.mode() == Mode.FLAT -> pushParts(stack, frame, parts);
-                case Doc.Fill(var parts) -> fill(frame, parts, column, lineWidth, stack, work);
                 case Doc.Group(var contents, var preferBreak) -> {
                     final var flat = new Frame(frame.indent(), Mode.FLAT, contents);
                     final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, column, lineWidth, stack, work));
@@ -137,6 +121,29 @@ final class PrintEngine {
                     .append(line, leadingSpaces(line), line.length());
         });
         return output.length() - output.lastIndexOf("\n") - 1;
+    }
+
+    private boolean isContent(final Doc doc) {
+        return switch (doc) {
+            case Doc.Text(var text) -> !text.isBlank();
+            case Doc.Verbatim(var text, var _) -> !text.isEmpty();
+            case Doc.BlockComment _ -> true;
+            default -> false;
+        };
+    }
+
+    private boolean startsALineComment(final String text) {
+        return text.stripLeading().startsWith("//");
+    }
+
+    private String currentLine(final StringBuilder output) {
+        return output.substring(output.lastIndexOf("\n") + 1);
+    }
+
+    private int newline(final StringBuilder output, final int verbatimEnd, final int indent) {
+        stripTrailingWhitespace(output, verbatimEnd);
+        output.append('\n').repeat(' ', indent);
+        return indent;
     }
 
     private int leadingSpaces(final String line) {
@@ -228,41 +235,19 @@ final class PrintEngine {
             if (lineCommentEnded && consumedCandidate) {
                 return true;
             }
-            final var content = switch (frame.doc()) {
-                case Doc.Text(var text) -> !text.isBlank();
-                case Doc.Verbatim(var text, var _) -> !text.isEmpty();
-                case Doc.BlockComment _ -> true;
-                default -> false;
-            };
-            if (lineCommentEnded && content) {
+            if (lineCommentEnded && isContent(frame.doc())) {
                 return false;
             }
-            if (frame.doc() instanceof Doc.Text(var comment)
-                && comment.stripLeading().startsWith("//")) {
-                if (column + comment.length() > lineWidth) {
-                    return false;
-                }
-                if (consumedCandidate) {
-                    return true;
-                }
-                lineCommentEnded = true;
-                continue;
-            }
-            if (frame.doc() instanceof Doc.HardLine || frame.doc() instanceof Doc.LineStart) {
-                lineCommentEnded = false;
-                if (consumedCandidate || effectiveReach == Reach.OPENING_LINE || stopsAtTheFirstBreak(effectiveReach)) {
-                    return true;
-                }
-                if (effectiveReach == Reach.FIRST_LINE) {
-                    return false;
-                }
-                if (effectiveReach == Reach.NEXT_LINE_FIRST_BREAK) {
-                    effectiveReach = Reach.FIRST_BREAK;
-                }
-                column = frame.indent();
-                continue;
-            }
             switch (frame.doc()) {
+                case Doc.Text(var comment) when startsALineComment(comment) -> {
+                    if (column + comment.length() > lineWidth) {
+                        return false;
+                    }
+                    if (consumedCandidate) {
+                        return true;
+                    }
+                    lineCommentEnded = true;
+                }
                 case Doc.Text(var text) -> column += text.length();
                 case Doc.Verbatim(var text, var _) -> {
                     final var firstNewline = text.indexOf('\n');
@@ -276,7 +261,19 @@ final class PrintEngine {
                 }
                 case Doc.Line _ when frame.mode() == Mode.FLAT -> column++;
                 case Doc.SoftLine _ when frame.mode() == Mode.FLAT -> {}
-                case Doc.HardLine _, Doc.LineStart _ -> {}
+                case Doc.HardLine _, Doc.LineStart _ -> {
+                    lineCommentEnded = false;
+                    if (consumedCandidate || effectiveReach == Reach.OPENING_LINE || stopsAtTheFirstBreak(effectiveReach)) {
+                        return true;
+                    }
+                    if (effectiveReach == Reach.FIRST_LINE) {
+                        return false;
+                    }
+                    if (effectiveReach == Reach.NEXT_LINE_FIRST_BREAK) {
+                        effectiveReach = Reach.FIRST_BREAK;
+                    }
+                    column = frame.indent();
+                }
                 case Doc.Line _, Doc.SoftLine _ -> {
                     if (consumedCandidate || effectiveReach == Reach.FIRST_LINE || stopsAtTheFirstBreak(effectiveReach)) {
                         return true;
@@ -291,12 +288,11 @@ final class PrintEngine {
                 case Doc.Group(var contents, var preferBreak) -> {
                     if (stopsAtTheFirstBreak(effectiveReach) && !consumedCandidate) {
                         work.push(new Frame(frame.indent(), Mode.BREAK, contents));
-                        continue;
-                    }
-                    if (preferBreak && !consumedCandidate && effectiveReach != Reach.EVERY_LINE) {
+                    } else if (preferBreak && !consumedCandidate && effectiveReach != Reach.EVERY_LINE) {
                         return false;
+                    } else {
+                        work.push(new Frame(frame.indent(), Mode.FLAT, contents));
                     }
-                    work.push(new Frame(frame.indent(), Mode.FLAT, contents));
                 }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
                     work.push(new Frame(frame.indent(), frame.mode(), frame.mode() == Mode.BREAK ? breakContents : flatContents));
@@ -315,109 +311,14 @@ final class PrintEngine {
                         work.push(new Frame(frame.indent(), frame.mode(), parts.get(index)));
                     }
                 }
-                case Doc.Fill(var parts) -> pushParts(work, frame, parts);
             }
         }
         return false;
-    }
-
-    private void fill(final Frame frame,
-                      final List<Doc> parts,
-                      final int column,
-                      final int lineWidth,
-                      final ArrayDeque<Frame> stack,
-                      final ArrayDeque<Frame> work) {
-        final var first = frame.firstPart();
-        if (first >= parts.size()) {
-            return;
-        }
-        final var content = parts.get(first);
-        final var contentFrame = new Frame(frame.indent(), Mode.BREAK, content);
-        if (first + 1 == parts.size()) {
-            stack.push(contentFrame);
-            return;
-        }
-        final var separator = parts.get(first + 1);
-        final var next = parts.get(first + 2);
-        final var pair = new Frame(frame.indent(), Mode.FLAT, Doc.concat(content, separator, next));
-        final var pairFits = fitsForward(pair, column, lineWidth, following(frame, parts, first + 3, stack), work)
-            && staysOnOneLine(content)
-            && staysOnOneLine(next);
-        stack.push(new Frame(frame.indent(), Mode.BREAK, frame.doc(), first + 2));
-        stack.push(new Frame(frame.indent(), pairFits ? Mode.FLAT : Mode.BREAK, separator));
-        stack.push(contentFrame);
-    }
-
-    private boolean staysOnOneLine(final Doc doc) {
-        final var pending = new ArrayDeque<Pending>();
-        pending.push(new Pending(doc, false));
-        while (!pending.isEmpty()) {
-            final var current = pending.pop();
-            final var grouped = current.grouped();
-            switch (current.doc()) {
-                case Doc.HardLine _, Doc.LineStart _, Doc.BlockComment _ -> {
-                    return false;
-                }
-                case Doc.Line _, Doc.SoftLine _ -> {
-                    if (!grouped) {
-                        return false;
-                    }
-                }
-                case Doc.Verbatim(var text, var _) -> {
-                    if (text.indexOf('\n') >= 0) {
-                        return false;
-                    }
-                }
-                case Doc.Text(var text) -> {
-                    if (text.stripLeading().startsWith("//")) {
-                        return false;
-                    }
-                }
-                case Doc.Group(var contents, var preferBreak) -> {
-                    if (preferBreak) {
-                        return false;
-                    }
-                    pending.push(new Pending(contents, true));
-                }
-                case Doc.Indent(var contents) -> pending.push(new Pending(contents, grouped));
-                case Doc.Align(var contents) -> pending.push(new Pending(contents, grouped));
-                case Doc.IfBreak(var breakContents, var flatContents) -> pending.push(new Pending(grouped ? flatContents : breakContents, grouped));
-                case Doc.Choice(var preferred, var fallback, var _, var _) -> {
-                    pending.push(new Pending(preferred, grouped));
-                    pending.push(new Pending(fallback, grouped));
-                }
-                case Doc.Concat(var parts) -> parts.forEach(part -> pending.push(new Pending(part, grouped)));
-                case Doc.Fill(var parts) -> parts.forEach(part -> pending.push(new Pending(part, grouped)));
-            }
-        }
-        return true;
-    }
-
-    private ArrayDeque<Frame> following(final Frame frame, final List<Doc> parts, final int index, final ArrayDeque<Frame> stack) {
-        if (index >= parts.size()) {
-            return stack;
-        }
-        final var next = new ArrayDeque<Frame>();
-        next.push(new Frame(frame.indent(), Mode.BREAK, parts.get(index)));
-        return next;
-    }
-
-    private void pushParts(final ArrayDeque<Frame> target, final Frame frame, final List<Doc> parts) {
-        for (var index = parts.size() - 1; index >= frame.firstPart(); index--) {
-            target.push(new Frame(frame.indent(), frame.mode(), parts.get(index)));
-        }
     }
 
     private enum Mode { FLAT, BREAK }
 
     private enum Reach { FIRST_LINE, OPENING_LINE, EVERY_LINE, FIRST_BREAK, FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN, NEXT_LINE_FIRST_BREAK }
 
-    private record Pending(Doc doc, boolean grouped) {}
-
-    private record Frame(int indent, Mode mode, Doc doc, int firstPart) {
-
-        Frame(final int indent, final Mode mode, final Doc doc) {
-            this(indent, mode, doc, 0);
-        }
-    }
+    private record Frame(int indent, Mode mode, Doc doc) {}
 }

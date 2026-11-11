@@ -10,7 +10,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -315,91 +314,6 @@ class PrinterTest {
             return Stream.of(
                     Arguments.of(Doc.Choice.Fit.FIRST_BREAK, call + "(a, x.first()\n    .second())"),
                     Arguments.of(Doc.Choice.Fit.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN, call + "(\n    a, x.first().second())"));
-        }
-    }
-
-    @Nested
-    class FillTests {
-
-        @Test
-        void fill_packsAsManyItemsPerLineAsFit() {
-            final var items = IntStream.rangeClosed(1, 7)
-                    .mapToObj(i -> String.valueOf(i).repeat(30))
-                    .toList();
-            final var doc = new Doc.Fill(
-                    Doc.intersperse(
-                            Doc.LINE,
-                            items.stream()
-                                    .map(Doc.Text::new))
-                            .toList());
-            final var expected = String.join(" ", items.subList(0, 3)) + "\n" + String.join(" ", items.subList(3, 6)) + "\n" + items.getLast();
-            assertThat(new Printer(100).print(doc)).isEqualTo(expected);
-        }
-
-        @ParameterizedTest
-        @MethodSource("fillCases")
-        void fill_breaksOnlyWhereTheNextItemDoesNotFit(final int lineWidth, final Doc doc, final String expected) {
-            assertThat(new Printer(lineWidth).print(doc)).isEqualTo(expected);
-        }
-
-        static Stream<Arguments> fillCases() {
-            final var separator = Doc.concat(new Doc.Text(","), Doc.LINE);
-            final var nested = new Doc.Group(
-                    Doc.concat(new Doc.Text("inner("), new Doc.Indent(Doc.concat(Doc.SOFT_LINE, new Doc.Text("long"))), new Doc.Text(")")));
-            final var authorBroken = new Doc.Group(Doc.concat(new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc")), true);
-            return Stream.of(
-                    Arguments.of(
-                            80,
-                            new Doc.Group(new Doc.Fill(List.of(new Doc.Text("aa"), separator, new Doc.Text("bb"), separator, new Doc.Text("cc")))),
-                            "aa, bb, cc"),
-                    Arguments.of(
-                            10,
-                            Doc.concat(
-                                    new Doc.Fill(List.of(new Doc.Text("aa"), separator, new Doc.Text("bb"), separator, new Doc.Text("cc"))),
-                                    new Doc.Text(");")),
-                            "aa, bb,\ncc);"),
-                    Arguments.of(
-                            8,
-                            new Doc.Fill(List.of(new Doc.Text("aa"), separator, nested, separator, new Doc.Text("bb"))),
-                            "aa,\ninner(\n    long),\nbb"),
-                    Arguments.of(
-                            12,
-                            new Doc.Fill(
-                                    List.of(
-                                            new Doc.Text("aa"),
-                                            Doc.concat(new Doc.Text(","), Doc.HARD_LINE),
-                                            new Doc.Text("bb"),
-                                            separator,
-                                            new Doc.Text("cc"))),
-                            "aa,\nbb, cc"),
-                    Arguments.of(
-                            80,
-                            new Doc.Fill(List.of(new Doc.Text("aa"), separator, new Doc.Verbatim("bb\ncc", -1), separator, new Doc.Text("dd"))),
-                            "aa,\nbb\ncc,\ndd"),
-                    Arguments.of(
-                            80,
-                            new Doc.Fill(List.of(new Doc.Text("aa"), separator, authorBroken, separator, new Doc.Text("dd"))),
-                            "aa,\nbb\ncc,\ndd"),
-                    Arguments.of(
-                            80,
-                            new Doc.Fill(
-                                    List.of(
-                                            new Doc.Text("aa"),
-                                            separator,
-                                            new Doc.Group(Doc.concat(new Doc.Text("f("), authorBroken, new Doc.Text(")"))),
-                                            separator,
-                                            new Doc.Text("dd"))),
-                            "aa,\nf(bb\ncc),\ndd"),
-                    Arguments.of(
-                            80,
-                            new Doc.Fill(
-                                    List.of(
-                                            new Doc.Text("aa"),
-                                            separator,
-                                            Doc.concat(new Doc.Text("bb"), Doc.LINE, new Doc.Text("cc")),
-                                            separator,
-                                            new Doc.Text("dd"))),
-                            "aa,\nbb\ncc,\ndd"));
         }
     }
 

@@ -29,7 +29,6 @@ import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -49,11 +48,7 @@ final class ExpressionRenderers {
         if (isLogical(node)) {
             return renderLogicalChain(node, recursor);
         }
-        final var spine = Stream.<@Nullable BinaryTree>iterate(node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left
-                    && !isLogical(left)
-                        ? left
-                        : null)
-                .map(Objects::requireNonNull)
+        final var spine = DocBuilder.walk(node, b -> b.getLeftOperand() instanceof BinaryTree left && !isLogical(left) ? left : null)
                 .toList();
         var doc = recursor.scan(spine.getLast().getLeftOperand());
         for (final var operator : spine.reversed()) {
@@ -78,31 +73,15 @@ final class ExpressionRenderers {
         if (ownLine.isEmpty()) {
             return Doc.endsWithLineComment(before) ? Doc.HARD_LINE : Doc.LINE;
         }
-        return Doc.concatOf(
-                Stream.of(
-                        ownLine.stream()
-                                .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))),
-                        Stream.of(Doc.HARD_LINE)));
+        return Doc.concatOf(Stream.of(CommentDocs.eachOnItsOwnLine(ownLine), Stream.of(Doc.HARD_LINE)));
     }
 
     private boolean isLogical(final BinaryTree node) {
         return node.getKind() == Tree.Kind.CONDITIONAL_AND || node.getKind() == Tree.Kind.CONDITIONAL_OR;
     }
 
-    /**
-     * Operands always render in compact mode: nested chains inside a logical operand break
-     * only on the line width, not on author-broke layout. This keeps the broken logical chain
-     * visually flat per operand
-     * and — crucially — keeps the format idempotent (whether the printer breaks the logical
-     * group is a line-width decision that may flip between round 1 and round 2, so the
-     * operands' shape must not depend on it).
-     */
     private Doc renderLogicalChain(final BinaryTree node, final Recursor recursor) {
-        final var spine = Stream.<@Nullable BinaryTree>iterate(node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left
-                    && left.getKind() == node.getKind()
-                        ? left
-                        : null)
-                .map(Objects::requireNonNull)
+        final var spine = DocBuilder.walk(node, b -> b.getLeftOperand() instanceof BinaryTree left && left.getKind() == node.getKind() ? left : null)
                 .toList()
                 .reversed();
         final var first = spine.getFirst().getLeftOperand();
@@ -163,10 +142,14 @@ final class ExpressionRenderers {
      * Otherwise the value stays beside the operator and breaks where it should.
      */
     private Doc renderAssignmentLike(final Doc target, final String operator, final ExpressionTree value, final Recursor recursor) {
-        final var valueDoc = recursor.scan(value);
-        final var beside = Doc.concat(new Doc.Text(" " + operator + " "), valueDoc);
-        final var below = Doc.concat(new Doc.Text(" " + operator), Doc.continuationIndent(Doc.concat(Doc.HARD_LINE, valueDoc)));
-        return Doc.concat(target, new Doc.Choice(beside, below, Doc.Choice.Fit.FIRST_BREAK));
+        return Doc.concat(target, besideOrBelow(operator, recursor.scan(value)));
+    }
+
+    Doc besideOrBelow(final String operator, final Doc value) {
+        return new Doc.Choice(
+                Doc.concat(new Doc.Text(" " + operator + " "), value),
+                Doc.concat(new Doc.Text(" " + operator), Doc.continuationIndent(Doc.concat(Doc.HARD_LINE, value))),
+                Doc.Choice.Fit.FIRST_BREAK);
     }
 
     /** Breaks before both {@code ?} and {@code :} together, so the two arms line up. */
@@ -174,7 +157,7 @@ final class ExpressionRenderers {
         final var scannedCondition = recursor.scan(node.getCondition());
         final var condition = node.getCondition() instanceof MethodInvocationTree ? Doc.continuationIndent(scannedCondition) : scannedCondition;
         final var whenTrue = recursor.scan(node.getTrueExpression());
-        final var beforeColon = CommentDocs.inside(node, recursor);
+        final var beforeColon = recursor.interior(node);
         return new Doc.Group(
                 Doc.concat(
                         condition,
@@ -189,7 +172,7 @@ final class ExpressionRenderers {
                 authorBrokeIt(node, recursor));
     }
 
-    boolean authorBrokeIt(final ConditionalExpressionTree node, final Recursor recursor) {
+    private boolean authorBrokeIt(final ConditionalExpressionTree node, final Recursor recursor) {
         return recursor.lineBreakBetween(node.getCondition(), node.getTrueExpression())
             || recursor.lineBreakBetween(node.getTrueExpression(), node.getFalseExpression());
     }
@@ -198,18 +181,11 @@ final class ExpressionRenderers {
         if (comments.isEmpty()) {
             return new Doc.Text(brace + "}");
         }
-        if (comments.stream()
-                .anyMatch(c -> c.text().startsWith("//"))) {
-            final var lines = new Doc.Concat(comments.stream()
-                    .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))));
+        if (CommentDocs.hasLineComment(comments)) {
+            final var lines = new Doc.Concat(CommentDocs.eachOnItsOwnLine(comments));
             return Doc.concat(new Doc.Text(brace), Doc.continuationIndent(lines), Doc.HARD_LINE, new Doc.Text("}"));
         }
-        return Doc.concatOf(
-                Stream.of(
-                        Stream.of(new Doc.Text(brace)),
-                        comments.stream()
-                                .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c))),
-                        Stream.of(new Doc.Text(" }"))));
+        return Doc.concat(CommentDocs.appendTrailing(new Doc.Text(brace), comments), new Doc.Text(" }"));
     }
 
     Doc renderNewArray(final NewArrayTree node, final Recursor recursor) {
@@ -274,13 +250,8 @@ final class ExpressionRenderers {
                 items.get(index), d -> comma.map(c -> Doc.concat(d, c)).orElse(d));
         final var commentsPastTheComma = last ? recursor.interior(list) : recursor.pastTheSeparatorBefore(items.get(index + 1));
         final var pastTheComma = CommentDocs.appendTrailing(element, commentsPastTheComma);
-        final var doc = last ? Doc.concatOf(Stream.of(Stream.of(pastTheComma), ownLineTail(list, recursor))) : pastTheComma;
+        final var doc = last ? Doc.concatOf(Stream.of(Stream.of(pastTheComma), CommentDocs.eachOnItsOwnLine(recursor.tail(list)))) : pastTheComma;
         return new WrappableList.Element(doc, !commentsPastTheComma.isEmpty() || Doc.endsWithLineComment(doc));
-    }
-
-    private Stream<Doc> ownLineTail(final Tree node, final Recursor recursor) {
-        return recursor.tail(node).stream()
-                .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c)));
     }
 
     /**
@@ -396,10 +367,7 @@ final class ExpressionRenderers {
     }
 
     Doc renderMemberSelect(final MemberSelectTree node, final Recursor recursor) {
-        final var spine = Stream.<@Nullable MemberSelectTree>iterate(node, Objects::nonNull, s -> s.getExpression() instanceof MemberSelectTree inner
-                        ? inner
-                        : null)
-                .map(Objects::requireNonNull)
+        final var spine = DocBuilder.walk(node, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null)
                 .toList();
         return spine.reversed().stream()
                 .reduce(recursor.scan(spine.getLast().getExpression()),

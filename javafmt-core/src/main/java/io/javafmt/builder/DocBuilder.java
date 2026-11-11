@@ -266,11 +266,6 @@ public final class DocBuilder {
     }
 
     private MethodChainRenderer.ChainDocs scanChain(final MethodInvocationTree node) {
-        final var ready = prerendered.remove(node);
-        if (ready != null) {
-            diagnostics.addAll(ready.diagnostics());
-            return new MethodChainRenderer.ChainDocs(attacher.attach(node, ready.doc()), Optional.empty());
-        }
         prerenderReentryPoints(node);
         final var chain = MethodChainRenderer.chainDocs(node, recursor);
         return new MethodChainRenderer.ChainDocs(attacher.attach(node, chain.doc()), chain.brokenAfterHead());
@@ -316,7 +311,7 @@ public final class DocBuilder {
         return walk(start, next).reduce((_, inner) -> inner).orElse(start);
     }
 
-    private static <T> Stream<T> walk(final T start, final Function<T, @Nullable T> next) {
+    static <T> Stream<T> walk(final T start, final Function<T, @Nullable T> next) {
         return Stream.<@Nullable T>iterate(start, Objects::nonNull, t -> next.apply(Objects.requireNonNull(t)))
                 .map(Objects::requireNonNull);
     }
@@ -345,7 +340,7 @@ public final class DocBuilder {
                         ImportSectionRenderer.buildImportSection(hasPackage, node.getImports(), unit),
                         moduleStream,
                         typeDeclarationsStream,
-                        CommentDocs.fileFooterStream(unit.fileFooter())));
+                        CommentDocs.eachOnItsOwnLine(unit.fileFooter())));
     }
 
     private Doc packageLine(final PackageTree node) {

@@ -96,10 +96,7 @@ final class IfRenderer {
         if (node.getElseStatement() == null) {
             return BlockRenderer.braced(header, thenStatement, recursor);
         }
-        final var thenParts = Stream.concat(
-                BlockRenderer.opened(header, thenStatement, recursor),
-                BlockRenderer.blockStatements(thenStatement, recursor).stream()
-                        .map(Doc::indentedLine));
+        final var thenParts = BlockRenderer.openedWith(header, thenStatement, BlockRenderer.blockStatements(thenStatement, recursor), recursor);
         final var elseJoint = elseJointParts(node, recursor);
         if (node.getElseStatement() instanceof IfTree elseIf) {
             final var elseIfDoc = Objects.requireNonNull(recursor.scan(elseIf));
@@ -126,11 +123,10 @@ final class IfRenderer {
             return Stream.of(Doc.HARD_LINE, new Doc.Text("} else "));
         }
         return Stream.of(
-                Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("}")),
-                BlockRenderer.braceLineComments(sameLine),
-                ownLine.stream()
-                        .flatMap(c -> Stream.of(Doc.HARD_LINE, CommentDocs.renderComment(c))),
-                Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("else ")))
+                        Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("}")),
+                        BlockRenderer.braceLineComments(sameLine),
+                        CommentDocs.eachOnItsOwnLine(ownLine),
+                        Stream.<Doc>of(Doc.HARD_LINE, new Doc.Text("else ")))
                 .flatMap(Function.identity());
     }
 

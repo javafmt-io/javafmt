@@ -80,11 +80,7 @@ final class LoopRenderer {
     }
 
     private Doc continuation(final VariableTree variable, final String separator, final Recursor recursor) {
-        final var doc = continuationOf(variable, recursor);
-        if (CommentDocs.hasLineComment(recursor.trailing(variable))) {
-            return recursor.attach(variable, Doc.concat(doc, new Doc.Text(separator)));
-        }
-        return Doc.concat(recursor.attach(variable, doc), new Doc.Text(separator));
+        return CommentDocs.attachedWithSeparator(variable, continuationOf(variable, recursor), separator, recursor);
     }
 
     private boolean sharesOneDeclaration(final List<? extends StatementTree> initializers) {
@@ -133,9 +129,7 @@ final class LoopRenderer {
         final var statements = BlockRenderer.blockStatements(node.getStatement(), recursor);
         return Doc.concatOf(
                 Stream.of(
-                        BlockRenderer.opened(new Doc.Text("do"), node.getStatement(), recursor),
-                        statements.stream()
-                                .map(Doc::indentedLine),
+                        BlockRenderer.openedWith(new Doc.Text("do"), node.getStatement(), statements, recursor),
                         Stream.of(Doc.HARD_LINE, new Doc.Text("} while "), recursor.scan(node.getCondition()), new Doc.Text(";"))));
     }
 }

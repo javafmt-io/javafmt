@@ -125,20 +125,6 @@ class DocTest {
     }
 
     @Nested
-    class FillTests {
-
-        @Test
-        void separatorWithoutAFollowingItemThrows() {
-            assertThatIllegalArgumentException().isThrownBy(() -> new Doc.Fill(List.of(new Doc.Text("a"), Doc.LINE)));
-        }
-
-        @Test
-        void emptyFillIsAllowed() {
-            assertThat(new Doc.Fill(List.of()).parts()).isEmpty();
-        }
-    }
-
-    @Nested
     class IndentTests {
 
         @Test

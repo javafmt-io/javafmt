@@ -2,7 +2,9 @@ package io.javafmt.builder;
 
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.StatementTree;
+import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
+import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
@@ -50,16 +52,24 @@ final class BlockRenderer {
         if (statements.isEmpty() && braceLineOf(body, recursor).isEmpty()) {
             return Doc.concat(header, new Doc.Text(" {}"));
         }
-        return Doc.concatOf(
-                Stream.of(
-                        opened(header, body, recursor),
-                        statements.stream()
-                                .map(Doc::indentedLine),
-                        Doc.closeBrace()));
+        return Doc.concatOf(Stream.of(openedWith(header, body, statements, recursor), Doc.closeBrace()));
+    }
+
+    Stream<Doc> openedWith(final Doc header, final StatementTree body, final List<Doc> statements, final Recursor recursor) {
+        return Stream.concat(opened(header, body, recursor), statements.stream()
+                .map(Doc::indentedLine));
     }
 
     Stream<Doc> opened(final Doc header, final StatementTree body, final Recursor recursor) {
         return Stream.concat(Stream.of(header, new Doc.Text(" {")), braceLineAfter(body, recursor));
+    }
+
+    boolean writtenOnOneLine(final Tree owner, final BlockTree body, final Recursor recursor) {
+        if (recursor.sourceOf(body).lines().count() != 1) {
+            return false;
+        }
+        final var source = recursor.sourceOf(owner);
+        return CommentScanner.withoutComments(source).equals(source);
     }
 
     Stream<Doc> braceLineAfter(final StatementTree body, final Recursor recursor) {
