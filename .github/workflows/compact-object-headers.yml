@@ -1,0 +1,71 @@
+name: Compact object headers
+
+on:
+  push:
+    branches: [experiment/compact-object-headers]
+  workflow_dispatch:
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25.0.5'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.8.2'
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: Benchmark without compact object headers
+        run: |
+          gradle :javafmt-core:jmh --rerun -PjmhJvmArgs=-XX:-UseCompactObjectHeaders
+          cp javafmt-core/build/reports/jmh/results.json without.json
+
+      - name: Benchmark with compact object headers
+        run: |
+          gradle :javafmt-core:jmh --rerun -PjmhJvmArgs=-XX:+UseCompactObjectHeaders
+          cp javafmt-core/build/reports/jmh/results.json with.json
+
+      - name: Compare timings
+        continue-on-error: true
+        run: |
+          echo "## Time per operation: with compact object headers vs without" >> "$GITHUB_STEP_SUMMARY"
+          python3 .github/scripts/compare-jmh.py with.json without.json
+
+      - name: Measure allocation per operation
+        run: |
+          for mode in - +; do
+            gradle :javafmt-core:jmh --rerun -PjmhProfile=gc '-PjmhInclude=(JavafmtFormatBenchmark|JdkSourceBenchmark|BatchFormatBenchmark)\..*' "-PjmhJvmArgs=-XX:${mode}UseCompactObjectHeaders"
+            cp javafmt-core/build/reports/jmh/results.json "gc${mode}.json"
+          done
+
+      - name: Compare allocation
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          def load(path):
+              return {e["benchmark"].rsplit(".", 2)[-2] + "." + e["benchmark"].rsplit(".", 1)[-1] + str(e.get("params", "")): e["secondaryMetrics"] for e in json.load(open(path))}
+          without, with_ = load("gc-.json"), load("gc+.json")
+          print("\n## Allocation per operation and GC count\n")
+          print("| benchmark | bytes/op without | bytes/op with | change | GCs without | GCs with |")
+          print("|---|---|---|---|---|---|")
+          for name in sorted(without):
+              a, b = without[name], with_.get(name, {})
+              bytes_a = a.get("gc.alloc.rate.norm", {}).get("score", 0)
+              bytes_b = b.get("gc.alloc.rate.norm", {}).get("score", 0)
+              change = f"{100 * (bytes_b / bytes_a - 1):+.1f}%" if bytes_a else "n/a"
+              print(f"| `{name}` | {bytes_a:,.0f} | {bytes_b:,.0f} | {change} | {a.get('gc.count', {}).get('score', 0):.0f} | {b.get('gc.count', {}).get('score', 0):.0f} |")
+          EOF
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: compact-object-headers
+          path: '*.json'
+          if-no-files-found: error

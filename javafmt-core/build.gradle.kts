@@ -142,6 +142,7 @@ jmh {
     if (project.hasProperty("jmhInclude")) {
         includes.add(project.property("jmhInclude") as String)
     }
+    providers.gradleProperty("jmhJvmArgs").orNull?.let { jvmArgsAppend.addAll(it.split(" ")) }
     if (providers.gradleProperty("jmhProof").isPresent) {
         fork.set(3)
         warmupIterations.set(5)
