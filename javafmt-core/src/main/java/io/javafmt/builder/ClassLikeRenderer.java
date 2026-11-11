@@ -6,11 +6,13 @@ import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.Pairs;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -64,13 +66,11 @@ final class ClassLikeRenderer {
                         ? typeAndComma(types.get(i), types.get(i + 1), recursor)
                         : new WrappableList.Element(recursor.scan(types.get(i)), false))
                 .toList();
-        final var typesInterior = new Doc.Concat(IntStream.range(0, rendered.size())
-                .boxed()
-                .flatMap(i -> i == 0
-                        ? Stream.of(rendered.get(i).doc())
-                        : Stream.of(
-                                rendered.get(i - 1).endsItsLine() ? Doc.HARD_LINE : Doc.LINE,
-                                rendered.get(i).doc()))
+        final var typesInterior = new Doc.Concat(rendered.stream()
+                .gather(Pairs.<WrappableList.Element, Stream<Doc>>withPrevious((
+                        previous,
+                        element) -> Stream.concat(previous.map(p -> p.endsItsLine() ? Doc.HARD_LINE : Doc.LINE).stream(), Stream.of(element.doc()))))
+                .flatMap(Function.identity())
                 .toList());
         return Doc.continuationIndent(Doc.concat(Doc.LINE, new Doc.Text(keyword), new Doc.Group(new Doc.Indent(typesInterior))));
     }

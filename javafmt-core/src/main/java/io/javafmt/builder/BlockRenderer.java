@@ -4,6 +4,7 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.StatementTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
+import io.javafmt.doc.Pairs;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
@@ -11,7 +12,6 @@ import lombok.experimental.UtilityClass;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -39,11 +39,14 @@ final class BlockRenderer {
      * javafmt's to decide.
      */
     Stream<Doc> statementDocs(final List<? extends StatementTree> statements, final Recursor recursor) {
-        return IntStream.range(0, statements.size())
-                .mapToObj(i -> Optional.ofNullable(recursor.scan(statements.get(i)))
-                        .map(doc -> i > 0 && recursor.blankLineBetween(statements.get(i - 1), statements.get(i))
+        return statements.stream()
+                .gather(Pairs.<StatementTree, Optional<Doc>>withPrevious((
+                        previous,
+                        statement) -> Optional.ofNullable(recursor.scan(statement))
+                        .map(doc -> previous.filter(p -> recursor.blankLineBetween(p, statement))
+                                        .isPresent()
                                 ? Doc.concat(Doc.HARD_LINE, doc)
-                                : doc))
+                                : doc)))
                 .flatMap(Optional::stream);
     }
 
