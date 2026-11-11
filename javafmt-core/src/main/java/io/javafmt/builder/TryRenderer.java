@@ -20,17 +20,11 @@ final class TryRenderer {
         final var finallyStream = finallyBlock == null
                 ? Stream.<Doc>empty()
                 : Stream.concat(
-                        Stream.concat(Stream.<Doc>of(Doc.HARD_LINE), BlockRenderer.opened(new Doc.Text("} finally"), finallyBlock, recursor)),
-                        BlockRenderer.blockStatements(finallyBlock, recursor)
-                                .stream()
-                                .map(Doc::indentedLine));
+                        Stream.<Doc>of(Doc.HARD_LINE),
+                        BlockRenderer.openedWith(
+                                new Doc.Text("} finally"), finallyBlock, BlockRenderer.blockStatements(finallyBlock, recursor), recursor));
         return Doc.concatOf(
-                Stream.of(
-                        Stream.concat(BlockRenderer.opened(header, node.getBlock(), recursor), tryStatements.stream()
-                                .map(Doc::indentedLine)),
-                        catchStream,
-                        finallyStream,
-                        Doc.closeBrace()));
+                Stream.of(BlockRenderer.openedWith(header, node.getBlock(), tryStatements, recursor), catchStream, finallyStream, Doc.closeBrace()));
     }
 
     private Doc buildHeader(final TryTree node, final Recursor recursor) {
@@ -68,7 +62,6 @@ final class TryRenderer {
         final var header = Doc.concat(new Doc.Text("} "), catchClause(c, recursor));
         return Stream.concat(
                 Stream.of(Doc.HARD_LINE),
-                Stream.concat(BlockRenderer.opened(header, c.getBlock(), recursor), BlockRenderer.blockStatements(c.getBlock(), recursor).stream()
-                        .map(Doc::indentedLine)));
+                BlockRenderer.openedWith(header, c.getBlock(), BlockRenderer.blockStatements(c.getBlock(), recursor), recursor));
     }
 }

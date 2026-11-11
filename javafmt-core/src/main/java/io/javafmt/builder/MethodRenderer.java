@@ -1,12 +1,10 @@
 package io.javafmt.builder;
 
-import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
-import io.javafmt.parser.CommentScanner;
 import lombok.experimental.UtilityClass;
 import org.jspecify.annotations.Nullable;
 
@@ -123,16 +121,10 @@ final class MethodRenderer {
                 .toList();
         final var block = BlockRenderer.buildBlock(
                 Doc.concat(header, new Doc.Text(" {")), recursor.braceLine(body), statements, recursor.trailingInside(body));
-        if (statements.size() != 1 || !writtenOnOneLine(node, body, recursor)) {
+        if (statements.size() != 1 || !BlockRenderer.writtenOnOneLine(node, body, recursor)) {
             return block;
         }
         final var oneLine = Doc.concat(header, new Doc.Text(" {"), statements.getFirst(), new Doc.Text("}"));
         return Doc.flatWidthOrBreak(oneLine) < 0 ? block : new Doc.Group(new Doc.IfBreak(block, oneLine));
-    }
-
-    private boolean writtenOnOneLine(final MethodTree node, final BlockTree body, final Recursor recursor) {
-        final var declaration = recursor.sourceOf(node);
-        return recursor.sourceOf(body).lines().count() == 1
-            && CommentScanner.withoutComments(declaration).equals(declaration);
     }
 }

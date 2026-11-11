@@ -32,8 +32,6 @@ import java.util.stream.Stream;
 @UtilityClass
 final class TypeRenderers {
 
-    private final int TAB_WIDTH = 4;
-
     Doc renderIdentifier(final IdentifierTree node) {
         return new Doc.Text(node.getName().toString());
     }
@@ -53,22 +51,11 @@ final class TypeRenderers {
         }
         final var lines = text.split("\n", -1);
         final var expanded = IntStream.range(0, lines.length)
-                .mapToObj(i -> i == 0 ? lines[i] : withTabsExpandedInTheIndent(lines[i]))
+                .mapToObj(i -> i == 0 ? lines[i] : CommentDocs.expandLeadingWhitespace(lines[i]))
                 .collect(Collectors.joining("\n"));
         final var start = unit.startOf(node);
         final var source = unit.source();
-        return new Doc.Verbatim(expanded, expandedWidth(source.substring(source.lastIndexOf('\n', start - 1) + 1, start)));
-    }
-
-    private String withTabsExpandedInTheIndent(final String line) {
-        final var indentEnd = (int) line.chars()
-                .takeWhile(c -> c == ' ' || c == '\t')
-                .count();
-        return " ".repeat(expandedWidth(line.substring(0, indentEnd))) + line.substring(indentEnd);
-    }
-
-    private int expandedWidth(final String text) {
-        return text.chars().reduce(0, (column, c) -> c == '\t' ? (column / TAB_WIDTH + 1) * TAB_WIDTH : column + 1);
+        return new Doc.Verbatim(expanded, CommentDocs.expandedWidth(source.substring(source.lastIndexOf('\n', start - 1) + 1, start)));
     }
 
     /**

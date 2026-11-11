@@ -10,10 +10,8 @@ import com.sun.source.tree.Tree;
 import io.javafmt.doc.Doc;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -31,13 +29,10 @@ final class MethodChainRenderer {
     }
 
     ChainDocs chainDocs(final MethodInvocationTree node, final Recursor recursor) {
-        final var calls = Stream.<@Nullable MethodInvocationTree>iterate(
-                        node,
-                        Objects::nonNull,
-                        call -> call.getMethodSelect() instanceof MemberSelectTree ms && ms.getExpression() instanceof MethodInvocationTree receiver
-                                ? receiver
-                                : null)
-                .map(Objects::requireNonNull)
+        final var calls = DocBuilder.walk(node, call -> call.getMethodSelect() instanceof MemberSelectTree ms
+                    && ms.getExpression() instanceof MethodInvocationTree receiver
+                        ? receiver
+                        : null)
                 .toList();
         final var links = calls.stream()
                 .map(call -> call == node ? links(call, true, recursor) : withTrailingComments(links(call, false, recursor), recursor.trailing(call)))
@@ -56,16 +51,17 @@ final class MethodChainRenderer {
                     : Doc.Choice.unlessPastTheChainColumn(
                             new Doc.Choice(afterHead, beforeEveryCall, Doc.Choice.Fit.OPENING_LINE),
                             beforeEveryCall,
-                            threeOrMoreCalls ? Doc.widthBeforeFirstBreak(joined(links.subList(0, chopped.getAsInt() + 1))) : -1);
-            return new ChainDocs(doc, links.stream()
-                            .allMatch(MethodChainRenderer::staysOnOneLine)
-                    ? Optional.of(afterHead)
-                    : Optional.empty());
+                            Doc.widthBeforeFirstBreak(joined(links.subList(0, chopped.getAsInt() + 1))));
+            return new ChainDocs(doc, everyLinkStaysOnOneLine(links) ? Optional.of(afterHead) : Optional.empty());
         }
         if (calls.size() == 1) {
             return new ChainDocs(joined(links), Optional.empty());
         }
-        final var headEnd = threeOrMoreCalls ? 0 : firstLineEnd(links);
+        final var headEnd = !threeOrMoreCalls
+            && links.getLast().endsTheFirstLine()
+            && !links.getFirst().endsTheLine()
+                ? links.size() - 1
+                : 0;
         final var group = headEnd == 0
                 ? chainGroup(
                         Doc.concat(
@@ -81,18 +77,16 @@ final class MethodChainRenderer {
                         : Doc.flatWidthOrBreak(joined(links.subList(0, links.size() - 1)));
         final var broken = Doc.Choice.unlessPastTheChainColumn(group, group.contents(), chainWidth);
         if (!hugsLastLink(links)) {
-            return new ChainDocs(broken, links.stream()
-                            .allMatch(MethodChainRenderer::staysOnOneLine)
-                    ? Optional.of(brokenAfter(links, headEnd))
-                    : Optional.empty());
+            return new ChainDocs(broken, everyLinkStaysOnOneLine(links) ? Optional.of(brokenAfter(links, headEnd)) : Optional.empty());
         }
         return new ChainDocs(
                 new Doc.Choice(Doc.Choice.unlessPastTheChainColumn(joined(links), group.contents(), chainWidth), broken, Doc.Choice.Fit.OPENING_LINE),
                 Optional.empty());
     }
 
-    private boolean staysOnOneLine(final Link link) {
-        return !link.endsTheLine() && !link.endsWithComment() && Doc.flatWidthOrBreak(link.doc()) >= 0;
+    private boolean everyLinkStaysOnOneLine(final List<Link> links) {
+        return links.stream()
+                .allMatch(link -> !link.endsTheLine() && !link.endsWithComment() && Doc.flatWidthOrBreak(link.doc()) >= 0);
     }
 
     private OptionalInt choppedAfter(final List<Link> links) {
@@ -104,17 +98,6 @@ final class MethodChainRenderer {
                     .noneMatch(Link::endsTheLine)
                 ? head
                 : OptionalInt.empty();
-    }
-
-    private int firstLineEnd(final List<Link> links) {
-        final var end = IntStream.range(1, links.size())
-                .filter(i -> links.get(i).endsTheFirstLine())
-                .findFirst()
-                .orElse(0);
-        return links.subList(0, end).stream()
-                        .anyMatch(Link::endsTheLine)
-                ? 0
-                : end;
     }
 
     private boolean hugsLastLink(final List<Link> links) {
@@ -222,14 +205,10 @@ final class MethodChainRenderer {
         if (comments.isEmpty()) {
             return link;
         }
-        final var rendered = comments.stream()
-                .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)))
-                .toList();
         return new Link(
-                Doc.concatOf(Stream.of(Stream.of(link.doc()), rendered.stream())),
-                Doc.concatOf(Stream.of(Stream.of(link.onItsOwnLine()), rendered.stream())),
-                comments.stream()
-                        .anyMatch(c -> c.text().startsWith("//")),
+                CommentDocs.appendTrailing(link.doc(), comments),
+                CommentDocs.appendTrailing(link.onItsOwnLine(), comments),
+                CommentDocs.hasLineComment(comments),
                 true,
                 false,
                 link.endsTheFirstLine());

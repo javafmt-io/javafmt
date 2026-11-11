@@ -20,8 +20,7 @@ public sealed interface Doc
             Doc.Group,
             Doc.Concat,
             Doc.IfBreak,
-            Doc.Choice,
-            Doc.Fill {
+            Doc.Choice {
 
     /** The sole {@link Line}. The record holds no state, so every instance is interchangeable. */
     Line LINE = new Line();
@@ -77,7 +76,6 @@ public sealed interface Doc
                         work.push(ps.get(i));
                     }
                 }
-                case Fill(var ps) -> work.push(new Concat(ps));
             }
         }
         return total;
@@ -103,7 +101,6 @@ public sealed interface Doc
             case Choice(var preferred, var _, var _, var _) -> endsWithLineComment(preferred);
             case Group(var inner, var _) -> endsWithLineComment(inner);
             case Concat(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
-            case Fill(var parts) -> !parts.isEmpty() && endsWithLineComment(parts.getLast());
             case IfBreak(var breakContents, var _) -> endsWithLineComment(breakContents);
             case Line(), SoftLine(), HardLine(), LineStart(), BlockComment _ -> false;
         };
@@ -279,16 +276,5 @@ public sealed interface Doc
         }
 
         public enum Fit { EVERY_LINE, OPENING_LINE, FIRST_BREAK, FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN }
-    }
-
-    record Fill(List<Doc> parts) implements Doc {
-
-        public Fill {
-            Objects.requireNonNull(parts, "parts");
-            parts = List.copyOf(parts);
-            if (parts.size() % 2 == 0 && !parts.isEmpty()) {
-                throw new IllegalArgumentException("a fill alternates items and separators, starting and ending with an item");
-            }
-        }
     }
 }

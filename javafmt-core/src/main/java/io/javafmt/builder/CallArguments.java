@@ -19,13 +19,9 @@ import java.util.stream.Stream;
 @UtilityClass
 final class CallArguments {
 
-    Rendered render(final Tree call, final List<? extends ExpressionTree> arguments, final Recursor recursor) {
-        return render(call, arguments, false, recursor);
-    }
-
     Rendered render(final Tree call, final List<? extends ExpressionTree> arguments, final boolean lastCall, final Recursor recursor) {
         if (arguments.isEmpty()) {
-            final var empty = emptyArguments(CommentDocs.inside(call, recursor));
+            final var empty = emptyArguments(recursor.interior(call));
             return new Rendered(empty, empty, false);
         }
         final var trailing = IntStream.range(0, arguments.size())
@@ -73,11 +69,8 @@ final class CallArguments {
                     new Doc.Choice(hugged, firstOnTheCallLine, Doc.Choice.Fit.OPENING_LINE),
                     true);
         }
-        final var flatOthers = others.stream()
-                .map(CallArguments::flattened)
-                .toList();
         if (isExpressionLambda(arguments.getLast()) && hugsLastArgument(arguments, rendered, pastTheSeparator)) {
-            final var hugged = onTheCallLine(flatOthers, rendered.getLast());
+            final var hugged = onTheCallLine(flattenedEach(others), rendered.getLast());
             final var fit = others.isEmpty() ? Doc.Choice.Fit.FIRST_BREAK : Doc.Choice.Fit.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
             return new Rendered(
                     new Doc.Choice(hugged, onTheNextLine(rendered, pastTheSeparator, closing), fit),
@@ -86,9 +79,9 @@ final class CallArguments {
         }
         if (arguments.getLast() instanceof ConditionalExpressionTree ternary
             && startsOnTheCallLine(ternary, others, pastTheSeparator, trailing, recursor)) {
-            final var onTheCallLine = onTheCallLine(flatOthers, rendered.getLast());
+            final var onTheCallLine = onTheCallLine(flattenedEach(others), rendered.getLast());
             final var hugged = new Doc.Choice(onTheCallLine, onTheNextLine(rendered, pastTheSeparator, closing), Doc.Choice.Fit.FIRST_BREAK);
-            if (ExpressionRenderers.authorBrokeIt(ternary, recursor) || !printsFlat(rendered.getLast())) {
+            if (!printsFlat(rendered.getLast())) {
                 return new Rendered(hugged, new Doc.Choice(onTheCallLine, firstOnTheCallLine, Doc.Choice.Fit.FIRST_BREAK), false);
             }
             return new Rendered(
@@ -200,9 +193,7 @@ final class CallArguments {
         final var inside = new Doc.Concat(
                 Doc.intersperse(new Doc.Text(" "), comments.stream()
                         .map(CommentDocs::renderComment)));
-        return Doc.endsWithLineComment(inside)
-                ? Doc.concat(new Doc.Text("( "), inside, Doc.HARD_LINE, new Doc.Text(")"))
-                : Doc.concat(new Doc.Text("("), inside, new Doc.Text(")"));
+        return Doc.concat(new Doc.Text(Doc.endsWithLineComment(inside) ? "( " : "("), CommentDocs.closeAfter(inside, List.of(), ")"));
     }
 
     private boolean hugsLastArgument(final List<? extends ExpressionTree> arguments,
@@ -258,10 +249,15 @@ final class CallArguments {
                 case Doc.IfBreak(var _, var flatContents) -> pending.push(flatContents);
                 case Doc.Choice(var preferred, var _, var _, var _) -> pending.push(preferred);
                 case Doc.Concat(var parts) -> parts.forEach(pending::push);
-                case Doc.Fill(var parts) -> parts.forEach(pending::push);
             }
         }
         return true;
+    }
+
+    private List<Doc> flattenedEach(final List<Doc> docs) {
+        return docs.stream()
+                .map(CallArguments::flattened)
+                .toList();
     }
 
     private Doc flattened(final Doc doc) {
@@ -272,9 +268,6 @@ final class CallArguments {
             case Doc.IfBreak(var _, var flatContents) -> flattened(flatContents);
             case Doc.Choice(var preferred, var _, var _, var _) -> flattened(preferred);
             case Doc.Concat(var parts) -> new Doc.Concat(parts.stream()
-                    .map(CallArguments::flattened)
-                    .toList());
-            case Doc.Fill(var parts) -> new Doc.Concat(parts.stream()
                     .map(CallArguments::flattened)
                     .toList());
             case Doc.Indent(var contents) -> new Doc.Indent(flattened(contents));
