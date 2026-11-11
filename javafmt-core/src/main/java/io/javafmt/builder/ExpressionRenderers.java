@@ -409,12 +409,14 @@ final class ExpressionRenderers {
             && array.getInitializers() != null
             && !array.getInitializers().isEmpty()
             && CommentScanner.scan(recursor.sourceSpan(node).toString()).isEmpty()) {
-            final var exploded = Doc.concat(
-                    name, WrappableList.separatedOf("(", ")", separatedElements(node, arguments, Optional.empty(), recursor)));
-            return new Doc.Group(
-                    new Doc.IfBreak(
-                            new Doc.Choice(huggingItsArray(name, arguments, last, array, recursor), exploded, Doc.Choice.Fit.OPENING_LINE),
-                            exploded));
+            return recursor.renderingEachTreeOnce(() -> {
+                final var exploded = Doc.concat(
+                        name, WrappableList.separatedOf("(", ")", separatedElements(node, arguments, Optional.empty(), recursor)));
+                return new Doc.Group(
+                        new Doc.IfBreak(
+                                new Doc.Choice(huggingItsArray(name, arguments, last, array, recursor), exploded, Doc.Choice.Fit.OPENING_LINE),
+                                exploded));
+            });
         }
         if (arguments.size() == 1
             && sole instanceof NewArrayTree

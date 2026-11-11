@@ -154,7 +154,14 @@ class DeepExpressionTest {
                         return 0;
                     }
                 }
-                """, "f(a, ", "1", ")");
+                """, "f(a, ", "1", ")"),
+        ANNOTATION_ARRAYS("""
+                class Nested {
+
+                    %s
+                    int annotated;
+                }
+                """, "@A(v = {", "1", "})");
 
         private final String template;
 

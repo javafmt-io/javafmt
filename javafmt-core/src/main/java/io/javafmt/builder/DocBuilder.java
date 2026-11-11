@@ -76,6 +76,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -90,6 +91,10 @@ public final class DocBuilder {
     private final List<Diagnostic> diagnostics = new ArrayList<>();
 
     private final IdentityHashMap<Tree, Prerendered> prerendered = new IdentityHashMap<>();
+
+    private final IdentityHashMap<Tree, Doc> renderedOnce = new IdentityHashMap<>();
+
+    private int renderingOnce;
 
     private final Recursor recursor = new Recursor() {
         @Override
@@ -121,6 +126,11 @@ public final class DocBuilder {
         public Doc scanNullable(final Tree node) {
             Objects.requireNonNull(node, "node");
             return DocBuilder.this.scan(node);
+        }
+
+        @Override
+        public <T> T renderingEachTreeOnce(final Supplier<T> layouts) {
+            return DocBuilder.this.renderingEachTreeOnce(layouts);
         }
 
         @Override
@@ -253,16 +263,40 @@ public final class DocBuilder {
     }
 
     private Doc scan(final Tree tree, final UnaryOperator<Doc> adjust, final boolean withTrailing) {
+        final var doc = adjust.apply(rendered(tree));
+        return withTrailing ? attacher.attach(tree, doc) : attacher.attachLeading(tree, doc);
+    }
+
+    private Doc rendered(final Tree tree) {
+        final var known = renderedOnce.get(tree);
+        if (known != null) {
+            return known;
+        }
         final var ready = prerendered.remove(tree);
         final Doc doc;
         if (ready != null) {
             diagnostics.addAll(ready.diagnostics());
-            doc = adjust.apply(ready.doc());
+            doc = ready.doc();
         } else {
             prerenderReentryPoints(tree);
-            doc = adjust.apply(dispatch(tree));
+            doc = dispatch(tree);
         }
-        return withTrailing ? attacher.attach(tree, doc) : attacher.attachLeading(tree, doc);
+        if (renderingOnce > 0) {
+            renderedOnce.put(tree, doc);
+        }
+        return doc;
+    }
+
+    private <T> T renderingEachTreeOnce(final Supplier<T> layouts) {
+        renderingOnce++;
+        try {
+            return layouts.get();
+        } finally {
+            renderingOnce--;
+            if (renderingOnce == 0) {
+                renderedOnce.clear();
+            }
+        }
     }
 
     private MethodChainRenderer.ChainDocs scanChain(final MethodInvocationTree node) {
