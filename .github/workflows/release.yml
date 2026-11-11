@@ -24,16 +24,9 @@ jobs:
       - name: Pin archive timestamps to the tagged commit
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
 
-      - name: Set up Java 25
-        uses: actions/setup-java@v4
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-build
         with:
-          java-version: '25.0.5'
-          distribution: 'temurin'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '9.8.2'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download native binaries
@@ -119,16 +112,9 @@ jobs:
       - name: Pin archive timestamps to the tagged commit
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
 
-      - name: Set up Java 25
-        uses: actions/setup-java@v5
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-build
         with:
-          java-version: '25.0.5'
-          distribution: 'temurin'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '9.8.2'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Publish the Gradle plugin to the Plugin Portal
@@ -151,16 +137,9 @@ jobs:
       - name: Pin archive timestamps to the tagged commit
         run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
 
-      - name: Set up Java 25
-        uses: actions/setup-java@v5
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-build
         with:
-          java-version: '25.0.5'
-          distribution: 'temurin'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          gradle-version: '9.8.2'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download native checksums
@@ -203,21 +182,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java 25
-        uses: actions/setup-java@v5
-        with:
-          java-version: '25.0.5'
-          distribution: 'temurin'
-
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Set up Java and Gradle
+        uses: ./.github/actions/setup-build
         with:
-          gradle-version: '9.8.2'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download VS Code extensions

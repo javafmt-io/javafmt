@@ -65,7 +65,7 @@ first use after a clean build.
   - `website` is the documentation site.
 - `javafmt-maven-plugin` is a Maven plugin JAR but is built by Gradle via the `org.gradlex.maven-plugin-development` plugin, which generates the `META-INF/maven/plugin.xml` descriptor from `@Mojo` annotations. One build system for the whole monorepo, no `mvn install` bootstrap needed.
 - Shared build conventions live in `buildSrc/src/main/kotlin/` (`javafmt.java-conventions`, `javafmt.spotless-conventions`, `javafmt.native-conventions`, `javafmt.npm-conventions`, `javafmt.publish-conventions`), and the settings plugins in `build-settings/`. `javafmt-intellij` applies only the Spotless conventions.
-- Every Gradle dependency, Gradle plugin and IntelliJ Platform version goes in `gradle/libs.versions.toml`. npm versions live in each module's `package.json`, and the CI workflows pin their own Java and Gradle versions.
+- Every Gradle dependency, Gradle plugin and IntelliJ Platform version goes in `gradle/libs.versions.toml`. npm versions live in each module's `package.json`. The Java and Gradle versions live in `.sdkmanrc`, which the CI workflows read through `.github/actions/setup-build`.
 
 ## What the build checks
 
