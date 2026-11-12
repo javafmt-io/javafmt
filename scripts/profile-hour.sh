@@ -1,10 +1,11 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 # One-hour CPU flamegraph run of the JDK-source benchmark.
 #
 #   scripts/profile-hour.sh            run for about an hour, then open the flamegraph
 #   MINUTES=10 scripts/profile-hour.sh shorter run
 #   scripts/profile-hour.sh --open     just reopen the newest flamegraph
 #
+# zsh, not bash: macOS ships bash 3.2 and sdkman's init needs bash 4+.
 # Safe to start right after a reboot: it loads sdkman, installs async-profiler if missing, keeps the
 # Mac awake with caffeinate and copies the results to profiles/<timestamp>/ outside build/, so a later
 # `gradle clean` cannot delete them. Progress goes to the terminal and to profiles/<timestamp>/run.log.
@@ -38,7 +39,6 @@ ITERATIONS=$(( (MINUTES * 60 - OVERHEAD_SECONDS) / PARAMS / ITERATION_SECONDS - 
 
 if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
     set +u
-    # shellcheck disable=SC1091
     source "$HOME/.sdkman/bin/sdkman-init.sh"
     sdk env >/dev/null || true
     set -u
