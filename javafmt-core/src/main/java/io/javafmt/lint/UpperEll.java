@@ -8,12 +8,12 @@ import io.javafmt.parser.ChainScanner;
  * Replaces the lowercase {@code l} suffix on long literals with uppercase {@code L}.
  * Lowercase {@code l} is visually ambiguous with the digit {@code 1}.
  */
-public final class UpperEll implements LintRule {
+public final class UpperEll implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitLiteral(final LiteralTree node, final Void p) {
                 if (node.getKind() == Tree.Kind.LONG_LITERAL) {

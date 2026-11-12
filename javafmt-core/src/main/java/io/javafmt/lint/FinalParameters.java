@@ -30,14 +30,19 @@ import java.util.stream.Collectors;
  * (e.g. introduce a local copy or an {@link java.util.concurrent.atomic.AtomicInteger}
  * holder) and re-run javafmt, after which the safe edit applies.
  */
-public final class FinalParameters implements LintRule {
+public final class FinalParameters implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
         final var facts = new TreeFacts(unit);
         final var reassignments = new ReassignmentDetector();
-        return methodsWithBodies(context, facts).stream()
+        return RuleScan.collecting((List<MethodTree> methods) -> methodsWithBodies(methods, facts), methods -> resultFor(
+                methods, unit, reassignments));
+    }
+
+    private static LintResult resultFor(final List<MethodTree> methods, final ParsedUnit unit, final ReassignmentDetector reassignments) {
+        return methods.stream()
                 .flatMap(m -> m.getParameters().stream()
                         .filter(p -> !Modifiers.hasFinal(p))
                         .map(p -> Map.entry(
@@ -56,8 +61,8 @@ public final class FinalParameters implements LintRule {
      * the record's header components, and the JLS forbids modifiers there, so adding {@code
      * final} would break the re-parse.
      */
-    private static List<MethodTree> methodsWithBodies(final LintContext context, final TreeFacts facts) {
-        return LintScan.collect(context, methods -> new ChainScanner<>() {
+    private static ChainScanner<Void, Void> methodsWithBodies(final List<MethodTree> methods, final TreeFacts facts) {
+        return new ChainScanner<>() {
             @Override
             public Void visitMethod(final MethodTree node, final Void p) {
                 if (node.getBody() != null && !facts.isCompactConstructor(node)) {
@@ -65,7 +70,7 @@ public final class FinalParameters implements LintRule {
                 }
                 return super.visitMethod(node, null);
             }
-        });
+        };
     }
 
     private static Optional<LintEdit> editFor(final VariableTree param, final ParsedUnit unit) {

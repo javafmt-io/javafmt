@@ -34,16 +34,25 @@ public abstract class ChainPathScanner<R extends @Nullable Object, P extends @Nu
     @Override
     @Nullable
     public R scan(@Nullable final Tree tree, @Nullable final P p) {
-        if (tree == null) {
+        if (tree == null || isShallow()) {
             return null;
         }
         final var enclosing = path;
         path = new TreePath(enclosing, tree);
         try {
+            visiting(tree);
             return tree.accept(this, p);
         } finally {
             path = enclosing;
         }
+    }
+
+    /** Called with {@link #getCurrentPath()} already on {@code node}, just before the node is visited. */
+    void visiting(final Tree node) {}
+
+    @Override
+    void positionedAt(final TreePath path) {
+        this.path = path;
     }
 
     public TreePath getCurrentPath() {

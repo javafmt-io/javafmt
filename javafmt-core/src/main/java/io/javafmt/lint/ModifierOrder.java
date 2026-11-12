@@ -45,12 +45,12 @@ import javax.lang.model.type.TypeKind;
  * in {@code @Deprecated // since 3.1} on the line above the keywords, moves the start of the
  * replacement past it instead, so everything before it stays where it was written.
  */
-public final class ModifierOrder implements LintRule {
+public final class ModifierOrder implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+        return RuleScan.editing(edits -> new ChainPathScanner<>() {
             @Override
             public Void visitClass(final ClassTree node, final Void p) {
                 checkModifiers(node.getModifiers(), false, unit).ifPresent(edits::add);

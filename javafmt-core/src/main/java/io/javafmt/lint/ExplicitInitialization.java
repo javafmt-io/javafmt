@@ -21,12 +21,12 @@ import javax.lang.model.element.Modifier;
  * <p>{@code final} fields and fields of an interface or annotation type keep their initializer:
  * those have no later opportunity to be assigned, so the rewrite would not compile.
  */
-public final class ExplicitInitialization implements LintRule {
+public final class ExplicitInitialization implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitClass(final ClassTree node, final Void p) {
                 node.getMembers().stream()

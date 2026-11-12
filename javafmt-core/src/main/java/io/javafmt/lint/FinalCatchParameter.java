@@ -3,22 +3,30 @@ package io.javafmt.lint;
 import com.sun.source.tree.CatchTree;
 import io.javafmt.parser.ChainScanner;
 
+import java.util.List;
 import java.util.Optional;
 
-public final class FinalCatchParameter implements LintRule {
+public final class FinalCatchParameter implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
         final var reassignments = new ReassignmentDetector();
-        final var catches = LintScan.<CatchTree>collect(context, sink -> new ChainScanner<>() {
-            @Override
-            public Void visitCatch(final CatchTree node, final Void p) {
-                sink.add(node);
-                return super.visitCatch(node, null);
-            }
-        });
-        return LintResult.ofEdits(catches.stream()
+        return RuleScan.collecting(
+                (List<CatchTree> sink) -> new ChainScanner<>() {
+                    @Override
+                    public Void visitCatch(final CatchTree node, final Void p) {
+                        sink.add(node);
+                        return super.visitCatch(node, null);
+                    }
+                },
+                catches -> LintResult.ofEdits(editsFor(catches, unit, reassignments)));
+    }
+
+    private static List<LintEdit> editsFor(final List<CatchTree> catches,
+                                           final io.javafmt.parser.ParsedUnit unit,
+                                           final ReassignmentDetector reassignments) {
+        return catches.stream()
                 .filter(c -> !Modifiers.hasFinal(c.getParameter()))
                 .filter(c -> !reassignments.reassigned(
                         c.getBlock(), c.getParameter().getName().toString()))
@@ -26,6 +34,6 @@ public final class FinalCatchParameter implements LintRule {
                         .filter(pos -> pos >= 0)
                         .stream())
                 .map(pos -> LintEdit.insert(pos, "final "))
-                .toList());
+                .toList();
     }
 }

@@ -18,12 +18,12 @@ import java.util.Optional;
  * statement lists, which are block bodies — not the initializer/condition/update clauses of a
  * {@code for} loop header.
  */
-public final class OneStatementPerLine implements LintRule {
+public final class OneStatementPerLine implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitBlock(final BlockTree node, final Void p) {
                 edits.addAll(splitsWithin(node.getStatements(), unit));

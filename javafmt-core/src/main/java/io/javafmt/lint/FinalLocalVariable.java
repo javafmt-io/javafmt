@@ -20,13 +20,13 @@ import io.javafmt.parser.ChainPathScanner;
  * <p>Reassignment detection runs {@link ReassignmentDetector} over the declaration's enclosing
  * block; see that class for which writes count and which nested scopes it skips.
  */
-public final class FinalLocalVariable implements LintRule {
+public final class FinalLocalVariable implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
         final var reassignments = new ReassignmentDetector();
-        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+        return RuleScan.editing(edits -> new ChainPathScanner<>() {
             @Override
             public Void visitVariable(final VariableTree node, final Void p) {
                 final var path = getCurrentPath();

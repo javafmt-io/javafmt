@@ -22,20 +22,20 @@ import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public final class UnusedVariableShouldBeUnnamed implements LintRule {
+public final class UnusedVariableShouldBeUnnamed implements ScanningRule {
 
     private static final String UNNAMED = "_";
 
     private static final int FIRST_RELEASE_WITH_UNNAMED_VARIABLES = 22;
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         if (context.release() < FIRST_RELEASE_WITH_UNNAMED_VARIABLES) {
-            return LintResult.EMPTY;
+            return RuleScan.of(LintResult.EMPTY);
         }
         final var unit = context.unit();
         final var namesByScope = new IdentityHashMap<Tree, Set<String>>();
-        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+        return RuleScan.editing(edits -> new ChainPathScanner<>() {
             @Override
             public Void visitVariable(final VariableTree node, final Void p) {
                 final var name = node.getName().toString();

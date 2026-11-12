@@ -30,12 +30,12 @@ import java.util.List;
  * {@link IfTree} — is preserved as-is at this rule's level: the inner {@code IfTree} is
  * visited recursively and its own bodies are braced on their own merits.
  */
-public final class NeedBraces implements LintRule {
+public final class NeedBraces implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitIf(final IfTree node, final Void p) {
                 addEditsFor(node, node.getThenStatement(), edits, unit);

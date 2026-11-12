@@ -34,12 +34,12 @@ import java.util.stream.Stream;
  * only {@code b} is an array. Since each declarator keeps its own text, its brackets come along
  * with it, and {@link ArrayTypeStyle} moves them to the type on a later iteration.
  */
-public final class MultipleVariableDeclarations implements LintRule {
+public final class MultipleVariableDeclarations implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitBlock(final BlockTree node, final Void p) {
                 splitGroups(node.getStatements(), unit, edits);

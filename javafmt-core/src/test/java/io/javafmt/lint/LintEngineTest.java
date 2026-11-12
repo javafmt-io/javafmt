@@ -31,6 +31,18 @@ class LintEngineTest {
     }
 
     @Test
+    void scanningRulesShareOneWalkOfTheTree() {
+        final var first = new PathProbe();
+        final var second = new PathProbe();
+
+        new LintEngine(List.of(first, second)).lint(contextOf("class Shared {\n\n    int value = a + b.c(d);\n}\n"));
+
+        assertThat(first.seen).isNotEmpty();
+        assertThat(second.seen).hasSameSizeAs(first.seen);
+        IntStream.range(0, first.seen.size()).forEach(i -> assertThat(second.seen.get(i)).isSameAs(first.seen.get(i)));
+    }
+
+    @Test
     void stopsAtIterationCapWithWarning() {
         final var engine = new LintEngine(List.of(new AlwaysEdits("Runaway")));
         final var outcome = engine.lint(contextOf(SOURCE));
@@ -235,6 +247,22 @@ class LintEngineTest {
         @Override
         public LintResult apply(final LintContext context) {
             return LintResult.EMPTY;
+        }
+    }
+
+    private static final class PathProbe implements ScanningRule {
+
+        private final List<com.sun.source.util.TreePath> seen = new ArrayList<>();
+
+        @Override
+        public RuleScan scan(final LintContext context) {
+            return RuleScan.editing(_ -> new io.javafmt.parser.ChainPathScanner<>() {
+                @Override
+                public Void visitIdentifier(final com.sun.source.tree.IdentifierTree node, final Void p) {
+                    seen.add(getCurrentPath());
+                    return null;
+                }
+            });
         }
     }
 }

@@ -24,12 +24,12 @@ import java.util.stream.IntStream;
  * declarators. {@link MultipleVariableDeclarations} splits the group first and this rule
  * normalizes the resulting single declarations on a later iteration.
  */
-public final class ArrayTypeStyle implements LintRule {
+public final class ArrayTypeStyle implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+        return RuleScan.editing(edits -> new ChainPathScanner<>() {
             @Override
             public Void visitVariable(final VariableTree node, final Void p) {
                 if (!MultipleVariableDeclarations.isPartOfDeclarationGroup(getCurrentPath(), unit)) {

@@ -22,12 +22,12 @@ import java.util.Optional;
  * {@code // 255 , hasLower (add 120), hasTitle, …} and javafmt refused the file, because the rule
  * left the source without a comma and the renderer printed one.
  */
-public final class ArrayTrailingComma implements LintRule {
+public final class ArrayTrailingComma implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitNewArray(final NewArrayTree node, final Void p) {
                 editFor(node, unit)

@@ -27,12 +27,12 @@ import java.util.stream.Collectors;
  * <p>Only a no-argument call at the first statement is removed. Calls with arguments ({@code super(x)})
  * and {@code this(...)} delegations are left untouched.
  */
-public final class RedundantSuperCall implements LintRule {
+public final class RedundantSuperCall implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitMethod(final MethodTree node, final Void p) {
                 tryRemove(node, unit).ifPresent(edits::add);

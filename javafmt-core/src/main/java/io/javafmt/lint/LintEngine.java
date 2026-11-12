@@ -1,9 +1,11 @@
 package io.javafmt.lint;
 
+import com.sun.source.tree.Tree;
 import io.javafmt.Diagnostic;
 import io.javafmt.Position;
 import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.Attribution;
+import io.javafmt.parser.FanOutScanner;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParseException;
 import io.javafmt.parser.ParsedUnit;
@@ -15,6 +17,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -182,9 +185,7 @@ public final class LintEngine {
      * on the last round before the engine gives up.
      */
     private void applyRound(final FileState state, final boolean lastRound) {
-        final var editing = rules.stream()
-                .map(r -> r instanceof WarningRule ? LintResult.EMPTY : r.apply(state.context.forRule(r)))
-                .toList();
+        final var editing = editingResults(state.context);
         final var edits = mergeAcrossRules(editing);
         final var results = edits.isEmpty() || lastRound ? withWarnings(editing, state.context) : editing;
         state.diagnostics = results.stream()
@@ -196,6 +197,38 @@ public final class LintEngine {
         }
         state.unconvergedRules = namesOfRulesWithEdits(results);
         state.pendingSource = applyEdits(state.context.unit().source(), edits);
+    }
+
+    /**
+     * Every rule's result for this round, in registration order. The {@link RuleScan}s of the {@link
+     * ScanningRule}s share one walk per tree: a rule that was handed the parse-only tree because it
+     * does not use attribution walks a different tree from one that does, so the walks are grouped
+     * by the tree they are over.
+     */
+    private List<LintResult> editingResults(final LintContext context) {
+        final var planned = rules.stream()
+                .map(rule -> rule instanceof ScanningRule scanning && !(rule instanceof WarningRule)
+                        ? Optional.of(plan(scanning, context.forRule(rule)))
+                        : Optional.<Planned>empty())
+                .toList();
+        planned.stream()
+                .flatMap(Optional::stream)
+                .collect(Collectors.groupingBy(
+                        Planned::tree,
+                        IdentityHashMap::new,
+                        Collectors.mapping(plan -> plan.scan().scanner(), Collectors.toList())))
+                .forEach(FanOutScanner::walk);
+        return IntStream.range(0, rules.size())
+                .mapToObj(i -> planned.get(i)
+                        .map(plan -> plan.scan().result().get())
+                        .orElseGet(() -> rules.get(i) instanceof WarningRule
+                                ? LintResult.EMPTY
+                                : rules.get(i).apply(context.forRule(rules.get(i)))))
+                .toList();
+    }
+
+    private static Planned plan(final ScanningRule rule, final LintContext context) {
+        return new Planned(context.unit().tree(), rule.scan(context));
     }
 
     private List<LintResult> withWarnings(final List<LintResult> editing, final LintContext context) {
@@ -306,6 +339,8 @@ public final class LintEngine {
             throw new IllegalStateException("edit end " + edit.end() + " exceeds source length " + source.length());
         }
     }
+
+    private record Planned(Tree tree, RuleScan scan) {}
 
     private record Rewrite(int index, String source) {}
 

@@ -4,14 +4,13 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.Tree;
+import com.sun.source.util.TreePath;
 import com.sun.source.util.TreeScanner;
 import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * A {@link TreeScanner} that walks a chain of binary operators, and a chain of method calls and
@@ -24,18 +23,48 @@ import java.util.stream.Stream;
  */
 public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullable Object> extends TreeScanner<R, P> {
 
+    private boolean shallow;
+
+    /**
+     * Stops this scanner descending on its own: every {@code scan} of a child returns at once, so
+     * the visit methods see only the node they are handed. A {@link FanOutScanner} then does the
+     * descending for many scanners at the same time.
+     */
+    final void shallow() {
+        shallow = true;
+    }
+
+    final boolean isShallow() {
+        return shallow;
+    }
+
+    /** Where a {@link FanOutScanner} hands this scanner its next node. Only a path scanner needs it. */
+    void positionedAt(final TreePath path) {}
+
+    @Override
+    @Nullable
+    public R scan(@Nullable final Tree tree, @Nullable final P p) {
+        return shallow ? null : super.scan(tree, p);
+    }
+
     @Override
     @Nullable
     public final R visitBinary(final BinaryTree node, final P p) {
-        final var spine = Stream.iterate(node, Objects::nonNull, b -> b.getLeftOperand() instanceof BinaryTree left ? left : null)
-                .map(Objects::requireNonNull)
-                .toList();
+        final var spine = new ArrayList<BinaryTree>();
+        for (var link = node; link != null; link = link.getLeftOperand() instanceof BinaryTree left ? left : null) {
+            spine.add(link);
+        }
         enterChain(spine);
         try {
-            spine.forEach(operator -> at(operator, () -> {
-                visitBinaryOperator(operator, p);
+            for (final var operator : spine) {
+                at(operator, () -> {
+                    visitBinaryOperator(operator, p);
+                    return null;
+                });
+            }
+            if (shallow) {
                 return null;
-            }));
+            }
             final var innermost = spine.getLast();
             var result = at(innermost, () -> scan(innermost.getLeftOperand(), p));
             for (final var operator : spine.reversed()) {
@@ -66,22 +95,28 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
 
     @Nullable
     private R scanSelectorChain(final Tree node, final P p) {
-        final var spine = Stream.iterate(node, Objects::nonNull, ChainScanner::innerLink)
-                .map(Objects::requireNonNull)
-                .toList();
+        final var spine = new ArrayList<Tree>();
+        for (var link = node; link != null; link = innerLink(link)) {
+            spine.add(link);
+        }
         enterChain(spine);
         try {
-            final var typeArguments = spine.stream()
-                    .map(link -> at(link, () -> link instanceof MethodInvocationTree call ? visitInvocationHead(call, p) : null))
-                    .toList();
-            final var innermost = spine.getLast();
-            if (spine.size() == 1) {
-                return scanArguments(innermost, typeArguments.getFirst(), at(innermost, () -> scan(leafOf(innermost), p)), p);
+            final var typeArguments = new ArrayList<R>(spine.size());
+            for (final var link : spine) {
+                typeArguments.add(at(link, () -> link instanceof MethodInvocationTree call ? visitInvocationHead(call, p) : null));
             }
-            return IntStream.iterate(spine.size() - 1, i -> i >= 0, i -> i - 1)
-                    .boxed()
-                    .reduce(at(innermost, () -> scan(leafOf(innermost), p)),
-                            (inner, i) -> scanArguments(spine.get(i), typeArguments.get(i), inner, p), (_, right) -> right);
+            if (shallow) {
+                return null;
+            }
+            final var innermost = spine.getLast();
+            var result = at(innermost, () -> scan(leafOf(innermost), p));
+            if (spine.size() == 1) {
+                return scanArguments(innermost, typeArguments.getFirst(), result, p);
+            }
+            for (var i = spine.size() - 1; i >= 0; i--) {
+                result = scanArguments(spine.get(i), typeArguments.get(i), result, p);
+            }
+            return result;
         } finally {
             exitChain(spine);
         }

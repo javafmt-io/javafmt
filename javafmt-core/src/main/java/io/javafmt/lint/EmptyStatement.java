@@ -27,12 +27,12 @@ import java.util.stream.Stream;
  * rather than letting javafmt quietly drop a token. Deleting it here puts the source and the output
  * back in agreement.
  */
-public final class EmptyStatement implements LintRule {
+public final class EmptyStatement implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitBlock(final BlockTree node, final Void p) {
                 node.getStatements().stream()

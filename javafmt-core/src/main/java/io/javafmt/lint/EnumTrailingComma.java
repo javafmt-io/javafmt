@@ -20,12 +20,12 @@ import java.util.Optional;
  * {@code enum E { A, B,; … }} is legal and both marks are redundant, but the renderer emits a
  * single separator, so the pair has to go from the source or the output is a token short.
  */
-public final class EnumTrailingComma implements LintRule {
+public final class EnumTrailingComma implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainScanner<>() {
+        return RuleScan.editing(edits -> new ChainScanner<>() {
             @Override
             public Void visitClass(final ClassTree node, final Void p) {
                 if (node.getKind() == Tree.Kind.ENUM) {

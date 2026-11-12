@@ -28,12 +28,12 @@ import javax.lang.model.element.Modifier;
  * it. Every declarator is its own member carrying the same modifier list, so removing a modifier
  * in place emitted the same deletion once per declarator, and {@link LintEngine} cannot apply that.
  */
-public final class RedundantModifier implements LintRule {
+public final class RedundantModifier implements ScanningRule {
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return LintScan.edits(context, edits -> new ChainPathScanner<>() {
+        return RuleScan.editing(edits -> new ChainPathScanner<>() {
             @Override
             public Void visitClass(final ClassTree node, final Void p) {
                 final var path = getCurrentPath();

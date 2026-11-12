@@ -31,12 +31,12 @@ import java.util.stream.IntStream;
  *
  * <p>Otherwise the rule emits a {@link Diagnostic.Warning} and leaves the source alone.
  */
-public final class DefaultComesLast implements LintRule {
+public final class DefaultComesLast implements ScanningRule {
 
     private static final String UNSAFE_MESSAGE = "default case should be last in switch (auto-fix skipped: shared label or fall-through grouping)";
 
     @Override
-    public LintResult apply(final LintContext context) {
+    public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
         final var edits = new ArrayList<LintEdit>();
         final var diagnostics = new ArrayList<Diagnostic>();
@@ -53,8 +53,7 @@ public final class DefaultComesLast implements LintRule {
                 return super.visitSwitchExpression(node, null);
             }
         };
-        scanner.scan(unit.tree(), null);
-        return new LintResult(edits, diagnostics);
+        return new RuleScan(scanner, () -> new LintResult(edits, diagnostics));
     }
 
     private static void inspect(final Tree switchNode,
