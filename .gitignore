@@ -52,3 +52,6 @@ prompts/
 # Claude Code local memory
 .claude/*
 !.claude/settings.json
+
+# Flamegraph soak runs
+/profiles/

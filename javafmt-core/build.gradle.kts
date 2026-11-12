@@ -170,6 +170,12 @@ if (jmhProfile != null) {
         warmupIterations.set(1)
         iterations.set(3)
         fork.set(1)
+        // A long soak (scripts/profile-hour.sh) overrides the quick-turnaround defaults above.
+        providers.gradleProperty("jmhIterations").orNull?.let { iterations.set(it.toInt()) }
+        providers.gradleProperty("jmhIterationSeconds").orNull?.let {
+            timeOnIteration.set("${it}s")
+            warmup.set("${it}s")
+        }
         when (jmhProfile) {
             "gc" -> profilers.add("gc")
             "stack" -> profilers.add("stack")
