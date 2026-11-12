@@ -47,7 +47,6 @@ public abstract class ChainPathScanner<R extends @Nullable Object, P extends @Nu
         }
     }
 
-    /** Called with {@link #getCurrentPath()} already on {@code node}, just before the node is visited. */
     void visiting(final Tree node) {}
 
     @Override

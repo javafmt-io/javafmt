@@ -25,11 +25,6 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
 
     private boolean shallow;
 
-    /**
-     * Stops this scanner descending on its own: every {@code scan} of a child returns at once, so
-     * the visit methods see only the node they are handed. A {@link FanOutScanner} then does the
-     * descending for many scanners at the same time.
-     */
     final void shallow() {
         shallow = true;
     }
@@ -38,7 +33,6 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
         return shallow;
     }
 
-    /** Where a {@link FanOutScanner} hands this scanner its next node. Only a path scanner needs it. */
     void positionedAt(final TreePath path) {}
 
     @Override

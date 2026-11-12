@@ -199,12 +199,6 @@ public final class LintEngine {
         state.pendingSource = applyEdits(state.context.unit().source(), edits);
     }
 
-    /**
-     * Every rule's result for this round, in registration order. The {@link RuleScan}s of the {@link
-     * ScanningRule}s share one walk per tree: a rule that was handed the parse-only tree because it
-     * does not use attribution walks a different tree from one that does, so the walks are grouped
-     * by the tree they are over.
-     */
     private List<LintResult> editingResults(final LintContext context) {
         final var planned = rules.stream()
                 .map(rule -> rule instanceof ScanningRule scanning && !(rule instanceof WarningRule)
