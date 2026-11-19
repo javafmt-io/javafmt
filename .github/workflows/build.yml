@@ -67,7 +67,7 @@ jobs:
 
       - name: SonarQube Cloud analysis
         if: ${{ success() && env.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarqube-scan-action@v8.4.1
+        uses: SonarSource/sonarqube-scan-action@v8.5.0
 
   intellij:
     runs-on: ubuntu-latest
