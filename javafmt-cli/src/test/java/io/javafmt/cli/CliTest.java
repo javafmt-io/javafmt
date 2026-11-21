@@ -174,6 +174,29 @@ class CliTest {
     }
 
     @Test
+    void aCacheThatCannotBeSaved_warnsAndKeepsTheRunsExit(@TempDir final Path dir) throws Exception {
+        final var a = dir.resolve("A.java");
+        Files.writeString(a, Fixtures.FORMATTED_A);
+        final var blocker = dir.resolve("blocker");
+        Files.writeString(blocker, "");
+        final var run = run("--cache", blocker.resolve("cache").toString(), a.toString());
+        assertThat(run.exit()).isZero();
+        assertThat(run.err()).startsWith("javafmt: warning: failed to save cache: ");
+    }
+
+    @Test
+    void aCacheThatCannotBeSaved_reportsAJsonCliDiagnosticUnderJsonDiagnostics(@TempDir final Path dir) throws Exception {
+        final var a = dir.resolve("A.java");
+        Files.writeString(a, Fixtures.FORMATTED_A);
+        final var blocker = dir.resolve("blocker");
+        Files.writeString(blocker, "");
+        final var run = run(
+                "--diagnostics=json", "--cache", blocker.resolve("cache").toString(), a.toString());
+        assertThat(run.exit()).isZero();
+        assertThat(run.err()).startsWith("{\"kind\":\"cli\",\"message\":\"failed to save cache: ");
+    }
+
+    @Test
     void noCacheFlagByDefault_runsFormatterEveryTime(@TempDir final Path dir) throws Exception {
         final var a = dir.resolve("A.java");
         Files.writeString(a, Fixtures.FORMATTED_A);

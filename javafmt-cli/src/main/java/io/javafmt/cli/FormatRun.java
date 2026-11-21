@@ -1,6 +1,5 @@
 package io.javafmt.cli;
 
-import io.javafmt.Diagnostic;
 import io.javafmt.FileResult;
 import io.javafmt.FormatResult;
 import io.javafmt.GitRatchet;
@@ -51,7 +50,7 @@ final class FormatRun {
             return Math.max(exit, expansion.unreadable() ? 2 : 0);
         } catch (final GitRatchetException e) {
             final var message = Objects.requireNonNullElse(e.getMessage(), "git failed");
-            err.println(parsed.jsonDiagnostics() ? JsonDiagnostics.cliLine("", message) : "javafmt: " + message);
+            err.println(parsed.diagnostics() == DiagnosticsFormat.JSON ? JsonDiagnostics.cliLine("", message) : "javafmt: " + message);
             return 2;
         }
     }
@@ -96,7 +95,7 @@ final class FormatRun {
                     .decode(ByteBuffer.wrap(in.readAllBytes()))
                     .toString();
             final var result = Javafmt.formatWithResult(source, parsed.config(), projectFile);
-            reportDiagnostics(parsed.jsonDiagnostics() ? "" : "<stdin>", result, parsed, err);
+            reportDiagnostics(parsed.diagnostics().stdinName(), result, parsed, err);
             if (result.hasErrors()) {
                 if (!parsed.check) {
                     out.print(result.output());
@@ -109,7 +108,7 @@ final class FormatRun {
             out.print(result.output());
             return 0;
         } catch (final IOException e) {
-            err.println(parsed.jsonDiagnostics()
+            err.println(parsed.diagnostics() == DiagnosticsFormat.JSON
                     ? JsonDiagnostics.cliLine("", "read failed: " + describe(e))
                     : "javafmt: <stdin>: read failed: " + describe(e));
             return 2;
@@ -120,7 +119,7 @@ final class FormatRun {
         if (result.output().equals(source)) {
             return 0;
         }
-        err.println(parsed.jsonDiagnostics() ? JsonDiagnostics.cliLine("", "would reformat") : "<stdin>: would reformat");
+        err.println(parsed.diagnostics().fileMessage(parsed.diagnostics().stdinName(), "would reformat"));
         return 1;
     }
 
@@ -140,7 +139,7 @@ final class FormatRun {
                 .toList();
         found.stream()
                 .flatMap(discovery -> discovery.unreadable().stream())
-                .forEach(u -> reportUnreadable(u, parsed.jsonDiagnostics(), err));
+                .forEach(u -> reportUnreadable(u, parsed.diagnostics(), err));
         final var expanded = found.stream()
                 .flatMap(discovery -> discovery.files().stream())
                 .toList();
@@ -152,10 +151,10 @@ final class FormatRun {
         return parsed.defaultExcludes ? SourceFiles.discover(dir) : SourceFiles.discoverWithoutDefaultExcludes(dir);
     }
 
-    private void reportUnreadable(final SourceFiles.Unreadable unreadable, final boolean json, final PrintStream err) {
+    private void reportUnreadable(final SourceFiles.Unreadable unreadable, final DiagnosticsFormat format, final PrintStream err) {
         final var path = unreadable.path().toString();
         final var message = "cannot read directory: " + describe(unreadable.error());
-        err.println(json ? JsonDiagnostics.cliLine(path, message) : "javafmt: " + path + ": " + message);
+        err.println(format == DiagnosticsFormat.JSON ? JsonDiagnostics.cliLine(path, message) : "javafmt: " + path + ": " + message);
     }
 
     private int runFiles(final Arguments parsed, final PrintStream err) {
@@ -170,7 +169,7 @@ final class FormatRun {
                 .max()
                 .orElse(0);
         if (worstExit <= 1) {
-            persistCache(cache, parsed.jsonDiagnostics(), err);
+            persistCache(cache, parsed.diagnostics(), err);
         }
         return worstExit;
     }
@@ -182,7 +181,7 @@ final class FormatRun {
                         .name("javafmt-write-", 0)
                         .daemon(true)
                         .factory())) {
-            return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.jsonDiagnostics()), pool))
+            return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.diagnostics()), pool))
                     .toList()
                     .stream()
                     .map(FormatRun::joined)
@@ -215,21 +214,22 @@ final class FormatRun {
      * the same batch are recorded. The caller skips this on hard errors (exit &gt;= 2), where the
      * run was incomplete.
      */
-    private void persistCache(final FormatCache cache, final boolean jsonDiagnostics, final PrintStream err) {
+    private void persistCache(final FormatCache cache, final DiagnosticsFormat format, final PrintStream err) {
         try {
             cache.save();
         } catch (final RuntimeException e) {
-            err.println(jsonDiagnostics
+            err.println(format == DiagnosticsFormat.JSON
                     ? JsonDiagnostics.cliLine("", "failed to save cache: " + e.getMessage())
                     : "javafmt: warning: failed to save cache: " + e.getMessage());
         }
     }
 
-    private FileOutcome outcomeFor(final FileResult file, final boolean check, final FormatCache cache, final boolean json) {
+    private FileOutcome outcomeFor(final FileResult file, final boolean check, final FormatCache cache, final DiagnosticsFormat format) {
         return switch (file) {
             case FileResult.UpToDate _ -> new FileOutcome(0, List.of());
-            case FileResult.Unreadable(var path, var error) -> new FileOutcome(2, List.of(cliMessage(path, "read failed: " + describe(error), json)));
-            case FileResult.Formatted(var path, var source, var result) -> finalizeFormatOutcome(path, source, result, check, cache, json);
+            case FileResult.Unreadable(var path, var error) ->
+                new FileOutcome(2, List.of(format.fileMessage(path.toString(), "read failed: " + describe(error))));
+            case FileResult.Formatted(var path, var source, var result) -> finalizeFormatOutcome(path, source, result, check, cache, format);
         };
     }
 
@@ -238,9 +238,9 @@ final class FormatRun {
                                               final FormatResult result,
                                               final boolean checkOnly,
                                               final FormatCache cache,
-                                              final boolean json) {
+                                              final DiagnosticsFormat format) {
         final var reported = result.diagnostics().stream()
-                .map(d -> json ? JsonDiagnostics.line(path.toString(), d) : d.describe(path.toString()))
+                .map(d -> format.diagnostic(path.toString(), d))
                 .toList();
         if (result.hasErrors()) {
             return new FileOutcome(1, reported);
@@ -250,13 +250,13 @@ final class FormatRun {
             return new FileOutcome(0, reported);
         }
         if (checkOnly) {
-            return new FileOutcome(1, append(reported, cliMessage(path, "would reformat", json)));
+            return new FileOutcome(1, append(reported, format.fileMessage(path.toString(), "would reformat")));
         }
         try {
             SourceFiles.write(path, result.output());
         } catch (final UncheckedIOException e) {
             final var message = "write failed: " + describe(Objects.requireNonNull(e.getCause(), "cause"));
-            return new FileOutcome(2, append(reported, cliMessage(path, message, json)));
+            return new FileOutcome(2, append(reported, format.fileMessage(path.toString(), message)));
         }
         cache.recordFormatted(path, result.output());
         return new FileOutcome(0, reported);
@@ -276,17 +276,12 @@ final class FormatRun {
         };
     }
 
-    /** javafmt's own word about a file — not a {@link Diagnostic}, so it carries no position. */
-    private String cliMessage(final Path path, final String message, final boolean json) {
-        return json ? JsonDiagnostics.cliLine(path.toString(), message) : path + ": " + message;
-    }
-
     private List<String> append(final List<String> lines, final String line) {
         return Stream.concat(lines.stream(), Stream.of(line)).toList();
     }
 
     private void reportDiagnostics(final String name, final FormatResult result, final Arguments parsed, final PrintStream err) {
-        result.diagnostics().forEach(d -> err.println(parsed.jsonDiagnostics() ? JsonDiagnostics.line(name, d) : d.describe(name)));
+        result.diagnostics().forEach(d -> err.println(parsed.diagnostics().diagnostic(name, d)));
     }
 
     /** A directory argument replaced by its contents, and whether anything under it was unreadable. */
@@ -303,7 +298,7 @@ final class FormatRun {
                      boolean defaultExcludes,
                      Optional<String> classpath,
                      Optional<String> ratchetFrom,
-                     boolean jsonDiagnostics) {
+                     DiagnosticsFormat diagnostics) {
 
         Arguments {
             files = List.copyOf(files);
@@ -317,7 +312,7 @@ final class FormatRun {
         }
 
         Arguments withFiles(final List<Path> files) {
-            return new Arguments(files, check, threads, cacheFile, excludes, defaultExcludes, classpath, ratchetFrom, jsonDiagnostics);
+            return new Arguments(files, check, threads, cacheFile, excludes, defaultExcludes, classpath, ratchetFrom, diagnostics);
         }
     }
 }

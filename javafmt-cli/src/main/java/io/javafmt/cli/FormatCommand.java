@@ -139,7 +139,7 @@ final class FormatCommand implements Callable<Integer> {
                 !noDefaultExcludes,
                 classpath.filter(_ -> !noAnalyze),
                 ratchetFrom,
-                diagnostics == DiagnosticsFormat.JSON);
+                diagnostics);
         if (beforeEndOfOptions(paths).contains(STDIN)) {
             if (paths.size() > 1) {
                 throw new ParameterException(spec.commandLine(), "'-' reads stdin and cannot be combined with file arguments");
@@ -176,8 +176,6 @@ final class FormatCommand implements Callable<Integer> {
         final var afterDelimiter = delimiter < 0 ? 0 : expanded.size() - delimiter - 1;
         return positionals.subList(0, positionals.size() - afterDelimiter);
     }
-
-    enum DiagnosticsFormat { JSON, TEXT }
 
     static final class Version implements IVersionProvider {
 
