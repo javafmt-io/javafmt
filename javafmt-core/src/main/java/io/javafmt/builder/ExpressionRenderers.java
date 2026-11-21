@@ -313,17 +313,9 @@ final class ExpressionRenderers {
 
     /** The {@code <T>} of {@code new <T>Foo()}, which binds the constructor's own type parameters. */
     private Stream<Doc> constructorTypeWitness(final NewClassTree node, final Recursor recursor) {
-        final var typeArguments = node.getTypeArguments();
-        if (typeArguments.isEmpty()) {
-            return Stream.empty();
-        }
-        return Stream.of(
-                Doc.concatOf(
-                        Stream.of(
-                                Stream.of(new Doc.Text("<")),
-                                Doc.intersperse(new Doc.Text(", "), typeArguments.stream()
-                                        .map(recursor::scan)),
-                                Stream.of(new Doc.Text(">")))));
+        final var witness = TypeRenderers.typeArguments(node.getTypeArguments(), recursor)
+                .toList();
+        return witness.isEmpty() ? Stream.empty() : Stream.of(Doc.concatOf(Stream.of(witness.stream())));
     }
 
     Doc renderTypeCast(final TypeCastTree node, final Recursor recursor) {
@@ -388,10 +380,12 @@ final class ExpressionRenderers {
         if (typeArguments == null || typeArguments.isEmpty()) {
             return Doc.concat(qualifier, new Doc.Text("::" + name));
         }
-        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), typeArguments.stream()
-                .map(recursor::scan));
         return new Doc.Concat(
-                Stream.concat(Stream.concat(Stream.of(qualifier, new Doc.Text("::<")), argumentDocs), Stream.<Doc>of(new Doc.Text(">" + name))));
+                Stream.of(
+                                Stream.of(qualifier, new Doc.Text("::")),
+                                TypeRenderers.typeArguments(typeArguments, recursor),
+                                Stream.<Doc>of(new Doc.Text(name)))
+                        .flatMap(stream -> stream));
     }
 
     Doc renderAnnotation(final AnnotationTree node, final Recursor recursor) {

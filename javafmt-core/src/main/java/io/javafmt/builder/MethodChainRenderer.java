@@ -149,7 +149,7 @@ final class MethodChainRenderer {
                     Stream.concat(
                             Stream.of(new Doc.Text(".")),
                             Stream.concat(
-                                    typeArguments(call, recursor),
+                                    TypeRenderers.typeArguments(call.getTypeArguments(), recursor),
                                     Stream.of(new Doc.Text(ms.getIdentifier().toString())))));
             final var arguments = CallArguments.render(call, call.getArguments(), lastCall, recursor);
             final var callSuffix = Doc.concat(head, arguments.doc());
@@ -169,7 +169,8 @@ final class MethodChainRenderer {
             final var first = Doc.concat(receiver, callSuffix);
             return List.of(new Link(first, first, false, arguments.hugsLastArgument(), endsTheFirstLine));
         }
-        final var head = new Doc.Concat(Stream.concat(typeArguments(call, recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
+        final var head = new Doc.Concat(
+                Stream.concat(TypeRenderers.typeArguments(call.getTypeArguments(), recursor), Stream.of(recursor.scan(call.getMethodSelect()))));
         final var arguments = CallArguments.render(call, call.getArguments(), lastCall, recursor);
         final var first = Doc.concat(head, arguments.doc());
         return List.of(new Link(first, first, false, arguments.hugsLastArgument(), false));
@@ -210,19 +211,6 @@ final class MethodChainRenderer {
                 true,
                 false,
                 link.endsTheFirstLine());
-    }
-
-    private Stream<Doc> typeArguments(final MethodInvocationTree mit, final Recursor recursor) {
-        final var arguments = mit.getTypeArguments();
-        if (arguments.isEmpty()) {
-            return Stream.empty();
-        }
-        return Stream.concat(
-                Stream.of(new Doc.Text("<")),
-                Stream.concat(
-                        Doc.intersperse(new Doc.Text(", "), arguments.stream()
-                                .map(recursor::scan)),
-                        Stream.of(new Doc.Text(">"))));
     }
 
     private record Link(Doc doc, Doc onItsOwnLine, boolean endsTheLine, boolean hugsLastArgument, boolean endsTheFirstLine) {}

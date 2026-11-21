@@ -106,11 +106,19 @@ final class TypeRenderers {
         // has chosen to break; the fit check sees the whole statement and breaks here instead,
         // giving `List<\n Map.Entry<\n String,`. Type arguments wide enough to matter on their own
         // are rare, and this cure is worse.
-        final var argumentDocs = Doc.intersperse(new Doc.Text(", "), arguments.stream()
-                .map(recursor::scan));
-        return new Doc.Concat(
-                Stream.concat(
-                        Stream.of(recursor.scan(node.getType()), new Doc.Text("<")), Stream.concat(argumentDocs, Stream.<Doc>of(new Doc.Text(">")))));
+        return new Doc.Concat(Stream.concat(Stream.of(recursor.scan(node.getType())), typeArguments(arguments, recursor)));
+    }
+
+    static Stream<Doc> typeArguments(final List<? extends Tree> arguments, final Recursor recursor) {
+        if (arguments.isEmpty()) {
+            return Stream.empty();
+        }
+        return Stream.of(
+                Stream.of(new Doc.Text("<")),
+                Doc.intersperse(new Doc.Text(", "), arguments.stream()
+                        .map(recursor::scan)),
+                Stream.of(new Doc.Text(">")))
+                .flatMap(stream -> stream);
     }
 
     /**
