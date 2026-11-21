@@ -101,7 +101,8 @@ final class EnumRenderer {
     /**
      * The last constant before the body declarations, with the {@code ;} the body needs. The
      * {@code ;} goes on a line of its own when the constant carries a trailing comment, since that
-     * comment is written after everything else on the line.
+     * comment is written after everything else on the line, and a comment written after the
+     * {@code ;} would belong to the next declaration.
      */
     private Doc lastConstant(final VariableTree constant, final Recursor recursor) {
         final var rendered = renderConstant(constant, recursor);

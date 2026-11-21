@@ -23,6 +23,8 @@ class ModuleRendererTest {
                 Arguments.of("module foo.bar { exports a.b to m1, m2; }", "module foo.bar {\n    exports a.b to m1, m2;\n}"),
                 Arguments.of("module foo.bar { exports a.b to zeta, alpha, beta; }", "module foo.bar {\n    exports a.b to zeta, alpha, beta;\n}"),
                 Arguments.of("module foo.bar { opens a.b to zeta, alpha; }", "module foo.bar {\n    opens a.b to zeta, alpha;\n}"),
+                // ServiceLoader honours declaration order for module-declared providers, so sorting the
+                // `with` list can change what findFirst() returns.
                 Arguments.of("module foo.bar { provides a.S with b.Zeta, b.Alpha; }", "module foo.bar {\n    provides a.S with b.Zeta, b.Alpha;\n}"),
                 Arguments.of("module foo.bar { uses a.Service; }", "module foo.bar {\n    uses a.Service;\n}"),
                 Arguments.of("module foo.bar { provides a.Service with a.Impl; }", "module foo.bar {\n    provides a.Service with a.Impl;\n}"),

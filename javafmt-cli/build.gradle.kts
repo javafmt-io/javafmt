@@ -33,6 +33,8 @@ graalvmNative {
                 "--no-fallback",
                 "-O2",
                 "--initialize-at-build-time=org.slf4j",
+                // javac's Locations initializer reads JDK paths from the live file system;
+                // that context only exists at run time, not during native-image analysis.
                 "--initialize-at-run-time=com.sun.tools.javac.file.Locations",
                 "--add-modules=jdk.compiler",
             )
