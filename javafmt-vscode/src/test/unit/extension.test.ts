@@ -259,7 +259,7 @@ describe('after activate()', () => {
             onlyExecutable((p) => /javafmt(\.exe)?$/.test(p));
             deactivate();
             activate(makeContext('/ext'));
-            expect(spawnSpy).toHaveBeenCalledWith(bundled, ['--daemon'], expect.any(Object));
+            expect(spawnSpy).toHaveBeenCalledWith(bundled, ['--daemon'], { stdio: ['pipe', 'pipe', 'ignore'] });
         });
 
         itOnPosix('restores the executable bit the VSIX zip dropped from the bundled binary before running it', () => {

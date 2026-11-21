@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { Readable, Writable } from 'stream';
 import { Diagnostic, FileScope, FormatReply, Kind, Severity, decodeReplies, encodeRequest } from './protocol';
 
 type PendingRequest = {
@@ -20,10 +21,12 @@ type JavaExtensionApi = {
 
 type ClasspathSource = Required<Pick<JavaExtensionApi, 'getClasspaths' | 'isTestFile'>>;
 
+type Daemon = child_process.ChildProcessByStdio<Writable, Readable, null>;
+
 type Classpath = { classpath: string } | { missing: string };
 
 let extensionContext: vscode.ExtensionContext;
-let daemon: child_process.ChildProcess | null = null;
+let daemon: Daemon | null = null;
 const pending = new Map<number, PendingRequest>();
 let lastId = 0;
 let diagnosticCollection: vscode.DiagnosticCollection;
@@ -145,10 +148,11 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
     const file = doc.uri.scheme === 'file' ? doc.uri.fsPath : undefined;
     const lookup = file === undefined ? undefined : classpathFor(doc.uri);
     const classpath = lookup === undefined ? undefined : await lookup;
-    if (!daemon) return [];
+    const proc = daemon;
+    if (!proc) return [];
     let reply: FormatReply;
     try {
-        reply = await sendRequest(source, { path: file, classpath });
+        reply = await sendRequest(proc, source, { path: file, classpath });
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setStatus('error', message);
@@ -190,24 +194,21 @@ function startDaemon(): void {
         return;
     }
 
-    const proc = child_process.spawn(daemonCommand.command, daemonCommand.args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    const proc = child_process.spawn(daemonCommand.command, daemonCommand.args, { stdio: ['pipe', 'pipe', 'ignore'] });
 
     daemon = proc;
     setStatus('ready');
 
     void readReplies(proc);
 
-    // slf4j-simple writes to stderr; discard to avoid clogging the pipe
-    proc.stderr!.on('data', (_chunk: Buffer) => {});
-
     proc.on('exit', (code: number | null, signal: NodeJS.Signals | null) => daemonGone(proc, signal ? `daemon exited with signal ${signal}` : `daemon exited with code ${code}`));
     proc.on('error', (err: Error) => daemonGone(proc, `daemon failed: ${err.message}`));
-    proc.stdin!.on('error', (err: Error) => daemonGone(proc, `daemon input failed: ${err.message}`));
+    proc.stdin.on('error', (err: Error) => daemonGone(proc, `daemon input failed: ${err.message}`));
 }
 
-async function readReplies(proc: child_process.ChildProcess): Promise<void> {
+async function readReplies(proc: Daemon): Promise<void> {
     try {
-        for await (const reply of decodeReplies(proc.stdout!)) {
+        for await (const reply of decodeReplies(proc.stdout)) {
             const request = pending.get(reply.id);
             if (request && daemon === proc) {
                 pending.delete(reply.id);
@@ -388,8 +389,7 @@ function reportMissingClasspath(reason: string): void {
     output.info(`javafmt formats without the classpath, so the rules that need it do not run: ${reason}`);
 }
 
-function sendRequest(source: string, scope: FileScope): Promise<FormatReply> {
-    const proc = daemon!;
+function sendRequest(proc: Daemon, source: string, scope: FileScope): Promise<FormatReply> {
     return new Promise((resolve, reject) => {
         lastId = lastId >= 0xffffffff ? 1 : lastId + 1;
         const id = lastId;
@@ -410,6 +410,6 @@ function sendRequest(source: string, scope: FileScope): Promise<FormatReply> {
                 reject(err);
             },
         });
-        proc.stdin!.write(encodeRequest(id, source, scope));
+        proc.stdin.write(encodeRequest(id, source, scope));
     });
 }
