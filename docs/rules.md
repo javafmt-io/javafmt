@@ -5,7 +5,7 @@ title: Formatting rules
 
 # Formatting rules
 
-javafmt is opinionated and non-configurable on principle. The rules below are the contract: the same input gives the same output in every version. [Getting started](./intro.md#why-javafmt) explains why it works this way.
+javafmt is opinionated and non-configurable on principle. The rules below are the contract. [Getting started](./intro.md#why-javafmt) explains why it works this way, and [how javafmt answers each complaint](./intro.md#how-javafmt-answers-each-complaint) says when the output may change.
 
 ## Opt-out directives
 
