@@ -4,6 +4,11 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.VariableTree;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,5 +61,29 @@ class TreeFactsTest {
                         .findFirst()
                         .orElseThrow()))
                 .isFalse();
+    }
+
+    static Stream<Arguments> followedByNewlineCases() {
+        return Stream.of(
+                Arguments.of("class C { int x; int y; }", false),
+                Arguments.of("class C { int x; /* a */ int y; }", false),
+                Arguments.of("class C { int x; /* a */ /* b */ int y; }", false),
+                Arguments.of("class C { int x; /* a\n b */ int y; }", false),
+                Arguments.of("class C { int x; /* a */\n int y; }", true),
+                Arguments.of("class C { int x; /**/\n int y; }", true),
+                Arguments.of("class C { int x; // note\n int y; }", true),
+                Arguments.of("class C { int x;\n int y; }", true));
+    }
+
+    @ParameterizedTest
+    @MethodSource("followedByNewlineCases")
+    void followedByNewlineLooksPastCommentsOnTheSameLine(final String source, final boolean expected) {
+        final var unit = JavaParser.parseUnit(source);
+        final var first = ((ClassTree) unit.tree().getTypeDecls().getFirst()).getMembers()
+                .stream()
+                .filter(m -> m instanceof VariableTree)
+                .findFirst()
+                .orElseThrow();
+        assertThat(new TreeFacts(unit).isFollowedByNewline(first)).isEqualTo(expected);
     }
 }

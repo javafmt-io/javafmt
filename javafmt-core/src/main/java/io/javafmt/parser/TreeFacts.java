@@ -236,14 +236,12 @@ public final class TreeFacts {
                 i++;
             } else if (src.startsWith("//", i)) {
                 return true;
-            } else if (src.startsWith("/*", i)) {
-                final var close = src.indexOf("*/", i + 2);
-                if (close < 0) {
+            } else {
+                final var commentEnd = CommentScanner.skipComment(src, i);
+                if (commentEnd < 0) {
                     return false;
                 }
-                i = close + 2;
-            } else {
-                return false;
+                i = commentEnd;
             }
         }
         return false;

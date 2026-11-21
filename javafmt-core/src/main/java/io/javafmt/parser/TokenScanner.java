@@ -34,61 +34,6 @@ import java.util.stream.Collectors;
 @UtilityClass
 public final class TokenScanner {
 
-    public List<SourceToken> scan(final String source) {
-        Objects.requireNonNull(source, "source");
-        final var tokens = new ArrayList<SourceToken>();
-        final var n = source.length();
-        var i = 0;
-        while (i < n) {
-            final var c = source.charAt(i);
-            if (Character.isWhitespace(c)) {
-                i++;
-                continue;
-            }
-            final var commentEnd = CommentScanner.skipComment(source, i);
-            if (commentEnd >= 0) {
-                i = commentEnd;
-                continue;
-            }
-            final var end = tokenEnd(source, i, n, c);
-            tokens.add(new SourceToken(i, end, source.substring(i, end)));
-            i = end;
-        }
-        return List.copyOf(tokens);
-    }
-
-    private int tokenEnd(final String source, final int start, final int n, final char c) {
-        if (c == '"') {
-            return start + 2 < n && source.charAt(start + 1) == '"' && source.charAt(start + 2) == '"'
-                    ? CommentScanner.skipTextBlock(source, start, n)
-                    : CommentScanner.skipStringLiteral(source, start, n);
-        }
-        if (c == '\'') {
-            return CommentScanner.skipCharLiteral(source, start, n);
-        }
-        if (isDigit(c) || (c == '.' && start + 1 < n && isDigit(source.charAt(start + 1)))) {
-            return endOfNumericLiteral(source, start, n);
-        }
-        if (Character.isJavaIdentifierStart(c)) {
-            return endOfIdentifier(source, start, n);
-        }
-        return endOfOperator(source, start, n);
-    }
-
-    /**
-     * The longest Java operator or punctuation mark starting at {@code start}. Longest first, so
-     * {@code >>>=} is not mistaken for {@code >>>} — and, the point of the exercise, {@code --} is
-     * not two {@code -} marks.
-     */
-    private int endOfOperator(final String source, final int start, final int n) {
-        for (final var operator : OPERATORS_BY_FIRST_CHARACTER.getOrDefault(source.charAt(start), List.of())) {
-            if (start + operator.length() <= n && source.startsWith(operator, start)) {
-                return start + operator.length();
-            }
-        }
-        return start + 1;
-    }
-
     /**
      * Every multi-character operator in the language, longest first. {@code >>} and {@code >>>} are
      * deliberately absent: javac splits them itself so that nested generics such as
@@ -122,6 +67,59 @@ public final class TokenScanner {
 
     private final Map<Character, List<String>> OPERATORS_BY_FIRST_CHARACTER = OPERATORS.stream()
             .collect(Collectors.groupingBy(operator -> operator.charAt(0), Collectors.toList()));
+
+    public List<SourceToken> scan(final String source) {
+        Objects.requireNonNull(source, "source");
+        final var tokens = new ArrayList<SourceToken>();
+        final var n = source.length();
+        var i = 0;
+        while (i < n) {
+            final var c = source.charAt(i);
+            if (Character.isWhitespace(c)) {
+                i++;
+                continue;
+            }
+            final var commentEnd = CommentScanner.skipComment(source, i);
+            if (commentEnd >= 0) {
+                i = commentEnd;
+                continue;
+            }
+            final var end = tokenEnd(source, i, n, c);
+            tokens.add(new SourceToken(i, end, source.substring(i, end)));
+            i = end;
+        }
+        return List.copyOf(tokens);
+    }
+
+    private int tokenEnd(final String source, final int start, final int n, final char c) {
+        if (c == '"') {
+            return CommentScanner.skipStringOrTextBlock(source, start, n);
+        }
+        if (c == '\'') {
+            return CommentScanner.skipQuoted(source, start, n, '\'');
+        }
+        if (isDigit(c) || (c == '.' && start + 1 < n && isDigit(source.charAt(start + 1)))) {
+            return endOfNumericLiteral(source, start, n);
+        }
+        if (Character.isJavaIdentifierStart(c)) {
+            return endOfIdentifier(source, start, n);
+        }
+        return endOfOperator(source, start);
+    }
+
+    /**
+     * The longest Java operator or punctuation mark starting at {@code start}. Longest first, so
+     * {@code >>>=} is not mistaken for {@code >>>} — and, the point of the exercise, {@code --} is
+     * not two {@code -} marks.
+     */
+    private int endOfOperator(final String source, final int start) {
+        for (final var operator : OPERATORS_BY_FIRST_CHARACTER.getOrDefault(source.charAt(start), List.of())) {
+            if (source.startsWith(operator, start)) {
+                return start + operator.length();
+            }
+        }
+        return start + 1;
+    }
 
     private boolean isDigit(final char c) {
         return c >= '0' && c <= '9';

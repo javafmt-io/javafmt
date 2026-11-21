@@ -20,26 +20,20 @@ public final class CommentScanner {
         final var n = source.length();
         var i = 0;
         while (i < n) {
-            final var c = source.charAt(i);
             final var commentEnd = skipComment(source, i);
             if (commentEnd >= 0) {
                 comments.add(new CommentToken(i, commentEnd, source.substring(i, commentEnd), columnOf(source, i)));
                 i = commentEnd;
                 continue;
             }
+            final var c = source.charAt(i);
             if (c == '"') {
-                if (i + 2 < n && source.charAt(i + 1) == '"' && source.charAt(i + 2) == '"') {
-                    i = skipTextBlock(source, i, n);
-                    continue;
-                }
-                i = skipStringLiteral(source, i, n);
-                continue;
+                i = skipStringOrTextBlock(source, i, n);
+            } else if (c == '\'') {
+                i = skipQuoted(source, i, n, '\'');
+            } else {
+                i++;
             }
-            if (c == '\'') {
-                i = skipCharLiteral(source, i, n);
-                continue;
-            }
-            i++;
         }
         return List.copyOf(comments);
     }
@@ -109,23 +103,13 @@ public final class CommentScanner {
         return col;
     }
 
-    int skipStringLiteral(final String source, final int open, final int n) {
-        var i = open + 1;
-        while (i < n) {
-            final var c = source.charAt(i);
-            if (c == '\\' && i + 1 < n) {
-                i += 2;
-                continue;
-            }
-            if (c == '"' || c == '\n' || c == '\r') {
-                return c == '"' ? i + 1 : i;
-            }
-            i++;
-        }
-        return i;
+    int skipStringOrTextBlock(final String source, final int open, final int n) {
+        return open + 2 < n && source.charAt(open + 1) == '"' && source.charAt(open + 2) == '"'
+                ? skipTextBlock(source, open, n)
+                : skipQuoted(source, open, n, '"');
     }
 
-    int skipCharLiteral(final String source, final int open, final int n) {
+    int skipQuoted(final String source, final int open, final int n, final char quote) {
         var i = open + 1;
         while (i < n) {
             final var c = source.charAt(i);
@@ -133,8 +117,8 @@ public final class CommentScanner {
                 i += 2;
                 continue;
             }
-            if (c == '\'' || c == '\n' || c == '\r') {
-                return c == '\'' ? i + 1 : i;
+            if (c == quote || c == '\n' || c == '\r') {
+                return c == quote ? i + 1 : i;
             }
             i++;
         }
