@@ -1,5 +1,6 @@
 package io.javafmt;
 
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -9,17 +10,19 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 class JavafmtTest {
 
     @Test
     void formatEmptySourceReturnsEmptyString() {
-        assertThat(Javafmt.format("").stripTrailing().stripTrailing()).isEqualTo("");
+        assertThat(Javafmt.format("").stripTrailing()).isEqualTo("");
     }
 
     @Test
@@ -45,7 +48,7 @@ class JavafmtTest {
     @MethodSource("blankInputs")
     void formatOnBlankInputIsIdempotent(final String input, final String label) {
         final var first = Javafmt.format(input).stripTrailing();
-        assertThat(Javafmt.format(first).stripTrailing().stripTrailing())
+        assertThat(Javafmt.format(first).stripTrailing())
                 .as("idempotent for %s", label)
                 .isEqualTo(first);
     }
@@ -150,7 +153,7 @@ class JavafmtTest {
         void theBatchPathKeepsEachFilesOwnEndings() {
             final var crlf = "class A {\r\n\r\n    int x;\r\n}\r\n";
             final var lf = "class B {\n\n    int y;\n}\n";
-            final var results = Javafmt.formatAll(java.util.List.of(crlf, lf), JavafmtConfig.defaults(), 2);
+            final var results = Javafmt.formatAll(List.of(crlf, lf), JavafmtConfig.defaults(), 2);
             assertThat(results.getFirst().output())
                     .isEqualTo(Javafmt.format(crlf))
                     .contains("\r\n");
@@ -169,46 +172,34 @@ class JavafmtTest {
         void fileWithOnlyPackage_isFormattedIdempotently() {
             final var source = "package com.example;";
             final var first = Javafmt.format(source).stripTrailing();
-            assertThat(Javafmt.format(first).stripTrailing().stripTrailing()).isEqualTo(first);
+            assertThat(Javafmt.format(first).stripTrailing()).isEqualTo(first);
         }
 
         @Test
         void fileWithOnlyImports_isHandledGracefully() {
             final var source = "import java.util.List;";
             final var first = Javafmt.format(source).stripTrailing();
-            assertThat(Javafmt.format(first).stripTrailing().stripTrailing()).isEqualTo(first);
+            assertThat(Javafmt.format(first).stripTrailing()).isEqualTo(first);
         }
     }
 
     @Nested
     class NullChecksTest {
 
-        @Test
-        void format_nullSource_throws() {
-            assertThatThrownBy(() -> Javafmt.format(null).stripTrailing()).isInstanceOf(NullPointerException.class);
+        static Stream<Arguments> nullArguments() {
+            return Stream.of(
+                    argumentSet("format(null)", (ThrowingCallable) () -> Javafmt.format(null)),
+                    argumentSet("format(source, null)", (ThrowingCallable) () -> Javafmt.format("class A {}", null)),
+                    argumentSet("formatWithResult(null)", (ThrowingCallable) () -> Javafmt.formatWithResult(null)),
+                    argumentSet("formatWithResult(null, config)", (ThrowingCallable) () -> Javafmt.formatWithResult(null, JavafmtConfig.defaults())),
+                    argumentSet(
+                            "formatWithResult(source, null)", (ThrowingCallable) () -> Javafmt.formatWithResult("class A {}", (JavafmtConfig) null)));
         }
 
-        @Test
-        void format_nullConfig_throws() {
-            assertThatThrownBy(() -> Javafmt.format("class A {}", null).stripTrailing())
-                    .isInstanceOf(NullPointerException.class);
-        }
-
-        @Test
-        void formatWithResult_nullSource_throws() {
-            assertThatThrownBy(() -> Javafmt.formatWithResult(null)).isInstanceOf(NullPointerException.class);
-        }
-
-        @Test
-        void formatWithResult_sourceAndConfig_nullSource_throws() {
-            assertThatThrownBy(() -> Javafmt.formatWithResult(null, JavafmtConfig.defaults()))
-                    .isInstanceOf(NullPointerException.class);
-        }
-
-        @Test
-        void formatWithResult_sourceAndConfig_nullConfig_throws() {
-            assertThatThrownBy(() -> Javafmt.formatWithResult("class A {}", (JavafmtConfig) null))
-                    .isInstanceOf(NullPointerException.class);
+        @ParameterizedTest
+        @MethodSource("nullArguments")
+        void aNullArgumentIsRejected(final ThrowingCallable call) {
+            assertThatThrownBy(call).isInstanceOf(NullPointerException.class);
         }
     }
 }
