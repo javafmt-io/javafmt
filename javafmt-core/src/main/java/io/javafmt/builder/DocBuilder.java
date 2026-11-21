@@ -363,14 +363,15 @@ public final class DocBuilder {
             case MethodTree n -> MethodRenderer.render(n, recursor);
             case ReturnTree n -> SimpleStatementRenderers.renderReturn(n, recursor);
             case ExpressionStatementTree n -> SimpleStatementRenderers.renderExpressionStatement(n, recursor);
-            case MethodInvocationTree n -> MethodChainRenderer.render(n, recursor);
+            case MethodInvocationTree n ->
+                MethodChainRenderer.chainDocs(n, recursor).doc();
             case NewArrayTree n -> ExpressionRenderers.renderNewArray(n, recursor);
             case TypeCastTree n -> ExpressionRenderers.renderTypeCast(n, recursor);
             case ParenthesizedTree n -> ExpressionRenderers.renderParenthesized(n, recursor);
             case InstanceOfTree n -> ExpressionRenderers.renderInstanceOf(n, recursor);
             case BindingPatternTree n -> ExpressionRenderers.renderBindingPattern(n, recursor);
             case DeconstructionPatternTree n -> ExpressionRenderers.renderDeconstructionPattern(n, recursor);
-            case PatternCaseLabelTree n -> ExpressionRenderers.renderPatternCaseLabel(n, recursor);
+            case PatternCaseLabelTree n -> recursor.scan(n.getPattern());
             case BinaryTree n -> ExpressionRenderers.renderBinary(n, recursor);
             case UnaryTree n -> ExpressionRenderers.renderUnary(n, recursor);
             case NewClassTree n -> ExpressionRenderers.renderNewClass(n, recursor);
@@ -379,7 +380,7 @@ public final class DocBuilder {
             case MemberSelectTree n -> ExpressionRenderers.renderMemberSelect(n, recursor);
             case ArrayAccessTree n -> ExpressionRenderers.renderArrayAccess(n, recursor);
             case ConditionalExpressionTree n -> ExpressionRenderers.renderConditionalExpression(n, recursor);
-            case ConstantCaseLabelTree n -> ExpressionRenderers.renderConstantCaseLabel(n, recursor);
+            case ConstantCaseLabelTree n -> recursor.scan(n.getConstantExpression());
             case MemberReferenceTree n -> ExpressionRenderers.renderMemberReference(n, recursor);
             case AnnotationTree n -> ExpressionRenderers.renderAnnotation(n, recursor);
             case LambdaExpressionTree n -> LambdaRenderer.render(n, recursor);

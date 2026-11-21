@@ -9,7 +9,6 @@ import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -83,18 +82,15 @@ final class BlockRenderer {
     }
 
     Stream<Doc> besideTheBrace(final List<CommentToken> braceLine) {
-        return braceLine.subList(0, besideCount(braceLine)).stream()
+        return braceLine.stream()
+                .limit(1)
                 .flatMap(c -> Stream.of(new Doc.Text(" "), CommentDocs.renderComment(c)));
     }
 
     Stream<Doc> belowTheBrace(final List<CommentToken> braceLine) {
-        return braceLine.subList(besideCount(braceLine), braceLine.size())
-                .stream()
+        return braceLine.stream()
+                .skip(1)
                 .map(c -> Doc.indentedLine(CommentDocs.renderComment(c)));
-    }
-
-    private int besideCount(final List<CommentToken> braceLine) {
-        return Math.min(1, braceLine.size());
     }
 
     private List<CommentToken> braceLineOf(final StatementTree body, final Recursor recursor) {
@@ -139,9 +135,8 @@ final class BlockRenderer {
             final var last = parts.getLast();
             final var stripped = stripTrailingSemicolonDoc(last);
             if (!stripped.equals(last)) {
-                final var newParts = new ArrayList<>(parts);
-                newParts.set(newParts.size() - 1, stripped);
-                return new Doc.Concat(newParts);
+                return new Doc.Concat(Stream.concat(parts.subList(0, parts.size() - 1).stream(), Stream.of(stripped))
+                        .toList());
             }
         }
         return doc;

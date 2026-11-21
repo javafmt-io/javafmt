@@ -25,10 +25,6 @@ final class MethodChainRenderer {
 
     private final Set<String> FIRST_LINE_ENDS = Set.of("stream", "parallelStream", "builder", "newBuilder", "toBuilder");
 
-    Doc render(final MethodInvocationTree node, final Recursor recursor) {
-        return chainDocs(node, recursor).doc();
-    }
-
     ChainDocs chainDocs(final MethodInvocationTree node, final Recursor recursor) {
         final var calls = DocBuilder.walk(node, call -> call.getMethodSelect() instanceof MemberSelectTree ms
                     && ms.getExpression() instanceof MethodInvocationTree receiver

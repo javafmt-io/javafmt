@@ -29,12 +29,9 @@ final class TypeBodyRenderer {
     Doc withBody(final ClassTree node, final Doc header, final List<Member> members, final List<CommentToken> tail, final Recursor recursor) {
         final var modifiers = node.getModifiers();
         final var braceLine = recursor.braceLine(node);
-        if (members.isEmpty() && tail.isEmpty() && braceLine.isEmpty()) {
-            return ModifierRenderer.prependOwnLineAnnotations(modifiers, Doc.concat(header, new Doc.Text(" {}")), recursor);
-        }
-        return ModifierRenderer.prependOwnLineAnnotations(
-                modifiers,
-                Doc.concatOf(
+        final var body = members.isEmpty() && tail.isEmpty() && braceLine.isEmpty()
+                ? Doc.concat(header, new Doc.Text(" {}"))
+                : Doc.concatOf(
                         Stream.of(
                                 Stream.of(header, new Doc.Text(" {")),
                                 BlockRenderer.besideTheBrace(braceLine),
@@ -42,8 +39,8 @@ final class TypeBodyRenderer {
                                 BlockRenderer.belowTheBrace(braceLine),
                                 separated(members, recursor),
                                 tailLines(tail),
-                                Doc.closeBrace())),
-                recursor);
+                                Doc.closeBrace()));
+        return ModifierRenderer.prependOwnLineAnnotations(modifiers, body, recursor);
     }
 
     Stream<Doc> tailLines(final List<CommentToken> tail) {

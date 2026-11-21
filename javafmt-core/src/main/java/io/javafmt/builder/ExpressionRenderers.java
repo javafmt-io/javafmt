@@ -8,7 +8,6 @@ import com.sun.source.tree.BinaryTree;
 import com.sun.source.tree.BindingPatternTree;
 import com.sun.source.tree.CompoundAssignmentTree;
 import com.sun.source.tree.ConditionalExpressionTree;
-import com.sun.source.tree.ConstantCaseLabelTree;
 import com.sun.source.tree.DeconstructionPatternTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.InstanceOfTree;
@@ -18,7 +17,6 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.ParenthesizedTree;
-import com.sun.source.tree.PatternCaseLabelTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TypeCastTree;
 import com.sun.source.tree.UnaryTree;
@@ -347,14 +345,6 @@ final class ExpressionRenderers {
         return Doc.concat(recursor.scan(node.getDeconstructor()), nested);
     }
 
-    Doc renderPatternCaseLabel(final PatternCaseLabelTree node, final Recursor recursor) {
-        return recursor.scan(node.getPattern());
-    }
-
-    Doc renderConstantCaseLabel(final ConstantCaseLabelTree node, final Recursor recursor) {
-        return recursor.scan(node.getConstantExpression());
-    }
-
     Doc renderMemberSelect(final MemberSelectTree node, final Recursor recursor) {
         final var spine = DocBuilder.walk(node, s -> s.getExpression() instanceof MemberSelectTree inner ? inner : null)
                 .toList();
@@ -399,7 +389,7 @@ final class ExpressionRenderers {
             && last.getExpression() instanceof NewArrayTree array
             && array.getInitializers() != null
             && !array.getInitializers().isEmpty()
-            && CommentScanner.scan(recursor.sourceSpan(node).toString()).isEmpty()) {
+            && CommentScanner.scan(recursor.sourceOf(node)).isEmpty()) {
             return recursor.renderingEachTreeOnce(() -> {
                 final var exploded = Doc.concat(
                         name, WrappableList.separatedOf("(", ")", separatedElements(node, arguments, Optional.empty(), recursor)));
@@ -430,9 +420,8 @@ final class ExpressionRenderers {
                         .flatMap(argument -> Stream.of(recursor.scan(argument), new Doc.Text(", "))),
                 Stream.of(recursor.scan(last.getVariable()), new Doc.Text(" = {")));
         final var elements = array.getInitializers();
-        final var lines = IntStream.range(0, elements.size())
-                .boxed()
-                .flatMap(i -> Stream.of(Doc.HARD_LINE, recursor.scan(elements.get(i)), new Doc.Text(",")));
+        final var lines = elements.stream()
+                .flatMap(element -> Stream.of(Doc.HARD_LINE, recursor.scan(element), new Doc.Text(",")));
         return Doc.concat(
                 name,
                 new Doc.Text("("),
