@@ -104,9 +104,6 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
             }
             final var innermost = spine.getLast();
             var result = at(innermost, () -> scan(leafOf(innermost), p));
-            if (spine.size() == 1) {
-                return scanArguments(innermost, typeArguments.getFirst(), result, p);
-            }
             for (var i = spine.size() - 1; i >= 0; i--) {
                 result = scanArguments(spine.get(i), typeArguments.get(i), result, p);
             }

@@ -134,13 +134,13 @@ final class MethodChainRenderer {
 
     private Doc joined(final List<Link> links) {
         return new Doc.Concat(links.stream()
-                .gather(Pairs.<Link, Stream<Doc>>withPrevious((
-                        previous,
-                        link) -> previous.filter(Link::endsTheLine).isPresent()
-                        ? Stream.of(new Doc.Text(" "), link.doc())
-                        : Stream.of(link.doc())))
+                .gather(Pairs.withPrevious(MethodChainRenderer::joinedTo))
                 .flatMap(Function.identity())
                 .toList());
+    }
+
+    private Stream<Doc> joinedTo(final Optional<Link> previous, final Link link) {
+        return previous.filter(Link::endsTheLine).isPresent() ? Stream.of(new Doc.Text(" "), link.doc()) : Stream.of(link.doc());
     }
 
     private List<Link> links(final MethodInvocationTree call, final boolean lastCall, final Recursor recursor) {

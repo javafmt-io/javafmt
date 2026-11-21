@@ -67,12 +67,14 @@ final class ClassLikeRenderer {
                         : new WrappableList.Element(recursor.scan(types.get(i)), false))
                 .toList();
         final var typesInterior = new Doc.Concat(rendered.stream()
-                .gather(Pairs.<WrappableList.Element, Stream<Doc>>withPrevious((
-                        previous,
-                        element) -> Stream.concat(previous.map(p -> p.endsItsLine() ? Doc.HARD_LINE : Doc.LINE).stream(), Stream.of(element.doc()))))
+                .gather(Pairs.withPrevious(ClassLikeRenderer::lineAndType))
                 .flatMap(Function.identity())
                 .toList());
         return Doc.continuationIndent(Doc.concat(Doc.LINE, new Doc.Text(keyword), new Doc.Group(new Doc.Indent(typesInterior))));
+    }
+
+    private Stream<Doc> lineAndType(final Optional<WrappableList.Element> previous, final WrappableList.Element type) {
+        return Stream.concat(previous.map(WrappableList.Element::lineAfter).stream(), Stream.of(type.doc()));
     }
 
     private WrappableList.Element typeAndComma(final Tree type, final Tree next, final Recursor recursor) {

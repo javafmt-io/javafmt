@@ -40,14 +40,16 @@ final class BlockRenderer {
      */
     Stream<Doc> statementDocs(final List<? extends StatementTree> statements, final Recursor recursor) {
         return statements.stream()
-                .gather(Pairs.<StatementTree, Optional<Doc>>withPrevious((
-                        previous,
-                        statement) -> Optional.ofNullable(recursor.scan(statement))
-                        .map(doc -> previous.filter(p -> recursor.blankLineBetween(p, statement))
-                                        .isPresent()
-                                ? Doc.concat(Doc.HARD_LINE, doc)
-                                : doc)))
+                .gather(Pairs.<StatementTree, Optional<Doc>>withPrevious((previous, statement) -> statementDoc(previous, statement, recursor)))
                 .flatMap(Optional::stream);
+    }
+
+    private Optional<Doc> statementDoc(final Optional<StatementTree> previous, final StatementTree statement, final Recursor recursor) {
+        return Optional.ofNullable(recursor.scan(statement))
+                .map(doc -> previous.filter(p -> recursor.blankLineBetween(p, statement))
+                                .isPresent()
+                        ? Doc.concat(Doc.HARD_LINE, doc)
+                        : doc);
     }
 
     Doc braced(final Doc header, final StatementTree body, final Recursor recursor) {

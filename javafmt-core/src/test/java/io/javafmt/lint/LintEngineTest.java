@@ -1,7 +1,10 @@
 package io.javafmt.lint;
 
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.util.TreePath;
 import io.javafmt.Diagnostic;
 import io.javafmt.Position;
+import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.Staged;
 import org.junit.jupiter.api.Test;
@@ -252,13 +255,13 @@ class LintEngineTest {
 
     private static final class PathProbe implements ScanningRule {
 
-        private final List<com.sun.source.util.TreePath> seen = new ArrayList<>();
+        private final List<TreePath> seen = new ArrayList<>();
 
         @Override
         public RuleScan scan(final LintContext context) {
-            return RuleScan.editing(_ -> new io.javafmt.parser.ChainPathScanner<>() {
+            return RuleScan.editing(_ -> new ChainPathScanner<>() {
                 @Override
-                public Void visitIdentifier(final com.sun.source.tree.IdentifierTree node, final Void p) {
+                public Void visitIdentifier(final IdentifierTree node, final Void p) {
                     seen.add(getCurrentPath());
                     return null;
                 }

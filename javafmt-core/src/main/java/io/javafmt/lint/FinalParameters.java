@@ -10,6 +10,7 @@ import io.javafmt.parser.TreeFacts;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -37,8 +38,7 @@ public final class FinalParameters implements ScanningRule {
         final var unit = context.unit();
         final var facts = new TreeFacts(unit);
         final var reassignments = new ReassignmentDetector();
-        return RuleScan.collecting((List<MethodTree> methods) -> methodsWithBodies(methods, facts), methods -> resultFor(
-                methods, unit, reassignments));
+        return RuleScan.collecting(methodsWithBodies(facts), methods -> resultFor(methods, unit, reassignments));
     }
 
     private static LintResult resultFor(final List<MethodTree> methods, final ParsedUnit unit, final ReassignmentDetector reassignments) {
@@ -61,8 +61,8 @@ public final class FinalParameters implements ScanningRule {
      * the record's header components, and the JLS forbids modifiers there, so adding {@code
      * final} would break the re-parse.
      */
-    private static ChainScanner<Void, Void> methodsWithBodies(final List<MethodTree> methods, final TreeFacts facts) {
-        return new ChainScanner<>() {
+    private static Function<List<MethodTree>, ChainScanner<Void, Void>> methodsWithBodies(final TreeFacts facts) {
+        return methods -> new ChainScanner<>() {
             @Override
             public Void visitMethod(final MethodTree node, final Void p) {
                 if (node.getBody() != null && !facts.isCompactConstructor(node)) {

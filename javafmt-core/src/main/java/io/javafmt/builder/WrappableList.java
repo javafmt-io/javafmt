@@ -5,6 +5,7 @@ import io.javafmt.doc.Pairs;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -54,14 +55,13 @@ final class WrappableList {
 
     Doc openedSeparated(final String open, final List<Element> elements) {
         final var interior = new Doc.Concat(elements.stream()
-                .gather(Pairs.<Element, Stream<Doc>>withPrevious((
-                        previous,
-                        element) -> Stream.of(
-                        previous.map(p -> p.endsItsLine() ? Doc.HARD_LINE : Doc.LINE)
-                                .orElse(Doc.SOFT_LINE),
-                        element.doc())))
+                .gather(Pairs.withPrevious(WrappableList::lineAndDoc))
                 .flatMap(Function.identity()));
         return Doc.concat(new Doc.Text(open), Doc.continuationIndent(interior));
+    }
+
+    private Stream<Doc> lineAndDoc(final Optional<Element> previous, final Element element) {
+        return Stream.of(previous.map(Element::lineAfter).orElse(Doc.SOFT_LINE), element.doc());
     }
 
     /**
@@ -82,5 +82,10 @@ final class WrappableList {
         return Doc.concat(new Doc.Text(open), layout, new Doc.Text(close));
     }
 
-    record Element(Doc doc, boolean endsItsLine) {}
+    record Element(Doc doc, boolean endsItsLine) {
+
+        Doc lineAfter() {
+            return endsItsLine ? Doc.HARD_LINE : Doc.LINE;
+        }
+    }
 }

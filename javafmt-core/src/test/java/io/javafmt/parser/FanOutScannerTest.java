@@ -5,6 +5,7 @@ import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.Tree;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -86,7 +87,7 @@ class FanOutScannerTest {
                 .containsExactlyElementsOf(alone);
     }
 
-    private static <S extends ChainScanner<Void, Void> & Recorder> S solo(final S scanner, final com.sun.source.tree.Tree tree) {
+    private static <S extends ChainScanner<Void, Void> & Recorder> S solo(final S scanner, final Tree tree) {
         scanner.scan(tree, null);
         return scanner;
     }

@@ -62,26 +62,22 @@ final class TypeBodyRenderer {
     private Stream<Doc> separated(final List<Member> members, final Recursor recursor) {
         return members.stream()
                 .map(member -> new Wanting(member, wantsBlankLineAround(member, recursor)))
-                .gather(Pairs.<Wanting, Stream<Doc>>withPrevious((
-                        previous,
-                        current) -> Stream.concat(
-                        previous.filter(p -> separatedByBlankLine(
-                                        p.member(), current.member(), current.wantsBlankLine(), p.wantsBlankLine(), recursor))
-                                .<Doc>map(_ -> Doc.HARD_LINE)
-                                .stream(),
-                        Stream.of(Doc.indentedLine(current.member().doc())))))
+                .gather(Pairs.<Wanting, Stream<Doc>>withPrevious((previous, current) -> memberLines(previous, current, recursor)))
                 .flatMap(Function.identity());
     }
 
-    private boolean separatedByBlankLine(final Member previous,
-                                         final Member member,
-                                         final boolean wantsBlankLine,
-                                         final boolean previousWantedBlankLine,
-                                         final Recursor recursor) {
-        if (wantsBlankLine || previousWantedBlankLine) {
+    private Stream<Doc> memberLines(final Optional<Wanting> previous, final Wanting current, final Recursor recursor) {
+        final var line = Doc.indentedLine(current.member().doc());
+        return previous.filter(p -> separatedByBlankLine(p, current, recursor)).isPresent() ? Stream.of(Doc.HARD_LINE, line) : Stream.of(line);
+    }
+
+    private boolean separatedByBlankLine(final Wanting previous, final Wanting current, final Recursor recursor) {
+        if (current.wantsBlankLine() || previous.wantsBlankLine()) {
             return true;
         }
-        return previous.tree() != null && member.tree() != null && recursor.blankLineBetween(previous.tree(), member.tree());
+        final var previousTree = previous.member().tree();
+        final var currentTree = current.member().tree();
+        return previousTree != null && currentTree != null && recursor.blankLineBetween(previousTree, currentTree);
     }
 
     private boolean wantsBlankLineAround(final Member member, final Recursor recursor) {

@@ -201,9 +201,7 @@ public final class LintEngine {
 
     private List<LintResult> editingResults(final LintContext context) {
         final var planned = rules.stream()
-                .map(rule -> rule instanceof ScanningRule scanning && !(rule instanceof WarningRule)
-                        ? Optional.of(plan(scanning, context.forRule(rule)))
-                        : Optional.<Planned>empty())
+                .map(rule -> plan(rule, context.forRule(rule)))
                 .toList();
         planned.stream()
                 .flatMap(Optional::stream)
@@ -215,14 +213,18 @@ public final class LintEngine {
         return IntStream.range(0, rules.size())
                 .mapToObj(i -> planned.get(i)
                         .map(plan -> plan.scan().result().get())
-                        .orElseGet(() -> rules.get(i) instanceof WarningRule
-                                ? LintResult.EMPTY
-                                : rules.get(i).apply(context.forRule(rules.get(i)))))
+                        .orElseGet(() -> unplannedResult(rules.get(i), context)))
                 .toList();
     }
 
-    private static Planned plan(final ScanningRule rule, final LintContext context) {
-        return new Planned(context.unit().tree(), rule.scan(context));
+    private static Optional<Planned> plan(final LintRule rule, final LintContext context) {
+        return rule instanceof ScanningRule scanning && !(rule instanceof WarningRule)
+                ? Optional.of(new Planned(context.unit().tree(), scanning.scan(context)))
+                : Optional.empty();
+    }
+
+    private static LintResult unplannedResult(final LintRule rule, final LintContext context) {
+        return rule instanceof WarningRule ? LintResult.EMPTY : rule.apply(context.forRule(rule));
     }
 
     private List<LintResult> withWarnings(final List<LintResult> editing, final LintContext context) {
