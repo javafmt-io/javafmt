@@ -1,11 +1,8 @@
 package io.javafmt.spotless;
 
-import io.javafmt.Diagnostic;
 import io.javafmt.Fixtures;
-import io.javafmt.FormatResult;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.JavafmtVersion;
-import io.javafmt.Position;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,15 +48,6 @@ class JavafmtFormatterStepTest {
         assertThatThrownBy(() -> JavafmtFormatterStep.apply("class {"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .satisfies(t -> assertThat(t.getMessage()).isNotBlank());
-    }
-
-    @Test
-    void throwOnErrorWithUnknownPositionRendersMessageWithoutPositionPrefix() {
-        final var result = new FormatResult("ignored", List.of(new Diagnostic.ParseError("boom", new Position.Unknown())));
-        assertThatThrownBy(() -> JavafmtFormatterStep.throwOnError(result))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("javafmt: boom")
-                .satisfies(t -> assertThat(t.getMessage()).doesNotContain("?:?"));
     }
 
     @Test
@@ -245,8 +233,7 @@ class JavafmtFormatterStepTest {
         final var step = JavafmtFormatterStep.create(project.toFile());
         assertThatThrownBy(() -> step.format(
                         Fixtures.FORMATTED_FOO, dir.resolve("Foo.java").toFile()))
-                .hasMessageContaining(".javafmt")
-                .hasMessageContaining("FinalParameters");
+                .hasMessageStartingWith("javafmt: " + dir.resolve(".javafmt") + ": analyze.skip: FinalParameters does not use the classpath");
     }
 
     @Test
@@ -256,16 +243,16 @@ class JavafmtFormatterStepTest {
 
     @Test
     void stepsDifferingOnlyByFormatterVersionAreNotEqual() {
-        final var oldStep = JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), project.toFile(), "1.0.0");
-        final var newStep = JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), project.toFile(), "2.0.0");
+        final var oldStep = JavafmtFormatterStep.createForVersion("1.0.0", JavafmtConfig.defaults(), project.toFile());
+        final var newStep = JavafmtFormatterStep.createForVersion("2.0.0", JavafmtConfig.defaults(), project.toFile());
         assertThat(oldStep).isNotEqualTo(newStep);
         assertThat(oldStep.hashCode()).isNotEqualTo(newStep.hashCode());
     }
 
     @Test
     void stepsWithSameFormatterVersionAndConfigAreEqual() {
-        final var first = JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), project.toFile(), "1.0.0");
-        final var second = JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), project.toFile(), "1.0.0");
+        final var first = JavafmtFormatterStep.createForVersion("1.0.0", JavafmtConfig.defaults(), project.toFile());
+        final var second = JavafmtFormatterStep.createForVersion("1.0.0", JavafmtConfig.defaults(), project.toFile());
         assertThat(first).isEqualTo(second);
         assertThat(first.hashCode()).isEqualTo(second.hashCode());
     }
@@ -273,8 +260,8 @@ class JavafmtFormatterStepTest {
     @ParameterizedTest
     @MethodSource("configsDifferingFromDefaults")
     void stepsDifferingOnlyByConfigAreNotEqual(final JavafmtConfig changed) {
-        assertThat(JavafmtFormatterStep.createForVersion(changed, project.toFile(), "1.0.0"))
-                .isNotEqualTo(JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), project.toFile(), "1.0.0"));
+        assertThat(JavafmtFormatterStep.createForVersion("1.0.0", changed, project.toFile()))
+                .isNotEqualTo(JavafmtFormatterStep.createForVersion("1.0.0", JavafmtConfig.defaults(), project.toFile()));
     }
 
     static Stream<JavafmtConfig> configsDifferingFromDefaults() {

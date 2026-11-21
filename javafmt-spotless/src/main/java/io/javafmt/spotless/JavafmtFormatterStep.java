@@ -29,16 +29,14 @@ public final class JavafmtFormatterStep {
     }
 
     public FormatterStep create(final JavafmtConfig config, final File projectDirectory) {
-        return createForVersion(config, projectDirectory, JavafmtVersion.VERSION);
+        return createForVersion(JavafmtVersion.VERSION, config, projectDirectory);
     }
 
     /**
      * A step that formats with semantic analysis, so the lint rules that need resolved types are
      * live — {@code RedundantTypeArguments}' type witnesses, {@code ExplodeStarImports} and the
      * rest. {@code analysisClasspath} is the compile classpath of the sources being formatted, as
-     * {@code javac -classpath} would take it. Every step keys Spotless's up-to-date check on the
-     * {@code .javafmt} project files that apply to {@code projectDirectory} and the directories
-     * below it; each formatted file uses the project file that applies to it.
+     * {@code javac -classpath} would take it.
      */
     public FormatterStep create(final JavafmtConfig config, final String analysisClasspath, final File projectDirectory) {
         Objects.requireNonNull(analysisClasspath, "analysisClasspath");
@@ -49,11 +47,10 @@ public final class JavafmtFormatterStep {
      * Package-private seam so tests can build steps that differ only in formatter version; every
      * production caller gets the build-stamped {@link JavafmtVersion#VERSION}.
      */
-    FormatterStep createForVersion(final JavafmtConfig config, final File projectDirectory, final String formatterVersion) {
-        Objects.requireNonNull(config, "config");
+    FormatterStep createForVersion(final String formatterVersion, final JavafmtConfig config, final File projectDirectory) {
         final var directory = Objects.requireNonNull(projectDirectory, "projectDirectory")
                 .getAbsolutePath();
-        return FormatterStep.createLazy(NAME, () -> new Setup(formatterVersion, config, directory), Setup::state, State::formatter);
+        return FormatterStep.create(NAME, new Setup(formatterVersion, config, directory), Setup::state, State::formatter);
     }
 
     public String apply(final String source) {
@@ -66,36 +63,15 @@ public final class JavafmtFormatterStep {
 
     public String apply(final String source, final File file, final String classpath, final int release) {
         final var config = JavafmtConfig.defaults().withRelease(release);
-        return throwOnError(
-                Javafmt.formatWithResult(
-                        source,
-                        classpath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath)),
-                        ProjectFile.forFile(file.toPath())));
+        return new Func(classpath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath))).apply(source, file);
     }
 
-    /** Package-private seam so tests can assert on the thrown message directly. */
-    String throwOnError(final FormatResult result) {
+    private String throwOnError(final FormatResult result) {
         if (result.hasErrors()) {
             throw new IllegalArgumentException(
                     "javafmt: " + result.errors().getFirst().describeBare());
         }
         return result.output();
-    }
-
-    private ProjectFile projectFileFor(final @Nullable File file) {
-        return file == null ? ProjectFile.none() : ProjectFile.forFile(file.toPath());
-    }
-
-    /**
-     * Renders one javafmt warning as a Spotless lint. The short code is the step name rather than
-     * a rule name because a {@link Diagnostic.Warning} carries only a message — javafmt's
-     * warning-only rules do not tag their diagnostics with the rule that raised them.
-     */
-    private Lint toLint(final Diagnostic warning) {
-        return switch (warning.position()) {
-            case Position.At(var line, var _, var _) -> Lint.atLine(line, NAME, warning.message());
-            case Position.Unknown() -> Lint.atUndefinedLine(NAME, warning.message());
-        };
     }
 
     record Func(JavafmtConfig config) implements FormatterFunc {
@@ -105,22 +81,33 @@ public final class JavafmtFormatterStep {
         }
 
         @Override
-        public String apply(final String input) {
-            return throwOnError(Javafmt.formatWithResult(input, config));
+        public String apply(final String source) {
+            return throwOnError(Javafmt.formatWithResult(source, config));
         }
 
         @Override
-        public String apply(final String unix, final @Nullable File file) {
-            return throwOnError(Javafmt.formatWithResult(unix, config, projectFileFor(file)));
+        public String apply(final String source, final @Nullable File file) {
+            return throwOnError(Javafmt.formatWithResult(source, config, projectFileFor(file)));
         }
 
         @Override
-        public List<Lint> lint(final String content, final @Nullable File file) {
-            return Javafmt.formatWithResult(content, config, projectFileFor(file))
+        public List<Lint> lint(final String source, final @Nullable File file) {
+            return Javafmt.formatWithResult(source, config, projectFileFor(file))
                     .warnings()
                     .stream()
-                    .map(JavafmtFormatterStep::toLint)
+                    .map(Func::toLint)
                     .toList();
+        }
+
+        private static ProjectFile projectFileFor(final @Nullable File file) {
+            return file == null ? ProjectFile.none() : ProjectFile.forFile(file.toPath());
+        }
+
+        private static Lint toLint(final Diagnostic warning) {
+            return switch (warning.position()) {
+                case Position.At(var line, var _, var _) -> Lint.atLine(line, NAME, warning.message());
+                case Position.Unknown() -> Lint.atUndefinedLine(NAME, warning.message());
+            };
         }
     }
 
@@ -146,9 +133,6 @@ public final class JavafmtFormatterStep {
      *     keep reporting files formatted by an older release as up to date and never reformat them.
      * @param config the formatter configuration, so a config change invalidates too. It includes the
      *     analysis classpath, which decides which lint rules can fire.
-     * @param projectFiles every {@code .javafmt} that can apply to a file under the project
-     *     directory, and every repository root that ends the search for one, read again on every
-     *     build, since a project file decides which rules run and whether a file formats at all.
      */
     record State(String formatterVersion, JavafmtConfig config, ProjectFiles projectFiles) implements Serializable {
 

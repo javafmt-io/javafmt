@@ -18,7 +18,7 @@ import java.io.File;
 public final class VersionPinnedSteps {
 
     public static FormatterStep create(final String formatterVersion, final File projectDirectory) {
-        return JavafmtFormatterStep.createForVersion(JavafmtConfig.defaults(), projectDirectory, formatterVersion);
+        return JavafmtFormatterStep.createForVersion(formatterVersion, JavafmtConfig.defaults(), projectDirectory);
     }
 
     private VersionPinnedSteps() {}
