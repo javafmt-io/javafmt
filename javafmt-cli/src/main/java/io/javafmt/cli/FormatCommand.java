@@ -5,7 +5,6 @@ import io.javafmt.ProjectFile;
 import io.javafmt.daemon.Daemon;
 import io.javafmt.daemon.Wire;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.IVersionProvider;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.ParameterException;
@@ -24,7 +23,7 @@ import java.util.concurrent.Callable;
 @Command(
         name = "javafmt",
         mixinStandardHelpOptions = true,
-        versionProvider = FormatCommand.Version.class,
+        version = "javafmt " + JavafmtVersion.VERSION,
         showAtFileInUsageHelp = true,
         showEndOfOptionsDelimiterInUsageHelp = true,
         description = {
@@ -167,7 +166,7 @@ final class FormatCommand implements Callable<Integer> {
             throw new ParameterException(spec.commandLine(), "--daemon reads requests from stdin and cannot be combined with --check or paths");
         }
         Daemon.serve(json ? Wire.JSON : Wire.BINARY, in, out, threads.orElse(Daemon.DEFAULT_THREADS));
-        return 0;
+        return ExitCode.OK;
     }
 
     private List<Path> beforeEndOfOptions() {
@@ -175,13 +174,5 @@ final class FormatCommand implements Callable<Integer> {
         final var delimiter = expanded.indexOf(spec.parser().endOfOptionsDelimiter());
         final var afterDelimiter = delimiter < 0 ? 0 : expanded.size() - delimiter - 1;
         return paths.subList(0, paths.size() - afterDelimiter);
-    }
-
-    static final class Version implements IVersionProvider {
-
-        @Override
-        public String[] getVersion() {
-            return new String[]{"javafmt " + JavafmtVersion.VERSION};
-        }
     }
 }

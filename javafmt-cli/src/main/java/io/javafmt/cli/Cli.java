@@ -15,10 +15,8 @@ import java.util.Optional;
 @UtilityClass
 public final class Cli {
 
-    private final int INTERNAL_ERROR = 2;
-
     public int run(final String[] arguments, final InputStream in, final PrintStream out, final PrintStream err) {
-        return run(arguments, in, out, err, stdinIsATerminal());
+        return run(arguments, in, out, err, stdinIsATerminal(), Path.of("").toAbsolutePath());
     }
 
     /**
@@ -26,10 +24,6 @@ public final class Cli {
      *     back to stdin would hang with no prompt; the tests pass it explicitly because a test
      *     harness never has a terminal.
      */
-    int run(final String[] arguments, final InputStream in, final PrintStream out, final PrintStream err, final boolean stdinIsATerminal) {
-        return run(arguments, in, out, err, stdinIsATerminal, Path.of("").toAbsolutePath());
-    }
-
     int run(final String[] arguments,
             final InputStream in,
             final PrintStream out,
@@ -52,7 +46,7 @@ public final class Cli {
                     "javafmt: out of memory (" + Objects.requireNonNullElse(e.getMessage(), "heap exhausted")
                             + "). Every file written before this is complete and every other file is unchanged."
                             + " Run javafmt with a larger heap (-Xmx) or on fewer files at a time.");
-            return INTERNAL_ERROR;
+            return ExitCode.ERROR;
         } finally {
             outWriter.flush();
             errWriter.flush();
@@ -75,6 +69,6 @@ public final class Cli {
         final var err = commandLine.getErr();
         err.println("javafmt: internal error: " + e.getMessage() + " — please file a bug at https://github.com/javafmt-io/javafmt/issues");
         e.printStackTrace(err);
-        return INTERNAL_ERROR;
+        return ExitCode.ERROR;
     }
 }

@@ -50,11 +50,11 @@ final class FormatRun {
                             .filter(changed)
                             .toList()),
                     err);
-            return Math.max(exit, expansion.unreadable() ? 2 : 0);
+            return Math.max(exit, expansion.unreadable() ? ExitCode.ERROR : ExitCode.OK);
         } catch (final GitRatchetException e) {
             final var message = Objects.requireNonNullElse(e.getMessage(), "git failed");
             err.println(parsed.diagnostics() == DiagnosticsFormat.JSON ? JsonDiagnostics.cliLine("", message) : "javafmt: " + message);
-            return 2;
+            return ExitCode.ERROR;
         }
     }
 
@@ -92,30 +92,30 @@ final class FormatRun {
             final var result = Javafmt.formatWithResult(source, parsed.config(), projectFile);
             reportDiagnostics(parsed.diagnostics().stdinName(), result, parsed, err);
             if (result.hasErrors()) {
-                if (!parsed.check) {
+                if (!parsed.check()) {
                     out.print(result.output());
                 }
-                return 1;
+                return ExitCode.FAILED;
             }
-            if (parsed.check) {
+            if (parsed.check()) {
                 return checkStdinAgainstSource(parsed, source, result, err);
             }
             out.print(result.output());
-            return 0;
+            return ExitCode.OK;
         } catch (final IOException e) {
             err.println(parsed.diagnostics() == DiagnosticsFormat.JSON
                     ? JsonDiagnostics.cliLine("", "read failed: " + describe(e))
                     : "javafmt: <stdin>: read failed: " + describe(e));
-            return 2;
+            return ExitCode.ERROR;
         }
     }
 
     private int checkStdinAgainstSource(final Arguments parsed, final String source, final FormatResult result, final PrintStream err) {
         if (result.output().equals(source)) {
-            return 0;
+            return ExitCode.OK;
         }
         err.println(parsed.diagnostics().fileMessage(parsed.diagnostics().stdinName(), "would reformat"));
-        return 1;
+        return ExitCode.FAILED;
     }
 
     /**
@@ -125,7 +125,7 @@ final class FormatRun {
      * fails: a CI gate that checked nothing must not look like a pass.
      */
     private Expansion expandDirectories(final Arguments parsed, final PrintStream err) {
-        final var found = parsed.files.stream()
+        final var found = parsed.files().stream()
                 .map(path -> Files.isDirectory(path) ? javaFilesUnder(path, parsed) : new SourceFiles.Discovery(List.of(path), List.of()))
                 .toList();
         final var unreadable = found.stream()
@@ -139,7 +139,7 @@ final class FormatRun {
     }
 
     private SourceFiles.Discovery javaFilesUnder(final Path dir, final Arguments parsed) {
-        return parsed.defaultExcludes ? SourceFiles.discover(dir) : SourceFiles.discoverWithoutDefaultExcludes(dir);
+        return parsed.defaultExcludes() ? SourceFiles.discover(dir) : SourceFiles.discoverWithoutDefaultExcludes(dir);
     }
 
     private void reportUnreadable(final SourceFiles.Unreadable unreadable, final DiagnosticsFormat format, final PrintStream err) {
@@ -149,7 +149,8 @@ final class FormatRun {
     }
 
     private int runFiles(final Arguments parsed, final PrintStream err) {
-        final var cache = parsed.cacheFile.<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed)))
+        final var cache = parsed.cacheFile()
+                .<FormatCache>map(file -> FileFormatCache.load(file, cacheKey(parsed)))
                 .orElseGet(FormatCache::noop);
         final var outcomes = outcomesOf(parsed, cache);
         outcomes.stream()
@@ -158,8 +159,8 @@ final class FormatRun {
         final var worstExit = outcomes.stream()
                 .mapToInt(FileOutcome::exitCode)
                 .max()
-                .orElse(0);
-        if (worstExit <= 1) {
+                .orElse(ExitCode.OK);
+        if (worstExit <= ExitCode.FAILED) {
             persistCache(cache, parsed.diagnostics(), err);
         }
         return worstExit;
@@ -167,8 +168,8 @@ final class FormatRun {
 
     private List<FileOutcome> outcomesOf(final Arguments parsed, final FormatCache cache) {
         try (
-                final var files = Javafmt.formatFilesLazily(parsed.files, parsed.config(), cache, parsed.threads);
-                final var pool = Executors.newFixedThreadPool(Math.max(1, parsed.threads), Thread.ofPlatform()
+                final var files = Javafmt.formatFilesLazily(parsed.files(), parsed.config(), cache, parsed.threads());
+                final var pool = Executors.newFixedThreadPool(parsed.threads(), Thread.ofPlatform()
                         .name("javafmt-write-", 0)
                         .daemon(true)
                         .factory())) {
@@ -197,7 +198,7 @@ final class FormatRun {
      * be reused by one with them.
      */
     private CacheKey cacheKey(final Arguments parsed) {
-        return CacheKey.of(parsed.config(), ProjectFile.forFiles(parsed.files));
+        return CacheKey.of(parsed.config(), ProjectFile.forFiles(parsed.files()));
     }
 
     /**
@@ -217,9 +218,9 @@ final class FormatRun {
 
     private FileOutcome outcomeFor(final FileResult file, final Arguments parsed, final FormatCache cache) {
         return switch (file) {
-            case FileResult.UpToDate _ -> new FileOutcome(0, List.of());
+            case FileResult.UpToDate _ -> new FileOutcome(ExitCode.OK, List.of());
             case FileResult.Unreadable(var path, var error) ->
-                new FileOutcome(2, List.of(parsed.diagnostics().fileMessage(path.toString(), "read failed: " + describe(error))));
+                new FileOutcome(ExitCode.ERROR, List.of(parsed.diagnostics().fileMessage(path.toString(), "read failed: " + describe(error))));
             case FileResult.Formatted formatted -> outcomeOf(formatted, parsed, cache);
         };
     }
@@ -232,23 +233,23 @@ final class FormatRun {
                 .map(d -> format.diagnostic(path.toString(), d))
                 .toList();
         if (result.hasErrors()) {
-            return new FileOutcome(1, reported);
+            return new FileOutcome(ExitCode.FAILED, reported);
         }
         if (!formatted.changed()) {
             cache.recordFormatted(path, formatted.source());
-            return new FileOutcome(0, reported);
+            return new FileOutcome(ExitCode.OK, reported);
         }
         if (parsed.check()) {
-            return new FileOutcome(1, append(reported, format.fileMessage(path.toString(), "would reformat")));
+            return new FileOutcome(ExitCode.FAILED, append(reported, format.fileMessage(path.toString(), "would reformat")));
         }
         try {
             SourceFiles.write(path, result.output());
         } catch (final UncheckedIOException e) {
             final var message = "write failed: " + describe(Objects.requireNonNull(e.getCause(), "cause"));
-            return new FileOutcome(2, append(reported, format.fileMessage(path.toString(), message)));
+            return new FileOutcome(ExitCode.ERROR, append(reported, format.fileMessage(path.toString(), message)));
         }
         cache.recordFormatted(path, result.output());
-        return new FileOutcome(0, reported);
+        return new FileOutcome(ExitCode.OK, reported);
     }
 
     /**
@@ -290,6 +291,9 @@ final class FormatRun {
                      DiagnosticsFormat diagnostics) {
 
         Arguments {
+            if (threads <= 0) {
+                throw new IllegalArgumentException("threads must be positive, but was: " + threads);
+            }
             files = List.copyOf(files);
             excludes = List.copyOf(excludes);
         }

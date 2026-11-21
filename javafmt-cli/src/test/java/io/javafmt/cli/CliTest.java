@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,6 +26,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CliTest {
+
+    private static final Path WORKING_DIRECTORY = Path.of("").toAbsolutePath();
 
     private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order {\n\n    List<String> lines;\n}\n";
 
@@ -734,16 +737,9 @@ class CliTest {
 
     @Test
     void noArgumentsOnATerminalPrintsTheUsageInsteadOfWaitingForever() {
-        final var out = new ByteArrayOutputStream();
-        final var err = new ByteArrayOutputStream();
-        final var exit = Cli.run(
-                new String[0],
-                new ByteArrayInputStream(new byte[0]),
-                new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(err, true, StandardCharsets.UTF_8),
-                true);
-        assertThat(exit).isEqualTo(2);
-        assertThat(err.toString(StandardCharsets.UTF_8)).contains("Usage: javafmt");
+        final var run = execute(WORKING_DIRECTORY, new ByteArrayInputStream(new byte[0]), true);
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err()).contains("Usage: javafmt");
     }
 
     @Test
@@ -779,15 +775,9 @@ class CliTest {
 
     @Test
     void daemonFlag_answersEachDelimitedRequestWithOneDelimitedReplyUntilStdinCloses() {
-        final var out = new ByteArrayOutputStream();
-        final var exit = Cli.run(
-                new String[]{"--daemon"},
-                new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)),
-                new PrintStream(out, true, StandardCharsets.UTF_8),
-                new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.UTF_8),
-                true);
-        assertThat(exit).isZero();
-        assertThat(DaemonFixtures.hexFrames(out.toByteArray())).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_HEX);
+        final var run = execute(WORKING_DIRECTORY, new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)), true, "--daemon");
+        assertThat(run.exit()).isZero();
+        assertThat(DaemonFixtures.hexFrames(run.outBytes().array())).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_HEX);
     }
 
     @Test
@@ -856,25 +846,30 @@ class CliTest {
     }
 
     private static Run runStdinIn(final Path workingDirectory, final String stdin, final String... arguments) {
+        return execute(workingDirectory, new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)), false, arguments);
+    }
+
+    private static Run runStdin(final InputStream in, final String... arguments) {
+        return execute(WORKING_DIRECTORY, in, false, arguments);
+    }
+
+    private static Run execute(final Path workingDirectory, final InputStream in, final boolean terminal, final String... arguments) {
         final var out = new ByteArrayOutputStream();
         final var err = new ByteArrayOutputStream();
         final var exit = Cli.run(
                 arguments,
-                new ByteArrayInputStream(stdin.getBytes(StandardCharsets.UTF_8)),
+                in,
                 new PrintStream(out, true, StandardCharsets.UTF_8),
                 new PrintStream(err, true, StandardCharsets.UTF_8),
-                false,
+                terminal,
                 workingDirectory);
-        return new Run(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
+        return new Run(exit, ByteBuffer.wrap(out.toByteArray()), err.toString(StandardCharsets.UTF_8));
     }
 
-    private static Run runStdin(final InputStream in, final String... arguments) {
-        final var out = new ByteArrayOutputStream();
-        final var err = new ByteArrayOutputStream();
-        final var exit = Cli.run(
-                arguments, in, new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
-        return new Run(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
-    }
+    private record Run(int exit, ByteBuffer outBytes, String err) {
 
-    private record Run(int exit, String out, String err) {}
+        String out() {
+            return StandardCharsets.UTF_8.decode(outBytes.duplicate()).toString();
+        }
+    }
 }
