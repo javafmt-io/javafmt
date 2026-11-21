@@ -15,13 +15,14 @@ final class EngineJar {
     private static final String RESOURCE = "javafmt-engine.jar";
 
     static File extractTo(final File directory, final String hash) {
-        final var target = directory.toPath().resolve("javafmt-engine-" + hash + ".jar");
+        final var path = directory.toPath();
+        final var target = path.resolve("javafmt-engine-" + hash + ".jar");
         if (Files.exists(target)) {
             return target.toFile();
         }
         try (final var in = Objects.requireNonNull(EngineJar.class.getResourceAsStream(RESOURCE), RESOURCE)) {
-            Files.createDirectories(directory.toPath());
-            final var temp = Files.createTempFile(directory.toPath(), "javafmt-engine", ".tmp");
+            Files.createDirectories(path);
+            final var temp = Files.createTempFile(path, "javafmt-engine", ".tmp");
             try {
                 Files.copy(in, temp, StandardCopyOption.REPLACE_EXISTING);
                 move(temp, target);

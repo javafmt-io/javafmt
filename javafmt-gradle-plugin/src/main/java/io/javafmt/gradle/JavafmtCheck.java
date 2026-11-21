@@ -9,7 +9,9 @@ import org.gradle.work.ChangeType;
 import org.gradle.work.FileChange;
 import org.gradle.work.InputChanges;
 
+import java.io.File;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -21,14 +23,22 @@ public abstract class JavafmtCheck extends JavafmtTask {
 
     @TaskAction
     public void check(final InputChanges changes) {
-        final var files = changes.isIncremental()
-            && !getAnalyze().get()
-            && !getRatchetFrom().isPresent()
-                ? StreamSupport.stream(changes.getFileChanges(getSources()).spliterator(), false)
-                        .filter(change -> change.getFileType() == FileType.FILE && change.getChangeType() != ChangeType.REMOVED)
-                        .map(FileChange::getFile)
-                        .collect(Collectors.toSet())
+        final var files = checksOnlyChangedFiles(changes)
+                ? changedFiles(changes)
                 : getSources().getFiles();
         submit(files, false, Optional.of(getMarker().get().getAsFile()));
+    }
+
+    private boolean checksOnlyChangedFiles(final InputChanges changes) {
+        return changes.isIncremental()
+            && !getAnalyze().get()
+            && !getRatchetFrom().isPresent();
+    }
+
+    private Set<File> changedFiles(final InputChanges changes) {
+        return StreamSupport.stream(changes.getFileChanges(getSources()).spliterator(), false)
+                .filter(change -> change.getFileType() == FileType.FILE && change.getChangeType() != ChangeType.REMOVED)
+                .map(FileChange::getFile)
+                .collect(Collectors.toUnmodifiableSet());
     }
 }

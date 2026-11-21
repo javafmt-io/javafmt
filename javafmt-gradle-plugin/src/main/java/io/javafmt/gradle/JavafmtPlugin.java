@@ -45,7 +45,6 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
     @Override
     public void apply(final Project project) {
         final var extension = project.getExtensions().create("javafmt", JavafmtExtension.class);
-        extension.getExcludes().convention(List.of());
         extension.getAnalyze().convention(true);
         extension.getMaxHeapSize().convention("1g");
         final var workerSlot = project.getGradle()
@@ -103,13 +102,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
 
     private record PluginProperties(String engineHash, String foojayVersion) {}
 
-    private static final class RatchetFromSet implements Spec<Task> {
-
-        private final boolean set;
-
-        private RatchetFromSet(final boolean set) {
-            this.set = set;
-        }
+    private record RatchetFromSet(boolean set) implements Spec<Task> {
 
         @Override
         public boolean isSatisfiedBy(final Task task) {
@@ -154,7 +147,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             task.getRatchetFrom().set(extension.getRatchetFrom());
             task.getAnalysisClasspath().from(extension.getAnalyze().map(analyze -> analyze ? sourceSet.getCompileClasspath() : List.of()));
             task.getEngineHash().set(properties.engineHash());
-            task.getLauncher().convention(project.provider(() -> java25(toolchains, properties.foojayVersion())));
+            task.getLauncher().convention(project.provider(() -> engineLauncher(toolchains, properties.foojayVersion())));
             task.getMaxHeapSize().set(extension.getMaxHeapSize());
             task.getJvmArgs().set(extension.getJvmArgs());
             task.getWorkerSlot().set(workerSlot);
@@ -206,16 +199,16 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
                     .toList();
         }
 
-        private static JavaLauncher java25(final JavaToolchainService toolchains, final String foojayVersion) {
+        private static JavaLauncher engineLauncher(final JavaToolchainService toolchains, final String foojayVersion) {
             try {
                 return toolchains.launcherFor(spec -> spec.getLanguageVersion().set(JavaLanguageVersion.of(ENGINE_JAVA_VERSION)))
                         .get();
             } catch (final RuntimeException e) {
                 throw new GradleException("""
-                                          javafmt needs a Java 25 toolchain to run on, and Gradle found none.
-                                          Either install a JDK 25, or let Gradle download one by adding
-                                              id("org.gradle.toolchains.foojay-resolver-convention") version "%s"
-                                          to the plugins block of settings.gradle.kts.""".formatted(foojayVersion), e);
+                                          javafmt needs a Java %1$d toolchain to run on, and Gradle found none.
+                                          Either install a JDK %1$d, or let Gradle download one by adding
+                                              id("org.gradle.toolchains.foojay-resolver-convention") version "%2$s"
+                                          to the plugins block of settings.gradle.kts.""".formatted(ENGINE_JAVA_VERSION, foojayVersion), e);
             }
         }
     }
