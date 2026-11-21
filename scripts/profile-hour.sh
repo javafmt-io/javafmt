@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 
 open_newest() {
-    local runs=( "$ROOT"/profiles/*(/NOm) )
+    local runs=( "$ROOT"/profiles/*(/Nom) )
     (( ${#runs} > 0 )) || { echo "no profiles/ run yet" >&2; exit 1; }
     open_flamegraph "${runs[1]}"
 }
