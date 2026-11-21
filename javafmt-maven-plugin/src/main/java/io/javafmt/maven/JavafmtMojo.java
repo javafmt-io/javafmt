@@ -26,9 +26,9 @@ public final class JavafmtMojo extends AbstractJavafmtMojo {
 
     @Override
     void handle(final List<FileResult.Formatted> formatted, final FormatCache formatCache) {
+        formatted.forEach(file -> write(file, formatCache));
         final var formattedCount = formatted.stream()
-                .map(file -> processResult(file, formatCache))
-                .filter(Boolean::booleanValue)
+                .filter(FileResult.Formatted::changed)
                 .count();
         final var warningCount = formatted.stream()
                 .mapToLong(file -> file.result().warnings().size())
@@ -36,15 +36,12 @@ public final class JavafmtMojo extends AbstractJavafmtMojo {
         getLog().info("javafmt: formatted " + formattedCount + " files, " + warningCount + " warnings");
     }
 
-    private boolean processResult(final FileResult.Formatted file, final FormatCache formatCache) {
-        final var result = file.result();
-        result.warnings()
-                .forEach(w -> getLog().info("javafmt: " + w.describe(file.path().toString())));
+    private void write(final FileResult.Formatted file, final FormatCache formatCache) {
+        final var output = file.result().output();
         if (file.changed()) {
-            SourceFiles.write(file.path(), result.output());
+            SourceFiles.write(file.path(), output);
             getLog().debug("javafmt: formatted " + file.path());
         }
-        formatCache.recordFormatted(file.path(), result.output());
-        return file.changed();
+        formatCache.recordFormatted(file.path(), output);
     }
 }

@@ -27,8 +27,12 @@ public final class JavafmtCheckMojo extends AbstractJavafmtMojo {
 
     @Override
     void handle(final List<FileResult.Formatted> formatted, final FormatCache formatCache) throws MojoExecutionException {
+        formatted.stream()
+                .filter(file -> !file.changed())
+                .forEach(file -> formatCache.recordFormatted(file.path(), file.source()));
         final var unformatted = formatted.stream()
-                .flatMap(file -> checkResult(file, formatCache).stream())
+                .filter(FileResult.Formatted::changed)
+                .map(FileResult.Formatted::path)
                 .toList();
         if (!unformatted.isEmpty()) {
             final var fileList = unformatted.stream()
@@ -36,13 +40,5 @@ public final class JavafmtCheckMojo extends AbstractJavafmtMojo {
                     .collect(Collectors.joining("\n"));
             throw new MojoExecutionException("javafmt check failed: " + unformatted.size() + " file(s) not formatted:\n" + fileList);
         }
-    }
-
-    private Optional<Path> checkResult(final FileResult.Formatted file, final FormatCache formatCache) {
-        if (file.changed()) {
-            return Optional.of(file.path());
-        }
-        formatCache.recordFormatted(file.path(), file.source());
-        return Optional.empty();
     }
 }

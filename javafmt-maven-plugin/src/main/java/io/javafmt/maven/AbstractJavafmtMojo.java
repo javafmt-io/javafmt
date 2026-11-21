@@ -95,7 +95,7 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
             final var poolSize = threads > 0 ? threads : Runtime.getRuntime().availableProcessors();
             final var results = Javafmt.formatFiles(files, JavafmtConfig.defaults(), formatCache, poolSize);
             failOnUnreadable(results);
-            handle(logErrorsAndKeepCleanFiles(results), formatCache);
+            handle(logDiagnosticsAndKeepCleanFiles(results), formatCache);
             formatCache.save();
         } catch (final UncheckedIOException e) {
             throw new MojoExecutionException("javafmt: I/O error: " + e.getMessage(), e.getCause());
@@ -129,16 +129,20 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
         }
     }
 
-    private List<FileResult.Formatted> logErrorsAndKeepCleanFiles(final List<FileResult> results) {
+    private List<FileResult.Formatted> logDiagnosticsAndKeepCleanFiles(final List<FileResult> results) {
         final var formatted = results.stream()
                 .flatMap(result -> result instanceof FileResult.Formatted f ? Stream.of(f) : Stream.empty())
                 .toList();
         formatted.forEach(f -> f.result()
                 .errors()
                 .forEach(d -> getLog().warn("javafmt: " + d.describe(f.path().toString()))));
-        return formatted.stream()
+        final var clean = formatted.stream()
                 .filter(f -> !f.result().hasErrors())
                 .toList();
+        clean.forEach(f -> f.result()
+                .warnings()
+                .forEach(d -> getLog().info("javafmt: " + d.describe(f.path().toString()))));
+        return clean;
     }
 
     private FormatCache resolveCache(final MavenProject p) {

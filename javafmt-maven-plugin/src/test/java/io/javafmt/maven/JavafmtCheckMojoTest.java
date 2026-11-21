@@ -1,6 +1,11 @@
 package io.javafmt.maven;
 
+import io.javafmt.FileResult;
 import io.javafmt.Javafmt;
+import io.javafmt.JavafmtConfig;
+import io.javafmt.cache.CacheKey;
+import io.javafmt.cache.FileFormatCache;
+import io.javafmt.maven.MojoTestSupport.CapturingLog;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -12,9 +17,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static io.javafmt.maven.MojoTestSupport.FORMATTED;
+import static io.javafmt.maven.MojoTestSupport.REASSIGNS_A_PARAMETER;
 import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
 import static io.javafmt.maven.MojoTestSupport.buildProject;
 import static io.javafmt.maven.MojoTestSupport.checkMojo;
+import static io.javafmt.maven.MojoTestSupport.formatMojo;
 import static io.javafmt.maven.MojoTestSupport.projectInRepositoryWithAnEditedFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -121,6 +128,36 @@ class JavafmtCheckMojoTest {
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining("1 file(s) not formatted")
                 .hasMessageContaining(file.toString());
+    }
+
+    @Test
+    void aFailedCheckCachesOnlyTheFormattedFiles(@TempDir final Path dir) {
+        final var unformatted = new FileResult.Formatted(dir.resolve("Unformatted.java"), UNFORMATTED, Javafmt.formatWithResult(UNFORMATTED));
+        final var formatted = new FileResult.Formatted(dir.resolve("Foo.java"), FORMATTED, Javafmt.formatWithResult(FORMATTED));
+        final var cache = FileFormatCache.load(dir.resolve("javafmt.cache"), CacheKey.of(JavafmtConfig.defaults()));
+        assertThatThrownBy(() -> new JavafmtCheckMojo().handle(List.of(unformatted, formatted), cache))
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining("1 file(s) not formatted");
+        assertThat(cache.isUpToDate(unformatted.path(), UNFORMATTED)).isFalse();
+        assertThat(cache.isUpToDate(formatted.path(), FORMATTED)).isTrue();
+    }
+
+    @Test
+    void checkGoalLogsWarningsLikeTheFormatGoal(@TempDir final Path dir) throws Exception {
+        Files.writeString(Files.createDirectories(dir.resolve("src/main/java")).resolve("Warns.java"), REASSIGNS_A_PARAMETER);
+        final var formatLog = new CapturingLog();
+        final var format = formatMojo(dir);
+        format.setLog(formatLog);
+        format.execute();
+        final var checkLog = new CapturingLog();
+        final var check = checkMojo(dir);
+        check.setLog(checkLog);
+        check.execute();
+        final var warnings = formatLog.messages().stream()
+                .filter(message -> message.contains("is reassigned"))
+                .toList();
+        assertThat(warnings).hasSize(1);
+        assertThat(checkLog.messages()).containsExactlyElementsOf(warnings);
     }
 
     @Test
