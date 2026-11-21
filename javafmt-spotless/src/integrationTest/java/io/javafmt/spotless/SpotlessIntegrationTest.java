@@ -35,7 +35,7 @@ class SpotlessIntegrationTest {
 
     private static final String DEFAULT_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(projectDir)";
 
-    private static final String CLASSPATH_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(io.javafmt.JavafmtConfig.defaults(), sourceSets.main.compileClasspath.asPath, projectDir)";
+    private static final String CLASSPATH_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(io.javafmt.JavafmtConfig.defaults(), (sourceSets.main.compileClasspath + sourceSets.main.output.classesDirs).asPath, projectDir)";
 
     /** Takes its version from a project property, so a run can pretend javafmt was upgraded. */
     private static final String PINNED_STEP =

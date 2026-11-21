@@ -103,6 +103,32 @@ class JavafmtFormatterStepTest {
     }
 
     @Test
+    void anEmptyClasspathMeansNoAnalysisInEveryEntryPoint() throws Exception {
+        final var file = project.resolve("Foo.java").toFile();
+        final var viaCreate = JavafmtFormatterStep.create(JavafmtConfig.defaults(), "", project.toFile())
+                .format(Fixtures.STAR_IMPORT_SOURCE, null);
+        final var viaApply = JavafmtFormatterStep.apply(Fixtures.STAR_IMPORT_SOURCE, file, "", 25);
+        assertThat(viaCreate).contains("java.util.*");
+        assertThat(viaApply).contains("java.util.*");
+        final var witnessViaCreate = JavafmtFormatterStep.create(JavafmtConfig.defaults(), "", project.toFile())
+                .format(Fixtures.TYPE_WITNESS_SOURCE, null);
+        assertThat(witnessViaCreate).contains("Stream.<String>of");
+        assertThat(JavafmtFormatterStep.apply(Fixtures.TYPE_WITNESS_SOURCE, file, "", 25))
+                .contains("Stream.<String>of");
+    }
+
+    @Test
+    void aNonEmptyClasspathStillAnalyzesInEveryEntryPoint() throws Exception {
+        final var file = project.resolve("Foo.java").toFile();
+        assertThat(
+                        JavafmtFormatterStep.create(JavafmtConfig.defaults(), TEST_CLASSPATH, project.toFile())
+                                .format(Fixtures.STAR_IMPORT_SOURCE, null))
+                .doesNotContain("java.util.*");
+        assertThat(JavafmtFormatterStep.apply(Fixtures.STAR_IMPORT_SOURCE, file, TEST_CLASSPATH, 25))
+                .doesNotContain("java.util.*");
+    }
+
+    @Test
     void stepsDifferingOnlyByAnalysisClasspathAreNotEqual() {
         // The classpath changes what the formatter emits, so it has to key the up-to-date check
         // exactly as the version and the config do.

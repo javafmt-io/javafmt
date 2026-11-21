@@ -36,11 +36,11 @@ public final class JavafmtFormatterStep {
      * A step that formats with semantic analysis, so the lint rules that need resolved types are
      * live — {@code RedundantTypeArguments}' type witnesses, {@code ExplodeStarImports} and the
      * rest. {@code analysisClasspath} is the compile classpath of the sources being formatted, as
-     * {@code javac -classpath} would take it.
+     * {@code javac -classpath} would take it; an empty string leaves {@code config.analysis()} as given.
      */
     public FormatterStep create(final JavafmtConfig config, final String analysisClasspath, final File projectDirectory) {
         Objects.requireNonNull(analysisClasspath, "analysisClasspath");
-        return create(config.withAnalysis(new JavafmtConfig.Analysis.Attributed(analysisClasspath)), projectDirectory);
+        return create(analysisFor(config, analysisClasspath), projectDirectory);
     }
 
     /**
@@ -55,7 +55,11 @@ public final class JavafmtFormatterStep {
 
     public String apply(final String source, final File file, final String classpath, final int release) {
         final var config = JavafmtConfig.defaults().withRelease(release);
-        return new Func(classpath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath))).apply(source, file);
+        return new Func(analysisFor(config, classpath)).apply(source, file);
+    }
+
+    private JavafmtConfig analysisFor(final JavafmtConfig config, final String classpath) {
+        return classpath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath));
     }
 
     private String throwOnError(final FormatResult result) {
