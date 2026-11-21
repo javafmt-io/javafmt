@@ -23,7 +23,7 @@ final class ImportSectionRenderer {
         final var groups = imports.stream()
                 .map(NamedImport::of)
                 .sorted(Comparator.comparing(NamedImport::name))
-                .collect(Collectors.groupingBy(NamedImport::groupKey, TreeMap::new, Collectors.toList()))
+                .collect(Collectors.groupingBy(NamedImport::group, TreeMap::new, Collectors.toList()))
                 .values()
                 .stream()
                 .flatMap(group -> Stream.concat(Stream.of(Doc.HARD_LINE), group.stream()
@@ -37,26 +37,34 @@ final class ImportSectionRenderer {
         final var leading = unit.leadingOf(imp.tree());
         final var trailing = unit.trailingOf(imp.tree());
         final var lineDoc = new Doc.Text(imp.prefix() + imp.name() + ";");
-        final var withLeading = leading.isEmpty() ? lineDoc : CommentDocs.prepend(leading, lineDoc);
-        final var withTrailing = trailing.isEmpty() ? withLeading : CommentDocs.appendTrailing(withLeading, trailing);
+        final var withLeading = CommentDocs.prepend(leading, lineDoc);
+        final var withTrailing = CommentDocs.appendTrailing(withLeading, trailing);
         return Stream.of(withTrailing, Doc.HARD_LINE);
     }
 
     private record NamedImport(ImportTree tree, String name, String prefix) {
 
         static NamedImport of(final ImportTree tree) {
-            final var prefix = tree.isModule() ? "import module " : tree.isStatic() ? "import static " : "import ";
-            return new NamedImport(tree, tree.getQualifiedIdentifier().toString(), prefix);
+            return new NamedImport(tree, tree.getQualifiedIdentifier().toString(), prefixOf(tree));
         }
 
-        int groupKey() {
+        private static String prefixOf(final ImportTree tree) {
             if (tree.isModule()) {
-                return 0;
+                return "import module ";
+            }
+            return tree.isStatic() ? "import static " : "import ";
+        }
+
+        ImportGroup group() {
+            if (tree.isModule()) {
+                return ImportGroup.MODULE;
             }
             if (tree.isStatic()) {
-                return 3;
+                return ImportGroup.STATIC;
             }
-            return name.startsWith("java.") || name.startsWith("javax.") ? 2 : 1;
+            return name.startsWith("java.") || name.startsWith("javax.") ? ImportGroup.JDK : ImportGroup.THIRD_PARTY;
         }
     }
+
+    private enum ImportGroup { MODULE, THIRD_PARTY, JDK, STATIC }
 }

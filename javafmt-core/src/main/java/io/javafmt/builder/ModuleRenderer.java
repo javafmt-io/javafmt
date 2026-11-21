@@ -30,10 +30,10 @@ final class ModuleRenderer {
         final var directives = node.getDirectives();
         final var tail = recursor.trailingInside(node);
         final var body = directives.isEmpty() && tail.isEmpty()
-                ? Doc.concat(new Doc.Text(header), new Doc.Text(" {}"))
+                ? new Doc.Text(header + " {}")
                 : Doc.concatOf(
                         Stream.of(
-                                Stream.of(new Doc.Text(header), new Doc.Text(" {")),
+                                Stream.of(new Doc.Text(header + " {")),
                                 bodyStream(directives, recursor),
                                 TypeBodyRenderer.tailLines(tail),
                                 Doc.closeBrace()));
@@ -61,39 +61,22 @@ final class ModuleRenderer {
     private Doc renderDirective(final DirectiveTree directive) {
         return switch (directive) {
             case RequiresTree r -> renderRequires(r);
-            case ExportsTree e -> renderExports(e);
-            case OpensTree o -> renderOpens(o);
+            case ExportsTree e -> renderTargeted("exports", e.getPackageName(), e.getModuleNames(), "to");
+            case OpensTree o -> renderTargeted("opens", o.getPackageName(), o.getModuleNames(), "to");
             case UsesTree u -> renderUses(u);
-            case ProvidesTree p -> renderProvides(p);
+            case ProvidesTree p -> renderTargeted("provides", p.getServiceName(), p.getImplementationNames(), "with");
             default -> throw new IllegalStateException("unexpected module directive kind: " + directive.getKind());
         };
     }
 
     private Doc renderRequires(final RequiresTree node) {
-        final var modifiers = new StringBuilder("requires ");
-        if (node.isStatic()) {
-            modifiers.append("static ");
-        }
-        if (node.isTransitive()) {
-            modifiers.append("transitive ");
-        }
-        return new Doc.Text(modifiers.toString() + node.getModuleName() + ";");
-    }
-
-    private Doc renderExports(final ExportsTree node) {
-        return renderTargeted("exports", node.getPackageName(), node.getModuleNames(), "to");
-    }
-
-    private Doc renderOpens(final OpensTree node) {
-        return renderTargeted("opens", node.getPackageName(), node.getModuleNames(), "to");
+        final var staticModifier = node.isStatic() ? "static " : "";
+        final var transitiveModifier = node.isTransitive() ? "transitive " : "";
+        return new Doc.Text("requires " + staticModifier + transitiveModifier + node.getModuleName() + ";");
     }
 
     private Doc renderUses(final UsesTree node) {
         return new Doc.Text("uses " + node.getServiceName() + ";");
-    }
-
-    private Doc renderProvides(final ProvidesTree node) {
-        return renderTargeted("provides", node.getServiceName(), node.getImplementationNames(), "with");
     }
 
     private Doc renderTargeted(final String keyword,
