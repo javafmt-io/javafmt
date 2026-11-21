@@ -170,6 +170,4 @@ public final class MemberOrder implements LintRule {
                 .orElse(unit.endOf(member));
         return new Span(Math.min(leading, unit.startOf(member)), Math.max(trailing, unit.endOf(member)));
     }
-
-    private record Span(int start, int end) {}
 }

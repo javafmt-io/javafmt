@@ -144,15 +144,4 @@ public final class ExplicitInitialization implements ScanningRule {
         return spans.stream()
                 .anyMatch(span -> span.covers(pos));
     }
-
-    private record Span(int start, int end) {
-
-        boolean covers(final int pos) {
-            return start <= pos && pos < end;
-        }
-
-        boolean overlaps(final Span other) {
-            return start < other.end() && other.start() < end;
-        }
-    }
 }

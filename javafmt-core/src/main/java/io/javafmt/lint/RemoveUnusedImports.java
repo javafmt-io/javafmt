@@ -119,7 +119,4 @@ public final class RemoveUnusedImports implements LintRule {
             && source.substring(declarationEnd, lineEnd).isBlank();
         return Optional.of(aloneOnLine ? new Span(lineStart, lineEnd) : new Span(start, declarationEnd));
     }
-
-    /** The source range one import declaration owns, as {@link #spanOf} decides it. */
-    record Span(int start, int end) {}
 }
