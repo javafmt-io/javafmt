@@ -11,16 +11,16 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
+import static io.javafmt.maven.MojoTestSupport.FORMATTED;
 import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
 import static io.javafmt.maven.MojoTestSupport.buildProject;
+import static io.javafmt.maven.MojoTestSupport.checkMojo;
 import static io.javafmt.maven.MojoTestSupport.projectInRepositoryWithAnEditedFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtCheckMojoTest {
-
-    private static final String FORMATTED = Javafmt.format(UNFORMATTED);
 
     @Test
     void emptyFileIsProcessedNotMistakenForCacheHit(@TempDir final Path dir) throws Exception {
@@ -106,6 +106,20 @@ class JavafmtCheckMojoTest {
         final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining(file.toString());
+    }
+
+    @Test
+    void aSecondCheckOnTheSameCacheStillFails(@TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(
+                Files.createDirectories(dir.resolve("src/main/java")).resolve("Unformatted.java"), UNFORMATTED);
+        final var cacheFile = dir.resolve("target/javafmt.cache");
+        assertThatThrownBy(checkMojo(dir, cacheFile)::execute)
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining(file.toString());
+        assertThatThrownBy(checkMojo(dir, cacheFile)::execute)
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining("1 file(s) not formatted")
                 .hasMessageContaining(file.toString());
     }
 

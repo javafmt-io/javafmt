@@ -1,19 +1,26 @@
 package io.javafmt.maven;
 
 import io.javafmt.Javafmt;
+import io.javafmt.maven.MojoTestSupport.CapturingLog;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Optional;
 
+import static io.javafmt.maven.MojoTestSupport.EDITED_INVOICE;
+import static io.javafmt.maven.MojoTestSupport.FORMATTED;
+import static io.javafmt.maven.MojoTestSupport.ORDER;
+import static io.javafmt.maven.MojoTestSupport.REASSIGNS_A_PARAMETER;
 import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
 import static io.javafmt.maven.MojoTestSupport.buildProject;
+import static io.javafmt.maven.MojoTestSupport.formatMojo;
 import static io.javafmt.maven.MojoTestSupport.projectInRepositoryWithAnEditedFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -69,31 +76,79 @@ class JavafmtMojoTest {
     }
 
     @Test
-    void formatGoal_withCacheEnabled_skipsUnchangedFilesOnSecondRun(@TempDir final Path srcDir, @TempDir final Path cacheDir) throws Exception {
-        final var file = srcDir.resolve("Foo.java");
-        Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
-        final var cacheFile = cacheDir.resolve("javafmt.cache");
-        final var mojo = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
-        mojo.execute();
-        final var afterFirst = Files.readString(file, StandardCharsets.UTF_8);
-        assertThat(afterFirst).isEqualTo(Javafmt.format(UNFORMATTED));
-        assertThat(Files.exists(cacheFile)).isTrue();
-        final var mtimeAfterFirst = Files.getLastModifiedTime(file);
-        final var mojo2 = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
-        mojo2.execute();
-        assertThat(Files.readString(file, StandardCharsets.UTF_8)).isEqualTo(afterFirst);
-        assertThat(Files.getLastModifiedTime(file)).isEqualTo(mtimeAfterFirst);
+    void formatGoal_withCacheEnabled_skipsUnchangedFilesOnSecondRun(@TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(
+                Files.createDirectories(dir.resolve("src/main/java")).resolve("Warns.java"), REASSIGNS_A_PARAMETER);
+        final var cacheFile = dir.resolve("target/javafmt.cache");
+        final var first = new CapturingLog();
+        formatMojo(dir, cacheFile, first).execute();
+        assertThat(first.messages()).anyMatch(message -> message.contains("is reassigned"));
+        assertThat(cacheFile).exists();
+        final var second = new CapturingLog();
+        formatMojo(dir, cacheFile, second).execute();
+        assertThat(second.messages())
+                .noneMatch(message -> message.contains("is reassigned"))
+                .contains("javafmt: formatted 0 files, 0 warnings");
+        assertThat(Files.readString(file, StandardCharsets.UTF_8)).isEqualTo(REASSIGNS_A_PARAMETER);
     }
 
     @Test
-    void formatGoal_withCacheDisabled_doesNotCreateCacheFile(@TempDir final Path srcDir) throws Exception {
-        final var file = srcDir.resolve("Foo.java");
-        Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
-        final var mojo = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.empty());
+    void formatGoal_withCacheDisabled_doesNotCreateCacheFile(@TempDir final Path dir) throws Exception {
+        Files.writeString(Files.createDirectories(dir.resolve("src/main/java")).resolve("Warns.java"), REASSIGNS_A_PARAMETER);
+        final var mojo = formatMojo(dir);
         mojo.execute();
-        try (final var list = Files.list(srcDir)) {
-            assertThat(list.map(Path::getFileName).map(Path::toString)).noneMatch(name -> name.contains("javafmt.cache"));
-        }
+        final var second = new CapturingLog();
+        mojo.setLog(second);
+        mojo.execute();
+        assertThat(second.messages()).anyMatch(message -> message.contains("is reassigned"));
+        assertThat(dir.resolve("target/javafmt.cache")).doesNotExist();
+    }
+
+    @Test
+    void aCacheEntrySkipsTheSecondRun(@TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(
+                Files.createDirectories(dir.resolve("src/main/java")).resolve("Warns.java"), REASSIGNS_A_PARAMETER);
+        final var cacheFile = dir.resolve("target/javafmt.cache");
+        formatMojo(dir, cacheFile, new CapturingLog()).execute();
+        assertThat(Files.readAllLines(cacheFile, StandardCharsets.UTF_8)).anySatisfy(line -> assertThat(line).endsWith(" " + file.toAbsolutePath()));
+        final var second = new CapturingLog();
+        formatMojo(dir, cacheFile, second).execute();
+        assertThat(second.messages()).containsExactly("javafmt: formatted 0 files, 0 warnings");
+    }
+
+    @Test
+    void formatGoalAlsoRewritesTestSources(@TempDir final Path dir) throws Exception {
+        final var main = Files.writeString(
+                Files.createDirectories(dir.resolve("src/main/java")).resolve("Foo.java"), UNFORMATTED);
+        final var test = Files.writeString(
+                Files.createDirectories(dir.resolve("src/test/java")).resolve("FooTest.java"), UNFORMATTED);
+        formatMojo(dir).execute();
+        assertThat(Files.readString(main, StandardCharsets.UTF_8)).isEqualTo(FORMATTED);
+        assertThat(Files.readString(test, StandardCharsets.UTF_8)).isEqualTo(FORMATTED);
+    }
+
+    @Test
+    void theSummaryLineCountsChangedFiles(@TempDir final Path dir) throws Exception {
+        final var src = Files.createDirectories(dir.resolve("src/main/java"));
+        Files.writeString(src.resolve("Foo.java"), UNFORMATTED);
+        Files.writeString(src.resolve("Done.java"), FORMATTED.replace("Foo", "Done"));
+        final var log = new CapturingLog();
+        final var mojo = formatMojo(dir);
+        mojo.setLog(log);
+        mojo.execute();
+        assertThat(log.messages()).contains("javafmt: formatted 1 files, 0 warnings");
+    }
+
+    @Test
+    void anUnwritableFileFailsWithTheIoCause(@TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(
+                Files.createDirectories(dir.resolve("src/main/java")).resolve("Foo.java"), UNFORMATTED);
+        Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("r--r--r--"));
+        assertThatThrownBy(formatMojo(dir)::execute)
+                .isInstanceOf(MojoExecutionException.class)
+                .hasMessage("javafmt: I/O error: Failed to write " + file.toAbsolutePath())
+                .hasCauseInstanceOf(AccessDeniedException.class);
+        assertThat(Files.readString(file, StandardCharsets.UTF_8)).isEqualTo(UNFORMATTED);
     }
 
     @Test
@@ -113,11 +168,10 @@ class JavafmtMojoTest {
     @Test
     void formatGoalWithRatchetFromOnlyRewritesTheFilesChangedSinceTheRef(@TempDir final Path dir) throws Exception {
         new JavafmtMojo(projectInRepositoryWithAnEditedFile(dir), List.of(), Optional.empty(), Optional.of("main")).execute();
-        final var edited = UNFORMATTED.replace("Foo", "Invoice").replace("bar", "total");
         assertThat(Files.readString(dir.resolve("src/main/java/Invoice.java"), StandardCharsets.UTF_8))
-                .isEqualTo(Javafmt.format(edited));
+                .isEqualTo(Javafmt.format(EDITED_INVOICE));
         assertThat(Files.readString(dir.resolve("src/main/java/Order.java"), StandardCharsets.UTF_8))
-                .isEqualTo(UNFORMATTED.replace("Foo", "Order"));
+                .isEqualTo(ORDER);
     }
 
     @Test
