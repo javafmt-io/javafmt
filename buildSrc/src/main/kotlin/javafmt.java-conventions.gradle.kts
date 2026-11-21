@@ -36,15 +36,13 @@ tasks.named("check") {
     dependsOn(jacocoTestReport)
 }
 
-val coverageReportElements = configurations.create("coverageReportElements") {
-    isCanBeConsumed = true
-    isCanBeResolved = false
+configurations.consumable("coverageReportElements") {
     attributes {
         attribute(Usage.USAGE_ATTRIBUTE, objects.named("jacoco-xml-report"))
     }
 }
 
-artifacts.add(coverageReportElements.name, jacocoXmlReport) {
+artifacts.add("coverageReportElements", jacocoXmlReport) {
     builtBy(jacocoTestReport)
 }
 

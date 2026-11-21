@@ -23,18 +23,19 @@ val libs = the<VersionCatalogsExtension>().named("libs")
 // declared in `:javafmt-spotless`'s build. Gradle resolves them as separate
 // variants; no project cycle results because the resolution graphs do not
 // feed each other.
-val javafmtFormatterRuntime = configurations.create("javafmtFormatterRuntime") {
-    isCanBeResolved = true
-    isCanBeConsumed = false
+val javafmtFormatter = configurations.dependencyScope("javafmtFormatter")
+
+val javafmtFormatterRuntime = configurations.resolvable("javafmtFormatterRuntime") {
+    extendsFrom(javafmtFormatter.get())
     description = "Classpath used to load io.javafmt.spotless.JavafmtFormatterStep reflectively for the project's own Spotless task."
 }
 
 dependencies {
-    javafmtFormatterRuntime(project(":javafmt-spotless"))
+    javafmtFormatter(project(":javafmt-spotless"))
     // `:javafmt-spotless` declares `spotless-lib` as compileOnly, but the
     // JavafmtFormatterStep class signatures reference `com.diffplug.spotless.FormatterStep`
     // — class linking needs it on the runtime classpath of the reflective loader.
-    javafmtFormatterRuntime(libs.findLibrary("spotless-lib").get())
+    javafmtFormatter(libs.findLibrary("spotless-lib").get())
 }
 
 configure<SpotlessExtension> {
@@ -65,7 +66,7 @@ configure<SpotlessExtension> {
             .sourceSets.getByName("main").output.classesDirs.files
         val analysisClasspath = external + ownClasses
         val release = tasks.named<JavaCompile>("compileJava").flatMap { it.options.release }
-        addStep(JavafmtFormatter.step(javafmtFormatterRuntime.resolve(), analysisClasspath) { release.getOrElse(25) })
+        addStep(JavafmtFormatter.step(javafmtFormatterRuntime.get().resolve(), analysisClasspath) { release.getOrElse(25) })
     }
 }
 

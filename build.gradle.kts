@@ -2,9 +2,10 @@ plugins {
     base
 }
 
-val coverageReports = configurations.create("coverageReports") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
+val coverageReportDependencies = configurations.dependencyScope("coverageReportDependencies")
+
+val coverageReports = configurations.resolvable("coverageReports") {
+    extendsFrom(coverageReportDependencies.get())
     attributes {
         attribute(Usage.USAGE_ATTRIBUTE, objects.named("jacoco-xml-report"))
     }
@@ -12,7 +13,7 @@ val coverageReports = configurations.create("coverageReports") {
 
 dependencies {
     listOf("javafmt-cli", "javafmt-core", "javafmt-daemon", "javafmt-maven-plugin", "javafmt-spotless").forEach {
-        coverageReports(project(":$it"))
+        coverageReportDependencies(project(":$it"))
     }
 }
 

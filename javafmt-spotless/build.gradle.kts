@@ -22,10 +22,14 @@ dependencies {
  * classpath as files. Resolving it there would need a repository and a network; injecting it keeps
  * the TestKit build offline.
  */
-val spotlessPluginRuntime = configurations.create("spotlessPluginRuntime")
+val spotlessPlugin = configurations.dependencyScope("spotlessPlugin")
+
+val spotlessPluginRuntime = configurations.resolvable("spotlessPluginRuntime") {
+    extendsFrom(spotlessPlugin.get())
+}
 
 dependencies {
-    spotlessPluginRuntime(libs.spotless.gradle.plugin)
+    spotlessPlugin(libs.spotless.gradle.plugin)
 }
 
 testing {
