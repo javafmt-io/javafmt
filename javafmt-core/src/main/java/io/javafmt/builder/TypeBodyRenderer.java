@@ -68,7 +68,10 @@ final class TypeBodyRenderer {
 
     private Stream<Doc> memberLines(final Optional<Wanting> previous, final Wanting current, final Recursor recursor) {
         final var line = Doc.indentedLine(current.member().doc());
-        return previous.filter(p -> separatedByBlankLine(p, current, recursor)).isPresent() ? Stream.of(Doc.HARD_LINE, line) : Stream.of(line);
+        return previous.stream()
+                        .anyMatch(p -> separatedByBlankLine(p, current, recursor))
+                ? Stream.of(Doc.HARD_LINE, line)
+                : Stream.of(line);
     }
 
     private boolean separatedByBlankLine(final Wanting previous, final Wanting current, final Recursor recursor) {

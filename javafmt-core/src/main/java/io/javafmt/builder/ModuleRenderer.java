@@ -50,7 +50,8 @@ final class ModuleRenderer {
                 .gather(Pairs.<DirectiveTree, Doc>withPrevious((previous, d) -> {
                     final var doc = recursor.attach(d, renderDirective(d));
                     final var indented = Doc.indentedLine(doc);
-                    if (previous.filter(p -> p.getKind() != d.getKind()).isPresent()) {
+                    if (previous.stream()
+                            .anyMatch(p -> p.getKind() != d.getKind())) {
                         return Doc.concat(Doc.HARD_LINE, indented);
                     }
                     return indented;

@@ -71,11 +71,7 @@ final class MethodChainRenderer {
                         new Doc.IfBreak(
                                 new Doc.Choice(brokenAfter(links, headEnd), brokenAfter(links, 0), Doc.Choice.Fit.OPENING_LINE), joined(links)),
                         Doc.cannotRenderFlat(joined(links)));
-        final var chainWidth = threeOrMoreCalls
-                ? Doc.widthBeforeFirstBreak(joined(links))
-                : headEnd == links.size() - 1 || recursor.facts().isLoneLambdaBody(node)
-                        ? -1
-                        : Doc.flatWidthOrBreak(joined(links.subList(0, links.size() - 1)));
+        final var chainWidth = chainWidthOf(node, links, threeOrMoreCalls, headEnd, recursor);
         final var broken = Doc.Choice.unlessPastTheChainColumn(group, group.contents(), chainWidth);
         if (!hugsLastLink(links)) {
             return new ChainDocs(broken, everyLinkStaysOnOneLine(links) ? Optional.of(brokenAfter(links, headEnd)) : Optional.empty());
@@ -83,6 +79,16 @@ final class MethodChainRenderer {
         return new ChainDocs(
                 new Doc.Choice(Doc.Choice.unlessPastTheChainColumn(joined(links), group.contents(), chainWidth), broken, Doc.Choice.Fit.OPENING_LINE),
                 Optional.empty());
+    }
+
+    private int chainWidthOf(final Tree node, final List<Link> links, final boolean threeOrMoreCalls, final int headEnd, final Recursor recursor) {
+        if (threeOrMoreCalls) {
+            return Doc.widthBeforeFirstBreak(joined(links));
+        }
+        if (headEnd == links.size() - 1 || recursor.facts().isLoneLambdaBody(node)) {
+            return -1;
+        }
+        return Doc.flatWidthOrBreak(joined(links.subList(0, links.size() - 1)));
     }
 
     private boolean everyLinkStaysOnOneLine(final List<Link> links) {
@@ -140,7 +146,10 @@ final class MethodChainRenderer {
     }
 
     private Stream<Doc> joinedTo(final Optional<Link> previous, final Link link) {
-        return previous.filter(Link::endsTheLine).isPresent() ? Stream.of(new Doc.Text(" "), link.doc()) : Stream.of(link.doc());
+        return previous.stream()
+                        .anyMatch(Link::endsTheLine)
+                ? Stream.of(new Doc.Text(" "), link.doc())
+                : Stream.of(link.doc());
     }
 
     private List<Link> links(final MethodInvocationTree call, final boolean lastCall, final Recursor recursor) {

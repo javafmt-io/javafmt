@@ -7,7 +7,6 @@ import io.javafmt.doc.Doc;
 import io.javafmt.parser.CommentScanner;
 import lombok.experimental.UtilityClass;
 
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -93,16 +92,15 @@ final class IfRenderer {
         final var condDoc = recursor.scan(node.getCondition());
         final var header = Doc.concat(new Doc.Text("if "), condDoc);
         final var thenStatement = node.getThenStatement();
-        if (node.getElseStatement() == null) {
+        final var elseStatement = node.getElseStatement();
+        if (elseStatement == null) {
             return BlockRenderer.braced(header, thenStatement, recursor);
         }
         final var thenParts = BlockRenderer.openedWith(header, thenStatement, BlockRenderer.blockStatements(thenStatement, recursor), recursor);
         final var elseJoint = elseJointParts(node, recursor);
-        if (node.getElseStatement() instanceof IfTree elseIf) {
-            final var elseIfDoc = Objects.requireNonNull(recursor.scan(elseIf));
-            return Doc.concatOf(Stream.of(thenParts, closeTheThenBranch(node, recursor), elseJoint, Stream.of(elseIfDoc)));
+        if (elseStatement instanceof IfTree elseIf) {
+            return Doc.concatOf(Stream.of(thenParts, closeTheThenBranch(node, recursor), elseJoint, Stream.of(recursor.scan(elseIf))));
         }
-        final var elseStatement = node.getElseStatement();
         return Doc.concatOf(
                 Stream.of(
                         thenParts,
