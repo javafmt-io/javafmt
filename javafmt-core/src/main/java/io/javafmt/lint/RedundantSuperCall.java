@@ -42,7 +42,7 @@ public final class RedundantSuperCall implements ScanningRule {
     }
 
     private static Optional<LintEdit> tryRemove(final MethodTree node, final ParsedUnit unit) {
-        if (!node.getName().contentEquals("<init>")
+        if (!Declarations.isConstructor(node)
             || node.getBody() == null
             || node.getBody().getStatements().isEmpty()) {
             return Optional.empty();

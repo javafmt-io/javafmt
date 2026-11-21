@@ -1,5 +1,7 @@
 package io.javafmt.lint;
 
+import com.sun.source.tree.CaseTree;
+import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.ImportTree;
@@ -24,6 +26,15 @@ final class Declarations {
     boolean isStarImport(final ImportTree imp) {
         return imp.getQualifiedIdentifier() instanceof MemberSelectTree ms
             && ms.getIdentifier().contentEquals("*");
+    }
+
+    boolean isConstructor(final MethodTree method) {
+        return method.getName().contentEquals("<init>");
+    }
+
+    boolean isDefaultCase(final CaseTree caseTree) {
+        return caseTree.getLabels().stream()
+                .anyMatch(DefaultCaseLabelTree.class::isInstance);
     }
 
     boolean isOneArgumentEquals(final MethodTree method) {

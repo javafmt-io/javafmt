@@ -63,7 +63,7 @@ public final class RedundantModifier implements ScanningRule {
                 if (isInterface) {
                     checkInterfaceMethodModifiers(method, unit, edits);
                 } else if (isFinalClass) {
-                    if (method.getReturnType() != null) {
+                    if (!Declarations.isConstructor(method)) {
                         removeModifier(method.getModifiers(), Modifier.FINAL, unit)
                                 .ifPresent(edits::add);
                     }

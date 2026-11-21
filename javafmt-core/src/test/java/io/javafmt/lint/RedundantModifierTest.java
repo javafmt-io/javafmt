@@ -3,6 +3,8 @@ package io.javafmt.lint;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.concurrent.TimeUnit;
 
@@ -123,6 +125,17 @@ class RedundantModifierTest {
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
         assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("final class Fixture {\n\n    public void method() {}\n}\n");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "final class Fixture {\n    final Fixture() {}\n}\n",
+            "final class Fixture {\n    Fixture(int a) {\n        super();\n    }\n}\n",
+            "record Fixture(int a) {\n    public Fixture {}\n}\n",
+            "final record Fixture(int a) {\n    Fixture {\n        if (a < 0) throw new IllegalArgumentException();\n    }\n}\n",
+    })
+    void constructorsAreNotTreatedAsFinalMethods(final String source) {
+        assertThat(LintFixtures.fix(new RedundantModifier(), source)).isEqualTo(source);
     }
 
     @Test

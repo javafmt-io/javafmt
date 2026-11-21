@@ -36,8 +36,6 @@ import javax.lang.model.element.Modifier;
  */
 public final class MemberOrder implements LintRule {
 
-    private static final String CONSTRUCTOR_NAME = "<init>";
-
     @Override
     public LintResult apply(final LintContext context) {
         final var unit = context.unit();
@@ -147,7 +145,7 @@ public final class MemberOrder implements LintRule {
     }
 
     private static boolean isConstructor(final Tree member) {
-        return member instanceof MethodTree m && m.getName().contentEquals(CONSTRUCTOR_NAME);
+        return member instanceof MethodTree m && Declarations.isConstructor(m);
     }
 
     private static boolean isInstanceField(final Tree member) {

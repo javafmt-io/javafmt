@@ -71,7 +71,7 @@ public final class HideUtilityClassConstructor implements WarningRule {
     }
 
     private static boolean isConstructor(final Tree member) {
-        return member instanceof MethodTree method && method.getReturnType() == null;
+        return member instanceof MethodTree method && Declarations.isConstructor(method);
     }
 
     private static boolean hasPrivateConstructor(final ClassTree node) {

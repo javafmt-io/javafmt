@@ -1,6 +1,5 @@
 package io.javafmt.lint;
 
-import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.PatternCaseLabelTree;
 import com.sun.source.tree.SwitchTree;
 import io.javafmt.Diagnostic;
@@ -29,8 +28,7 @@ public final class MissingSwitchDefault implements WarningRule {
 
     private static boolean hasDefault(final SwitchTree node) {
         return node.getCases().stream()
-                .anyMatch(c -> c.getLabels().stream()
-                        .anyMatch(l -> l instanceof DefaultCaseLabelTree));
+                .anyMatch(Declarations::isDefaultCase);
     }
 
     /**

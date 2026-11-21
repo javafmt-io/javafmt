@@ -1,7 +1,6 @@
 package io.javafmt.lint;
 
 import com.sun.source.tree.CaseTree;
-import com.sun.source.tree.DefaultCaseLabelTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
@@ -66,8 +65,7 @@ public final class DefaultComesLast implements ScanningRule {
 
     private static int indexOfDefault(final List<? extends CaseTree> cases) {
         return IntStream.range(0, cases.size())
-                .filter(i -> cases.get(i).getLabels().stream()
-                        .anyMatch(l -> l instanceof DefaultCaseLabelTree))
+                .filter(i -> Declarations.isDefaultCase(cases.get(i)))
                 .findFirst()
                 .orElse(-1);
     }
