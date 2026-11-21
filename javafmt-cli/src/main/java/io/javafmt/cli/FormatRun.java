@@ -34,6 +34,8 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static java.util.function.Predicate.not;
+
 @UtilityClass
 final class FormatRun {
 
@@ -41,9 +43,10 @@ final class FormatRun {
         try {
             final var changed = changedFiles(parsed);
             final var expansion = expandDirectories(parsed, err);
-            final var kept = dropExcludedFiles(expansion.arguments());
+            final var excluded = PathFilter.ofGlobs(parsed.excludes());
             final var exit = runFiles(
-                    kept.withFiles(kept.files.stream()
+                    parsed.withFiles(expansion.files().stream()
+                            .filter(not(excluded::excludes))
                             .filter(changed)
                             .toList()),
                     err);
@@ -56,29 +59,21 @@ final class FormatRun {
     }
 
     private Predicate<Path> changedFiles(final Arguments parsed) {
-        return parsed.ratchetFrom.<Predicate<Path>>map(ref -> {
-            final var ratchets = parsed.files.stream()
-                    .map(FormatRun::gitDirectory)
-                    .distinct()
-                    .map(directory -> GitRatchet.since(ref, directory))
-                    .toList();
-            return file -> ratchets.stream()
-                    .anyMatch(ratchet -> ratchet.includes(file));
-        })
-                .orElse(_ -> true);
+        if (parsed.ratchetFrom().isEmpty()) {
+            return _ -> true;
+        }
+        final var ratchets = parsed.files().stream()
+                .map(FormatRun::gitDirectory)
+                .distinct()
+                .map(directory -> GitRatchet.since(parsed.ratchetFrom().get(), directory))
+                .toList();
+        return file -> ratchets.stream()
+                .anyMatch(ratchet -> ratchet.includes(file));
     }
 
     private Path gitDirectory(final Path path) {
         final var absolute = path.toAbsolutePath();
         return Files.isDirectory(absolute) ? absolute : Objects.requireNonNullElse(absolute.getParent(), absolute);
-    }
-
-    private Arguments dropExcludedFiles(final Arguments parsed) {
-        if (parsed.excludes.isEmpty()) {
-            return parsed;
-        }
-        final var filter = PathFilter.ofGlobs(parsed.excludes);
-        return parsed.withFiles(filter.keep(parsed.files));
     }
 
     /**
@@ -130,21 +125,17 @@ final class FormatRun {
      * fails: a CI gate that checked nothing must not look like a pass.
      */
     private Expansion expandDirectories(final Arguments parsed, final PrintStream err) {
-        if (parsed.files.stream()
-                .noneMatch(Files::isDirectory)) {
-            return new Expansion(parsed, false);
-        }
         final var found = parsed.files.stream()
                 .map(path -> Files.isDirectory(path) ? javaFilesUnder(path, parsed) : new SourceFiles.Discovery(List.of(path), List.of()))
                 .toList();
-        found.stream()
+        final var unreadable = found.stream()
                 .flatMap(discovery -> discovery.unreadable().stream())
-                .forEach(u -> reportUnreadable(u, parsed.diagnostics(), err));
-        final var expanded = found.stream()
+                .toList();
+        unreadable.forEach(entry -> reportUnreadable(entry, parsed.diagnostics(), err));
+        final var files = found.stream()
                 .flatMap(discovery -> discovery.files().stream())
                 .toList();
-        return new Expansion(parsed.withFiles(expanded), found.stream()
-                .anyMatch(d -> !d.unreadable().isEmpty()));
+        return new Expansion(files, !unreadable.isEmpty());
     }
 
     private SourceFiles.Discovery javaFilesUnder(final Path dir, final Arguments parsed) {
@@ -181,7 +172,7 @@ final class FormatRun {
                         .name("javafmt-write-", 0)
                         .daemon(true)
                         .factory())) {
-            return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed.check, cache, parsed.diagnostics()), pool))
+            return files.map(file -> CompletableFuture.supplyAsync(() -> outcomeFor(file, parsed, cache), pool))
                     .toList()
                     .stream()
                     .map(FormatRun::joined)
@@ -224,32 +215,30 @@ final class FormatRun {
         }
     }
 
-    private FileOutcome outcomeFor(final FileResult file, final boolean check, final FormatCache cache, final DiagnosticsFormat format) {
+    private FileOutcome outcomeFor(final FileResult file, final Arguments parsed, final FormatCache cache) {
         return switch (file) {
             case FileResult.UpToDate _ -> new FileOutcome(0, List.of());
             case FileResult.Unreadable(var path, var error) ->
-                new FileOutcome(2, List.of(format.fileMessage(path.toString(), "read failed: " + describe(error))));
-            case FileResult.Formatted(var path, var source, var result) -> finalizeFormatOutcome(path, source, result, check, cache, format);
+                new FileOutcome(2, List.of(parsed.diagnostics().fileMessage(path.toString(), "read failed: " + describe(error))));
+            case FileResult.Formatted formatted -> outcomeOf(formatted, parsed, cache);
         };
     }
 
-    private FileOutcome finalizeFormatOutcome(final Path path,
-                                              final String source,
-                                              final FormatResult result,
-                                              final boolean checkOnly,
-                                              final FormatCache cache,
-                                              final DiagnosticsFormat format) {
+    private FileOutcome outcomeOf(final FileResult.Formatted formatted, final Arguments parsed, final FormatCache cache) {
+        final var path = formatted.path();
+        final var result = formatted.result();
+        final var format = parsed.diagnostics();
         final var reported = result.diagnostics().stream()
                 .map(d -> format.diagnostic(path.toString(), d))
                 .toList();
         if (result.hasErrors()) {
             return new FileOutcome(1, reported);
         }
-        if (result.output().equals(source)) {
-            cache.recordFormatted(path, source);
+        if (!formatted.changed()) {
+            cache.recordFormatted(path, formatted.source());
             return new FileOutcome(0, reported);
         }
-        if (checkOnly) {
+        if (parsed.check()) {
             return new FileOutcome(1, append(reported, format.fileMessage(path.toString(), "would reformat")));
         }
         try {
@@ -285,7 +274,7 @@ final class FormatRun {
     }
 
     /** A directory argument replaced by its contents, and whether anything under it was unreadable. */
-    private record Expansion(Arguments arguments, boolean unreadable) {}
+    private record Expansion(List<Path> files, boolean unreadable) {}
 
     /** One file's exit code and every line the run should print about it, in order. */
     private record FileOutcome(int exitCode, List<String> report) {}

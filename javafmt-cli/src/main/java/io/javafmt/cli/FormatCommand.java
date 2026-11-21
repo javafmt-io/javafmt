@@ -140,7 +140,7 @@ final class FormatCommand implements Callable<Integer> {
                 classpath.filter(_ -> !noAnalyze),
                 ratchetFrom,
                 diagnostics);
-        if (beforeEndOfOptions(paths).contains(STDIN)) {
+        if (beforeEndOfOptions().contains(STDIN)) {
             if (paths.size() > 1) {
                 throw new ParameterException(spec.commandLine(), "'-' reads stdin and cannot be combined with file arguments");
             }
@@ -170,11 +170,11 @@ final class FormatCommand implements Callable<Integer> {
         return 0;
     }
 
-    private List<Path> beforeEndOfOptions(final List<Path> positionals) {
+    private List<Path> beforeEndOfOptions() {
         final var expanded = spec.commandLine().getParseResult().expandedArgs();
         final var delimiter = expanded.indexOf(spec.parser().endOfOptionsDelimiter());
         final var afterDelimiter = delimiter < 0 ? 0 : expanded.size() - delimiter - 1;
-        return positionals.subList(0, positionals.size() - afterDelimiter);
+        return paths.subList(0, paths.size() - afterDelimiter);
     }
 
     static final class Version implements IVersionProvider {
