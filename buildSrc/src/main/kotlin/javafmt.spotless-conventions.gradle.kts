@@ -54,21 +54,16 @@ configure<SpotlessExtension> {
         // `JavafmtFormatterStep.apply(String, File, String, int)` reflectively,
         // which enables attribution-dependent lint rules (RedundantTypeArguments
         // witness-drop, LocalVarUseVar widening path) and honours the `.javafmt`
-        // project file for each file. If the classpath is unavailable the step
-        // formats without those rules.
+        // project file for each file.
         //
         // We combine compileClasspath (external deps) with the project's own
         // compiled classes so javac can resolve internal types during attribution.
         // The classes directory is empty at configuration time but populated by
         // compileJava before spotless tasks run, so paths are correct at execution.
-        val analysisClasspath = try {
-            val external = configurations.named("compileClasspath").get().resolve()
-            val ownClasses = extensions.getByType<JavaPluginExtension>()
-                .sourceSets.getByName("main").output.classesDirs.files
-            external + ownClasses
-        } catch (_: Exception) {
-            emptySet()
-        }
+        val external = configurations.named("compileClasspath").get().resolve()
+        val ownClasses = extensions.getByType<JavaPluginExtension>()
+            .sourceSets.getByName("main").output.classesDirs.files
+        val analysisClasspath = external + ownClasses
         val release = tasks.named<JavaCompile>("compileJava").flatMap { it.options.release }
         addStep(JavafmtFormatter.step(javafmtFormatterRuntime.resolve(), analysisClasspath) { release.getOrElse(25) })
     }
