@@ -6,6 +6,7 @@ import io.javafmt.ProjectFile;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-record ProjectFiles(ProjectFile governing, List<ProjectFile> below, List<String> repositoryRoots) implements Serializable {
+record ProjectFiles(Keyed governing, List<Keyed> below, List<String> repositoryRoots) implements Serializable {
 
     ProjectFiles {
         Objects.requireNonNull(governing, "governing");
@@ -32,15 +33,43 @@ record ProjectFiles(ProjectFile governing, List<ProjectFile> below, List<String>
             throw new UncheckedIOException("Failed to walk " + root, e);
         }
         return new ProjectFiles(
-                ProjectFile.forDirectory(root),
+                governing(root),
                 finder.projectFiles.stream()
                         .sorted()
-                        .map(ProjectFile::read)
+                        .map(file -> keyed(root, file))
                         .toList(),
                 finder.repositoryRoots.stream()
                         .sorted()
-                        .map(Path::toString)
+                        .map(repository -> root.relativize(repository).toString())
                         .toList());
+    }
+
+    private static Keyed governing(final Path root) {
+        return switch (ProjectFile.forDirectory(root)) {
+            case ProjectFile.Settings(var location, var _) -> keyed(root, Path.of(location));
+            case ProjectFile.Invalid(var location, var _) -> keyed(root, Path.of(location));
+            case ProjectFile.None() -> Keyed.NONE;
+        };
+    }
+
+    private static Keyed keyed(final Path root, final Path file) {
+        String content;
+        try {
+            content = Files.readString(file, StandardCharsets.UTF_8);
+        } catch (final IOException e) {
+            content = "unreadable: " + e.getClass().getName();
+        }
+        return new Keyed(root.relativize(file).toString(), content);
+    }
+
+    record Keyed(String path, String content) implements Serializable {
+
+        static final Keyed NONE = new Keyed("", "");
+
+        Keyed {
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(content, "content");
+        }
     }
 
     private static final class Finder extends SimpleFileVisitor<Path> {
@@ -61,6 +90,9 @@ record ProjectFiles(ProjectFile governing, List<ProjectFile> below, List<String>
                 return FileVisitResult.CONTINUE;
             }
             if (isGit(directory)) {
+                if (root.equals(directory.getParent())) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
                 repositoryRoots.add(Objects.requireNonNull(directory.getParent(), "parent"));
                 return FileVisitResult.SKIP_SUBTREE;
             }
@@ -75,7 +107,7 @@ record ProjectFiles(ProjectFile governing, List<ProjectFile> below, List<String>
             }
             if (isGit(file)) {
                 repositoryRoots.add(directory);
-            } else if (ProjectFile.NAME.equals(String.valueOf(file.getFileName())) && attributes.isRegularFile()) {
+            } else if (ProjectFile.NAME.equals(String.valueOf(file.getFileName())) && Files.isRegularFile(file)) {
                 projectFiles.add(file);
             }
             return FileVisitResult.CONTINUE;

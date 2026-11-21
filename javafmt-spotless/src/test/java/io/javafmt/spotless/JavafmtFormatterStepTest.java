@@ -180,6 +180,56 @@ class JavafmtFormatterStepTest {
     }
 
     @Test
+    void theKeyIsTheSameInTwoCheckouts(@TempDir final Path first, @TempDir final Path second) throws Exception {
+        for (final var checkout : List.of(first, second)) {
+            Files.createDirectories(checkout.resolve(".git"));
+            final var module = Files.createDirectories(checkout.resolve("module/src"));
+            Files.writeString(module.resolve(".javafmt"), "analyze.skip=RedundantTypeArguments\n");
+            Files.writeString(checkout.resolve("module/.git"), "gitdir: ../.git/modules/module\n");
+        }
+        assertThat(JavafmtFormatterStep.create(first.toFile())).isEqualTo(JavafmtFormatterStep.create(second.toFile()));
+    }
+
+    @Test
+    void aSymlinkedProjectFileIsTracked(@TempDir final Path dir) throws Exception {
+        Files.createDirectories(dir.resolve(".git"));
+        final var target = dir.resolve("shared-settings");
+        Files.writeString(target, "analyze.skip=RedundantTypeArguments\n");
+        final var sources = Files.createDirectories(dir.resolve("src"));
+        Files.createSymbolicLink(sources.resolve(".javafmt"), target);
+        final var before = JavafmtFormatterStep.create(dir.toFile());
+        assertThat(before).isEqualTo(JavafmtFormatterStep.create(dir.toFile()));
+        Files.writeString(target, "analyze.skip=LocalVarUseVar\n");
+        assertThat(JavafmtFormatterStep.create(dir.toFile())).isNotEqualTo(before);
+    }
+
+    @Test
+    void aProjectFileAboveTheProjectDirectoryKeysTheStep(@TempDir final Path dir) throws Exception {
+        Files.createDirectories(dir.resolve(".git"));
+        Files.writeString(dir.resolve(".javafmt"), "analyze.skip=RedundantTypeArguments\n");
+        final var module = Files.createDirectories(dir.resolve("module"));
+        final var before = JavafmtFormatterStep.create(module.toFile());
+        assertThat(before).isEqualTo(JavafmtFormatterStep.create(module.toFile()));
+        Files.writeString(dir.resolve(".javafmt"), "analyze.skip=LocalVarUseVar\n");
+        assertThat(JavafmtFormatterStep.create(module.toFile())).isNotEqualTo(before);
+    }
+
+    @Test
+    void removingANestedProjectFileRekeysTheStep(@TempDir final Path dir) throws Exception {
+        Files.createDirectories(dir.resolve(".git"));
+        final var sources = Files.createDirectories(dir.resolve("src"));
+        final var before = JavafmtFormatterStep.create(dir.toFile());
+        assertThat(before).isEqualTo(JavafmtFormatterStep.create(dir.toFile()));
+        Files.writeString(sources.resolve(".javafmt"), "analyze.skip=RedundantTypeArguments\n");
+        final var added = JavafmtFormatterStep.create(dir.toFile());
+        assertThat(added).isNotEqualTo(before);
+        Files.delete(sources.resolve(".javafmt"));
+        assertThat(JavafmtFormatterStep.create(dir.toFile()))
+                .isEqualTo(before)
+                .isNotEqualTo(added);
+    }
+
+    @Test
     void theProjectFileForTheFormattedFileSkipsTheRulesItNames(@TempDir final Path dir) throws Exception {
         Files.createDirectories(dir.resolve(".git"));
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=RedundantTypeArguments\n");
