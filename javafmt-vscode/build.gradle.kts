@@ -4,6 +4,47 @@ plugins {
     id("javafmt.npm-conventions")
 }
 
+val npmBuild = tasks.register<NpmTask>("npmBuild") {
+    args.set(listOf("run", "compile"))
+    inputs.files(fileTree(layout.projectDirectory.dir("src")) {
+        include("**/*.ts")
+        exclude("test/unit/**", "__mocks__/**")
+    })
+    inputs.file(layout.projectDirectory.file("tsconfig.json"))
+    outputs.dir(layout.projectDirectory.dir("out"))
+}
+
+val npmTest = tasks.register<NpmTask>("npmTest") {
+    args.set(listOf("test"))
+    inputs.files(fileTree(layout.projectDirectory.dir("src")) { include("**/*.ts") })
+    inputs.file(layout.projectDirectory.file("jest.config.js"))
+    inputs.file(layout.projectDirectory.file("tsconfig.json"))
+    inputs.file(layout.projectDirectory.file("tsconfig.test.json"))
+    outputs.file(layout.buildDirectory.file("test-results.json"))
+    outputs.dir(layout.buildDirectory.dir("coverage"))
+}
+
+val npmTestIntegration = tasks.register<NpmTask>("npmTestIntegration") {
+    group = "verification"
+    description = "Runs VS Code integration tests inside the Extension Development Host, downloading VS Code on first use."
+    args.set(listOf("run", "test:integration"))
+    dependsOn(npmBuild)
+    // Integration tests have no stable file output, so Gradle always considers them out-of-date
+    // when they run — that's correct for tests with external dependencies (a live VS Code instance).
+}
+
+// Invokes vsce via the "package" script defined in package.json.
+val packageVsix = tasks.register<NpmTask>("packageVsix") {
+    args.set(listOf("run", "package"))
+    dependsOn(npmBuild)
+    inputs.file(layout.projectDirectory.file(".vscodeignore"))
+    inputs.dir(layout.projectDirectory.dir("out"))
+    outputs.file(layout.buildDirectory.file("javafmt-vscode.vsix"))
+}
+
+tasks.named("check") { dependsOn(npmTest, npmTestIntegration) }
+tasks.named("build") { dependsOn(packageVsix) }
+
 val nativeExecutable = configurations.dependencyScope("nativeExecutable")
 
 val nativeExecutableFiles = configurations.resolvable("nativeExecutableFiles") {
@@ -40,18 +81,16 @@ val syncDaemonFixtures = tasks.register<Sync>("syncDaemonFixtures") {
 
 val generateProtocol = tasks.register<NpmTask>("generateProtocol") {
     args.set(listOf("run", "generate"))
-    dependsOn(tasks.named("npmInstall"))
     inputs.files(syncDaemonProto).withPropertyName("proto")
     inputs.file(layout.projectDirectory.file("buf.gen.yaml"))
-    inputs.file(layout.projectDirectory.file("package-lock.json"))
     outputs.dir(layout.projectDirectory.dir("src/gen"))
 }
 
-tasks.named("npmBuild") {
+npmBuild.configure {
     dependsOn(generateProtocol)
 }
 
-tasks.named("npmTest") {
+npmTest.configure {
     dependsOn(generateProtocol)
     inputs.files(syncDaemonFixtures).withPropertyName("fixtures")
 }
@@ -126,7 +165,6 @@ val vsixFiles = providers.gradleProperty("javafmt.vsixDirectory")
 mapOf("publishMarketplace" to "publish:marketplace", "publishOpenVsx" to "publish:openvsx").forEach { (taskName, script) ->
     tasks.register<NpmTask>(taskName) {
         group = "publishing"
-        dependsOn(tasks.named("npmInstall"))
         args.set(vsixFiles.map { files -> listOf("run", script, "--") + files })
     }
 }

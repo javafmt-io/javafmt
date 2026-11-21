@@ -10,50 +10,7 @@ node {
     download.set(false)
 }
 
-val npmBuild = tasks.register<NpmTask>("npmBuild") {
-    args.set(listOf("run", "compile"))
+tasks.withType<NpmTask>().matching { it.name != "npmInstall" }.configureEach {
     dependsOn(tasks.named("npmInstall"))
-    inputs.files(fileTree(layout.projectDirectory.dir("src")) {
-        include("**/*.ts")
-        exclude("test/unit/**", "__mocks__/**")
-    })
-    inputs.file(layout.projectDirectory.file("tsconfig.json"))
-    inputs.file(layout.projectDirectory.file("package.json"))
-    inputs.file(layout.projectDirectory.file("package-lock.json"))
-    outputs.dir(layout.projectDirectory.dir("out"))
+    inputs.files("package.json", "package-lock.json")
 }
-
-val npmTest = tasks.register<NpmTask>("npmTest") {
-    args.set(listOf("test"))
-    dependsOn(tasks.named("npmInstall"))
-    inputs.files(fileTree(layout.projectDirectory.dir("src")) { include("**/*.ts") })
-    inputs.file(layout.projectDirectory.file("jest.config.js"))
-    inputs.file(layout.projectDirectory.file("tsconfig.json"))
-    inputs.file(layout.projectDirectory.file("tsconfig.test.json"))
-    inputs.file(layout.projectDirectory.file("package.json"))
-    inputs.file(layout.projectDirectory.file("package-lock.json"))
-    outputs.file(layout.buildDirectory.file("test-results.json"))
-    outputs.dir(layout.buildDirectory.dir("coverage"))
-}
-
-val npmTestIntegration = tasks.register<NpmTask>("npmTestIntegration") {
-    group = "verification"
-    description = "Runs VS Code integration tests inside the Extension Development Host, downloading VS Code on first use."
-    args.set(listOf("run", "test:integration"))
-    dependsOn(npmBuild, tasks.named("npmInstall"))
-    // Integration tests have no stable file output, so Gradle always considers them out-of-date
-    // when they run — that's correct for tests with external dependencies (a live VS Code instance).
-}
-
-// Invokes vsce via the "package" script defined in package.json.
-val packageVsix = tasks.register<NpmTask>("packageVsix") {
-    args.set(listOf("run", "package"))
-    dependsOn(npmBuild)
-    inputs.file(layout.projectDirectory.file("package.json"))
-    inputs.file(layout.projectDirectory.file(".vscodeignore"))
-    inputs.dir(layout.projectDirectory.dir("out"))
-    outputs.file(layout.buildDirectory.file("javafmt-vscode.vsix"))
-}
-
-tasks.named("check") { dependsOn(npmTest, npmTestIntegration) }
-tasks.named("build") { dependsOn(packageVsix) }
