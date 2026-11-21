@@ -18,7 +18,6 @@ import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -57,11 +56,12 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
 
     @Override
     public LintResult apply(final LintContext context) {
-        final var edits = new ArrayList<LintEdit>();
-        final var witnessCalls = new ArrayList<WitnessCall>();
-        scan(context, edits, witnessCalls);
-        context.attributionFor(RedundantTypeArguments.class).ifPresent(a -> dropRedundantWitnesses(context, a, witnessCalls, edits));
-        return LintResult.ofEdits(edits);
+        final var found = scan(context);
+        final var drops = context.attributionFor(RedundantTypeArguments.class)
+                .map(a -> dropRedundantWitnesses(context, a, found.witnessCalls()))
+                .orElseGet(List::of);
+        return LintResult.ofEdits(
+                Stream.concat(found.diamonds().stream(), drops.stream()).toList());
     }
 
     @Override
@@ -69,29 +69,39 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
         if (context.attributionFor(RedundantTypeArguments.class).isEmpty()) {
             return Optional.empty();
         }
-        final var witnessCalls = new ArrayList<WitnessCall>();
-        scan(context, new ArrayList<>(), witnessCalls);
+        final var witnessCalls = scan(context).witnessCalls();
         return witnessCalls.isEmpty()
                 ? Optional.empty()
                 : Optional.of(stripAllWitnesses(context.unit().source(), sortedByWitness(witnessCalls)));
     }
 
-    private static void scan(final LintContext context, final List<LintEdit> edits, final List<WitnessCall> witnessCalls) {
+    private static Found scan(final LintContext context) {
         final var unit = context.unit();
-        new ChainPathScanner<Void, Void>() {
+        final var hits = LintScan.<Hit>collect(unit, sink -> new ChainPathScanner<Void, Void>() {
             @Override
             public Void visitNewClass(final NewClassTree node, final Void p) {
-                tryDiamondify(node, getCurrentPath(), context).ifPresent(edits::add);
+                tryDiamondify(node, getCurrentPath(), context)
+                        .map(Hit.Diamond::new)
+                        .ifPresent(sink::add);
                 return super.visitNewClass(node, null);
             }
 
             @Override
             protected void visitInvocation(final MethodInvocationTree node, final Void p) {
                 if (!isInitializerOfALocalBecomingVar(node, getCurrentPath(), context)) {
-                    witnessOf(node, getCurrentPath(), unit).ifPresent(witnessCalls::add);
+                    witnessOf(node, getCurrentPath(), unit)
+                            .map(Hit.Witness::new)
+                            .ifPresent(sink::add);
                 }
             }
-        }.scan(new TreePath(unit.tree()), null);
+        });
+        return new Found(
+                hits.stream()
+                        .flatMap(h -> h instanceof Hit.Diamond d ? Stream.of(d.edit()) : Stream.empty())
+                        .toList(),
+                hits.stream()
+                        .flatMap(h -> h instanceof Hit.Witness w ? Stream.of(w.call()) : Stream.empty())
+                        .toList());
     }
 
     private static List<WitnessCall> sortedByWitness(final List<WitnessCall> candidates) {
@@ -257,12 +267,11 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
      * {@code Types.isSameType} (different javac sessions), so we compare
      * {@code TypeMirror.toString()} representations.
      */
-    private static void dropRedundantWitnesses(final LintContext context,
-                                               final Attribution attribution,
-                                               final List<WitnessCall> candidates,
-                                               final List<LintEdit> edits) {
+    private static List<LintEdit> dropRedundantWitnesses(final LintContext context,
+                                                         final Attribution attribution,
+                                                         final List<WitnessCall> candidates) {
         if (candidates.isEmpty()) {
-            return;
+            return List.of();
         }
         final var unit = context.unit();
         final var sorted = sortedByWitness(candidates);
@@ -277,13 +286,14 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
             if (attribution.session().hasEnded()) {
                 throw e;
             }
-            return;
+            return List.of();
         }
         final var callsByNameStart = callsByMethodNameStart(reattributed.unit());
         final var newErrorOffsets = newErrorOffsets(attribution.errorsIn(unit.tree()), reattributed, sorted);
-        IntStream.range(0, sorted.size())
-                .forEach(i -> originalTypes.get(i)
-                        .ifPresent(types -> tryEmitDrop(sorted, i, types, reattributed, callsByNameStart, newErrorOffsets, edits)));
+        return IntStream.range(0, sorted.size())
+                .mapToObj(i -> originalTypes.get(i).flatMap(types -> tryEmitDrop(sorted, i, types, reattributed, callsByNameStart, newErrorOffsets)))
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     private static Optional<String> inferredTypes(final Attribution attribution, final TreePath call) {
@@ -310,31 +320,23 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
     }
 
     private static String stripAllWitnesses(final String src, final List<WitnessCall> sorted) {
-        final var segmentEdges = Stream.concat(
-                Stream.of(0),
-                sorted.stream()
-                        .flatMap(c -> Stream.of(c.witnessStart(), c.witnessEnd())))
-                .toList();
-        return IntStream.range(0, segmentEdges.size() / 2 + 1)
-                .mapToObj(i -> src.substring(segmentEdges.get(2 * i), 2 * i + 1 < segmentEdges.size() ? segmentEdges.get(2 * i + 1) : src.length()))
-                .collect(Collectors.joining());
+        return LintEngine.applyEdits(src, sorted.stream()
+                .map(WitnessCall::deletion)
+                .toList());
     }
 
-    private static void tryEmitDrop(final List<WitnessCall> sorted,
-                                    final int index,
-                                    final String originalTypes,
-                                    final AttributedUnit reattributed,
-                                    final Map<Integer, TreePath> callsByNameStart,
-                                    final List<Long> newErrorOffsets,
-                                    final List<LintEdit> edits) {
+    private static Optional<LintEdit> tryEmitDrop(final List<WitnessCall> sorted,
+                                                  final int index,
+                                                  final String originalTypes,
+                                                  final AttributedUnit reattributed,
+                                                  final Map<Integer, TreePath> callsByNameStart,
+                                                  final List<Long> newErrorOffsets) {
         final var candidate = sorted.get(index);
         final var translatedNameStart = candidate.methodNameStart() - strippedLengthBefore(sorted, candidate.methodNameStart());
-        final var newPath = callsByNameStart.get(translatedNameStart);
-        if (newPath != null
-            && !hasAnErrorWithin(newPath.getLeaf(), reattributed.unit(), newErrorOffsets)
-            && inferredTypes(reattributed.attribution(), newPath).equals(Optional.of(originalTypes))) {
-            edits.add(new LintEdit(candidate.witnessStart(), candidate.witnessEnd(), ""));
-        }
+        return Optional.ofNullable(callsByNameStart.get(translatedNameStart))
+                .filter(newPath -> !hasAnErrorWithin(newPath.getLeaf(), reattributed.unit(), newErrorOffsets))
+                .filter(newPath -> inferredTypes(reattributed.attribution(), newPath).equals(Optional.of(originalTypes)))
+                .map(_ -> candidate.deletion());
     }
 
     private static boolean hasAnErrorWithin(final Tree call, final ParsedUnit unit, final List<Long> errorOffsets) {
@@ -377,5 +379,19 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
      * {@code Stream.<T>of(x).count()} would be matched by the enclosing {@code count()} and
      * verified against the wrong node's type.
      */
-    private record WitnessCall(TreePath path, int methodNameStart, int witnessStart, int witnessEnd) {}
+    private record WitnessCall(TreePath path, int methodNameStart, int witnessStart, int witnessEnd) {
+
+        LintEdit deletion() {
+            return new LintEdit(witnessStart, witnessEnd, "");
+        }
+    }
+
+    private record Found(List<LintEdit> diamonds, List<WitnessCall> witnessCalls) {}
+
+    private sealed interface Hit {
+
+        record Diamond(LintEdit edit) implements Hit {}
+
+        record Witness(WitnessCall call) implements Hit {}
+    }
 }

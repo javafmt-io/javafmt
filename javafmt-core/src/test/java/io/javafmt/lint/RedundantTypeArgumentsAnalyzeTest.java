@@ -32,6 +32,45 @@ class RedundantTypeArgumentsAnalyzeTest {
     }
 
     @Test
+    void rewriteToVerifyStripsEveryWitnessOfAStatementInOnePass() {
+        final var source = """
+                import java.util.stream.Stream;
+                class Fixture {
+
+                    static <T> T bar() {
+                        return null;
+                    }
+
+                    Stream<String> test() {
+                        return Stream.<String>of(Fixture.<String>bar());
+                    }
+                }
+                """;
+        final var attributed = JavaParser.attributing("", session -> session.attribute(source));
+        final var verified = new RedundantTypeArguments().rewriteToVerify(LintContext.attributed(attributed));
+        assertThat(verified).contains(source.replace("Stream.<String>of(Fixture.<String>bar())", "Stream.of(Fixture.bar())"));
+    }
+
+    @Test
+    void witnessesThatOnlyHoldTogetherAreBothKeptWhenStrippingTogetherChangesTheOverload() {
+        final var source = """
+                import java.util.stream.Stream;
+                class Fixture {
+
+                    static <T> T bar() {
+                        return null;
+                    }
+
+                    Stream<String> test() {
+                        return Stream.<String>of(Fixture.<String>bar());
+                    }
+                }
+                """;
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
+        assertThat(formatted).contains("Stream.<String>of(Fixture.<String>bar())");
+    }
+
+    @Test
     void streamOfRedundantWitnessOverConcreteArgumentsIsDropped() {
         final var source = """
                 import java.util.stream.Stream;
