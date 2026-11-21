@@ -139,9 +139,7 @@ jmh {
         listOf("api", "code", "comp", "file", "main", "parser", "tree", "util")
             .map { "--add-exports=jdk.compiler/com.sun.tools.javac.$it=ALL-UNNAMED" },
     )
-    if (project.hasProperty("jmhInclude")) {
-        includes.add(project.property("jmhInclude") as String)
-    }
+    providers.gradleProperty("jmhInclude").orNull?.let { includes.add(it) }
     if (providers.gradleProperty("jmhProof").isPresent) {
         fork.set(3)
         warmupIterations.set(5)
@@ -158,12 +156,17 @@ jmh {
 //   gradle :javafmt-core:jmh -PjmhProfile=hotpath  per-line execution counts as JSON (no install)
 //   gradle :javafmt-core:jmh -PjmhProfile=async    flamegraphs (brew install async-profiler)
 //
+// -PasyncProfilerLib=<path to libasyncProfiler.dylib or .so> overrides the Apple Silicon Homebrew
+// location that async uses by default.
+//
 // Scope any run with -PjmhInclude=JavafmtFormatBenchmark.*
 val jmhProfile = providers.gradleProperty("jmhProfile").orNull
 if (jmhProfile != null) {
     val hotpathOutput = layout.buildDirectory.file("reports/jmh/execution-report.json").get().asFile.absolutePath
     val agentJar = configurations.named("jvmHotpathAgent").map { it.files.first { f -> f.name.startsWith("jvm-hotpath-agent") }.absolutePath }
     val sourceDir = layout.projectDirectory.dir("src/main/java").asFile.absolutePath
+    val asyncProfilerLib = providers.gradleProperty("asyncProfilerLib")
+        .getOrElse("/opt/homebrew/opt/async-profiler/lib/libasyncProfiler.dylib")
     jmh {
         // Profiling runs trade statistical confidence for turnaround; full fidelity is the
         // unprofiled run's job.
@@ -176,11 +179,9 @@ if (jmhProfile != null) {
             warmup.set("${it}s")
         }
         when (jmhProfile) {
-            "gc" -> profilers.add("gc")
-            "stack" -> profilers.add("stack")
-            "jfr" -> profilers.add("jfr")
+            "gc", "stack", "jfr" -> profilers.add(jmhProfile)
             "async" -> profilers.add(
-                "async:libPath=/opt/homebrew/opt/async-profiler/lib/libasyncProfiler.dylib;output=flamegraph,collapsed;" +
+                "async:libPath=$asyncProfilerLib;output=flamegraph,collapsed;" +
                     "dir=${layout.buildDirectory.dir("jmh-async").get().asFile.absolutePath}",
             )
             // append/flushInterval are required because JMH runs each benchmark in its own fork:
