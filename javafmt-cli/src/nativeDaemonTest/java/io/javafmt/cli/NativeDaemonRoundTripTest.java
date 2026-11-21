@@ -2,6 +2,7 @@ package io.javafmt.cli;
 
 import io.javafmt.daemon.DaemonFixtures;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,15 @@ class NativeDaemonRoundTripTest {
     void servesTheJsonProtocol() throws IOException, InterruptedException {
         final var out = serve(DaemonFixtures.text(DaemonFixtures.REQUESTS_JSON).getBytes(StandardCharsets.UTF_8), "--daemon", "--json");
         assertThat(new String(out, StandardCharsets.UTF_8).lines().toList()).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_JSON);
+    }
+
+    @Test
+    void expandsAStarImportWhenGivenAClasspath(@TempDir final Path dir) throws IOException, InterruptedException {
+        final var file = Files.writeString(dir.resolve("Order.java"), "import java.util.*;\n\nclass Order {\n\n    List<String> lines;\n}\n");
+        serve(new byte[0], "--classpath", "", file.toString());
+        assertThat(Files.readString(file))
+                .contains("import java.util.List;")
+                .doesNotContain("java.util.*");
     }
 
     private static byte[] serve(final byte[] requests, final String... arguments) throws IOException, InterruptedException {

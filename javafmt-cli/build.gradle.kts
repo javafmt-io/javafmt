@@ -121,17 +121,26 @@ val tracingAgentCapture = tasks.register<JavaExec>("tracingAgentCapture") {
     val logFile = layout.buildDirectory.file("tracing-agent/capture.log")
     outputs.file(logFile)
 
+    val fixtureTree = fileTree(fixturesRoot) {
+        include("**/*.java")
+    }
+    val captureLogger = logger
+    val openStreams = mutableListOf<PrintStream>()
+
     doFirst {
-        val fixtureFiles = fileTree(fixturesRoot) {
-            include("**/*.java")
-        }.files.map { it.absolutePath }.sorted()
-        args("--check")
+        val fixtureFiles = fixtureTree.files.map { it.absolutePath }.sorted()
+        args("--check", "--classpath", "")
         args(fixtureFiles)
-        logger.lifecycle("tracingAgentCapture: exercising ${fixtureFiles.size} fixture files")
+        captureLogger.lifecycle("tracingAgentCapture: exercising ${fixtureFiles.size} fixture files")
         val out = logFile.get().asFile
         out.parentFile.mkdirs()
         val stream = PrintStream(out.outputStream(), true, Charsets.UTF_8)
+        openStreams.add(stream)
         standardOutput = stream
         errorOutput = stream
+    }
+
+    doLast {
+        openStreams.forEach { it.close() }
     }
 }
