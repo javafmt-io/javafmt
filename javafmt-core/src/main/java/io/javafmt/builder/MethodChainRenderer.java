@@ -70,7 +70,7 @@ final class MethodChainRenderer {
                 : new Doc.Group(
                         new Doc.IfBreak(
                                 new Doc.Choice(brokenAfter(links, headEnd), brokenAfter(links, 0), Doc.Choice.Fit.OPENING_LINE), joined(links)),
-                        Doc.flatWidthOrBreak(joined(links)) < 0);
+                        Doc.cannotRenderFlat(joined(links)));
         final var chainWidth = threeOrMoreCalls
                 ? Doc.widthBeforeFirstBreak(joined(links))
                 : headEnd == links.size() - 1 || recursor.facts().isLoneLambdaBody(node)
@@ -87,7 +87,7 @@ final class MethodChainRenderer {
 
     private boolean everyLinkStaysOnOneLine(final List<Link> links) {
         return links.stream()
-                .allMatch(link -> !link.endsTheLine() && Doc.flatWidthOrBreak(link.doc()) >= 0);
+                .allMatch(link -> !link.endsTheLine() && Doc.canRenderFlat(link.doc()));
     }
 
     private OptionalInt choppedAfter(final List<Link> links) {
@@ -104,11 +104,11 @@ final class MethodChainRenderer {
     private boolean hugsLastLink(final List<Link> links) {
         return links.getLast().hugsLastArgument()
             && links.subList(0, links.size() - 1).stream()
-                    .noneMatch(link -> link.endsTheLine() || Doc.flatWidthOrBreak(link.doc()) < 0);
+                    .noneMatch(link -> link.endsTheLine() || Doc.cannotRenderFlat(link.doc()));
     }
 
     Doc.Group chainGroup(final Doc contents) {
-        return new Doc.Group(contents, Doc.flatWidthOrBreak(contents) < 0);
+        return new Doc.Group(contents, Doc.cannotRenderFlat(contents));
     }
 
     private Doc brokenAfter(final List<Link> links, final int headEnd) {
@@ -118,7 +118,7 @@ final class MethodChainRenderer {
     }
 
     private Doc aboveTheCalls(final Doc head) {
-        return Doc.flatWidthOrBreak(head) < 0 ? head : Doc.continuationIndent(head);
+        return Doc.cannotRenderFlat(head) ? head : Doc.continuationIndent(head);
     }
 
     private Doc tail(final List<Link> links, final int from, final Function<Link, Doc> separator) {

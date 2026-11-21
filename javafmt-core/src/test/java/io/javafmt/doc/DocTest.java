@@ -356,6 +356,29 @@ class DocTest {
             final var doc = new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Group(new Doc.Indent(Doc.HARD_LINE))));
             assertThat(Doc.flatWidthOrBreak(doc)).isEqualTo(-1);
         }
+
+        static Stream<Doc> flatAndBrokenDocs() {
+            return Stream.of(
+                    new Doc.Text("abc"),
+                    Doc.LINE,
+                    new Doc.Group(new Doc.Text("ab")),
+                    Doc.HARD_LINE,
+                    new Doc.Verbatim("a\nb", 0),
+                    new Doc.BlockComment(List.of("/* a", "   b */"), 0),
+                    new Doc.Concat(List.of(new Doc.Text("a"), new Doc.Group(new Doc.Indent(Doc.HARD_LINE)))));
+        }
+
+        @ParameterizedTest
+        @MethodSource("flatAndBrokenDocs")
+        void cannotRenderFlatMeansAForcedBreak(final Doc doc) {
+            assertThat(Doc.cannotRenderFlat(doc)).isEqualTo(Doc.flatWidthOrBreak(doc) < 0);
+        }
+
+        @ParameterizedTest
+        @MethodSource("flatAndBrokenDocs")
+        void canRenderFlatIsTheOppositeOfCannotRenderFlat(final Doc doc) {
+            assertThat(Doc.canRenderFlat(doc)).isEqualTo(Doc.flatWidthOrBreak(doc) >= 0);
+        }
     }
 
     @Nested

@@ -78,7 +78,7 @@ final class WrappableList {
     Doc alignedOf(final String open, final List<Doc> interior, final String close) {
         final var aligned = new Doc.Align(new Doc.Concat(interior));
         final var indented = Doc.continuationIndent(new Doc.Concat(Stream.concat(Stream.of(Doc.SOFT_LINE), interior.stream())));
-        final var layout = Doc.flatWidthOrBreak(interior.getFirst()) < 0 ? indented : new Doc.Choice(aligned, indented);
+        final var layout = Doc.cannotRenderFlat(interior.getFirst()) ? indented : new Doc.Choice(aligned, indented);
         return Doc.concat(new Doc.Text(open), layout, new Doc.Text(close));
     }
 

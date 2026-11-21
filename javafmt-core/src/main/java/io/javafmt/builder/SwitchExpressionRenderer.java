@@ -62,7 +62,7 @@ final class SwitchExpressionRenderer {
         if (!afterArrow.isEmpty()) {
             return afterTheArrowComments(prefixDoc, afterArrow, bodyDoc);
         }
-        if (mustHugArrow(bodyDoc)) {
+        if (Doc.cannotRenderFlat(bodyDoc)) {
             return Doc.concat(prefixDoc, new Doc.Text(" -> "), bodyDoc);
         }
         return new Doc.Group(
@@ -78,15 +78,6 @@ final class SwitchExpressionRenderer {
             return Doc.concat(arrowLine, new Doc.Indent(Doc.concat(Doc.HARD_LINE, bodyDoc)));
         }
         return Doc.concat(arrowLine, new Doc.Text(" "), bodyDoc);
-    }
-
-    /**
-     * Whether {@code bodyDoc} cannot render flat — a lambda or anonymous class body with its own
-     * block. Such a body hugs the arrow the same way a block-bodied arm's opening brace does,
-     * rather than breaking after the arrow and indenting an already multi-line body.
-     */
-    private boolean mustHugArrow(final Doc bodyDoc) {
-        return Doc.flatWidthOrBreak(bodyDoc) < 0;
     }
 
     /**

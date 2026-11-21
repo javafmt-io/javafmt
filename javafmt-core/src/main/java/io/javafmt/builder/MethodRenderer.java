@@ -123,6 +123,6 @@ final class MethodRenderer {
             return block;
         }
         final var oneLine = Doc.concat(header, new Doc.Text(" {"), statements.getFirst(), new Doc.Text("}"));
-        return Doc.flatWidthOrBreak(oneLine) < 0 ? block : new Doc.Group(new Doc.IfBreak(block, oneLine));
+        return Doc.cannotRenderFlat(oneLine) ? block : new Doc.Group(new Doc.IfBreak(block, oneLine));
     }
 }

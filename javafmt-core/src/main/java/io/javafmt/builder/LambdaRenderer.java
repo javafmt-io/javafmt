@@ -35,7 +35,7 @@ final class LambdaRenderer {
     private Doc keptOnOneLine(final Doc header, final Doc statement) {
         final var braced = Doc.concatOf(Stream.of(Stream.of(header, new Doc.Text(" {")), Stream.of(Doc.indentedLine(statement)), Doc.closeBrace()));
         final var oneLine = Doc.concat(header, new Doc.Text(" {"), statement, new Doc.Text("}"));
-        return Doc.flatWidthOrBreak(oneLine) < 0 ? braced : new Doc.Choice(new Doc.Group(oneLine), braced, Doc.Choice.Fit.OPENING_LINE);
+        return Doc.cannotRenderFlat(oneLine) ? braced : new Doc.Choice(new Doc.Group(oneLine), braced, Doc.Choice.Fit.OPENING_LINE);
     }
 
     /**

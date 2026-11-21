@@ -43,6 +43,14 @@ public sealed interface Doc
         return width(doc, true);
     }
 
+    static boolean cannotRenderFlat(final Doc doc) {
+        return flatWidthOrBreak(doc) < 0;
+    }
+
+    static boolean canRenderFlat(final Doc doc) {
+        return flatWidthOrBreak(doc) >= 0;
+    }
+
     static int widthBeforeFirstBreak(final Doc doc) {
         return width(doc, false);
     }

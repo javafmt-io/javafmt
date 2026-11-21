@@ -84,7 +84,7 @@ final class CallArguments {
         if (trailingChain.isEmpty()) {
             return new Rendered(packed, firstOnTheCallLine, false);
         }
-        final var alwaysBroken = Doc.flatWidthOrBreak(trailingChain.get().doc()) < 0;
+        final var alwaysBroken = Doc.cannotRenderFlat(trailingChain.get().doc());
         final var onTheCallLine = onTheCallLine(
                 others, trailingChain.get().brokenAfterHead().orElseThrow());
         final var hugged = new Doc.Choice(onTheCallLine, packed, Doc.Choice.Fit.OPENING_LINE);
@@ -151,7 +151,7 @@ final class CallArguments {
                                         final List<List<CommentToken>> trailing,
                                         final Recursor recursor) {
         return others.stream()
-                .allMatch(doc -> Doc.flatWidthOrBreak(doc) >= 0)
+                .allMatch(doc -> Doc.canRenderFlat(doc))
             && pastTheSeparator.stream()
                     .allMatch(List::isEmpty)
             && trailing.stream()
@@ -188,7 +188,7 @@ final class CallArguments {
                 .limit(others.size())
                 .noneMatch(CallArguments::isBlockLambda)
             && others.stream()
-                    .allMatch(doc -> Doc.flatWidthOrBreak(doc) >= 0)
+                    .allMatch(doc -> Doc.canRenderFlat(doc))
             && pastTheSeparator.stream()
                     .allMatch(List::isEmpty)
             && !Doc.endsWithLineComment(rendered.getLast())
