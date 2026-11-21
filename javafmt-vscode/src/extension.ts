@@ -175,26 +175,23 @@ function startDaemon(): void {
 
     makeBundledBinaryExecutable(extensionContext.extensionPath, process.platform, process.arch);
 
-    let daemonCommand: DaemonCommand;
-    try {
-        daemonCommand = resolveDaemonCommand(binaryPath, {
-            extensionPath: extensionContext.extensionPath,
-            searchPath: process.env.PATH,
-            platform: process.platform,
-            arch: process.arch,
-            isExecutable: isExecutableFile,
-        });
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        setStatus('error', message);
+    const resolved = resolveDaemonBinary(binaryPath, {
+        extensionPath: extensionContext.extensionPath,
+        searchPath: process.env.PATH,
+        platform: process.platform,
+        arch: process.arch,
+        isExecutable: isExecutableFile,
+    });
+    if ('missing' in resolved) {
+        setStatus('error', resolved.missing);
         if (!reportedMissingBinary) {
             reportedMissingBinary = true;
-            void vscode.window.showErrorMessage(`javafmt: ${message}`);
+            void vscode.window.showErrorMessage(`javafmt: ${resolved.missing}`);
         }
         return;
     }
 
-    const proc = child_process.spawn(daemonCommand.command, daemonCommand.args, { stdio: ['pipe', 'pipe', 'ignore'] });
+    const proc = child_process.spawn(resolved.binary, ['--daemon'], { stdio: ['pipe', 'pipe', 'ignore'] });
 
     daemon = proc;
     setStatus('ready');
@@ -246,8 +243,6 @@ function daemonGone(proc: child_process.ChildProcess, reason: string): void {
     setStatus('error', reason);
 }
 
-export type DaemonCommand = { command: string; args: string[] };
-
 export type DaemonEnvironment = {
     extensionPath: string;
     searchPath: string | undefined;
@@ -289,13 +284,11 @@ function isExecutableFile(file: string): boolean {
     }
 }
 
-// Exported for testing.
-export function resolveDaemonCommand(binaryPath: string, env: DaemonEnvironment): DaemonCommand {
+export function resolveDaemonBinary(binaryPath: string, env: DaemonEnvironment): { binary: string } | { missing: string } {
     if (binaryPath) {
-        if (!env.isExecutable(binaryPath)) {
-            throw new Error(`configured javafmt binary not found or not executable at ${binaryPath}`);
-        }
-        return { command: binaryPath, args: ['--daemon'] };
+        return env.isExecutable(binaryPath)
+            ? { binary: binaryPath }
+            : { missing: `configured javafmt binary not found or not executable at ${binaryPath}` };
     }
     const names = env.platform === 'win32' ? ['javafmt.exe', 'javafmt'] : ['javafmt'];
     const target = vsceTarget(env.platform, env.arch);
@@ -304,10 +297,7 @@ export function resolveDaemonCommand(binaryPath: string, env: DaemonEnvironment)
     const found = [...bundledDirs, ...pathDirs]
         .flatMap((dir) => names.map((name) => path.join(dir, name)))
         .find((candidate) => env.isExecutable(candidate));
-    if (!found) {
-        throw new Error('no javafmt binary found — set javafmt.binaryPath, or put javafmt on your PATH');
-    }
-    return { command: found, args: ['--daemon'] };
+    return found ? { binary: found } : { missing: 'no javafmt binary found — set javafmt.binaryPath, or put javafmt on your PATH' };
 }
 
 function classpathFor(uri: vscode.Uri): Promise<string | undefined> | undefined {
