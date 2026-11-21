@@ -132,10 +132,6 @@ jobs:
       contents: read
     env:
       NATIVE_CHECKSUMS: ${{ github.workspace }}/build/release-assets/native/SHA256SUMS
-      JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
-      JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
-      JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
-      JETBRAINS_PLUGIN_TOKEN: ${{ secrets.JETBRAINS_PLUGIN_TOKEN }}
 
     steps:
       - uses: actions/checkout@v7
@@ -156,6 +152,10 @@ jobs:
 
       - name: Sign the IntelliJ plugin
         run: gradle :javafmt-intellij:signPlugin -Pjavafmt.nativeChecksums="$NATIVE_CHECKSUMS"
+        env:
+          JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
+          JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
+          JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
 
       - name: Upload the signed IntelliJ plugin
         uses: actions/upload-artifact@v7
@@ -166,6 +166,11 @@ jobs:
 
       - name: Publish the IntelliJ plugin to the JetBrains Marketplace
         run: gradle :javafmt-intellij:publishPlugin -Pjavafmt.nativeChecksums="$NATIVE_CHECKSUMS"
+        env:
+          JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
+          JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
+          JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
+          JETBRAINS_PLUGIN_TOKEN: ${{ secrets.JETBRAINS_PLUGIN_TOKEN }}
 
   publish-vscode-extension:
     needs: release
