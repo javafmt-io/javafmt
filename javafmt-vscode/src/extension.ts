@@ -138,10 +138,8 @@ function setStatus(state: 'ready' | 'formatting' | 'error', detail?: string): vo
 
 async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.TextEdit[]> {
     if (!vscode.workspace.getConfiguration('javafmt').get<boolean>('enable', true)) return [];
-    if (!daemon) {
-        startDaemon();
-        if (!daemon) return [];
-    }
+    if (!daemon) startDaemon();
+    if (!daemon) return [];
     setStatus('formatting');
     const source = doc.getText();
     const file = doc.uri.scheme === 'file' ? doc.uri.fsPath : undefined;
@@ -197,40 +195,28 @@ function startDaemon(): void {
     daemon = proc;
     setStatus('ready');
 
-    const gone = (reason: string): void => {
-        if (daemon !== proc) {
-            return;
-        }
-        daemon = null;
-        proc.kill();
-        setStatus('error', reason);
-        const err = new Error(reason);
-        for (const request of pending.values()) {
-            request.reject(err);
-        }
-        pending.clear();
-    };
-
-    void (async () => {
-        try {
-            for await (const reply of decodeReplies(proc.stdout!)) {
-                const request = pending.get(reply.id);
-                if (request && daemon === proc) {
-                    pending.delete(reply.id);
-                    request.resolve(reply);
-                }
-            }
-        } catch {
-            gone('daemon sent a reply that is not part of its protocol');
-        }
-    })();
+    void readReplies(proc);
 
     // slf4j-simple writes to stderr; discard to avoid clogging the pipe
     proc.stderr!.on('data', (_chunk: Buffer) => {});
 
-    proc.on('exit', (code: number | null, signal: NodeJS.Signals | null) => gone(signal ? `daemon exited with signal ${signal}` : `daemon exited with code ${code}`));
-    proc.on('error', (err: Error) => gone(`daemon failed: ${err.message}`));
-    proc.stdin!.on('error', (err: Error) => gone(`daemon input failed: ${err.message}`));
+    proc.on('exit', (code: number | null, signal: NodeJS.Signals | null) => daemonGone(proc, signal ? `daemon exited with signal ${signal}` : `daemon exited with code ${code}`));
+    proc.on('error', (err: Error) => daemonGone(proc, `daemon failed: ${err.message}`));
+    proc.stdin!.on('error', (err: Error) => daemonGone(proc, `daemon input failed: ${err.message}`));
+}
+
+async function readReplies(proc: child_process.ChildProcess): Promise<void> {
+    try {
+        for await (const reply of decodeReplies(proc.stdout!)) {
+            const request = pending.get(reply.id);
+            if (request && daemon === proc) {
+                pending.delete(reply.id);
+                request.resolve(reply);
+            }
+        }
+    } catch {
+        daemonGone(proc, 'daemon sent a reply that is not part of its protocol');
+    }
 }
 
 function restartDaemon(): boolean {
@@ -240,16 +226,23 @@ function restartDaemon(): boolean {
     return daemon !== null;
 }
 
-function stopDaemon(): void {
-    if (daemon) {
-        daemon.kill();
-        daemon = null;
-    }
-    const err = new Error('daemon stopped');
+function stopDaemon(reason = 'daemon stopped'): void {
+    const proc = daemon;
+    daemon = null;
+    proc?.kill();
+    const err = new Error(reason);
     for (const request of pending.values()) {
         request.reject(err);
     }
     pending.clear();
+}
+
+function daemonGone(proc: child_process.ChildProcess, reason: string): void {
+    if (daemon !== proc) {
+        return;
+    }
+    stopDaemon(reason);
+    setStatus('error', reason);
 }
 
 export type DaemonCommand = { command: string; args: string[] };
