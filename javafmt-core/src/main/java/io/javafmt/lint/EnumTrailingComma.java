@@ -6,6 +6,7 @@ import com.sun.source.tree.VariableTree;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
+import io.javafmt.parser.TreeFacts;
 
 import java.util.Optional;
 
@@ -38,8 +39,9 @@ public final class EnumTrailingComma implements ScanningRule {
 
     private static Optional<LintEdit> editFor(final ClassTree node, final ParsedUnit unit) {
         final var constants = node.getMembers().stream()
-                .filter(m -> isConstant(unit, m))
+                .filter(VariableTree.class::isInstance)
                 .map(VariableTree.class::cast)
+                .filter(v -> TreeFacts.isEnumConstant(v, unit.tree(), unit.sourcePositions()))
                 .toList();
         if (constants.isEmpty()) {
             return Optional.empty();
@@ -74,13 +76,5 @@ public final class EnumTrailingComma implements ScanningRule {
             case ';' -> Optional.empty();
             default -> redundantCommaBeforeSemicolon(source, from + 1);
         };
-    }
-
-    /**
-     * An enum constant has no type written in the source, so javac gives its synthesised type tree
-     * no position. Same test {@code TreeFacts.isEnumConstant} uses.
-     */
-    private static boolean isConstant(final ParsedUnit unit, final Tree member) {
-        return member instanceof VariableTree v && v.getType() != null && unit.endOf(v.getType()) < 0;
     }
 }

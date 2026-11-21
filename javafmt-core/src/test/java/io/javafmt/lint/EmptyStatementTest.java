@@ -112,6 +112,7 @@ class EmptyStatementTest {
             "try (Resource first = open(); Resource second = open();) {}|try (Resource first = open(); Resource second = open()) {}",
             "try (held; ) {}|try (held ) {}",
             "try (held /* last */ ; ) {}|try (held /* last */  ) {}",
+            "try (held /* a */ /* b */ ; ) {}|try (held /* a */ /* b */  ) {}",
             "try (Resource first = open()) {}|try (Resource first = open()) {}",
             "try (held) {}|try (held) {}",
     })

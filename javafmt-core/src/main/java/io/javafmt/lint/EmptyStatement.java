@@ -10,7 +10,7 @@ import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
 import java.util.Comparator;
-import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -56,30 +56,21 @@ public final class EmptyStatement implements ScanningRule {
         });
     }
 
-    private static Optional<Integer> semicolonAfterTheLastResource(final TryTree node, final ParsedUnit unit) {
+    private static OptionalInt semicolonAfterTheLastResource(final TryTree node, final ParsedUnit unit) {
         final var resources = node.getResources();
         if (resources.isEmpty()) {
-            return Optional.empty();
+            return OptionalInt.empty();
         }
         final var source = unit.source();
-        var pos = unit.endOf(resources.getLast());
-        if (pos <= 0) {
-            return Optional.empty();
+        final var end = unit.endOf(resources.getLast());
+        if (end <= 0) {
+            return OptionalInt.empty();
         }
-        if (source.charAt(pos - 1) == ';') {
-            return Optional.of(pos - 1);
+        if (source.charAt(end - 1) == ';') {
+            return OptionalInt.of(end - 1);
         }
-        while (pos < source.length()) {
-            final var commentEnd = CommentScanner.skipComment(source, pos);
-            if (commentEnd >= 0) {
-                pos = commentEnd;
-            } else if (Character.isWhitespace(source.charAt(pos))) {
-                pos++;
-            } else {
-                break;
-            }
-        }
-        return pos < source.length() && source.charAt(pos) == ';' ? Optional.of(pos) : Optional.empty();
+        final var next = CommentScanner.skipWhitespaceAndComments(source, end);
+        return next < source.length() && source.charAt(next) == ';' ? OptionalInt.of(next) : OptionalInt.empty();
     }
 
     /**
