@@ -61,9 +61,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
     extensionContext.subscriptions.push(
         vscode.commands.registerCommand('javafmt.restartDaemon', () => {
-            restartDaemon();
-            void vscode.window.showInformationMessage('javafmt daemon restarted.');
+            if (restartDaemon()) {
+                void vscode.window.showInformationMessage('javafmt daemon restarted.');
+            }
         })
+    );
+
+    extensionContext.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri))
     );
 
     extensionContext.subscriptions.push(
@@ -149,6 +154,7 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setStatus('error', message);
+        diagnosticCollection.delete(doc.uri);
         void vscode.window.showErrorMessage(`javafmt: ${message}`);
         return [];
     }
@@ -198,7 +204,7 @@ function startDaemon(): void {
         daemon = null;
         proc.kill();
         setStatus('error', reason);
-        const err = new Error(`javafmt ${reason}`);
+        const err = new Error(reason);
         for (const request of pending.values()) {
             request.reject(err);
         }
@@ -209,7 +215,7 @@ function startDaemon(): void {
         try {
             for await (const reply of decodeReplies(proc.stdout!)) {
                 const request = pending.get(reply.id);
-                if (request) {
+                if (request && daemon === proc) {
                     pending.delete(reply.id);
                     request.resolve(reply);
                 }
@@ -222,15 +228,16 @@ function startDaemon(): void {
     // slf4j-simple writes to stderr; discard to avoid clogging the pipe
     proc.stderr!.on('data', (_chunk: Buffer) => {});
 
-    proc.on('exit', (code: number | null) => gone(`daemon exited with code ${code}`));
+    proc.on('exit', (code: number | null, signal: NodeJS.Signals | null) => gone(signal ? `daemon exited with signal ${signal}` : `daemon exited with code ${code}`));
     proc.on('error', (err: Error) => gone(`daemon failed: ${err.message}`));
     proc.stdin!.on('error', (err: Error) => gone(`daemon input failed: ${err.message}`));
 }
 
-function restartDaemon(): void {
+function restartDaemon(): boolean {
     reportedMissingBinary = false;
     stopDaemon();
     startDaemon();
+    return daemon !== null;
 }
 
 function stopDaemon(): void {
@@ -238,7 +245,7 @@ function stopDaemon(): void {
         daemon.kill();
         daemon = null;
     }
-    const err = new Error('javafmt daemon stopped');
+    const err = new Error('daemon stopped');
     for (const request of pending.values()) {
         request.reject(err);
     }
@@ -395,7 +402,7 @@ function sendRequest(source: string, scope: FileScope): Promise<FormatReply> {
         const id = lastId;
         const timer = setTimeout(() => {
             pending.delete(id);
-            reject(new Error(`javafmt did not respond within ${REQUEST_TIMEOUT_MS / 1000}s`));
+            reject(new Error(`did not respond within ${REQUEST_TIMEOUT_MS / 1000}s`));
             if (daemon === proc) {
                 stopDaemon();
             }

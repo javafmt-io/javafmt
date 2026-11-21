@@ -130,6 +130,14 @@ function configurationChanged(affects: (section: string) => boolean): void {
     listener({ affectsConfiguration: affects });
 }
 
+function diagnostics(): { set: jest.Mock; delete: jest.Mock } {
+    return (vscode.languages.createDiagnosticCollection as jest.Mock).mock.results.at(-1)?.value;
+}
+
+function restartCommand(): () => void {
+    return (vscode.commands.registerCommand as jest.Mock).mock.calls.find((call) => call[0] === 'javafmt.restartDaemon')[1];
+}
+
 function formatProvider(): vscodeTypes.DocumentFormattingEditProvider & {
     provideDocumentFormattingEdits: (doc: unknown) => Promise<vscodeTypes.TextEdit[]>;
 } {
@@ -208,6 +216,23 @@ describe('after activate()', () => {
         it('registers a range formatting provider for java', () => {
             expect(vscode.languages.registerDocumentRangeFormattingEditProvider)
                 .toHaveBeenCalledWith('java', expect.any(Object));
+        });
+    });
+
+    describe('diagnostics of a closed document', () => {
+        it('are cleared when the document closes', () => {
+            const uri = {};
+            const listener = (vscode.workspace.onDidCloseTextDocument as jest.Mock).mock.calls.at(-1)[0] as (doc: { uri: object }) => void;
+            listener({ uri });
+            expect(diagnostics().delete).toHaveBeenCalledWith(uri);
+        });
+    });
+
+    describe('the restart command', () => {
+        it('says nothing was restarted, and why, when no binary can be started', () => {
+            restartCommand()();
+            expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('no javafmt binary found'));
         });
     });
 
@@ -363,6 +388,70 @@ describe('after activate()', () => {
             expect(second.kill).not.toHaveBeenCalled();
         });
 
+        it('says the daemon restarted when the restart command starts a new one', () => {
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            restartCommand()();
+            expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('javafmt daemon restarted.');
+        });
+
+        it('clears the diagnostics of a document whose formatting fails', async () => {
+            const proc = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => proc);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            const uri = {};
+            const sent = nextRequest(proc);
+            const edits = formatProvider().provideDocumentFormattingEdits(document(uri));
+            await sent;
+            proc.emit('exit', 1, null);
+            await expect(edits).resolves.toEqual([]);
+            expect(diagnostics().delete).toHaveBeenCalledWith(uri);
+        });
+
+        it('shows a failure with one javafmt prefix', async () => {
+            const proc = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => proc);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            const sent = nextRequest(proc);
+            const edits = formatProvider().provideDocumentFormattingEdits(document());
+            await sent;
+            proc.emit('exit', 1, null);
+            await edits;
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('javafmt: daemon exited with code 1');
+        });
+
+        it('reports the signal that killed the daemon', () => {
+            const proc = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => proc);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            proc.emit('exit', null, 'SIGKILL');
+            expect(mockStatusItem.detail).toBe('daemon exited with signal SIGKILL');
+        });
+
+        it('ignores replies from a daemon it replaced', async () => {
+            const first = mockProcess();
+            const second = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementationOnce(() => first).mockImplementation(() => second);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            configurationChanged((section) => section === 'javafmt');
+            const sent = nextRequest(second);
+            const edits = formatProvider().provideDocumentFormattingEdits(document());
+            const { id } = await sent;
+            reply(first, id, 'class Stale {}\n');
+            reply(second, id, 'class A {}\n');
+            await expect(edits).resolves.toEqual([expect.objectContaining({ newText: 'class A {}\n' })]);
+        });
+
         it('gives up on a request after 10s and restarts the daemon', async () => {
             jest.useFakeTimers();
             const first = mockProcess();
@@ -375,7 +464,7 @@ describe('after activate()', () => {
             await sent;
             await jest.advanceTimersByTimeAsync(10_000);
             await expect(edits).resolves.toEqual([]);
-            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('did not respond within 10s'));
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('javafmt: did not respond within 10s');
             expect(first.kill).toHaveBeenCalled();
         });
     });

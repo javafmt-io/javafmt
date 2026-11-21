@@ -74,10 +74,11 @@ export const workspace = {
     })),
     onWillSaveTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
     onDidChangeConfiguration: jest.fn(() => ({ dispose: jest.fn() })),
+    onDidCloseTextDocument: jest.fn(() => ({ dispose: jest.fn() })),
 };
 
 export const languages = {
-    createDiagnosticCollection: jest.fn(() => ({ set: jest.fn(), dispose: jest.fn() })),
+    createDiagnosticCollection: jest.fn(() => ({ set: jest.fn(), delete: jest.fn(), dispose: jest.fn() })),
     createLanguageStatusItem: jest.fn(() => mockStatusItem),
     registerDocumentFormattingEditProvider: jest.fn(() => ({ dispose: jest.fn() })),
     registerDocumentRangeFormattingEditProvider: jest.fn(() => ({ dispose: jest.fn() })),
