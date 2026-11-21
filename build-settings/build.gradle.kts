@@ -36,3 +36,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
+tasks.jar {
+    finalizedBy(tasks.test)
+}
