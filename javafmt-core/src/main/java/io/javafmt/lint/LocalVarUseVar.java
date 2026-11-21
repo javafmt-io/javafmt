@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.element.ExecutableElement;
@@ -118,13 +119,9 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
 
     @Override
     public LintResult apply(final LintContext context) {
-        final var proposals = proposalsIn(context);
-        final var proven = proposals.stream()
-                .filter(Proposal::proven)
-                .toList();
-        final var unproven = proposals.stream()
-                .filter(proposal -> !proposal.proven())
-                .toList();
+        final var split = Split.of(proposalsIn(context));
+        final var proven = split.proven();
+        final var unproven = split.unproven();
         final var verified = unproven.isEmpty()
                 ? List.<Proposal>of()
                 : context.attributionFor(LocalVarUseVar.class)
@@ -140,19 +137,10 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         if (context.attributionFor(LocalVarUseVar.class).isEmpty()) {
             return Optional.empty();
         }
-        final var proposals = proposalsIn(context);
-        final var unproven = proposals.stream()
-                .filter(proposal -> !proposal.proven())
-                .toList();
-        return unproven.isEmpty()
+        final var split = Split.of(proposalsIn(context));
+        return split.unproven().isEmpty()
                 ? Optional.empty()
-                : Optional.of(
-                        VarRetypingCheck.rewrittenSource(
-                                context.unit(),
-                                proposals.stream()
-                                        .filter(Proposal::proven)
-                                        .toList(),
-                                unproven));
+                : Optional.of(VarRetypingCheck.rewrittenSource(context.unit(), split.proven(), split.unproven()));
     }
 
     private static List<Proposal> proposalsIn(final LintContext context) {
@@ -199,17 +187,22 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
                                                           final Attribution attribution,
                                                           final LintContext context) {
         final var unit = context.unit();
-        final var edits = switch (node.getInitializer()) {
-            case NewClassTree newClass -> widenedNewEdits(node, newClass, unit);
-            case MethodInvocationTree call -> staticFactoryEdits(node, call, path, context, false);
-            default -> List.<LintEdit>of();
-        };
-        if (!edits.isEmpty() || node.getInitializer() instanceof NewClassTree) {
-            return edits.isEmpty() ? Optional.empty() : Optional.of(edits);
+        if (node.getInitializer() instanceof NewClassTree newClass) {
+            return nonEmpty(widenedNewEdits(node, newClass, unit));
+        }
+        if (node.getInitializer() instanceof MethodInvocationTree call) {
+            final var factoryEdits = staticFactoryEdits(node, call, path, context, false);
+            if (!factoryEdits.isEmpty()) {
+                return Optional.of(factoryEdits);
+            }
         }
         return isAnalyzeCandidate(node, path, attribution)
-                ? replaceTypeEdit(node, unit).map(List::of)
+                ? nonEmpty(replaceTypeEdits(node, unit))
                 : Optional.empty();
+    }
+
+    private static Optional<List<LintEdit>> nonEmpty(final List<LintEdit> edits) {
+        return edits.isEmpty() ? Optional.empty() : Optional.of(edits);
     }
 
     private static boolean keepsItsTypeWithoutTarget(final VariableTree node, final TreePath path, final Attribution attribution) {
@@ -253,12 +246,8 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         return switch (node.getInitializer()) {
             case NewClassTree newClass -> newClassEdits(node, newClass, unit, reassigned);
             case MethodInvocationTree call -> staticFactoryEdits(node, call, path, context, true);
-            case TypeCastTree cast when !reassigned && sameText(cast.getType(), node.getType(), unit) -> replaceTypeEdit(node, unit)
-                    .stream()
-                    .toList();
-            case LiteralTree literal when !reassigned && literalMatches(literal, node.getType(), unit) -> replaceTypeEdit(node, unit)
-                    .stream()
-                    .toList();
+            case TypeCastTree cast when !reassigned && sameText(cast.getType(), node.getType(), unit) -> replaceTypeEdits(node, unit);
+            case LiteralTree literal when !reassigned && literalMatches(literal, node.getType(), unit) -> replaceTypeEdits(node, unit);
             case null, default -> List.of();
         };
     }
@@ -271,8 +260,7 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
             return List.of();
         }
         if (sameText(newClass.getIdentifier(), node.getType(), unit)) {
-            return replaceTypeEdit(node, unit).stream()
-                    .toList();
+            return replaceTypeEdits(node, unit);
         }
         if (!reassigned
             && newClass.getIdentifier() instanceof ParameterizedTypeTree diamond
@@ -290,8 +278,7 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         }
         return switch (newClass.getIdentifier()) {
             case ParameterizedTypeTree diamond when diamond.getTypeArguments().isEmpty() -> diamondEdits(node, diamond, unit);
-            default -> replaceTypeEdit(node, unit).stream()
-                    .toList();
+            default -> replaceTypeEdits(node, unit);
         };
     }
 
@@ -456,6 +443,11 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
         return typeStart >= 0 && typeEnd > typeStart ? Optional.of(typeToVar(typeStart, typeEnd, unit)) : Optional.empty();
     }
 
+    private static List<LintEdit> replaceTypeEdits(final VariableTree node, final ParsedUnit unit) {
+        return replaceTypeEdit(node, unit).stream()
+                .toList();
+    }
+
     private static LintEdit typeToVar(final int typeStart, final int typeEnd, final ParsedUnit unit) {
         final var source = unit.source();
         return new LintEdit(typeStart, typeEnd, typeEnd < source.length() && Character.isJavaIdentifierPart(source.charAt(typeEnd)) ? "var " : "var");
@@ -554,6 +546,15 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
                     .allMatch(i -> unit.sourceOf(declared.get(i))
                             .trim()
                             .equals(unit.sourceOf(witness.get(i)).trim()));
+    }
+
+    private record Split(List<Proposal> proven, List<Proposal> unproven) {
+
+        static Split of(final List<Proposal> proposals) {
+            final var byProven = proposals.stream()
+                    .collect(Collectors.partitioningBy(Proposal::proven));
+            return new Split(byProven.getOrDefault(true, List.of()), byProven.getOrDefault(false, List.of()));
+        }
     }
 
     record Proposal(TreePath path, List<LintEdit> edits, boolean proven, boolean keepsItsTypeWithoutTarget) {
