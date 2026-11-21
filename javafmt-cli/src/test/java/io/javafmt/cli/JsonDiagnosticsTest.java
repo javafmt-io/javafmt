@@ -18,6 +18,7 @@ class JsonDiagnosticsTest {
         return Stream.of(
                 Arguments.of(new Diagnostic.ParseError("boom", at), "parse"),
                 Arguments.of(new Diagnostic.LintError("boom", at), "lint"),
+                Arguments.of(new Diagnostic.ConfigError("boom", at), "config"),
                 Arguments.of(new Diagnostic.InternalError("boom", at), "internal"),
                 Arguments.of(new Diagnostic.Warning("boom", at), "warning"));
     }
@@ -30,25 +31,9 @@ class JsonDiagnosticsTest {
     }
 
     @Test
-    void internalIsDistinguishableFromEveryOtherKind() {
-        final var at = new Position.At(1, 1, 0);
-        final var internal = JsonDiagnostics.line("", new Diagnostic.InternalError("m", at));
-        final var others = Stream.of(new Diagnostic.ParseError("m", at), new Diagnostic.LintError("m", at), new Diagnostic.Warning("m", at))
-                .map(d -> JsonDiagnostics.line("", d));
-        assertThat(internal).contains("\"kind\":\"internal\"");
-        assertThat(others).noneMatch(l -> l.contains("\"kind\":\"internal\""));
-    }
-
-    @Test
     void unknownPositionRendersZeroLineAndColumn() {
         assertThat(JsonDiagnostics.line("", new Diagnostic.Warning("m", new Position.Unknown())))
                 .isEqualTo("{\"kind\":\"warning\",\"message\":\"m\",\"line\":0,\"col\":0}");
-    }
-
-    @Test
-    void blankFileOmitsTheFileMember() {
-        assertThat(JsonDiagnostics.line("", new Diagnostic.Warning("m", new Position.Unknown())))
-                .doesNotContain("\"file\"");
     }
 
     @Test
@@ -57,12 +42,32 @@ class JsonDiagnosticsTest {
                 .isEqualTo("{\"kind\":\"cli\",\"message\":\"would reformat\",\"file\":\"A.java\",\"line\":0,\"col\":0}");
     }
 
+    @ParameterizedTest(name = "{1}")
+    @MethodSource("escapes")
+    void messagesAreEscapedSoTheLineStaysParseable(final String raw, final String label, final String escaped) {
+        assertThat(JsonDiagnostics.line("", new Diagnostic.Warning(raw, new Position.Unknown())))
+                .isEqualTo("{\"kind\":\"warning\",\"message\":\"" + escaped + "\",\"line\":0,\"col\":0}");
+    }
+
+    private static Stream<Arguments> escapes() {
+        return Stream.of(
+                Arguments.of("a\"b", "quote", "a\\\"b"),
+                Arguments.of("a\\b", "backslash", "a\\\\b"),
+                Arguments.of("a\nb", "newline", "a\\nb"),
+                Arguments.of("a\rb", "carriage return", "a\\rb"),
+                Arguments.of("a\tb", "tab", "a\\tb"),
+                Arguments.of("a\bb", "backspace", "a\\bb"),
+                Arguments.of("a\fb", "form feed", "a\\fb"),
+                Arguments.of("a\u0001b", "control character", "a\\u0001b"),
+                Arguments.of("a\u001fb", "highest control character", "a\\u001fb"),
+                Arguments.of("a b", "space is not escaped", "a b"),
+                Arguments.of("caf\u00e9", "accented letter passes through", "caf\u00e9"),
+                Arguments.of("\ud83d\ude00", "non-BMP code point passes through", "\ud83d\ude00"));
+    }
+
     @Test
-    void messagesAreEscapedSoTheLineStaysParseable() {
-        final var nasty = "quote \" backslash \\ newline \n tab \t control ";
-        final var rendered = JsonDiagnostics.line("", new Diagnostic.Warning(nasty, new Position.Unknown()));
-        assertThat(rendered)
-                .contains("quote \\\" backslash \\\\ newline \\n tab \\t control \\u0001")
-                .doesNotContain("\n");
+    void aFilePathWithBackslashesIsEscaped() {
+        assertThat(JsonDiagnostics.cliLine("C:\\src\\A.java", "m"))
+                .isEqualTo("{\"kind\":\"cli\",\"message\":\"m\",\"file\":\"C:\\\\src\\\\A.java\",\"line\":0,\"col\":0}");
     }
 }

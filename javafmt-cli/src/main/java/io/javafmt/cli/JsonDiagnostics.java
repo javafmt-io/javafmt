@@ -3,7 +3,9 @@ package io.javafmt.cli;
 import io.javafmt.Diagnostic;
 import lombok.experimental.UtilityClass;
 
+import java.util.HexFormat;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /** Renders a {@link Diagnostic} as one line of NDJSON for {@code --diagnostics=json}. */
 @UtilityClass
@@ -14,11 +16,15 @@ final class JsonDiagnostics {
      * client can tell a javafmt bug ({@code internal}) from a problem in the user's own source
      * without re-deriving it from a severity that has already collapsed the distinction.
      */
-    String line(final String file, final Diagnostic d) {
+    String line(final String file, final Diagnostic diagnostic) {
         Objects.requireNonNull(file, "file");
-        Objects.requireNonNull(d, "d");
+        Objects.requireNonNull(diagnostic, "diagnostic");
         return object(
-                d.kind(), d.message(), file, d.position().line(), d.position().column());
+                diagnostic.kind(),
+                diagnostic.message(),
+                file,
+                diagnostic.position().line(),
+                diagnostic.position().column());
     }
 
     /** A message originating in the CLI rather than in a {@link Diagnostic}. */
@@ -28,15 +34,15 @@ final class JsonDiagnostics {
         return object("cli", message, file, 0, 0);
     }
 
-    private String object(final String kind, final String message, final String file, final int line, final int col) {
+    private String object(final String kind, final String message, final String file, final int line, final int column) {
         final var fileMember = file.isEmpty() ? "" : ",\"file\":\"" + escape(file) + "\"";
-        return "{\"kind\":\"" + kind + "\",\"message\":\"" + escape(message) + "\"" + fileMember + ",\"line\":" + line + ",\"col\":" + col + "}";
+        return "{\"kind\":\"" + kind + "\",\"message\":\"" + escape(message) + "\"" + fileMember + ",\"line\":" + line + ",\"col\":" + column + "}";
     }
 
     private String escape(final String raw) {
-        final var sb = new StringBuilder(raw.length() + 16);
-        raw.codePoints().forEach(codePoint -> sb.append(escapeCodePoint(codePoint)));
-        return sb.toString();
+        return raw.codePoints()
+                .mapToObj(JsonDiagnostics::escapeCodePoint)
+                .collect(Collectors.joining());
     }
 
     private String escapeCodePoint(final int codePoint) {
@@ -48,7 +54,7 @@ final class JsonDiagnostics {
             case '\t' -> "\\t";
             case '\b' -> "\\b";
             case '\f' -> "\\f";
-            default -> codePoint < 0x20 ? String.format("\\u%04x", codePoint) : new String(Character.toChars(codePoint));
+            default -> codePoint < 0x20 ? "\\u" + HexFormat.of().toHexDigits((char) codePoint) : Character.toString(codePoint);
         };
     }
 }
