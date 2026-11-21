@@ -326,6 +326,31 @@ describe('after activate()', () => {
             expect(spawnSpy).toHaveBeenCalledWith('/custom/javafmt', ['--daemon'], expect.any(Object));
         });
 
+        it('clears the diagnostics of a document it cannot format because the daemon cannot start', async () => {
+            const uri = {};
+            await expect(formatProvider().provideDocumentFormattingEdits(document(uri))).resolves.toEqual([]);
+            expect(diagnostics().delete).toHaveBeenCalledWith(uri);
+        });
+
+        it('makes the bundled binary executable for the real platform before it spawns it', () => {
+            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+            (fs.statSync as jest.Mock).mockImplementation((p: fs.PathLike) => ({ isFile: () => String(p) === bundled, mode: 0o100644 }));
+            (fs.accessSync as jest.Mock).mockImplementation(() => {
+                throw new Error('EACCES');
+            });
+            const chmod = (fs.chmodSync as jest.Mock).mockImplementation(() => {
+                (fs.accessSync as jest.Mock).mockImplementation(() => {});
+            });
+            deactivate();
+            activate(makeContext('/ext'));
+            if (process.platform === 'win32') {
+                expect(chmod).not.toHaveBeenCalled();
+            } else {
+                expect(chmod).toHaveBeenCalledWith(bundled, 0o100744);
+                expect(chmod.mock.invocationCallOrder[0]).toBeLessThan(spawnSpy.mock.invocationCallOrder[0]);
+            }
+        });
+
         it('reports a missing binary once per session, not on every format', async () => {
             await formatProvider().provideDocumentFormattingEdits(document());
             await formatProvider().provideDocumentFormattingEdits(document());
@@ -542,6 +567,17 @@ describe('after activate()', () => {
             }
             return request;
         }
+
+        it('clears the diagnostics of a document whose daemon went away while its classpath was being looked up', async () => {
+            let release: (result: ClasspathResult) => void = () => {};
+            javaExtension({ getClasspaths: jest.fn(() => new Promise<ClasspathResult>((resolve) => (release = resolve))) });
+            const uri = fileUri(MAIN_SOURCE);
+            const edits = formatProvider().provideDocumentFormattingEdits(document(uri));
+            deactivate();
+            release({ projectRoot: 'file:///repo', classpaths: CLASSPATH, modulepaths: [] });
+            await expect(edits).resolves.toEqual([]);
+            expect(diagnostics().delete).toHaveBeenCalledWith(uri);
+        });
 
         it('sends the path of a file on disk', async () => {
             expect((await format()).path).toBe(MAIN_SOURCE);

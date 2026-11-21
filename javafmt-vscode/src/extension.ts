@@ -247,14 +247,20 @@ class Session {
     async getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.TextEdit[]> {
         if (!vscode.workspace.getConfiguration('javafmt').get<boolean>('enable', true)) return [];
         if (!this.daemon) this.startDaemon();
-        if (!this.daemon) return [];
+        if (!this.daemon) {
+            this.diagnostics.delete(doc.uri);
+            return [];
+        }
         this.setStatus('formatting');
         const source = doc.getText();
         const file = doc.uri.scheme === 'file' ? doc.uri.fsPath : undefined;
         const lookup = file === undefined ? undefined : this.classpathFor(doc.uri);
         const classpath = lookup === undefined ? undefined : await lookup;
         const proc = this.daemon;
-        if (!proc) return [];
+        if (!proc) {
+            this.diagnostics.delete(doc.uri);
+            return [];
+        }
         let reply: FormatReply;
         try {
             reply = await this.sendRequest(proc, source, { path: file, classpath });
