@@ -49,27 +49,28 @@ artifacts {
     add(nativeExecutable.name, tasks.named<BuildNativeImageTask>("nativeCompile").flatMap { it.outputDirectory })
 }
 
-val nativeDaemonTest = sourceSets.create("nativeDaemonTest")
-
-configurations.named(nativeDaemonTest.implementationConfigurationName) {
-    extendsFrom(configurations.testImplementation.get())
-}
-
-configurations.named(nativeDaemonTest.runtimeOnlyConfigurationName) {
-    extendsFrom(configurations.testRuntimeOnly.get())
-}
-
-tasks.register<Test>("nativeDaemonTest") {
-    description = "Runs the native javafmt binary as a daemon over both wire formats."
-    group = LifecycleBasePlugin.VERIFICATION_GROUP
-    testClassesDirs = nativeDaemonTest.output.classesDirs
-    classpath = nativeDaemonTest.runtimeClasspath
-    jvmArgumentProviders.add(objects.newInstance<FilePathArgument>().apply {
-        propertyName = "javafmt.test.nativeBinaryDir"
-        files.from(tasks.named<BuildNativeImageTask>("nativeCompile").flatMap { it.outputDirectory })
-    })
-    extensions.configure<JacocoTaskExtension> {
-        isEnabled = false
+testing {
+    suites {
+        register<JvmTestSuite>("nativeDaemonTest") {
+            dependencies {
+                implementation(testFixtures(project(":javafmt-core")))
+                implementation(testFixtures(project(":javafmt-daemon")))
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        description = "Runs the native javafmt binary as a daemon over both wire formats."
+                        jvmArgumentProviders.add(objects.newInstance<FilePathArgument>().apply {
+                            propertyName = "javafmt.test.nativeBinaryDir"
+                            files.from(tasks.named<BuildNativeImageTask>("nativeCompile").flatMap { it.outputDirectory })
+                        })
+                        extensions.configure<JacocoTaskExtension> {
+                            isEnabled = false
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

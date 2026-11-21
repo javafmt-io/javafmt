@@ -28,7 +28,6 @@ listOf(configurations.apiElements, configurations.runtimeElements).forEach { ele
 }
 
 val engine = sourceSets.create("engine")
-val functionalTest = sourceSets.create("functionalTest")
 
 dependencies {
     "engineImplementation"(project(":javafmt-core"))
@@ -36,12 +35,6 @@ dependencies {
     compileOnly(engine.output)
     testImplementation(gradleApi())
     testImplementation(engine.runtimeClasspath)
-    "functionalTestImplementation"(gradleTestKit())
-    "functionalTestImplementation"(platform(libs.junit.bom))
-    "functionalTestImplementation"(libs.junit.jupiter)
-    "functionalTestImplementation"(libs.assertj.core)
-    "functionalTestImplementation"(testFixtures(project(":javafmt-core")))
-    "functionalTestRuntimeOnly"(libs.junit.platform.launcher)
 }
 
 val engineRuntimeClasspath = configurations.named(engine.runtimeClasspathConfigurationName)
@@ -95,21 +88,33 @@ abstract class JavaHomes : CommandLineArgumentProvider {
     )
 }
 
-val functionalTestTask = tasks.register<Test>("functionalTest") {
-    description = "Runs real Gradle builds against the plugin with Gradle TestKit."
-    group = LifecycleBasePlugin.VERIFICATION_GROUP
-    testClassesDirs = functionalTest.output.classesDirs
-    classpath = functionalTest.runtimeClasspath
-    shouldRunAfter(tasks.named("test"))
-    systemProperty("javafmt.test.minimumGradleVersion", libs.versions.gradlePluginMinimumGradle.get())
-    jvmArgumentProviders.add(objects.newInstance<JavaHomes>().apply {
-        java25 = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
-        older = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
-    })
+testing {
+    suites {
+        register<JvmTestSuite>("functionalTest") {
+            gradlePlugin.testSourceSets(sources)
+            dependencies {
+                implementation(gradleTestKit())
+                implementation(testFixtures(project(":javafmt-core")))
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        description = "Runs real Gradle builds against the plugin with Gradle TestKit."
+                        shouldRunAfter(tasks.named("test"))
+                        systemProperty("javafmt.test.minimumGradleVersion", libs.versions.gradlePluginMinimumGradle.get())
+                        jvmArgumentProviders.add(objects.newInstance<JavaHomes>().apply {
+                            java25 = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+                            older = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+                        })
+                    }
+                }
+            }
+        }
+    }
 }
 
 tasks.named("check") {
-    dependsOn(functionalTestTask)
+    dependsOn(testing.suites.named("functionalTest"))
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
@@ -120,7 +125,6 @@ tasks.named<JacocoReport>("jacocoTestReport") {
 gradlePlugin {
     website = "https://javafmt.io"
     vcsUrl = "https://github.com/javafmt-io/javafmt"
-    testSourceSets(functionalTest)
     plugins {
         create("javafmt") {
             id = "io.javafmt"

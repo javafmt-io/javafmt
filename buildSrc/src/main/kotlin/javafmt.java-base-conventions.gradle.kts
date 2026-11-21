@@ -20,12 +20,17 @@ dependencies {
     compileOnly(libs.findLibrary("jspecify").get())
     compileOnly(libs.findLibrary("lombok").get())
     testAnnotationProcessor(libs.findLibrary("lombok").get())
-    testCompileOnly(libs.findLibrary("jspecify").get())
     testCompileOnly(libs.findLibrary("lombok").get())
-    testImplementation(libs.findLibrary("assertj-core").get())
-    testImplementation(libs.findLibrary("junit-jupiter").get())
-    testImplementation(platform(libs.findLibrary("junit-bom").get()))
-    testRuntimeOnly(libs.findLibrary("junit-platform-launcher").get())
+}
+
+testing {
+    suites.withType<JvmTestSuite>().configureEach {
+        useJUnitJupiter(libs.findVersion("junit").get().requiredVersion)
+        dependencies {
+            compileOnly(libs.findLibrary("jspecify").get())
+            implementation(libs.findLibrary("assertj-core").get())
+        }
+    }
 }
 
 tasks.withType<Test>().configureEach {

@@ -54,11 +54,8 @@ testing {
         // lint rule hanging, or output that stops being idempotent, none of which a hand-written
         // fixture would have found.
         register<JvmTestSuite>("corpusTest") {
-            useJUnitJupiter(libs.versions.junit)
             dependencies {
                 implementation(project())
-                implementation(libs.assertj.core)
-                compileOnly(libs.jspecify)
             }
             targets {
                 all {
@@ -78,12 +75,9 @@ testing {
         }
 
         register<JvmTestSuite>("oracleTest") {
-            useJUnitJupiter(libs.versions.junit)
             dependencies {
                 implementation(project())
-                implementation(libs.assertj.core)
                 implementation(libs.checkstyle)
-                compileOnly(libs.jspecify)
             }
             targets {
                 all {

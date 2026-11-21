@@ -16,10 +16,6 @@ dependencies {
 // Gradle user's build works is the harness around it — the buildscript classpath, Spotless's
 // up-to-date check, the configuration cache — so integrationTest drives a real Gradle build with
 // Gradle TestKit instead.
-val integrationTest = sourceSets.create("integrationTest")
-
-configurations[integrationTest.implementationConfigurationName].extendsFrom(configurations.testImplementation.get())
-configurations[integrationTest.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly.get())
 
 /**
  * The Spotless Gradle plugin, fetched so the generated build can put it on its buildscript
@@ -30,32 +26,41 @@ val spotlessPluginRuntime = configurations.create("spotlessPluginRuntime")
 
 dependencies {
     spotlessPluginRuntime(libs.spotless.gradle.plugin)
-    add(integrationTest.implementationConfigurationName, gradleTestKit())
-    add(integrationTest.implementationConfigurationName, sourceSets.main.get().output)
-    add(integrationTest.runtimeOnlyConfigurationName, libs.junit.platform.launcher)
 }
 
-// What the generated build's `buildscript { classpath files(...) }` gets: javafmt-spotless and
-// everything it needs, the integration-test classes (for the version-pinned step), and the
-// Spotless plugin itself.
-val generatedBuildClasspath = files(
-    sourceSets.main.map { it.output },
-    integrationTest.output,
-    configurations.named("runtimeClasspath"),
-    spotlessPluginRuntime,
-)
-
-val integrationTestTask = tasks.register<Test>("integrationTest") {
-    description = "Runs a real Gradle build against the published step with Gradle TestKit."
-    group = LifecycleBasePlugin.VERIFICATION_GROUP
-    testClassesDirs = integrationTest.output.classesDirs
-    classpath = integrationTest.runtimeClasspath
-    jvmArgumentProviders.add(objects.newInstance<ClasspathArgument>().apply {
-        propertyName = "javafmt.generatedBuildClasspath"
-        files.from(generatedBuildClasspath)
-    })
+testing {
+    suites {
+        register<JvmTestSuite>("integrationTest") {
+            // What the generated build's `buildscript { classpath files(...) }` gets: javafmt-spotless and
+            // everything it needs, the integration-test classes (for the version-pinned step), and the
+            // Spotless plugin itself.
+            val generatedBuildClasspath = files(
+                sourceSets.main.map { it.output },
+                sources.output,
+                configurations.named("runtimeClasspath"),
+                spotlessPluginRuntime,
+            )
+            dependencies {
+                implementation(project())
+                implementation(libs.spotless.lib)
+                implementation(testFixtures(project(":javafmt-core")))
+                implementation(gradleTestKit())
+            }
+            targets {
+                all {
+                    testTask.configure {
+                        description = "Runs a real Gradle build against the published step with Gradle TestKit."
+                        jvmArgumentProviders.add(objects.newInstance<ClasspathArgument>().apply {
+                            propertyName = "javafmt.generatedBuildClasspath"
+                            files.from(generatedBuildClasspath)
+                        })
+                    }
+                }
+            }
+        }
+    }
 }
 
 tasks.named("check") {
-    dependsOn(integrationTestTask)
+    dependsOn(testing.suites.named("integrationTest"))
 }
