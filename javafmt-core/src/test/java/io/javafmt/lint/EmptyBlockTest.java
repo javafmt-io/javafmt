@@ -5,6 +5,9 @@ import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -116,6 +119,23 @@ class EmptyBlockTest {
             """);
         final var result = new EmptyBlock().apply(LintContext.parseOnly(unit));
         assertThat(result.diagnostics()).isEmpty();
+    }
+
+    static Stream<String> blocksHoldingOnlyAComment() {
+        return Stream.of("{ /* c */ }", "{ // c\n    }", "{\n        // c\n    }")
+                .flatMap(block -> Stream.of(
+                        "static " + block,
+                        "void m() { try { init(); } catch (RuntimeException e) " + block + " }",
+                        "void m() { try { init(); } finally " + block + " }",
+                        "void m() { synchronized (this) " + block + " }"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("blocksHoldingOnlyAComment")
+    void aBlockHoldingOnlyACommentDoesNotWarn(final String member) {
+        final var unit = JavaParser.parseUnit("class Fixture {\n    " + member + "\n    static void init() {}\n}\n");
+        assertThat(new EmptyBlock().apply(LintContext.parseOnly(unit)).diagnostics())
+                .isEmpty();
     }
 
     @ParameterizedTest

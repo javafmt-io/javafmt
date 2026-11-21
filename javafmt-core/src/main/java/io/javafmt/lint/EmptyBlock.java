@@ -68,7 +68,9 @@ public final class EmptyBlock implements WarningRule {
     }
 
     private static void checkEmpty(final BlockTree block, final String what, final ParsedUnit unit, final List<Diagnostic> diagnostics) {
-        if (block.getStatements().isEmpty() && unit.interiorOf(block).isEmpty()) {
+        if (block.getStatements().isEmpty()
+            && unit.interiorOf(block).isEmpty()
+            && unit.braceLineOf(block).isEmpty()) {
             diagnostics.add(new Diagnostic.Warning("empty " + what, unit.positionOf(block)));
         }
     }
