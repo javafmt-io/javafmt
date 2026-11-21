@@ -35,7 +35,7 @@ public class ParallelBatchBenchmark {
 
     private List<String> sources = List.of();
 
-    private JavafmtConfig config = JavafmtConfig.defaults();
+    private final JavafmtConfig config = JavafmtConfig.defaults();
 
     @Setup
     public void setUp() {
@@ -50,7 +50,6 @@ public class ParallelBatchBenchmark {
             }
             default -> cycled(RealWorldCorpus.clean(Integer.MAX_VALUE));
         };
-        config = JavafmtConfig.defaults();
     }
 
     private List<String> cycled(final List<String> corpus) {

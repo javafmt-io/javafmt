@@ -50,7 +50,7 @@ public class BatchFormatBenchmark {
 
     private List<List<String>> batches = List.of();
 
-    private JavafmtConfig config = JavafmtConfig.defaults();
+    private final JavafmtConfig config = JavafmtConfig.defaults();
 
     @Setup
     public void setUp() {
@@ -58,7 +58,6 @@ public class BatchFormatBenchmark {
         batches = IntStream.iterate(0, start -> start < sources.size(), start -> start + batchSize)
                 .mapToObj(start -> sources.subList(start, Math.min(sources.size(), start + batchSize)))
                 .toList();
-        config = JavafmtConfig.defaults();
     }
 
     /** Single-threaded on purpose: this measures task-setup amortization, not render parallelism. */

@@ -1,7 +1,5 @@
 package io.javafmt;
 
-import java.util.List;
-
 /**
  * Hand-picked Java sources for {@link JavafmtFormatBenchmark}. Sources are bundled as
  * string constants (no I/O at benchmark time) and were chosen to exercise distinct
@@ -185,7 +183,16 @@ public final class BenchmarkCorpus {
             + ")".repeat(150)
             + ";\n    }\n}\n";
 
-    public static final List<String> ALL = List.of(METHOD_CHAINS, WIDE_RECORDS, NESTED_CONDITIONALS);
+    public static String named(final String name) {
+        return switch (name) {
+            case "methodChains" -> METHOD_CHAINS;
+            case "wideRecords" -> WIDE_RECORDS;
+            case "nestedConditionals" -> NESTED_CONDITIONALS;
+            case "deepNesting" -> DEEP_NESTING;
+            case "deepTwoLinkNesting" -> DEEP_TWO_LINK_NESTING;
+            default -> throw new IllegalArgumentException("unknown corpus: " + name);
+        };
+    }
 
     private BenchmarkCorpus() {}
 }

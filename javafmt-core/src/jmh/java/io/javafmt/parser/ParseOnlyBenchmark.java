@@ -20,13 +20,6 @@ import java.util.concurrent.TimeUnit;
  * Isolation benchmark for {@link JavaParser#parseUnit}. Companion to
  * {@code JavafmtFormatBenchmark}: this measures only the parse phase on the same
  * corpus sources.
- *
- * <p>The CPU profile of {@code JavafmtFormatBenchmark} pinned ~91% of benchmark-thread
- * cycles inside javac task initialization (boot classpath scan, JarFile inflate,
- * ServiceLoader walk). If parse-only time tracks within a few percent of full-format
- * time, the profile is correct and reusing the file manager / skipping processor
- * initialization is the right next step. If parse-only is much smaller than full-format,
- * the profile is misleading and the optimization plan needs a rethink.
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.AverageTime)
@@ -43,20 +36,11 @@ public class ParseOnlyBenchmark {
 
     @Setup
     public void setUp() {
-        source = sourceFor(corpus);
+        source = BenchmarkCorpus.named(corpus);
     }
 
     @Benchmark
     public void parseSource(final Blackhole blackhole) {
         blackhole.consume(JavaParser.parseUnit(source));
-    }
-
-    private static String sourceFor(final String name) {
-        return switch (name) {
-            case "methodChains" -> BenchmarkCorpus.METHOD_CHAINS;
-            case "wideRecords" -> BenchmarkCorpus.WIDE_RECORDS;
-            case "nestedConditionals" -> BenchmarkCorpus.NESTED_CONDITIONALS;
-            default -> throw new IllegalArgumentException("unknown corpus: " + name);
-        };
     }
 }

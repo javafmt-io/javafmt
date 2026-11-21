@@ -50,27 +50,15 @@ public class JavafmtFormatBenchmark {
 
     private String source = "";
 
-    private JavafmtConfig config = JavafmtConfig.defaults();
+    private final JavafmtConfig config = JavafmtConfig.defaults();
 
     @Setup
     public void setUp() {
-        source = sourceFor(corpus);
-        config = JavafmtConfig.defaults();
+        source = BenchmarkCorpus.named(corpus);
     }
 
     @Benchmark
     public void formatSource(final Blackhole blackhole) {
         blackhole.consume(Javafmt.formatWithResult(source, config));
-    }
-
-    private static String sourceFor(final String name) {
-        return switch (name) {
-            case "methodChains" -> BenchmarkCorpus.METHOD_CHAINS;
-            case "wideRecords" -> BenchmarkCorpus.WIDE_RECORDS;
-            case "nestedConditionals" -> BenchmarkCorpus.NESTED_CONDITIONALS;
-            case "deepNesting" -> BenchmarkCorpus.DEEP_NESTING;
-            case "deepTwoLinkNesting" -> BenchmarkCorpus.DEEP_TWO_LINK_NESTING;
-            default -> throw new IllegalArgumentException("unknown corpus: " + name);
-        };
     }
 }

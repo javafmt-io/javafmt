@@ -49,7 +49,7 @@ public class GjfComparisonBenchmark {
 
     private List<String> shared = List.of();
 
-    private JavafmtConfig config = JavafmtConfig.defaults();
+    private final JavafmtConfig config = JavafmtConfig.defaults();
 
     private JavafmtConfig layoutOnly = JavafmtConfig.defaults();
 
@@ -58,7 +58,6 @@ public class GjfComparisonBenchmark {
     @Setup
     public void setUp() {
         gjf = new Formatter();
-        config = JavafmtConfig.defaults();
         layoutOnly = JavafmtConfig.defaults().withLint(false);
         final var candidates = RealWorldCorpus.clean(CANDIDATES);
         shared = candidates.stream()

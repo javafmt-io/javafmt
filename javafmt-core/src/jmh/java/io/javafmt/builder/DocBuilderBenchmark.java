@@ -55,7 +55,7 @@ public class DocBuilderBenchmark {
 
     @Setup
     public void setUp() {
-        unit = parse(sourceFor(corpus));
+        unit = parse(BenchmarkCorpus.named(corpus));
     }
 
     @Benchmark
@@ -65,14 +65,5 @@ public class DocBuilderBenchmark {
 
     private static ParsedUnit parse(final String source) {
         return JavaParser.parseUnit(source);
-    }
-
-    private static String sourceFor(final String name) {
-        return switch (name) {
-            case "methodChains" -> BenchmarkCorpus.METHOD_CHAINS;
-            case "wideRecords" -> BenchmarkCorpus.WIDE_RECORDS;
-            case "nestedConditionals" -> BenchmarkCorpus.NESTED_CONDITIONALS;
-            default -> throw new IllegalArgumentException("unknown corpus: " + name);
-        };
     }
 }
