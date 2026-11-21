@@ -16,10 +16,6 @@ public final class JavafmtMojo extends AbstractJavafmtMojo {
 
     public JavafmtMojo() {}
 
-    JavafmtMojo(final MavenProject project, final List<String> excludes, final Optional<Path> cacheFile) {
-        this(project, excludes, cacheFile, Optional.empty());
-    }
-
     JavafmtMojo(final MavenProject project, final List<String> excludes, final Optional<Path> cacheFile, final Optional<String> ratchetFrom) {
         super(project, excludes, cacheFile, ratchetFrom);
     }

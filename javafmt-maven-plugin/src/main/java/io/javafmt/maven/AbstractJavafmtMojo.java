@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /** Template contract: {@link #execute()} is final; subclasses supply {@link #handle}. */
-abstract class AbstractJavafmtMojo extends AbstractMojo {
+abstract sealed class AbstractJavafmtMojo extends AbstractMojo permits JavafmtMojo, JavafmtCheckMojo {
 
     private static final JavafmtConfig CONFIG = JavafmtConfig.defaults();
 

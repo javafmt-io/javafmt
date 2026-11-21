@@ -6,6 +6,8 @@ import org.apache.maven.model.Build;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.apache.maven.project.MavenProject;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +26,6 @@ final class MojoTestSupport {
 
     static final String REASSIGNS_A_PARAMETER = Javafmt.format("class Warns {\n    void f(int x) {\n        x = 1;\n    }\n}\n");
 
-    static MavenProject buildProject(final Path srcDir) {
-        return buildProject(srcDir, srcDir, srcDir.resolveSibling(srcDir.getFileName() + "-test"));
-    }
-
     static MavenProject buildProject(final Path root, final Path srcDir, final Path testDir) {
         final var build = new Build();
         build.setDirectory(root.toAbsolutePath().resolve("target").toString());
@@ -42,24 +40,28 @@ final class MojoTestSupport {
         return buildProject(dir, dir.resolve("src/main/java"), dir.resolve("src/test/java"));
     }
 
+    static Path sourceDirectory(final Path dir) throws IOException {
+        return Files.createDirectories(dir.resolve("src/main/java"));
+    }
+
     static JavafmtMojo formatMojo(final Path dir) {
         return formatMojo(projectInMavenLayout(dir));
     }
 
     static JavafmtMojo formatMojo(final MavenProject project) {
-        return withLog(new JavafmtMojo(project, List.of(), Optional.empty()), new CapturingLog());
+        return withLog(new JavafmtMojo(project, List.of(), Optional.empty(), Optional.empty()), new CapturingLog());
     }
 
     static JavafmtMojo formatMojo(final Path dir, final Path cacheFile, final CapturingLog log) {
-        return withLog(new JavafmtMojo(projectInMavenLayout(dir), List.of(), Optional.of(cacheFile)), log);
+        return withLog(new JavafmtMojo(projectInMavenLayout(dir), List.of(), Optional.of(cacheFile), Optional.empty()), log);
     }
 
     static JavafmtCheckMojo checkMojo(final Path dir) {
-        return new JavafmtCheckMojo(projectInMavenLayout(dir), List.of(), Optional.empty());
+        return new JavafmtCheckMojo(projectInMavenLayout(dir), List.of(), Optional.empty(), Optional.empty());
     }
 
     static JavafmtCheckMojo checkMojo(final Path dir, final Path cacheFile) {
-        return new JavafmtCheckMojo(projectInMavenLayout(dir), List.of(), Optional.of(cacheFile));
+        return new JavafmtCheckMojo(projectInMavenLayout(dir), List.of(), Optional.of(cacheFile), Optional.empty());
     }
 
     private static JavafmtMojo withLog(final JavafmtMojo mojo, final CapturingLog log) {
@@ -73,7 +75,7 @@ final class MojoTestSupport {
         repository.write("src/main/java/Invoice.java", UNFORMATTED.replace("Foo", "Invoice"));
         repository.commitAll("initial");
         repository.write("src/main/java/Invoice.java", EDITED_INVOICE);
-        final var project = buildProject(dir.resolve("src/main/java"));
+        final var project = projectInMavenLayout(dir);
         project.setFile(dir.resolve("pom.xml").toFile());
         return project;
     }

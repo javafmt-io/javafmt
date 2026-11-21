@@ -7,35 +7,45 @@ import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
 import io.javafmt.maven.MojoTestSupport.CapturingLog;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static io.javafmt.maven.MojoTestSupport.FORMATTED;
 import static io.javafmt.maven.MojoTestSupport.REASSIGNS_A_PARAMETER;
 import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
-import static io.javafmt.maven.MojoTestSupport.buildProject;
 import static io.javafmt.maven.MojoTestSupport.checkMojo;
 import static io.javafmt.maven.MojoTestSupport.formatMojo;
+import static io.javafmt.maven.MojoTestSupport.projectInMavenLayout;
 import static io.javafmt.maven.MojoTestSupport.projectInRepositoryWithAnEditedFile;
+import static io.javafmt.maven.MojoTestSupport.sourceDirectory;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JavafmtCheckMojoTest {
 
+    private static Stream<Named<Function<Path, JavafmtCheckMojo>>> checkGoals() {
+        return Stream.of(
+                Named.of("without a cache", MojoTestSupport::checkMojo),
+                Named.of("with a cache", dir -> checkMojo(dir, dir.resolve("target/javafmt.cache"))));
+    }
+
     @Test
-    void emptyFileIsProcessedNotMistakenForCacheHit(@TempDir final Path dir) throws Exception {
-        final var src = Files.createDirectories(dir.resolve("src/main/java"));
+    void anEmptyFileIsNotReportedAsUnformatted(@TempDir final Path dir) throws Exception {
+        final var src = sourceDirectory(dir);
         Files.writeString(src.resolve("Empty.java"), "");
         Files.writeString(src.resolve("Unformatted.java"), UNFORMATTED);
-        final var mojo = new JavafmtCheckMojo(buildProject(dir), List.of(), Optional.empty());
-        assertThatThrownBy(mojo::execute)
+        assertThatThrownBy(checkMojo(dir)::execute)
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining("1 file(s) not formatted")
                 .hasMessageContaining("Unformatted.java");
@@ -43,83 +53,52 @@ class JavafmtCheckMojoTest {
 
     @Test
     void emptyFileIsRecordedInCacheNotSilentlySkipped(@TempDir final Path dir, @TempDir final Path cacheDir) throws Exception {
-        final var src = Files.createDirectories(dir.resolve("src/main/java"));
-        final var empty = src.resolve("Empty.java");
-        Files.writeString(empty, "");
+        final var empty = Files.writeString(sourceDirectory(dir).resolve("Empty.java"), "");
         final var cacheFile = cacheDir.resolve("javafmt.cache");
-        final var mojo = new JavafmtCheckMojo(buildProject(dir), List.of(), Optional.of(cacheFile));
-        assertThatNoException().isThrownBy(mojo::execute);
+        assertThatNoException().isThrownBy(checkMojo(dir, cacheFile)::execute);
         // File format is "# javafmt cache v<n> <version>" header, then one "<sha256-hex> <path>"
         // line per entry (io.javafmt.cache.FileFormatCache). A genuinely-empty file that was
         // never a cache hit must still get its own entry — a prior bug filtered it out of the
         // check pipeline entirely (mistaking "empty content" for the cache-hit sentinel "") and
         // it was never recorded.
-        final var lines = Files.readAllLines(cacheFile, StandardCharsets.UTF_8);
-        assertThat(lines).anySatisfy(line -> assertThat(line).endsWith(" " + empty.toAbsolutePath()));
+        assertThat(Files.readAllLines(cacheFile)).anySatisfy(line -> assertThat(line).endsWith(" " + empty.toAbsolutePath()));
     }
 
     @Test
     void directoryNamedLikeJavaFileIsIgnored(@TempDir final Path dir) throws Exception {
-        final var src = Files.createDirectories(dir.resolve("src/main/java"));
+        final var src = sourceDirectory(dir);
         Files.createDirectories(src.resolve("Trap.java"));
         Files.writeString(src.resolve("A.java"), FORMATTED);
-        new JavafmtCheckMojo(buildProject(dir), List.of(), Optional.empty()).execute(); // must not throw
+        assertThatNoException().isThrownBy(checkMojo(dir)::execute);
     }
 
-    @Test
-    void checkGoalPassesWhenAllFilesFormatted(@TempDir final Path srcDir) throws Exception {
-        final var file = srcDir.resolve("Foo.java");
-        Files.writeString(file, Javafmt.format(UNFORMATTED), StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.empty());
-        assertThatNoException().isThrownBy(mojo::execute);
+    @ParameterizedTest
+    @MethodSource("checkGoals")
+    void checkGoalPassesWhenAllFilesAreFormatted(final Function<Path, JavafmtCheckMojo> checkGoal, @TempDir final Path dir) throws Exception {
+        Files.writeString(sourceDirectory(dir).resolve("Foo.java"), FORMATTED);
+        assertThatNoException().isThrownBy(checkGoal.apply(dir)::execute);
+        assertThatNoException().isThrownBy(checkGoal.apply(dir)::execute);
     }
 
-    @Test
-    void checkGoalFailsWithUnformattedFilesNamed(@TempDir final Path srcDir) throws Exception {
-        final var file = srcDir.resolve("Unformatted.java");
-        Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.empty());
-        assertThatThrownBy(mojo::execute)
+    @ParameterizedTest
+    @MethodSource("checkGoals")
+    void checkGoalFailsAndNamesTheUnformattedFiles(final Function<Path, JavafmtCheckMojo> checkGoal, @TempDir final Path dir) throws Exception {
+        final var file = Files.writeString(sourceDirectory(dir).resolve("Unformatted.java"), UNFORMATTED);
+        assertThatThrownBy(checkGoal.apply(dir)::execute)
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining("javafmt check failed: 1 file(s) not formatted")
                 .hasMessageContaining(file.toString());
     }
 
     @Test
-    void checkGoalSkipsParseErrorFilesWithoutFailing(@TempDir final Path srcDir) throws Exception {
-        final var file = srcDir.resolve("Bad.java");
-        Files.writeString(file, "this is not valid java source code", StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.empty());
-        assertThatNoException().isThrownBy(mojo::execute);
-    }
-
-    @Test
-    void checkGoal_withCacheEnabled_doesNotFailOnUpToDateFile(@TempDir final Path srcDir, @TempDir final Path cacheDir) throws Exception {
-        final var formatted = Javafmt.format(UNFORMATTED);
-        final var file = srcDir.resolve("Foo.java");
-        Files.writeString(file, formatted, StandardCharsets.UTF_8);
-        final var cacheFile = cacheDir.resolve("javafmt.cache");
-        final var first = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
-        assertThatNoException().isThrownBy(first::execute);
-        final var second = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
-        assertThatNoException().isThrownBy(second::execute);
-    }
-
-    @Test
-    void checkGoal_withCacheEnabled_stillFailsOnUnformattedFile(@TempDir final Path srcDir, @TempDir final Path cacheDir) throws Exception {
-        final var file = srcDir.resolve("Unformatted.java");
-        Files.writeString(file, UNFORMATTED, StandardCharsets.UTF_8);
-        final var cacheFile = cacheDir.resolve("javafmt.cache");
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of(), Optional.of(cacheFile));
-        assertThatThrownBy(mojo::execute)
-                .isInstanceOf(MojoExecutionException.class)
-                .hasMessageContaining(file.toString());
+    void checkGoalSkipsParseErrorFilesWithoutFailing(@TempDir final Path dir) throws Exception {
+        Files.writeString(sourceDirectory(dir).resolve("Bad.java"), "this is not valid java source code");
+        assertThatNoException().isThrownBy(checkMojo(dir)::execute);
     }
 
     @Test
     void aSecondCheckOnTheSameCacheStillFails(@TempDir final Path dir) throws Exception {
-        final var file = Files.writeString(
-                Files.createDirectories(dir.resolve("src/main/java")).resolve("Unformatted.java"), UNFORMATTED);
+        final var file = Files.writeString(sourceDirectory(dir).resolve("Unformatted.java"), UNFORMATTED);
         final var cacheFile = dir.resolve("target/javafmt.cache");
         assertThatThrownBy(checkMojo(dir, cacheFile)::execute)
                 .isInstanceOf(MojoExecutionException.class)
@@ -144,7 +123,7 @@ class JavafmtCheckMojoTest {
 
     @Test
     void checkGoalLogsWarningsLikeTheFormatGoal(@TempDir final Path dir) throws Exception {
-        Files.writeString(Files.createDirectories(dir.resolve("src/main/java")).resolve("Warns.java"), REASSIGNS_A_PARAMETER);
+        Files.writeString(sourceDirectory(dir).resolve("Warns.java"), REASSIGNS_A_PARAMETER);
         final var formatLog = new CapturingLog();
         final var format = formatMojo(dir);
         format.setLog(formatLog);
@@ -167,7 +146,7 @@ class JavafmtCheckMojoTest {
                 .isInstanceOf(MojoExecutionException.class)
                 .hasMessageContaining("1 file(s) not formatted")
                 .hasMessageContaining("Invoice.java")
-                .satisfies(t -> assertThat(t.getMessage()).doesNotContain("Order.java"));
+                .hasMessageNotContaining("Order.java");
     }
 
     @Test
@@ -179,25 +158,17 @@ class JavafmtCheckMojoTest {
     }
 
     @Test
-    void checkGoalIgnoresExcludedUnformattedFiles(@TempDir final Path srcDir) throws Exception {
-        final var fixture = srcDir.resolve("test-fixtures/input.java");
-        Files.createDirectories(fixture.getParent());
-        Files.writeString(fixture, UNFORMATTED, StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of("**/input.java"), Optional.empty());
-        assertThatNoException().isThrownBy(mojo::execute);
-    }
-
-    @Test
-    void checkGoalStillFailsForUnformattedFilesOutsideExcludes(@TempDir final Path srcDir) throws Exception {
-        final var fixture = srcDir.resolve("test-fixtures/input.java");
-        Files.createDirectories(fixture.getParent());
-        Files.writeString(fixture, UNFORMATTED, StandardCharsets.UTF_8);
-        final var normal = srcDir.resolve("Normal.java");
-        Files.writeString(normal, UNFORMATTED, StandardCharsets.UTF_8);
-        final var mojo = new JavafmtCheckMojo(buildProject(srcDir), List.of("**/input.java"), Optional.empty());
+    void checkGoalFailsOnlyForUnformattedFilesOutsideExcludes(@TempDir final Path dir) throws Exception {
+        final var src = sourceDirectory(dir);
+        final var fixture = Files.createDirectories(src.resolve("test-fixtures"))
+                .resolve("input.java");
+        Files.writeString(fixture, UNFORMATTED);
+        final var normal = Files.writeString(src.resolve("Normal.java"), UNFORMATTED);
+        final var mojo = new JavafmtCheckMojo(projectInMavenLayout(dir), List.of("**/input.java"), Optional.empty(), Optional.empty());
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
+                .hasMessageContaining("1 file(s) not formatted")
                 .hasMessageContaining(normal.toString())
-                .satisfies(t -> assertThat(t.getMessage()).doesNotContain(fixture.toString()));
+                .hasMessageNotContaining(fixture.toString());
     }
 }
