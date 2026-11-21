@@ -235,7 +235,7 @@ With `--diagnostics=json`, stderr switches from human-readable text to NDJSON: o
 |--------------------|-----------------------------------------------|------------------|--------------------------------------------------------------------------------------------------------------------------|
 | Maven integration  | Decent (via Spotless or fmt-maven-plugin)     | Native           | A real `javafmt-maven-plugin` with `check` and `format` goals. Add it to `pom.xml`; there is nothing else to install.    |
 | Gradle integration | Spotless                                      | Native           | The `io.javafmt` plugin adds `javafmtCheck` to `check`. A Spotless step is available too.                                |
-| Speed              | google-java-format CLI is fast                | Same league      | O(n) Wadler-Lindig printer. Fat JAR plus GraalVM native-image gives roughly 10 ms cold start. No Node.js or Eclipse.    |
+| Speed              | google-java-format CLI is fast                | Same league      | O(n) Wadler-Lindig printer. The GraalVM native image starts cold in roughly 10 ms. No Node.js or Eclipse.                |
 | Formatting quality | google-java-format, Prettier Java             | Comparable       | The same Doc-algebra approach Prettier uses, so line breaking is consistent and predictable.                            |
 | Ergonomics         | google-java-format wins on this               | On par           | Zero config and no XML to export from an IDE. Formatting output is a contract and does not drift between versions.      |
 | IntelliJ plugin    | IntelliJ's built-in formatter                 | Good enough      | `javafmt-intellij` calls the same core, so what the IDE shows is what CI checks.                                        |
@@ -248,4 +248,4 @@ With `--diagnostics=json`, stderr switches from human-readable text to NDJSON: o
 - "Formatting isn't stable between versions." Any change to formatting behavior is a major version bump, which is why javafmt will stay below 1.0.0 for a while.
 - "Requires a full Node.js runtime." javafmt is pure Java, with integrations for Maven, Gradle, Spotless, IntelliJ, VS Code and a standalone CLI.
 - "Requires the IDE to configure." There is nothing to configure, so there is nothing to argue about.
-- "No proper standalone tool." javafmt ships one: `javafmt-cli`, as a fat JAR and as native binaries.
+- "No proper standalone tool." javafmt ships one: `javafmt-cli`, as native binaries for darwin-arm64, linux-arm64, linux-x64 and win32-x64.

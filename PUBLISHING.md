@@ -68,10 +68,10 @@ gpg --armor --export <YOUR_KEY_ID>
 
 ```bash
 # Stage artifacts locally without publishing
-gradle publishAllPublicationsToStagingRepository \
-  -Pversion=0.1.0 \
-  -PJRELEASER_GPG_SECRET_KEY="$(gpg --armor --export-secret-keys <KEY_ID>)" \
-  -PJRELEASER_GPG_PASSPHRASE=<passphrase>
+# Signing reads the key and passphrase from the environment, not from -P properties
+JRELEASER_GPG_SECRET_KEY="$(gpg --armor --export-secret-keys <KEY_ID>)" \
+JRELEASER_GPG_PASSPHRASE=<passphrase> \
+gradle publishAllPublicationsToStagingRepository -Pversion=0.1.0
 
 # Check the staging dir — signed JARs, POMs, and .asc files
 ls build/staging-deploy/io/javafmt/

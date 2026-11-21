@@ -18,7 +18,7 @@ class X {}
 
 ## Why
 
-The Java formatters that exist are either slow or always a language version behind. javafmt uses `javac`'s own parser (`com.sun.source.tree`), so it supports every construct that JDK's `javac` does. The CLI ships as a fat JAR and as a platform-native binary via GraalVM `native-image`.
+The Java formatters that exist are either slow or always a language version behind. javafmt uses `javac`'s own parser (`com.sun.source.tree`), so it supports every construct that JDK's `javac` does. The CLI ships as native binaries for darwin-arm64, linux-arm64, linux-x64 and win32-x64, built with GraalVM `native-image`.
 
 The style is opinionated on purpose. Every config knob is a debate your team would otherwise have to have. Pick javafmt if you'd rather skip that meeting. [Getting started](/docs/intro#why-javafmt) has the longer case, including what it does for code written by coding agents.
 
