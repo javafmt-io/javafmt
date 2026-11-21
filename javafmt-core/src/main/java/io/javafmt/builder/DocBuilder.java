@@ -62,7 +62,6 @@ import com.sun.source.tree.WhileLoopTree;
 import com.sun.source.tree.WildcardTree;
 import com.sun.source.tree.YieldTree;
 import io.javafmt.Diagnostic;
-import io.javafmt.JavafmtConfig;
 import io.javafmt.doc.Doc;
 import io.javafmt.doc.LeadingCommentAttacher;
 import io.javafmt.parser.CommentToken;
@@ -476,23 +475,9 @@ public final class DocBuilder {
         return Objects.requireNonNull(result, () -> "renderer returned null for " + tree.getKind());
     }
 
-    public static Doc build(final ParsedUnit unit) {
-        return build(unit, JavafmtConfig.defaults());
-    }
-
-    public static Doc build(final ParsedUnit unit, final JavafmtConfig config) {
-        return buildWithFallbacks(unit, config).doc();
-    }
-
-    /**
-     * Builds the {@link Doc} tree for {@code unit}, plus any warnings raised while doing so.
-     * {@code config} threads through this signature to stay part of javafmt's caller-facing
-     * contract, even though the builder itself has no config-dependent rendering left since
-     * member reordering was removed.
-     */
-    public static BuildResult buildWithFallbacks(final ParsedUnit unit, final JavafmtConfig config) {
+    /** Builds the {@link Doc} tree for {@code unit}, plus any warnings raised while doing so. */
+    public static BuildResult build(final ParsedUnit unit) {
         Objects.requireNonNull(unit, "unit");
-        Objects.requireNonNull(config, "config");
         final var builder = new DocBuilder(unit);
         final var doc = builder.visitCompilationUnit(unit.tree());
         return new BuildResult(Objects.requireNonNull(doc, "visitCompilationUnit returned null"), List.copyOf(builder.diagnostics));

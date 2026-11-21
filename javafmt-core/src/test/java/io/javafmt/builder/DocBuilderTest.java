@@ -11,7 +11,6 @@ import com.sun.source.tree.ModuleTree;
 import com.sun.source.tree.PackageTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
-import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
 import io.javafmt.printer.Printer;
@@ -34,7 +33,8 @@ class DocBuilderTest {
     private static final int WIDTH = 150;
 
     private static String format(final String source) {
-        return new Printer(WIDTH).print(DocBuilder.build(JavaParser.parseUnit(source)))
+        return new Printer(WIDTH).print(
+                        DocBuilder.build(JavaParser.parseUnit(source)).doc())
                 .stripTrailing();
     }
 
@@ -127,7 +127,7 @@ class DocBuilderTest {
                 new IdentityHashMap<>(),
                 new IdentityHashMap<>(),
                 List.of());
-        assertThatThrownBy(() -> DocBuilder.build(unit, JavafmtConfig.defaults()))
+        assertThatThrownBy(() -> DocBuilder.build(unit))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("OTHER")
                 .hasMessageContaining("<synthetic-OTHER-node>");
@@ -156,7 +156,7 @@ class DocBuilderTest {
                 new IdentityHashMap<>(),
                 new IdentityHashMap<>(),
                 List.of());
-        assertThatThrownBy(() -> DocBuilder.build(unit, JavafmtConfig.defaults()))
+        assertThatThrownBy(() -> DocBuilder.build(unit))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("<init>");
     }

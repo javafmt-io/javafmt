@@ -83,7 +83,7 @@ final class FormatStages {
      */
     FormatResult render(final String source, final LintEngine.Outcome lintOutcome, final JavafmtConfig config) {
         try {
-            final var built = DocBuilder.buildWithFallbacks(lintOutcome.unit(), config);
+            final var built = DocBuilder.build(lintOutcome.unit());
             final var output = withOneTrailingNewline(PRINTER.print(built.doc()));
             final var linted = lintOutcome.unit().source();
             final var mismatch = verifyOutput(config, source, linted, output);

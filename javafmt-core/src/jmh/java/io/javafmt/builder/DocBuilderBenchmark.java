@@ -1,7 +1,6 @@
 package io.javafmt.builder;
 
 import io.javafmt.BenchmarkCorpus;
-import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -20,7 +19,7 @@ import org.openjdk.jmh.infra.Blackhole;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Isolation benchmark for {@link DocBuilder#buildWithFallbacks}. Sister benchmark to
+ * Isolation benchmark for {@link DocBuilder#build}. Sister benchmark to
  * {@code ParseOnlyBenchmark}: parsing happens once in {@code @Setup} so each measured
  * invocation only times the AST -> Doc IR walk and comment-attachment work that
  * {@code DocBuilder} performs.
@@ -54,17 +53,14 @@ public class DocBuilderBenchmark {
 
     private ParsedUnit unit = parse(BenchmarkCorpus.METHOD_CHAINS);
 
-    private JavafmtConfig config = JavafmtConfig.defaults();
-
     @Setup
     public void setUp() {
         unit = parse(sourceFor(corpus));
-        config = JavafmtConfig.defaults();
     }
 
     @Benchmark
     public void buildDoc(final Blackhole blackhole) {
-        blackhole.consume(DocBuilder.buildWithFallbacks(unit, config));
+        blackhole.consume(DocBuilder.build(unit));
     }
 
     private static ParsedUnit parse(final String source) {

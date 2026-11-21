@@ -2,7 +2,6 @@ package io.javafmt.builder;
 
 import io.javafmt.Diagnostic;
 import io.javafmt.Javafmt;
-import io.javafmt.JavafmtConfig;
 import io.javafmt.Position;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
@@ -30,7 +29,7 @@ class DocBuilderDiagnosticsTest {
                 }
                 """;
         final var unit = JavaParser.parseUnit(source);
-        final var built = DocBuilder.buildWithFallbacks(unit, JavafmtConfig.defaults());
+        final var built = DocBuilder.build(unit);
         final var braceWarnings = built.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.Warning)
                 .filter(d -> d.message().contains("braces"))
@@ -57,7 +56,7 @@ class DocBuilderDiagnosticsTest {
                 }
                 """;
         final var unit = JavaParser.parseUnit(source);
-        final var built = DocBuilder.buildWithFallbacks(unit, JavafmtConfig.defaults());
+        final var built = DocBuilder.build(unit);
         final var braceWarnings = built.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.Warning)
                 .filter(d -> d.message().contains("braces"))
@@ -81,7 +80,7 @@ class DocBuilderDiagnosticsTest {
                 }
                 """;
         final var unit = JavaParser.parseUnit(source);
-        final var built = DocBuilder.buildWithFallbacks(unit, JavafmtConfig.defaults());
+        final var built = DocBuilder.build(unit);
         final var braceWarnings = built.diagnostics().stream()
                 .filter(d -> d instanceof Diagnostic.Warning)
                 .filter(d -> d.message().contains("braces"))
@@ -115,7 +114,7 @@ class DocBuilderDiagnosticsTest {
                     }
                 }
                 """;
-        final var built = DocBuilder.buildWithFallbacks(JavaParser.parseUnit(source), JavafmtConfig.defaults());
+        final var built = DocBuilder.build(JavaParser.parseUnit(source));
         assertThat(built.diagnostics())
                 .extracting(d -> ((Position.At) d.position()).line())
                 .containsExactly(15, 13, 11);
