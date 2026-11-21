@@ -16,7 +16,6 @@ description = "Maven plugin for javafmt, the opinionated Java code formatter."
 
 dependencies {
     implementation(project(":javafmt-core"))
-    compileOnly(libs.slf4j.api)
     compileOnly(libs.maven.plugin.api)
     compileOnly(libs.maven.core)
     compileOnly(libs.maven.plugin.annotations)
