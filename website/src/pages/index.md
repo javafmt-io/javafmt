@@ -18,7 +18,7 @@ class X {}
 
 ## Why
 
-The Java formatters that exist are either slow or always a language version behind. javafmt uses `javac`'s own parser (`com.sun.source.tree`), so when new syntax lands in the JDK it's already supported. The CLI ships as a fat JAR and as a platform-native binary via GraalVM `native-image`.
+The Java formatters that exist are either slow or always a language version behind. javafmt uses `javac`'s own parser (`com.sun.source.tree`), so it supports every construct that JDK's `javac` does. The CLI ships as a fat JAR and as a platform-native binary via GraalVM `native-image`.
 
 The style is opinionated on purpose. Every config knob is a debate your team would otherwise have to have. Pick javafmt if you'd rather skip that meeting. [Getting started](/docs/intro#why-javafmt) has the longer case, including what it does for code written by coding agents.
 
@@ -32,7 +32,7 @@ The style is opinionated on purpose. Every config knob is a debate your team wou
 
 - 150-character lines, 4-space indent, 8-space continuation indent
 - K&R braces (missing braces get auto-added)
-- Imports in three ASCII-sorted groups: third-party, then `java.*` and `javax.*`, then static
+- Imports in three ASCII-sorted groups: everything except `java.*` and `javax.*`, then `java.*` and `javax.*`, then static
 - Ruff-style lint pass: auto-fix what's safe, warn on what isn't
 
 Full spec: [Formatting rules](/docs/rules).

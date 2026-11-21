@@ -29,7 +29,27 @@ The usual way to enforce style in CI is Checkstyle, but Checkstyle only reports.
 </plugin>
 ```
 
-`mvn io.javafmt:javafmt-maven-plugin:format` rewrites in place. `…:check` exits non-zero when any file needs formatting, which makes it the CI gate.
+`mvn io.javafmt:javafmt-maven-plugin:format` rewrites in place. `…:check` exits non-zero when any file needs formatting, which makes it the CI gate. The goals bind by default to `process-sources` and `verify`, and work on each module's main and test source directories.
+
+The Maven plugin formats without the compile classpath, so the [rules that need the classpath](./rules.md#rules-that-need-the-classpath) never run under it: `ExplodeStarImports` does nothing, and `LocalVarUseVar` and `RedundantTypeArguments` make only the rewrites they can prove from the source alone. Both goals log what javafmt reports for a file. A file with an error is left as written, and `check` does not count it as unformatted.
+
+```xml
+<configuration>
+    <excludes>
+        <exclude>**/gen/**</exclude>
+        <exclude>**/Generated*.java</exclude>
+    </excludes>
+    <cache>true</cache>
+</configuration>
+```
+
+| Parameter | Property | Default | What it does |
+| --------- | -------- | ------- | ------------ |
+| `excludes` | | none | Glob patterns of files to skip. A file is skipped when its full path or its file name matches one. |
+| `cache` | `javafmt.cache` | `false` | Skips files that have not changed since javafmt last formatted or checked them. |
+| `cacheFile` | `javafmt.cacheFile` | `${project.build.directory}/javafmt.cache` | Where the cache is kept. A relative path resolves against each module's directory, so every module has its own cache. |
+| `threads` | `javafmt.threads` | `0` | The most files to format at once. `0` means one per available processor. |
+| `ratchetFrom` | `javafmt.ratchetFrom` | none | A git ref: only files changed since it are formatted or checked (see [Adopting javafmt gradually](#adopting-javafmt-gradually)). |
 
 ### Gradle
 
@@ -48,7 +68,7 @@ javafmt {
 }
 ```
 
-`excludes` takes Ant-style patterns, matched against each source file's path relative to the project directory. A source directory outside the project directory is matched the same way, so its paths start with `../`. `analyze` (on by default) passes each source set's compile classpath to javafmt, which turns on the [rules that need the classpath](./rules.md#rules-that-need-the-classpath); `false` formats without them. With `analyze` on, Gradle builds the projects on the compile classpath before it checks, and a check reads every file of the source set whenever one of them changes, since a change in one file can change how names in another resolve. `maxHeapSize` (default `1g`) and `jvmArgs` configure the worker JVM. The worker runs with compact object headers (`-XX:+UseCompactObjectHeaders`), which cut what javafmt allocates by about 7%; `jvmArgs.add('-XX:-UseCompactObjectHeaders')` turns them off. `ratchetFrom` limits both tasks to the files changed since a git ref (see [Adopting javafmt gradually](#adopting-javafmt-gradually)).
+`excludes` takes Ant-style patterns, matched against each source file's path relative to the project directory. A source directory outside the project directory is matched the same way, so its paths start with `../`. `analyze` (on by default) passes each source set's compile classpath to javafmt, which turns on the [rules that need the classpath](./rules.md#rules-that-need-the-classpath); `false` formats without them. With `analyze` on, Gradle builds the projects on the compile classpath before it checks, and a check reads every file of the source set whenever one of them changes, since a change in one file can change how names in another resolve. `maxHeapSize` (default `1g`) and `jvmArgs` configure the worker JVM. The worker runs with compact object headers (`-XX:+UseCompactObjectHeaders`), which cut what javafmt allocates by about 7%; `jvmArgs.add("-XX:-UseCompactObjectHeaders")` turns them off. `ratchetFrom` limits both tasks to the files changed since a git ref (see [Adopting javafmt gradually](#adopting-javafmt-gradually)).
 
 The plugin needs Gradle 9.9 or newer. It loads in any Gradle daemon JVM, but javafmt itself runs in a worker process on a Java 25 toolchain. If Gradle can't find one, `javafmtCheck` and `javafmtFormat` fail and say so. Either install a JDK 25, or let Gradle download one by adding the Foojay resolver to the `plugins` block of `settings.gradle.kts`. The error message names the exact line to add, with the resolver version the plugin was tested against:
 
@@ -68,7 +88,7 @@ buildscript {
 }
 
 plugins {
-    id("com.diffplug.spotless") version "8.10.4"
+    id("com.diffplug.spotless") version "8.11.0"
 }
 
 spotless {
@@ -84,7 +104,7 @@ spotless {
 }
 ```
 
-The compile classpath turns on the [rules that need the classpath](./rules.md#rules-that-need-the-classpath), the same rules the Gradle plugin runs by default. Names the classpath cannot resolve, such as test dependencies when you pass the main classpath, only stop the rewrites that would need them. Every `create` takes the project directory. Spotless's up-to-date check covers the `.javafmt` [project file](#project-file) that applies to it and every `.javafmt` below it, so changing, adding or removing one formats the files again. Like a directory argument to the CLI, the search skips `build`, `generated`, `node_modules`, `out` and `target` directories. `JavafmtFormatterStep.create(projectDir)` formats without the classpath, and `create(JavafmtConfig, projectDir)` takes a configuration instead of the defaults.
+The compile classpath turns on the [rules that need the classpath](./rules.md#rules-that-need-the-classpath), the same rules the Gradle plugin runs by default. Names the classpath cannot resolve, such as test dependencies when you pass the main classpath, only stop the rewrites that would need them. Every `create` takes the project directory. Spotless's up-to-date check covers the `.javafmt` [project file](#project-file) that applies to it and every `.javafmt` below it, so changing, adding or removing one formats the files again. Like a directory argument to the CLI, the search skips `.git`, `build`, `generated`, `node_modules`, `out` and `target` directories. `JavafmtFormatterStep.create(projectDir)` formats without the classpath, and `create(JavafmtConfig, projectDir)` takes a configuration instead of the defaults.
 
 Use `addStep(…create(…))`, not `custom("javafmt") { … }`. A `custom` step's up-to-date key is the integer you pass to `bumpThisNumberIfACustomStepChanges`, so upgrading javafmt would leave `spotlessCheck` passing on stale formatting. `create` keys on the javafmt version, so an upgrade reformats.
 
@@ -92,7 +112,7 @@ To skip files, use Spotless's own `targetExclude("src/main/java/gen/**")` in Gra
 
 ### VS Code
 
-Search **javafmt** in the Marketplace. The extension bundles the native [`javafmt` binary](#cli) for your platform and runs it as one long-lived `javafmt --daemon` process. Set `javafmt.binaryPath` to use a different binary. No Java runtime is needed.
+Search **javafmt** in the Marketplace. The extension bundles the native [`javafmt` binary](#cli) for your platform and runs it as one long-lived `javafmt --daemon` process. Set `javafmt.binaryPath` to use a different binary, and turn `javafmt.enable` off (it is on by default) to stop the extension from formatting. No Java runtime is needed.
 
 javafmt is VS Code's Java document formatter, so *Format Document* and VS Code's own format-on-save use it. To format on save, turn on `editor.formatOnSave` for Java in your `settings.json`:
 
@@ -192,13 +212,9 @@ Every integration reads it: the CLI, the Gradle plugin, the Spotless step, the M
 
 A skipped rule does what it does without a classpath, so `LocalVarUseVar` and `RedundantTypeArguments` keep the rewrites they can prove from the source alone. `analyze.skip` is the only setting. A misspelled setting, or a name that is not a rule that needs the classpath, fails every file the project file applies to, and the error names the project file and the wrong name. Changing the file invalidates the CLI's `--cache`, the Gradle plugin's up-to-date checks and build cache entries, and the Spotless step's up-to-date state.
 
-## What it enforces
-
-See [Formatting rules](./rules.md).
-
 ## CLI reference
 
-Run `javafmt --help` for every option and the exit codes.
+Run `javafmt --help` for every option and the exit codes. What the formatter enforces is in [Formatting rules](./rules.md).
 
 ## JSON diagnostics (`--diagnostics=json`)
 

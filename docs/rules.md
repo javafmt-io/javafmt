@@ -34,6 +34,8 @@ Invoice buildInvoice(final Customer customer,
 - A wrapped list whose first parameter starts with a `//` comment also wraps at +8, since the comment cannot sit right after `(`.
 - A wrapped list whose first parameter has a `//` comment after one of its annotations also wraps at +8, with the comment beside the annotation and the rest of the parameter on the next line.
 - A wrapped list that already fits on one line stays on one line.
+- When a class's `implements` list does not fit on the header's line, `implements` starts its own line at +8 and the types follow one per line at +12, the first beside the keyword.
+- A type-parameter list that does not fit, on a class or on a method, puts `<` and `>` each on a line of their own with one parameter per line at +4 between them. On a method, the `>` line goes on to the return type.
 - Arguments that do not fit on the call's line go on the next line at +8, all on that line when they fit there and one per line otherwise. They go one per line as well when one of them spans several lines.
 
 ```java
@@ -46,7 +48,7 @@ log.info(
         event.getSpaceId());
 ```
 
-- `&&`/`||` wrapping indents +4.
+- `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters. One that fits goes on one line, however the author broke it.
 
 ## Braces
 
@@ -81,7 +83,6 @@ import static java.util.Objects.requireNonNull;
 
 - Module imports (`import module M;`) come first, in their own group before the other groups.
 - Wildcard imports are left in place with a warning (`AvoidStarImport`), and expanded only by `ExplodeStarImports`, which needs the classpath.
-- When a file has no `java.*` import, the blank line between groups 1 and 3 stays single.
 - Unused imports are removed. Module imports are never removed as unused, because they implicitly bring in many types.
 
 ## Line endings and byte-order marks
@@ -237,7 +238,6 @@ return events.stream()
 ```
 
 - The first call of a chain stays on the line of its receiver (`orders.stream()`, `Arrays.stream(values)`, `return Shipments.builder()`). The exception is a chain that starts by creating a builder, a `new` of a class whose name ends in `Builder` such as `new OkHttpClient.Builder()` or `new StringBuilder()`: its first call goes on the next line, and so does each call after it.
-- `&&`/`||` chains break before every operator, at +4, only when they do not fit in 150 characters. One that fits goes on one line, however the author broke it.
 
 A chain that is the last argument of a method call or of `new`, and that always breaks (see above) or does not fit on one line even on a line of its own below the call, starts on the call's line. That line holds what the chain's own first line would hold when it breaks (see above), and each later call goes on its own line at +8 past the start of that line:
 
@@ -295,11 +295,9 @@ This holds when the line up to the condition's first break fits in 150 character
 
 A record that fits on one line stays there. Otherwise it goes one component per line, aligned under the first component, closing with `) {}` when the body is empty. A record with a body closes the component list with `) {` and the body follows. When aligning under the first component would push a line past 150 characters, the components wrap at +8 instead, still one per line. The same +8 form applies when the first component starts with a `//` comment, since the comment cannot sit right after `(`. It also applies when the first component has a `//` comment after one of its annotations; the comment stays beside the annotation.
 
-Single-component and small records stay inline: `private record Money(long cents, Currency currency) {}`.
-
 ## Switch expressions
 
-Arrow-style, cases aligned. Pattern-matching switches use type patterns, `when` guards, and `case null, default`.
+A switch keeps the form the author wrote: colon-form cases, arrow-form cases, or a mix of the two in one switch. Cases sit one level inside the `switch`. An arrow case whose body does not fit on the case's line breaks after the `->` and puts the body on the next line at +4. `DefaultComesLast` moves `default` last in arrow switches (see [Lint pass](#lint-pass-safe-rewrites)).
 
 ## Annotations
 
@@ -356,7 +354,7 @@ class OrderIntegrationTest {
 - These positions are covered: file headers above `package`, comments beside the `package` line and its annotations, leading comments on declarations, comments between two annotations and between the annotations and the rest of a type, method, field or local declaration, comments on imports, comments between statements, trailing same-line comments, comments inside argument and parameter lists, comments inside empty blocks and empty array initializers, comments between the last statement, module directive or array element and the closing brace, comments before the `)` of a `for` or `try` header, and comments before the `;` of a declaration's initializer.
 - A comment stays on the line it was written on. A `//` comment after an argument's comma, in a method call, a `new X(...)` expression, an annotation, an array initializer, an enum constant or an `implements`, `permits` or `throws` list, after an annotation on its own line (`@Override // why`) or on a parameter or record component, on a chain link, or on the `{` that opens any block or body keeps that line: a method, constructor, lambda, initializer block, `if` or `else` branch, loop, `try`, `catch`, `finally`, `synchronized`, `switch`, nested block, or class, interface, enum, record, enum constant or anonymous class body. So does a comment after a `case`'s `:` or `->`; after `->` the body follows on the next line. A comment around a binary operator (`&&`, `||`, `+`, `|` and the rest) or a ternary's `?` or `:` stays on its side of the operator: an own-line comment before the operator keeps its own line, a comment at the end of an operand's line keeps that line and breaks the chain before the operator, and a comment at the end of a line after the operator stays after it. A comment after a type's header with the `{` on the next line stays on the header line, after the `{` that javafmt moves up beside it. When several comments sit there, the first goes beside the `{` and the others go on their own lines at the top of the body. A comment at the end of a line after an argument, array initializer element, parameter, enum constant, `for` header part or `try` resource, with the `,` or `;` that follows it on the next line, moves after that separator, so it cannot swallow it. Several comments written there move together, in the order they were written. A comment written after a `,` or `;` in a `for` header stays after it, and the rest of the header continues on the next line at the continuation indent. A comment at the end of a line before any other `,`, `;` or closing `)` keeps its line, and the punctuation moves to the next line. After the last argument of a call or `new`, that `)` goes back to the indentation of the line the call starts on.
 - Continuation lines of a block comment reindent to the comment's final output column, not its source column.
-- IDE and tooling directives stay byte-for-byte and are not reindented: `// noinspection ...`, `// CHECKSTYLE:OFF|ON`, `// SUPPRESS CHECKSTYLE ...`, `// @formatter:off|on`, `// NOPMD`, `// $NON-NLS-...$`, and the block-comment equivalents.
+- IDE and tooling directives such as `// noinspection ...`, `// CHECKSTYLE:OFF`, `// @formatter:off`, `// NOPMD` and `// $NON-NLS-1$` are ordinary comments: javafmt never interprets them, and they are placed like any other comment.
 - `//` and `/*` are recognized only outside string literals, character literals and text blocks.
 
 ## Blank lines
@@ -390,7 +388,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `ArrayTypeStyle` | `String[] arguments`, not `String args[]`. A comment written among the brackets after the name, as in `byte buffer[/* size */]`, moves after the name. |
 | `UpperEll` | `1L`, not `1l`. |
 | `MultipleVariableDeclarations` | One declaration per statement, in a block, a `case` group or a class body. A comment among the shared annotations, modifiers and type stays with the first declaration. |
-| `UnusedImports` | Removes unreferenced imports. |
+| `RemoveUnusedImports` | Removes unreferenced imports. |
 | `EmptyStatement` | Drops lone `;`, including the optional one after the last resource of a `try`: `try (var in = open();)` becomes `try (var in = open())`. |
 | `OneStatementPerLine` | Splits multiple statements on one line. A comment between two of them stays at the end of the first one's line. |
 | `NewlineAtEndOfFile` | Ends the file with exactly one line ending, in the file's own style. |
@@ -414,13 +412,13 @@ The classpath may be incomplete or out of date. A rewrite that depends on a name
 
 Besides the classpath, a name resolves from the other files formatted in the same run. javafmt attributes a run in batches of up to 128 files, taken in order and cut where the directory changes when it can, and halves a batch with more than 4 MB of source, so its memory stays bounded however many files it formats; a name declared in a file of another batch resolves only through the classpath. The batches depend on the files and not on what formatting does to them, so formatting the same files again changes nothing, and a run formats them the same way on every machine. When a rewrite makes another one possible, javafmt attributes the rewritten files again before it finishes.
 
-A `.javafmt` file can turn any of these rules off for the files below it:
+A `.javafmt` file can turn any of these rules off for the files below it, by name. `analyze.skip` takes a comma-separated list of `ExplodeStarImports`, `LocalVarUseVar` and `RedundantTypeArguments`:
 
 ```properties
 analyze.skip=ExplodeStarImports, LocalVarUseVar
 ```
 
-A skipped rule behaves exactly as it does without a classpath, so the parts of `LocalVarUseVar` and `RedundantTypeArguments` that need no classpath keep running. javafmt reads the first `.javafmt` it finds walking up from the formatted file's directory, and stops at the directory that contains `.git`. `analyze.skip` is the only setting. An unknown setting, or a name that is not one of the three rules above, is an error: javafmt leaves every file the project file applies to unchanged and says which name is wrong.
+A skipped rule behaves exactly as it does without a classpath, so the parts of `LocalVarUseVar` and `RedundantTypeArguments` that need no classpath keep running. `analyze.skip` is the only setting. An unknown setting, or a name that is not one of those three rules, is an error: javafmt leaves every file the project file applies to unchanged and says which name is wrong. [Getting started](./intro.md#project-file) says where javafmt looks for the file.
 
 ### Out of scope
 
