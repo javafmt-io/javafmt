@@ -135,7 +135,7 @@ public final class FileFormatCache implements FormatCache {
                 .map(e -> e.getValue() + " " + e.getKey())
                 .collect(Collectors.joining("\n", header + "\n", "\n"));
         try {
-            SourceFiles.write(cacheFile.toAbsolutePath(), body);
+            SourceFiles.replace(cacheFile, body);
         } catch (final UncheckedIOException e) {
             throw new UncheckedIOException("failed to save javafmt cache to " + cacheFile, e.getCause());
         }

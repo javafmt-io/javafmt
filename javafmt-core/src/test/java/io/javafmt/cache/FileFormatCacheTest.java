@@ -208,6 +208,19 @@ class FileFormatCacheTest {
     }
 
     @Test
+    void aReadOnlyCacheFileIsReplacedBySave(@TempDir final Path dir) throws Exception {
+        final var cacheFile = Files.writeString(dir.resolve(".javafmt-cache"), "stale\n");
+        assertThat(cacheFile.toFile().setReadOnly()).isTrue();
+        final var content = "class A {}\n";
+        final var path = Files.writeString(dir.resolve("A.java"), content);
+        final var cache = FileFormatCache.load(cacheFile, KEY);
+        cache.recordFormatted(path, content);
+        cache.save();
+        assertThat(FileFormatCache.load(cacheFile, KEY).isUpToDate(path, content))
+                .isTrue();
+    }
+
+    @Test
     void savePrunesEntriesForFilesThatNoLongerExist(@TempDir final Path dir) throws Exception {
         final var cacheFile = dir.resolve(".javafmt-cache");
         final var kept = Files.writeString(dir.resolve("Kept.java"), "class Kept {}\n");

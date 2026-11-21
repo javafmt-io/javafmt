@@ -77,7 +77,25 @@ public final class SourceFiles {
             if (!Files.isWritable(target)) {
                 throw new AccessDeniedException(target.toString());
             }
-            swapIntoPlace(target, content);
+            swapIntoPlace(target, content, true);
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Failed to write " + file, e);
+        }
+    }
+
+    /**
+     * Replaces {@code file} with {@code content}, written UTF-8, through a sibling temp file
+     * moved into place. Unlike {@link #write}, it never pre-creates the target, does not refuse
+     * a read-only one and keeps no permissions, so it suits disposable files that are always
+     * rewritten whole. The temp file is deleted if the write fails.
+     *
+     * @throws UncheckedIOException if the file cannot be written
+     */
+    public void replace(final Path file, final String content) {
+        Objects.requireNonNull(file, "file");
+        Objects.requireNonNull(content, "content");
+        try {
+            swapIntoPlace(file.toAbsolutePath(), content, false);
         } catch (final IOException e) {
             throw new UncheckedIOException("Failed to write " + file, e);
         }
@@ -88,12 +106,14 @@ public final class SourceFiles {
         return file.toRealPath();
     }
 
-    private void swapIntoPlace(final Path target, final String content) throws IOException {
+    private void swapIntoPlace(final Path target, final String content, final boolean keepPermissions) throws IOException {
         final var directory = Objects.requireNonNull(target.getParent(), "parent of " + target);
         final var temp = Files.createTempFile(directory, target.getFileName().toString(), TEMP_SUFFIX);
         try {
             Files.writeString(temp, content, StandardCharsets.UTF_8);
-            copyPermissions(target, temp);
+            if (keepPermissions) {
+                copyPermissions(target, temp);
+            }
             move(temp, target);
         } catch (final IOException e) {
             deleteQuietly(temp);
