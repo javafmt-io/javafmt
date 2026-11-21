@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Timeout(20)
 class JavafmtDaemonsTest {
 
-    private final JavafmtDaemons daemons = new JavafmtDaemons();
+    private final JavafmtDaemons daemons = new JavafmtDaemons(() -> true);
 
     @Test
     void oneProcessServesEveryFormatWithTheSameBinary(@TempDir final Path dir) throws Exception {

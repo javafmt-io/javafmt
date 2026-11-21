@@ -170,9 +170,6 @@ public final class JavafmtConfigurable implements Configurable {
         settings.setEnabled(enabled.isSelected());
         JavafmtApplicationSettings.getInstance().setEngine(engine.getItem());
         settings.setBinaryPath(configuredBinaryPath());
-        if (engine.getItem() != JavafmtApplicationSettings.Engine.NATIVE) {
-            JavafmtDaemons.stopAll();
-        }
         refreshStatus();
     }
 

@@ -10,15 +10,26 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 @Service(Service.Level.PROJECT)
 public final class JavafmtDaemons implements Disposable {
 
     static final Duration FORMAT_TIMEOUT = Duration.ofSeconds(120);
 
+    private final BooleanSupplier nativeEngine;
+
     private Optional<Running> current = Optional.empty();
 
     private boolean disposed;
+
+    public JavafmtDaemons() {
+        this(() -> JavafmtApplicationSettings.getInstance().getEngine() == JavafmtApplicationSettings.Engine.NATIVE);
+    }
+
+    JavafmtDaemons(final BooleanSupplier nativeEngine) {
+        this.nativeEngine = Objects.requireNonNull(nativeEngine, "nativeEngine");
+    }
 
     public static JavafmtDaemons getInstance(final Project project) {
         return project.getService(JavafmtDaemons.class);
@@ -53,7 +64,7 @@ public final class JavafmtDaemons implements Disposable {
     }
 
     private synchronized Optional<JavafmtDaemon> daemonFor(final BinaryIdentity binary) throws ExecutionException {
-        if (disposed) {
+        if (disposed || !nativeEngine.getAsBoolean()) {
             return Optional.empty();
         }
         final var reusable = current.filter(running -> running.binary().equals(binary)
