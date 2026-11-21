@@ -131,9 +131,9 @@ public final class SourceFiles {
                 copyPermissions(target, temp);
             }
             move(temp, target);
-        } catch (final IOException e) {
-            deleteQuietly(temp);
-            throw e;
+        } catch (final Throwable failure) {
+            deleteAfter(failure, temp);
+            throw failure;
         }
     }
 
@@ -151,11 +151,11 @@ public final class SourceFiles {
         }
     }
 
-    private void deleteQuietly(final Path temp) {
+    private void deleteAfter(final Throwable failure, final Path temp) {
         try {
             Files.deleteIfExists(temp);
-        } catch (final IOException _) {
-            // The write already failed; the caller is told about that, not about the leftover.
+        } catch (final Throwable deleting) {
+            failure.addSuppressed(deleting);
         }
     }
 

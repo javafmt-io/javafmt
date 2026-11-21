@@ -2,6 +2,9 @@ package io.javafmt;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -12,6 +15,8 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -181,6 +186,25 @@ class SourceFilesTest {
         assertThat(Files.readString(file)).isEqualTo("class A {}");
         try (final var entries = Files.list(dir)) {
             assertThat(entries).containsExactly(file);
+        }
+    }
+
+    static Stream<Arguments> uncheckedFailuresWhileWriting() {
+        return Stream.of(new IllegalStateException("write failed"), new OutOfMemoryError("write failed"))
+                .flatMap(failure -> Stream.of(Arguments.of(failure, true), Arguments.of(failure, false)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("uncheckedFailuresWhileWriting")
+    void anUncheckedFailureAfterTheTempFileExistsDeletesItAndPropagates(final Throwable failure, final boolean exists) throws IOException {
+        final var file = dir.resolve("A.java");
+        if (exists) {
+            Files.writeString(file, "class A {}");
+        }
+        final var failing = new FailingWritesFileSystem(failure).wrap(file);
+        assertThatThrownBy(() -> SourceFiles.write(failing, "class A {\n}\n")).isSameAs(failure);
+        try (final var entries = Files.list(dir)) {
+            assertThat(entries).containsExactlyElementsOf(exists ? List.of(file) : List.of());
         }
     }
 
