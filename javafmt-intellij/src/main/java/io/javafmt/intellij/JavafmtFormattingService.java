@@ -97,7 +97,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
      * reported as an error; everything else is a problem with the source in front of the user,
      * which they can act on themselves.
      */
-    private static void report(final Project project, final String fileName, final JavafmtBinary.Outcome.Formatted formatted) {
+    private static void report(final Project project, final String fileName, final Outcome.Formatted formatted) {
         final var message = fileName + " was left unformatted:\n" + describe(formatted);
         if (formatted.hasInternalError()) {
             LOG.warn("javafmt: " + message);
@@ -108,7 +108,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
         }
     }
 
-    private static String describe(final JavafmtBinary.Outcome.Formatted formatted) {
+    private static String describe(final Outcome.Formatted formatted) {
         return formatted.diagnostics().stream()
                 .map(Diagnostic::getMessage)
                 .collect(Collectors.joining("\n"));
@@ -174,12 +174,12 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                                     engine,
                                     scope,
                                     () -> JavafmtDaemons.getInstance(project).format(binary, content, scope)))
-                            .orElseGet(JavafmtBinary.Outcome.Cancelled::new);
+                            .orElseGet(Outcome.Cancelled::new);
             };
             request.onTextReady(
                     switch (outcome) {
-                        case JavafmtBinary.Outcome.Cancelled _ -> content;
-                        case JavafmtBinary.Outcome.Refused refused -> {
+                        case Outcome.Cancelled _ -> content;
+                        case Outcome.Refused refused -> {
                             LOG.warn("javafmt: " + refused.reason());
                             notifyUser(
                                     project,
@@ -187,17 +187,17 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                                     fileName + " was left unformatted: " + refused.reason());
                             yield content;
                         }
-                        case JavafmtBinary.Outcome.Formatted formatted -> textFor(project, fileName, content, formatted);
+                        case Outcome.Formatted formatted -> textFor(project, fileName, content, formatted);
                     });
         }
 
-        private static JavafmtBinary.Outcome timed(final String fileName,
-                                                   final JavafmtApplicationSettings.Engine engine,
-                                                   final FileScope scope,
-                                                   final Supplier<JavafmtBinary.Outcome> formatter) {
+        private static Outcome timed(final String fileName,
+                                     final JavafmtApplicationSettings.Engine engine,
+                                     final FileScope scope,
+                                     final Supplier<Outcome> formatter) {
             final var start = System.nanoTime();
             final var outcome = formatter.get();
-            if (!(outcome instanceof JavafmtBinary.Outcome.Cancelled)) {
+            if (!(outcome instanceof Outcome.Cancelled)) {
                 LOG.info(timing(fileName, engine, scope.analysis(), Duration.ofNanos(System.nanoTime() - start)));
             }
             return outcome;
@@ -267,10 +267,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             }
         }
 
-        private static String textFor(final Project project,
-                                      final String fileName,
-                                      final String content,
-                                      final JavafmtBinary.Outcome.Formatted formatted) {
+        private static String textFor(final Project project, final String fileName, final String content, final Outcome.Formatted formatted) {
             if (formatted.hasFailure()) {
                 report(project, fileName, formatted);
                 return content;

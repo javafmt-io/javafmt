@@ -40,13 +40,13 @@ final class JavafmtDaemon {
 
     private final Consumer<Process> kill;
 
-    private final Map<Integer, CompletableFuture<JavafmtBinary.Outcome>> pending = new ConcurrentHashMap<>();
+    private final Map<Integer, CompletableFuture<Outcome>> pending = new ConcurrentHashMap<>();
 
     private final BlockingQueue<FormatRequest> requests = new LinkedBlockingQueue<>();
 
     private final AtomicInteger ids = new AtomicInteger();
 
-    private volatile Optional<JavafmtBinary.Outcome> stopped = Optional.empty();
+    private volatile Optional<Outcome> stopped = Optional.empty();
 
     private final FutureTask<Void> writer;
 
@@ -77,11 +77,11 @@ final class JavafmtDaemon {
         return stopped.isEmpty();
     }
 
-    JavafmtBinary.Outcome format(final String source, final FileScope scope) {
+    Outcome format(final String source, final FileScope scope) {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(scope, "scope");
         final var id = ids.incrementAndGet();
-        final var reply = new CompletableFuture<JavafmtBinary.Outcome>();
+        final var reply = new CompletableFuture<Outcome>();
         pending.put(id, reply);
         try {
             final var ended = stopped;
@@ -96,7 +96,7 @@ final class JavafmtDaemon {
             return refused;
         } catch (final InterruptedException _) {
             Thread.currentThread().interrupt();
-            return new JavafmtBinary.Outcome.Cancelled();
+            return new Outcome.Cancelled();
         } catch (final ExecutionException e) {
             return refused("javafmt failed: " + e.getCause());
         } finally {
@@ -105,14 +105,14 @@ final class JavafmtDaemon {
     }
 
     void stop() {
-        stop(new JavafmtBinary.Outcome.Cancelled());
+        stop(new Outcome.Cancelled());
     }
 
-    private static JavafmtBinary.Outcome refused(final String reason) {
-        return new JavafmtBinary.Outcome.Refused(reason, true);
+    private static Outcome refused(final String reason) {
+        return new Outcome.Refused(reason, true);
     }
 
-    private synchronized void stop(final JavafmtBinary.Outcome outcome) {
+    private synchronized void stop(final Outcome outcome) {
         if (stopped.isPresent()) {
             return;
         }
@@ -165,7 +165,7 @@ final class JavafmtDaemon {
 
     private void accept(final FormatReply reply) {
         Optional.ofNullable(pending.get(reply.getId()))
-                .ifPresent(waiting -> waiting.complete(new JavafmtBinary.Outcome.Formatted(reply.getOutput(), reply.getDiagnosticsList())));
+                .ifPresent(waiting -> waiting.complete(new Outcome.Formatted(reply.getOutput(), reply.getDiagnosticsList())));
     }
 
     private String exitReason(final String stillRunning) {

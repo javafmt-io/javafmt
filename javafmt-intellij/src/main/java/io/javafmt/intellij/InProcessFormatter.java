@@ -7,21 +7,21 @@ import io.javafmt.daemon.protocol.Severity;
 import lombok.experimental.UtilityClass;
 
 /**
- * Formats with {@code javafmt-core} inside the IDE, answering in the same {@link JavafmtBinary.Outcome}
+ * Formats with {@code javafmt-core} inside the IDE, answering in the same {@link Outcome}
  * shape and with the same diagnostics the native daemon would, so either engine is reported alike.
  */
 @UtilityClass
 class InProcessFormatter {
 
-    JavafmtBinary.Outcome format(final String source, final FileScope scope) {
+    Outcome format(final String source, final FileScope scope) {
         if (Thread.currentThread().isInterrupted()) {
-            return new JavafmtBinary.Outcome.Cancelled();
+            return new Outcome.Cancelled();
         }
         final var result = Javafmt.formatWithResult(source, scope.config(), scope.projectFile());
         if (Thread.currentThread().isInterrupted()) {
-            return new JavafmtBinary.Outcome.Cancelled();
+            return new Outcome.Cancelled();
         }
-        return new JavafmtBinary.Outcome.Formatted(result.output(), result.diagnostics().stream()
+        return new Outcome.Formatted(result.output(), result.diagnostics().stream()
                 .map(InProcessFormatter::diagnostic)
                 .toList());
     }

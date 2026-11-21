@@ -27,14 +27,14 @@ class OutcomeTest {
                                                                    final Kind kind,
                                                                    final boolean failure,
                                                                    final boolean internal) {
-        final var formatted = new JavafmtBinary.Outcome.Formatted("x", List.of(FakeDaemon.diagnostic(severity, kind, "m", 1, 1)));
+        final var formatted = new Outcome.Formatted("x", List.of(FakeDaemon.diagnostic(severity, kind, "m", 1, 1)));
         assertThat(formatted.hasFailure()).isEqualTo(failure);
         assertThat(formatted.hasInternalError()).isEqualTo(internal);
     }
 
     @Test
     void aSeverityThisBuildHasNeverHeardOfIsAFailure() {
-        final var formatted = new JavafmtBinary.Outcome.Formatted(
+        final var formatted = new Outcome.Formatted(
                 "x",
                 List.of(Diagnostic.newBuilder()
                         .setSeverityValue(7)

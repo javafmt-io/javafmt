@@ -29,8 +29,8 @@ class JavafmtDaemonsTest {
                                     daemons.format(binary, "a", FileScope.none()),
                                     daemons.format(binary, "b", FileScope.none()),
                                     daemons.format(binary, "c", FileScope.none())))
-                    .containsExactly(new JavafmtBinary.Outcome.Formatted("a", List.of()),
-                            new JavafmtBinary.Outcome.Formatted("b", List.of()), new JavafmtBinary.Outcome.Formatted("c", List.of()));
+                    .containsExactly(new Outcome.Formatted("a", List.of()),
+                            new Outcome.Formatted("b", List.of()), new Outcome.Formatted("c", List.of()));
             assertThat(Files.readAllLines(starts)).hasSize(1);
         } finally {
             daemons.dispose();
@@ -46,9 +46,8 @@ class JavafmtDaemonsTest {
                         "if [ ! -f '" + crashed + "' ]; then\n    touch '" + crashed + "'\n" + JavafmtDaemonTest.READ_REQUEST + "    exit 3\nfi\n"
                                 + JavafmtDaemonTest.ECHO_REQUESTS));
         try {
-            assertThat(daemons.format(binary, "a", FileScope.none()))
-                    .isEqualTo(new JavafmtBinary.Outcome.Refused("javafmt exited with code 3", true));
-            assertThat(daemons.format(binary, "b", FileScope.none())).isEqualTo(new JavafmtBinary.Outcome.Formatted("b", List.of()));
+            assertThat(daemons.format(binary, "a", FileScope.none())).isEqualTo(new Outcome.Refused("javafmt exited with code 3", true));
+            assertThat(daemons.format(binary, "b", FileScope.none())).isEqualTo(new Outcome.Formatted("b", List.of()));
         } finally {
             daemons.dispose();
         }
@@ -59,13 +58,13 @@ class JavafmtDaemonsTest {
         final var pidFile = dir.resolve("pid");
         final var path = JavafmtDaemonTest.script(dir, "echo $$ > '" + pidFile + "'\n" + JavafmtDaemonTest.ECHO_REQUESTS);
         try {
-            assertThat(daemons.format(identity(path), "a", FileScope.none())).isInstanceOf(JavafmtBinary.Outcome.Formatted.class);
+            assertThat(daemons.format(identity(path), "a", FileScope.none())).isInstanceOf(Outcome.Formatted.class);
             final var firstPid = Long.parseLong(Files.readString(pidFile).strip());
             JavafmtDaemonTest.script(
                     dir,
                     "echo $$ > '" + pidFile + "'\n" + JavafmtDaemonTest.READ_REQUEST + JavafmtDaemonTest.reply(1, "replaced b")
                             + "cat > /dev/null\n");
-            assertThat(daemons.format(identity(path), "b", FileScope.none())).isEqualTo(new JavafmtBinary.Outcome.Formatted("replaced b", List.of()));
+            assertThat(daemons.format(identity(path), "b", FileScope.none())).isEqualTo(new Outcome.Formatted("replaced b", List.of()));
             JavafmtDaemonTest.awaitExit(firstPid);
         } finally {
             daemons.dispose();
@@ -86,7 +85,7 @@ class JavafmtDaemonsTest {
         final var starts = dir.resolve("starts");
         final var binary = identity(JavafmtDaemonTest.script(dir, "echo started >> '" + starts + "'\n" + JavafmtDaemonTest.ECHO_REQUESTS));
         daemons.dispose();
-        assertThat(daemons.format(binary, "a", FileScope.none())).isEqualTo(new JavafmtBinary.Outcome.Cancelled());
+        assertThat(daemons.format(binary, "a", FileScope.none())).isEqualTo(new Outcome.Cancelled());
         assertThat(starts).doesNotExist();
     }
 
@@ -97,8 +96,8 @@ class JavafmtDaemonsTest {
         try {
             final var inFlight = CompletableFuture.supplyAsync(() -> daemons.format(slow, "a", FileScope.none()));
             Thread.sleep(200);
-            assertThat(daemons.format(fast, "b", FileScope.none())).isEqualTo(new JavafmtBinary.Outcome.Formatted("b", List.of()));
-            assertThat(inFlight.join()).isEqualTo(new JavafmtBinary.Outcome.Cancelled());
+            assertThat(daemons.format(fast, "b", FileScope.none())).isEqualTo(new Outcome.Formatted("b", List.of()));
+            assertThat(inFlight.join()).isEqualTo(new Outcome.Cancelled());
         } finally {
             daemons.dispose();
         }
@@ -109,7 +108,7 @@ class JavafmtDaemonsTest {
         final var notExecutable = dir.resolve("javafmt");
         Files.writeString(notExecutable, "not a program");
         assertThat(daemons.format(identity(notExecutable), "a", FileScope.none()))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Refused.class,
+                .isInstanceOfSatisfying(Outcome.Refused.class,
                         refused -> assertThat(refused.internal()).isFalse());
     }
 

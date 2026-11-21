@@ -27,7 +27,7 @@ class InProcessFormatterTest {
     @Test
     void formatsAWholeFile() {
         assertThat(InProcessFormatter.format(Fixtures.UNFORMATTED_FOO, FileScope.none()))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
+                .isInstanceOfSatisfying(Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.output()).isEqualTo(Fixtures.FORMATTED_FOO);
                     assertThat(formatted.diagnostics()).isEmpty();
                 });
@@ -36,7 +36,7 @@ class InProcessFormatterTest {
     @Test
     void unparseableSourceComesBackUnchangedWithAParseError() {
         final var broken = "class Broken { int x = ; }";
-        assertThat(InProcessFormatter.format(broken, FileScope.none())).isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
+        assertThat(InProcessFormatter.format(broken, FileScope.none())).isInstanceOfSatisfying(Outcome.Formatted.class, formatted -> {
             assertThat(formatted.output()).isEqualTo(broken);
             assertThat(formatted.hasFailure()).isTrue();
             assertThat(formatted.diagnostics()).allSatisfy(diagnostic -> {
@@ -50,7 +50,7 @@ class InProcessFormatterTest {
     @Test
     void warningOnlyRulesDoNotCountAsAFailure() {
         assertThat(InProcessFormatter.format("import java.util.*;\n\nclass A {\n\n    List<String> names;\n}\n", FileScope.none()))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
+                .isInstanceOfSatisfying(Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.hasFailure()).isFalse();
                     assertThat(formatted.diagnostics())
                             .singleElement()
@@ -65,7 +65,7 @@ class InProcessFormatterTest {
     @Test
     void aClasspathTurnsOnTheRulesThatNeedIt() {
         assertThat(InProcessFormatter.format(STAR_IMPORT, new FileScope(Optional.empty(), new JavafmtConfig.Analysis.Attributed(""))))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class,
+                .isInstanceOfSatisfying(Outcome.Formatted.class,
                         formatted -> assertThat(formatted.output())
                                 .contains("import java.util.List;")
                                 .doesNotContain("java.util.*"));
@@ -74,7 +74,7 @@ class InProcessFormatterTest {
     @Test
     void withoutAClasspathTheRulesThatNeedOneDoNotRun() {
         assertThat(InProcessFormatter.format(STAR_IMPORT, FileScope.none()))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class,
+                .isInstanceOfSatisfying(Outcome.Formatted.class,
                         formatted -> assertThat(formatted.output()).contains("import java.util.*;"));
     }
 
@@ -84,7 +84,7 @@ class InProcessFormatterTest {
         Files.writeString(dir.resolve(".javafmt"), "analyze.skip=ExplodeStarImports\n");
         final var scope = new FileScope(Optional.of(dir.resolve("src/Order.java")), new JavafmtConfig.Analysis.Attributed(""));
         assertThat(InProcessFormatter.format(STAR_IMPORT, scope))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class,
+                .isInstanceOfSatisfying(Outcome.Formatted.class,
                         formatted -> assertThat(formatted.output()).contains("import java.util.*;"));
     }
 
@@ -95,7 +95,7 @@ class InProcessFormatterTest {
         assertThat(
                         InProcessFormatter.format(
                                 STAR_IMPORT, new FileScope(Optional.of(dir.resolve("Order.java")), new JavafmtConfig.Analysis.ParseOnly())))
-                .isInstanceOfSatisfying(JavafmtBinary.Outcome.Formatted.class, formatted -> {
+                .isInstanceOfSatisfying(Outcome.Formatted.class, formatted -> {
                     assertThat(formatted.output()).isEqualTo(STAR_IMPORT);
                     assertThat(formatted.hasFailure()).isTrue();
                     assertThat(formatted.diagnostics())
@@ -111,6 +111,6 @@ class InProcessFormatterTest {
     void anInterruptedRequestIsCancelled() {
         Thread.currentThread().interrupt();
         assertThat(InProcessFormatter.format(Fixtures.UNFORMATTED_FOO, FileScope.none()))
-                .isInstanceOf(JavafmtBinary.Outcome.Cancelled.class);
+                .isInstanceOf(Outcome.Cancelled.class);
     }
 }

@@ -16,11 +16,8 @@ import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
@@ -40,8 +37,6 @@ public final class JavafmtConfigurable implements Configurable {
     private final Project project;
 
     private final JBCheckBox enabled = checkBox(ENABLED_CHECKBOX_NAME, "Use javafmt to reformat Java files in this project");
-
-    private final List<Toggle> toggles = List.of(new Toggle(enabled, JavafmtSettings::isEnabled, JavafmtSettings::setEnabled));
 
     private final ComboBox<JavafmtApplicationSettings.Engine> engine = engineComboBox();
 
@@ -98,7 +93,7 @@ public final class JavafmtConfigurable implements Configurable {
      * instead and shows "checking…" until the answer arrives.
      */
     private void refreshStatus() {
-        final var configured = binaryPath.getText().trim();
+        final var configured = configuredBinaryPath();
         binaryStatus.setForeground(UIUtil.getContextHelpForeground());
         binaryStatus.setText("checking…");
         final var generation = statusGeneration.incrementAndGet();
@@ -145,12 +140,12 @@ public final class JavafmtConfigurable implements Configurable {
                                              + " and groups <code>java.*</code> separately, where javafmt puts static imports first in one"
                                              + " ASCII-sorted group. Each will rewrite the other's ordering, so prefer <i>Reformat Code</i>.</html>");
         hint.setForeground(UIUtil.getContextHelpForeground());
-        final var form = FormBuilder.createFormBuilder();
-        toggles.forEach(t -> form.addComponent(t.box()));
-        form.addLabeledComponent("Formatter (all projects):", engine);
-        form.addLabeledComponent("javafmt binary:", binaryPath);
-        form.addComponent(binaryStatus);
-        return form.addComponent(hint)
+        return FormBuilder.createFormBuilder()
+                .addComponent(enabled)
+                .addLabeledComponent("Formatter (all projects):", engine)
+                .addLabeledComponent("javafmt binary:", binaryPath)
+                .addComponent(binaryStatus)
+                .addComponent(hint)
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
     }
@@ -158,30 +153,31 @@ public final class JavafmtConfigurable implements Configurable {
     @Override
     public boolean isModified() {
         final var settings = JavafmtSettings.getInstance(project);
-        return toggles.stream()
-                .anyMatch(t -> t.box().isSelected() != t.read().test(settings))
+        return enabled.isSelected() != settings.isEnabled()
             || engine.getItem() != JavafmtApplicationSettings.getInstance().getEngine()
-            || !binaryPath.getText().trim().equals(settings.getBinaryPath());
+            || !configuredBinaryPath().equals(settings.getBinaryPath());
     }
 
     @Override
     public void apply() {
         final var settings = JavafmtSettings.getInstance(project);
-        toggles.forEach(t -> t.write().accept(settings, t.box().isSelected()));
+        settings.setEnabled(enabled.isSelected());
         JavafmtApplicationSettings.getInstance().setEngine(engine.getItem());
-        settings.setBinaryPath(binaryPath.getText().trim());
+        settings.setBinaryPath(configuredBinaryPath());
         refreshStatus();
     }
 
     @Override
     public void reset() {
         final var settings = JavafmtSettings.getInstance(project);
-        toggles.forEach(t -> t.box().setSelected(t.read().test(settings)));
+        enabled.setSelected(settings.isEnabled());
         engine.setItem(JavafmtApplicationSettings.getInstance().getEngine());
         binaryPath.setText(settings.getBinaryPath());
         enableBinaryPathForNativeEngine();
         refreshStatus();
     }
 
-    private record Toggle(JBCheckBox box, Predicate<JavafmtSettings> read, BiConsumer<JavafmtSettings, Boolean> write) {}
+    private String configuredBinaryPath() {
+        return binaryPath.getText().trim();
+    }
 }

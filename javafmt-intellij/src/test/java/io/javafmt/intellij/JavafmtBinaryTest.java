@@ -28,13 +28,13 @@ class JavafmtBinaryTest {
     @Test
     void versionReadsTheBinaryVersionString(@TempDir final Path dir) throws Exception {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\necho '" + FakeDaemon.VERSION_OUTPUT + "'\n");
-        assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Reported(FakeDaemon.VERSION_OUTPUT));
+        assertThat(JavafmtBinary.version(fake)).isEqualTo(new VersionProbe.Reported(FakeDaemon.VERSION_OUTPUT));
     }
 
     @Test
     void aBinaryThatExitsWithAnErrorFailsTheProbe(@TempDir final Path dir) throws Exception {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\nexit 2\n");
-        assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Failed());
+        assertThat(JavafmtBinary.version(fake)).isEqualTo(new VersionProbe.Failed());
     }
 
     @Test
@@ -42,7 +42,7 @@ class JavafmtBinaryTest {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\nexec sleep 15\n");
         Thread.currentThread().interrupt();
         try {
-            assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
+            assertThat(JavafmtBinary.version(fake)).isEqualTo(new VersionProbe.Inconclusive());
         } finally {
             Thread.interrupted();
         }
@@ -65,7 +65,7 @@ class JavafmtBinaryTest {
             caller.interrupt();
         });
         try {
-            assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
+            assertThat(JavafmtBinary.version(fake)).isEqualTo(new VersionProbe.Inconclusive());
             assertThat(Duration.between(interruptedAt.join(), Instant.now())).isLessThan(Duration.ofSeconds(2));
         } finally {
             Thread.interrupted();
@@ -77,7 +77,7 @@ class JavafmtBinaryTest {
 
     @Test
     void aBinaryThatCannotBeStartedFailsTheProbe(@TempDir final Path dir) {
-        assertThat(JavafmtBinary.version(dir.resolve("absent"))).isEqualTo(new JavafmtBinary.VersionProbe.Failed());
+        assertThat(JavafmtBinary.version(dir.resolve("absent"))).isEqualTo(new VersionProbe.Failed());
     }
 
     @Test

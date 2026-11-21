@@ -7,9 +7,6 @@ import com.intellij.execution.process.CapturingProcessHandler;
 import com.intellij.execution.process.ProcessIOExecutorService;
 import com.intellij.execution.process.ProcessOutput;
 import io.javafmt.JavafmtVersion;
-import io.javafmt.daemon.protocol.Diagnostic;
-import io.javafmt.daemon.protocol.Kind;
-import io.javafmt.daemon.protocol.Severity;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -165,60 +162,6 @@ public final class JavafmtBinary {
             return new VersionProbe.Inconclusive();
         } catch (final java.util.concurrent.ExecutionException _) {
             return new VersionProbe.Failed();
-        }
-    }
-
-    public sealed interface VersionProbe {
-
-        default Optional<String> reportedVersion() {
-            return this instanceof Reported reported ? Optional.of(reported.output()) : Optional.empty();
-        }
-
-        record Reported(String output) implements VersionProbe {
-
-            public Reported {
-                Objects.requireNonNull(output, "output");
-            }
-        }
-
-        record Failed() implements VersionProbe {}
-
-        record Inconclusive() implements VersionProbe {}
-    }
-
-    /** What one format attempt produced. */
-    public sealed interface Outcome {
-
-        /**
-         * {@code output} is the text to install. javafmt returns the input unchanged when it cannot
-         * format, so this is always safe to put in the document.
-         */
-        record Formatted(String output, List<Diagnostic> diagnostics) implements Outcome {
-
-            public Formatted {
-                Objects.requireNonNull(output, "output");
-                diagnostics = List.copyOf(diagnostics);
-            }
-
-            public boolean hasInternalError() {
-                return diagnostics.stream()
-                        .anyMatch(diagnostic -> diagnostic.getKind() == Kind.KIND_INTERNAL);
-            }
-
-            public boolean hasFailure() {
-                return diagnostics.stream()
-                        .anyMatch(diagnostic -> diagnostic.getSeverity() != Severity.SEVERITY_WARNING);
-            }
-        }
-
-        record Cancelled() implements Outcome {}
-
-        /** The binary could not be run at all. {@code internal} distinguishes a javafmt bug. */
-        record Refused(String reason, boolean internal) implements Outcome {
-
-            public Refused {
-                Objects.requireNonNull(reason, "reason");
-            }
         }
     }
 

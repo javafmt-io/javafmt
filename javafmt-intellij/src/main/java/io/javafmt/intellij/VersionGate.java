@@ -10,9 +10,9 @@ final class VersionGate {
 
     private final Map<BinaryIdentity, Verdict> verdicts = new ConcurrentHashMap<>();
 
-    private final Function<BinaryIdentity, JavafmtBinary.VersionProbe> probe;
+    private final Function<BinaryIdentity, VersionProbe> probe;
 
-    VersionGate(final Function<BinaryIdentity, JavafmtBinary.VersionProbe> probe) {
+    VersionGate(final Function<BinaryIdentity, VersionProbe> probe) {
         this.probe = Objects.requireNonNull(probe, "probe");
     }
 
@@ -22,10 +22,9 @@ final class VersionGate {
 
     private Verdict probe(final BinaryIdentity binary) {
         final var verdict = switch (probe.apply(binary)) {
-            case JavafmtBinary.VersionProbe.Reported reported ->
-                JavafmtBinary.isSupportedVersion(reported.output()) ? Verdict.SUPPORTED : Verdict.TOO_OLD;
-            case JavafmtBinary.VersionProbe.Failed _ -> Verdict.TOO_OLD;
-            case JavafmtBinary.VersionProbe.Inconclusive _ -> Verdict.UNKNOWN;
+            case VersionProbe.Reported reported -> JavafmtBinary.isSupportedVersion(reported.output()) ? Verdict.SUPPORTED : Verdict.TOO_OLD;
+            case VersionProbe.Failed _ -> Verdict.TOO_OLD;
+            case VersionProbe.Inconclusive _ -> Verdict.UNKNOWN;
         };
         if (verdict != Verdict.UNKNOWN) {
             verdicts.put(binary, verdict);

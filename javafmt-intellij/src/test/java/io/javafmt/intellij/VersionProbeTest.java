@@ -24,41 +24,41 @@ class VersionProbeTest {
     @Test
     void reportsWhatTheBinaryPrinted() {
         assertThat(await(CompletableFuture.completedFuture(new ProcessOutput("javafmt 1.2.3\n", "", 0, false, false))))
-                .isEqualTo(new JavafmtBinary.VersionProbe.Reported("javafmt 1.2.3"));
+                .isEqualTo(new VersionProbe.Reported("javafmt 1.2.3"));
     }
 
     @Test
     void aNonZeroExitFails() {
         assertThat(await(CompletableFuture.completedFuture(new ProcessOutput("", "unknown option", 2, false, false))))
-                .isInstanceOf(JavafmtBinary.VersionProbe.Failed.class);
+                .isInstanceOf(VersionProbe.Failed.class);
     }
 
     @Test
     void aProcessThatTimedOutIsInconclusive() {
         assertThat(await(CompletableFuture.completedFuture(new ProcessOutput("", "", -1, true, false))))
-                .isInstanceOf(JavafmtBinary.VersionProbe.Inconclusive.class);
+                .isInstanceOf(VersionProbe.Inconclusive.class);
     }
 
     @Test
     void aProbeThatNeverAnswersIsInconclusive() {
-        assertThat(await(new CompletableFuture<>())).isInstanceOf(JavafmtBinary.VersionProbe.Inconclusive.class);
+        assertThat(await(new CompletableFuture<>())).isInstanceOf(VersionProbe.Inconclusive.class);
     }
 
     @Test
     void aProbeThatThrowsFails() {
         assertThat(await(CompletableFuture.failedFuture(new IllegalStateException("could not start"))))
-                .isInstanceOf(JavafmtBinary.VersionProbe.Failed.class);
+                .isInstanceOf(VersionProbe.Failed.class);
     }
 
     @Test
     void anInterruptedWaitIsInconclusiveKillsTheProcessAndKeepsTheInterrupt() {
         Thread.currentThread().interrupt();
-        assertThat(await(new CompletableFuture<>())).isInstanceOf(JavafmtBinary.VersionProbe.Inconclusive.class);
+        assertThat(await(new CompletableFuture<>())).isInstanceOf(VersionProbe.Inconclusive.class);
         assertThat(destroyed).isTrue();
         assertThat(Thread.currentThread().isInterrupted()).isTrue();
     }
 
-    private JavafmtBinary.VersionProbe await(final CompletableFuture<ProcessOutput> run) {
+    private VersionProbe await(final CompletableFuture<ProcessOutput> run) {
         return JavafmtBinary.await(run, SHORT, () -> destroyed.set(true));
     }
 }
