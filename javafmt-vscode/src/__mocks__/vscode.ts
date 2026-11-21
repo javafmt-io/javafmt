@@ -1,5 +1,3 @@
-// Minimal VS Code API stubs for unit tests. Only the surface used by extension.ts.
-
 export enum DiagnosticSeverity {
     Error = 0,
     Warning = 1,

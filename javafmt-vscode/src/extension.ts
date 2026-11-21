@@ -21,6 +21,8 @@ type JavaExtensionApi = {
 
 type ClasspathSource = Required<Pick<JavaExtensionApi, 'getClasspaths' | 'isTestFile'>>;
 
+type DaemonState = 'ready' | 'formatting' | 'error';
+
 type Daemon = child_process.ChildProcessByStdio<Writable, Readable, null>;
 
 type Classpath = { classpath: string } | { missing: string };
@@ -51,52 +53,34 @@ export function activate(context: vscode.ExtensionContext): void {
     watchedJavaExtension = undefined;
 
     output = vscode.window.createOutputChannel('javafmt', { log: true });
-    extensionContext.subscriptions.push(output);
-
     diagnosticCollection = vscode.languages.createDiagnosticCollection('javafmt');
-    extensionContext.subscriptions.push(diagnosticCollection);
-
     statusItem = vscode.languages.createLanguageStatusItem('javafmt', { language: 'java' });
     statusItem.name = 'javafmt';
     statusItem.text = 'javafmt';
     statusItem.command = { title: 'Restart daemon', command: 'javafmt.restartDaemon' };
-    extensionContext.subscriptions.push(statusItem);
 
-    extensionContext.subscriptions.push(
+    const provider = {
+        provideDocumentFormattingEdits: getFormattingEdits,
+        provideDocumentRangeFormattingEdits: getFormattingEdits,
+    };
+
+    context.subscriptions.push(
+        output,
+        diagnosticCollection,
+        statusItem,
         vscode.commands.registerCommand('javafmt.restartDaemon', () => {
             if (restartDaemon()) {
                 void vscode.window.showInformationMessage('javafmt daemon restarted.');
             }
-        })
-    );
-
-    extensionContext.subscriptions.push(
-        vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri))
-    );
-
-    extensionContext.subscriptions.push(
+        }),
+        vscode.workspace.onDidCloseTextDocument((doc) => diagnosticCollection.delete(doc.uri)),
         vscode.workspace.onDidChangeConfiguration((e) => {
             if (e.affectsConfiguration('javafmt')) {
                 restartDaemon();
             }
-        })
-    );
-
-    extensionContext.subscriptions.push(
-        vscode.languages.registerDocumentFormattingEditProvider('java', {
-            provideDocumentFormattingEdits(doc: vscode.TextDocument): Promise<vscode.TextEdit[]> {
-                return getFormattingEdits(doc);
-            },
-        })
-    );
-
-    // javafmt is a whole-file formatter; range formatting formats the full document.
-    extensionContext.subscriptions.push(
-        vscode.languages.registerDocumentRangeFormattingEditProvider('java', {
-            provideDocumentRangeFormattingEdits(doc: vscode.TextDocument, _range: vscode.Range): Promise<vscode.TextEdit[]> {
-                return getFormattingEdits(doc);
-            },
-        })
+        }),
+        vscode.languages.registerDocumentFormattingEditProvider('java', provider),
+        vscode.languages.registerDocumentRangeFormattingEditProvider('java', provider),
     );
 
     startDaemon();
@@ -106,9 +90,8 @@ export function deactivate(): void {
     stopDaemon();
 }
 
-// Exported for testing.
 export function statusFor(
-    state: 'ready' | 'formatting' | 'error',
+    state: DaemonState,
     detail?: string,
 ): { detail: string; severity: vscode.LanguageStatusSeverity; busy: boolean } {
     switch (state) {
@@ -121,7 +104,6 @@ export function statusFor(
     }
 }
 
-// Exported for testing.
 export function toDiagnostics(diagnostics: Diagnostic[]): vscode.Diagnostic[] {
     return diagnostics.map((d) => {
         const pos = new vscode.Position(Math.max(0, d.line - 1), Math.max(0, d.column - 1));
@@ -135,7 +117,11 @@ export function toDiagnostics(diagnostics: Diagnostic[]): vscode.Diagnostic[] {
     });
 }
 
-function setStatus(state: 'ready' | 'formatting' | 'error', detail?: string): void {
+function messageOf(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
+}
+
+function setStatus(state: DaemonState, detail?: string): void {
     Object.assign(statusItem, statusFor(state, detail));
 }
 
@@ -154,7 +140,7 @@ async function getFormattingEdits(doc: vscode.TextDocument): Promise<vscode.Text
     try {
         reply = await sendRequest(proc, source, { path: file, classpath });
     } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = messageOf(err);
         setStatus('error', message);
         diagnosticCollection.delete(doc.uri);
         void vscode.window.showErrorMessage(`javafmt: ${message}`);
@@ -251,7 +237,6 @@ export type DaemonEnvironment = {
     isExecutable: (file: string) => boolean;
 };
 
-// Exported for testing.
 export function vsceTarget(platform: string, arch: string): string {
     const normalizedArch = arch === 'arm64' ? 'arm64' : 'x64';
     if (platform === 'darwin') return `darwin-${normalizedArch}`;
@@ -260,19 +245,23 @@ export function vsceTarget(platform: string, arch: string): string {
     return '';
 }
 
-function makeBundledBinaryExecutable(extensionPath: string, platform: string, arch: string): void {
+function bundledDirectory(extensionPath: string, platform: string, arch: string): string | undefined {
     const target = vsceTarget(platform, arch);
-    if (!target || platform === 'win32') {
+    return target ? path.join(extensionPath, 'bin', target) : undefined;
+}
+
+function makeBundledBinaryExecutable(extensionPath: string, platform: string, arch: string): void {
+    const directory = bundledDirectory(extensionPath, platform, arch);
+    if (!directory || platform === 'win32') {
         return;
     }
-    const bundled = path.join(extensionPath, 'bin', target, 'javafmt');
+    const bundled = path.join(directory, 'javafmt');
     try {
-        if (fs.statSync(bundled).isFile() && !isExecutableFile(bundled)) {
-            fs.chmodSync(bundled, fs.statSync(bundled).mode | fs.constants.S_IXUSR);
+        const stats = fs.statSync(bundled);
+        if (stats.isFile() && !isExecutableFile(bundled)) {
+            fs.chmodSync(bundled, stats.mode | fs.constants.S_IXUSR);
         }
-    } catch {
-        return;
-    }
+    } catch {}
 }
 
 function isExecutableFile(file: string): boolean {
@@ -291,8 +280,7 @@ export function resolveDaemonBinary(binaryPath: string, env: DaemonEnvironment):
             : { missing: `configured javafmt binary not found or not executable at ${binaryPath}` };
     }
     const names = env.platform === 'win32' ? ['javafmt.exe', 'javafmt'] : ['javafmt'];
-    const target = vsceTarget(env.platform, env.arch);
-    const bundledDirs = target ? [path.join(env.extensionPath, 'bin', target)] : [];
+    const bundledDirs = [bundledDirectory(env.extensionPath, env.platform, env.arch)].filter((dir) => dir !== undefined);
     const pathDirs = (env.searchPath ?? '').split(path.delimiter).filter((dir) => dir !== '');
     const found = [...bundledDirs, ...pathDirs]
         .flatMap((dir) => names.map((name) => path.join(dir, name)))
@@ -306,9 +294,13 @@ function classpathFor(uri: vscode.Uri): Promise<string | undefined> | undefined 
         reportMissingClasspath(java.missing);
         return undefined;
     }
+    watchClasspathChanges(java.api);
     const directory = path.dirname(uri.fsPath);
-    const lookup = classpaths.get(directory) ?? lookUpClasspath(java.source, uri);
-    classpaths.set(directory, lookup);
+    let lookup = classpaths.get(directory);
+    if (!lookup) {
+        lookup = lookUpClasspath(java.source, uri);
+        classpaths.set(directory, lookup);
+    }
     return within(lookup, CLASSPATH_TIMEOUT_MS).then((found) => {
         if ('missing' in found) {
             reportMissingClasspath(found.missing);
@@ -319,7 +311,7 @@ function classpathFor(uri: vscode.Uri): Promise<string | undefined> | undefined 
     });
 }
 
-function javaExtension(): { source: ClasspathSource } | { missing: string } {
+function javaExtension(): { api: JavaExtensionApi; source: ClasspathSource } | { missing: string } {
     const extension = vscode.extensions.getExtension<JavaExtensionApi | undefined>(JAVA_EXTENSION_ID);
     if (!extension) {
         return { missing: `the Java extension (${JAVA_EXTENSION_ID}) is not installed` };
@@ -335,8 +327,7 @@ function javaExtension(): { source: ClasspathSource } | { missing: string } {
     if (!getClasspaths || !isTestFile) {
         return { missing: `this version of the Java extension (${JAVA_EXTENSION_ID}) does not give classpaths to other extensions` };
     }
-    watchClasspathChanges(api);
-    return { source: { getClasspaths, isTestFile } };
+    return { api, source: { getClasspaths, isTestFile } };
 }
 
 function watchClasspathChanges(api: JavaExtensionApi): void {
@@ -344,11 +335,11 @@ function watchClasspathChanges(api: JavaExtensionApi): void {
         return;
     }
     watchedJavaExtension = api;
-    [api.onDidClasspathUpdate, api.onDidProjectsImport, api.onDidProjectsDelete].forEach((event) => {
+    for (const event of [api.onDidClasspathUpdate, api.onDidProjectsImport, api.onDidProjectsDelete]) {
         if (event) {
             extensionContext.subscriptions.push(event(() => classpaths.clear()));
         }
-    });
+    }
 }
 
 async function lookUpClasspath(source: ClasspathSource, uri: vscode.Uri): Promise<Classpath> {
@@ -357,7 +348,7 @@ async function lookUpClasspath(source: ClasspathSource, uri: vscode.Uri): Promis
         const found = await source.getClasspaths(uri.toString(), { scope });
         return { classpath: [...found.classpaths, ...found.modulepaths].join(path.delimiter) };
     } catch (err) {
-        return { missing: `the Java extension could not give the classpath of ${uri.fsPath}: ${err instanceof Error ? err.message : String(err)}` };
+        return { missing: `the Java extension could not give the classpath of ${uri.fsPath}: ${messageOf(err)}` };
     }
 }
 

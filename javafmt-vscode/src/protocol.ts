@@ -1,7 +1,6 @@
 import { create } from '@bufbuild/protobuf';
 import { sizeDelimitedDecodeStream, sizeDelimitedEncode } from '@bufbuild/protobuf/wire';
-import { FormatReplySchema, FormatRequestSchema } from './gen/daemon_pb';
-import type { FormatReply } from './gen/daemon_pb';
+import { FormatReplySchema, FormatRequestSchema, type FormatReply } from './gen/daemon_pb';
 
 export type { Diagnostic, FormatReply } from './gen/daemon_pb';
 export { Kind, Severity } from './gen/daemon_pb';

@@ -7,7 +7,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { MockProcess, mockProcess } from '../../__mocks__/child_process';
-import { DiagnosticSeverity, LanguageStatusSeverity, Position, mockOutputChannel, mockStatusItem } from '../../__mocks__/vscode';
+import { DiagnosticSeverity, LanguageStatusSeverity, Position, Range, mockOutputChannel, mockStatusItem } from '../../__mocks__/vscode';
 import * as vscode from 'vscode';
 import type * as vscodeTypes from 'vscode';
 import { decodeRequest } from './wire';
@@ -386,6 +386,23 @@ describe('after activate()', () => {
             reply(second, (await sent).id, 'class A {}\n');
             await expect(edits).resolves.toEqual([expect.objectContaining({ newText: 'class A {}\n' })]);
             expect(second.kill).not.toHaveBeenCalled();
+        });
+
+        it('formats the whole document for a range request', async () => {
+            const proc = mockProcess();
+            jest.spyOn(child_process, 'spawn').mockImplementation(() => proc);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            const provider = (vscode.languages.registerDocumentRangeFormattingEditProvider as jest.Mock).mock.calls.at(-1)[1] as {
+                provideDocumentRangeFormattingEdits: (doc: unknown, range: unknown) => Promise<vscodeTypes.TextEdit[]>;
+            };
+            const sent = nextRequest(proc);
+            const edits = provider.provideDocumentRangeFormattingEdits(document(), new Range(new Position(0, 0), new Position(0, 1)));
+            reply(proc, (await sent).id, 'class A {}\n');
+            await expect(edits).resolves.toEqual([
+                { range: new Range(new Position(0, 0), new Position(0, 9)), newText: 'class A {}\n' },
+            ]);
         });
 
         it('says the daemon restarted when the restart command starts a new one', () => {
