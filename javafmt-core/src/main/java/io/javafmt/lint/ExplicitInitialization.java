@@ -11,7 +11,7 @@ import io.javafmt.parser.ParsedUnit;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -30,9 +30,11 @@ public final class ExplicitInitialization implements ScanningRule {
             @Override
             public Void visitClass(final ClassTree node, final Void p) {
                 node.getMembers().stream()
-                        .flatMap(m -> m instanceof VariableTree field && isRewritableField(field, node)
-                                ? removeDefaultInitializer(field, unit).stream()
-                                : Stream.empty())
+                        .filter(VariableTree.class::isInstance)
+                        .map(VariableTree.class::cast)
+                        .filter(field -> isRewritableField(field, node))
+                        .map(field -> removeDefaultInitializer(field, unit))
+                        .flatMap(Optional::stream)
                         .forEach(edits::add);
                 return super.visitClass(node, null);
             }
@@ -76,28 +78,23 @@ public final class ExplicitInitialization implements ScanningRule {
         };
     }
 
+    private static boolean isLiteral(final LiteralTree literal, final Tree.Kind kind, final Object zero) {
+        return literal.getKind() == kind && zero.equals(literal.getValue());
+    }
+
     private static boolean isZeroInt(final LiteralTree literal) {
-        return literal.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(literal.getValue());
+        return isLiteral(literal, Tree.Kind.INT_LITERAL, 0);
     }
 
     private static boolean isDefaultPrimitive(final PrimitiveTypeTree type, final LiteralTree literal) {
         return switch (type.getPrimitiveTypeKind()) {
-            case INT, BYTE, SHORT ->
-                literal.getKind() == Tree.Kind.INT_LITERAL && Integer.valueOf(0).equals(literal.getValue());
+            case INT, BYTE, SHORT -> isZeroInt(literal);
             // A char's default is written either way, and '\0' is the more common of the two.
-            case CHAR ->
-                isZeroInt(literal)
-                    || (literal.getKind() == Tree.Kind.CHAR_LITERAL
-                        && Character.valueOf('\0').equals(literal.getValue()));
-            case LONG ->
-                literal.getKind() == Tree.Kind.LONG_LITERAL && Long.valueOf(0L).equals(literal.getValue());
-            case FLOAT ->
-                literal.getKind() == Tree.Kind.FLOAT_LITERAL
-                    && Float.valueOf(0.0F).equals(literal.getValue());
-            case DOUBLE ->
-                literal.getKind() == Tree.Kind.DOUBLE_LITERAL
-                    && Double.valueOf(0.0).equals(literal.getValue());
-            case BOOLEAN -> literal.getKind() == Tree.Kind.BOOLEAN_LITERAL && Boolean.FALSE.equals(literal.getValue());
+            case CHAR -> isZeroInt(literal) || isLiteral(literal, Tree.Kind.CHAR_LITERAL, '\0');
+            case LONG -> isLiteral(literal, Tree.Kind.LONG_LITERAL, 0L);
+            case FLOAT -> isLiteral(literal, Tree.Kind.FLOAT_LITERAL, 0.0F);
+            case DOUBLE -> isLiteral(literal, Tree.Kind.DOUBLE_LITERAL, 0.0);
+            case BOOLEAN -> isLiteral(literal, Tree.Kind.BOOLEAN_LITERAL, false);
             default -> false;
         };
     }
@@ -123,16 +120,16 @@ public final class ExplicitInitialization implements ScanningRule {
                 .stream()
                 .map(c -> new Span(declarationStart + c.start(), declarationStart + c.end()))
                 .toList();
-        var eqPos = initializerStart - 1;
-        while (eqPos > declarationStart && (src.charAt(eqPos) != '=' || covers(comments, eqPos))) {
-            eqPos--;
-        }
-        if (src.charAt(eqPos) != '=' || covers(comments, eqPos)) {
+        final var equals = IntStream.iterate(initializerStart - 1, i -> i >= declarationStart, i -> i - 1)
+                .filter(i -> src.charAt(i) == '=' && !covers(comments, i))
+                .findFirst();
+        if (equals.isEmpty()) {
             return Optional.empty();
         }
-        while (eqPos > declarationStart && src.charAt(eqPos - 1) == ' ') {
-            eqPos--;
-        }
+        final var eqPos = IntStream.iterate(equals.getAsInt(), i -> i - 1)
+                .filter(i -> i <= declarationStart || src.charAt(i - 1) != ' ')
+                .findFirst()
+                .getAsInt();
         final var deleted = new Span(eqPos, initializerEnd);
         return comments.stream()
                         .anyMatch(deleted::overlaps)

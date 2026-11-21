@@ -7,12 +7,12 @@ import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.MatchResult;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Deletes single-name imports whose simple name is not referenced as an identifier anywhere
@@ -62,8 +62,7 @@ public final class RemoveUnusedImports implements LintRule {
     }
 
     private static Set<String> collectUsedNames(final ParsedUnit unit) {
-        final var names = new HashSet<String>();
-        new ChainScanner<Void, Void>() {
+        final var identifiers = LintScan.<String>collect(unit, names -> new ChainScanner<>() {
             @Override
             public Void visitImport(final ImportTree node, final Void p) {
                 return null;
@@ -74,9 +73,9 @@ public final class RemoveUnusedImports implements LintRule {
                 names.add(node.getName().toString());
                 return null;
             }
-        }.scan(unit.tree(), null);
-        names.addAll(namesMentionedInComments(unit.source()));
-        return Set.copyOf(names);
+        });
+        return Stream.concat(identifiers.stream(), namesMentionedInComments(unit.source()).stream())
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     /**

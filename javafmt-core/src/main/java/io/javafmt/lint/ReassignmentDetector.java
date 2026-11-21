@@ -9,7 +9,6 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.UnaryTree;
 import io.javafmt.parser.ChainScanner;
 
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
 
@@ -41,45 +40,44 @@ final class ReassignmentDetector {
     }
 
     private static Set<String> collectWrittenNames(final Tree scope) {
-        final var names = new HashSet<String>();
-        new ChainScanner<Void, Void>() {
-            @Override
-            public Void visitAssignment(final AssignmentTree node, final Void p) {
-                addIfName(node.getVariable());
-                return super.visitAssignment(node, null);
-            }
+        return Set.copyOf(
+                LintScan.collect(scope, names -> new ChainScanner<>() {
+                    @Override
+                    public Void visitAssignment(final AssignmentTree node, final Void p) {
+                        addIfName(node.getVariable());
+                        return super.visitAssignment(node, null);
+                    }
 
-            @Override
-            public Void visitCompoundAssignment(final CompoundAssignmentTree node, final Void p) {
-                addIfName(node.getVariable());
-                return super.visitCompoundAssignment(node, null);
-            }
+                    @Override
+                    public Void visitCompoundAssignment(final CompoundAssignmentTree node, final Void p) {
+                        addIfName(node.getVariable());
+                        return super.visitCompoundAssignment(node, null);
+                    }
 
-            @Override
-            public Void visitUnary(final UnaryTree node, final Void p) {
-                switch (node.getKind()) {
-                    case PREFIX_INCREMENT, PREFIX_DECREMENT, POSTFIX_INCREMENT, POSTFIX_DECREMENT -> addIfName(node.getExpression());
-                    default -> {}
-                }
-                return super.visitUnary(node, null);
-            }
+                    @Override
+                    public Void visitUnary(final UnaryTree node, final Void p) {
+                        switch (node.getKind()) {
+                            case PREFIX_INCREMENT, PREFIX_DECREMENT, POSTFIX_INCREMENT, POSTFIX_DECREMENT -> addIfName(node.getExpression());
+                            default -> {}
+                        }
+                        return super.visitUnary(node, null);
+                    }
 
-            @Override
-            public Void visitLambdaExpression(final LambdaExpressionTree node, final Void p) {
-                return null;
-            }
+                    @Override
+                    public Void visitLambdaExpression(final LambdaExpressionTree node, final Void p) {
+                        return null;
+                    }
 
-            @Override
-            public Void visitClass(final ClassTree node, final Void p) {
-                return null;
-            }
+                    @Override
+                    public Void visitClass(final ClassTree node, final Void p) {
+                        return null;
+                    }
 
-            private void addIfName(final Tree target) {
-                if (target instanceof IdentifierTree id) {
-                    names.add(id.getName().toString());
-                }
-            }
-        }.scan(scope, null);
-        return Set.copyOf(names);
+                    private void addIfName(final Tree target) {
+                        if (target instanceof IdentifierTree id) {
+                            names.add(id.getName().toString());
+                        }
+                    }
+                }));
     }
 }

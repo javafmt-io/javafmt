@@ -3,6 +3,8 @@ package io.javafmt.lint;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -114,5 +116,14 @@ class EmptyBlockTest {
             """);
         final var result = new EmptyBlock().apply(LintContext.parseOnly(unit));
         assertThat(result.diagnostics()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {"static {}|1", "{}|0", "static { init(); }|0"})
+    void onlyAnEmptyStaticInitializerWarns(final String initializer, final int warnings) {
+        final var unit = JavaParser.parseUnit("class Fixture {\n    " + initializer + "\n    static void init() {}\n}\n");
+        final var result = new EmptyBlock().apply(LintContext.parseOnly(unit));
+        assertThat(result.diagnostics()).hasSize(warnings);
+        result.diagnostics().forEach(d -> assertThat(d.message()).isEqualTo("empty static initializer"));
     }
 }

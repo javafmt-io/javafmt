@@ -52,10 +52,8 @@ public final class EmptyBlock implements WarningRule {
 
             @Override
             public Void visitBlock(final BlockTree node, final Void p) {
-                if (node.isStatic()
-                    && node.getStatements().isEmpty()
-                    && unit.interiorOf(node).isEmpty()) {
-                    diagnostics.add(new Diagnostic.Warning("empty static initializer", unit.positionOf(node)));
+                if (node.isStatic()) {
+                    checkEmpty(node, "static initializer", unit, diagnostics);
                 }
                 return super.visitBlock(node, null);
             }

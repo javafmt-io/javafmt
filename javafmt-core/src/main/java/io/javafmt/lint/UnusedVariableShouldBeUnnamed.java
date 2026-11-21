@@ -14,7 +14,6 @@ import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
 
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -102,14 +101,13 @@ public final class UnusedVariableShouldBeUnnamed implements ScanningRule {
     }
 
     private static Set<String> identifiersIn(final Tree scope) {
-        final var names = new HashSet<String>();
-        new ChainScanner<Void, Void>() {
-            @Override
-            public Void visitIdentifier(final IdentifierTree node, final Void p) {
-                names.add(node.getName().toString());
-                return super.visitIdentifier(node, null);
-            }
-        }.scan(scope, null);
-        return Set.copyOf(names);
+        return Set.copyOf(
+                LintScan.collect(scope, names -> new ChainScanner<>() {
+                    @Override
+                    public Void visitIdentifier(final IdentifierTree node, final Void p) {
+                        names.add(node.getName().toString());
+                        return super.visitIdentifier(node, null);
+                    }
+                }));
     }
 }
