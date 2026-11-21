@@ -50,14 +50,14 @@ public final class JavafmtBinaryProvider {
         return ApplicationManager.getApplication().getService(JavafmtBinaryProvider.class);
     }
 
-    VersionGate versionGate() {
-        return versionGate;
+    VersionGate.Verdict verdict(final BinaryIdentity binary) {
+        return versionGate.verdict(binary);
     }
 
     Optional<BinaryIdentity> onPath() {
         return JavafmtBinary.resolveOnPath(searchPath.get())
                 .flatMap(BinaryIdentity::of)
-                .filter(binary -> versionGate.isSupported(binary).orElse(false));
+                .filter(binary -> versionGate.verdict(binary) == VersionGate.Verdict.SUPPORTED);
     }
 
     synchronized CompletableFuture<Installation> download(@Nullable final Project project) {

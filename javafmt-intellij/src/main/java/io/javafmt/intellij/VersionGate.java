@@ -8,17 +8,7 @@ import java.util.function.Function;
 
 final class VersionGate {
 
-    /**
-     * Version probes are cached per binary identity (path, size, and last-modified time), not just
-     * per path. A stale cached {@code false} (the binary was old, then upgraded) only costs one
-     * unnecessary warning on the next reformat — cheap to accept. A stale cached {@code true} is the
-     * direction that actually matters: keyed on path alone, a binary replaced in place at the same
-     * path (a downgrade, a symlink swap, a rebuild) would keep reading as supported for the rest of
-     * the IDE session, letting a binary that does not understand {@code --daemon} be driven as if
-     * it did. Including size and mtime in the key means a replaced binary gets a new key and is
-     * re-probed instead of silently reusing the old verdict in either direction.
-     */
-    private final Map<BinaryIdentity, Boolean> supported = new ConcurrentHashMap<>();
+    private final Map<BinaryIdentity, Verdict> verdicts = new ConcurrentHashMap<>();
 
     private final Function<BinaryIdentity, JavafmtBinary.VersionProbe> probe;
 
@@ -26,21 +16,22 @@ final class VersionGate {
         this.probe = Objects.requireNonNull(probe, "probe");
     }
 
-    Optional<Boolean> isSupported(final BinaryIdentity binary) {
-        final var cached = Optional.ofNullable(supported.get(binary));
-        if (cached.isPresent()) {
-            return cached;
+    Verdict verdict(final BinaryIdentity binary) {
+        return Optional.ofNullable(verdicts.get(binary)).orElseGet(() -> probe(binary));
+    }
+
+    private Verdict probe(final BinaryIdentity binary) {
+        final var verdict = switch (probe.apply(binary)) {
+            case JavafmtBinary.VersionProbe.Reported reported ->
+                JavafmtBinary.isSupportedVersion(reported.output()) ? Verdict.SUPPORTED : Verdict.TOO_OLD;
+            case JavafmtBinary.VersionProbe.Failed _ -> Verdict.TOO_OLD;
+            case JavafmtBinary.VersionProbe.Inconclusive _ -> Verdict.UNKNOWN;
+        };
+        if (verdict != Verdict.UNKNOWN) {
+            verdicts.put(binary, verdict);
         }
-        final var verdict = verdict(probe.apply(binary));
-        verdict.ifPresent(answer -> supported.put(binary, answer));
         return verdict;
     }
 
-    private static Optional<Boolean> verdict(final JavafmtBinary.VersionProbe probe) {
-        return switch (probe) {
-            case JavafmtBinary.VersionProbe.Reported reported -> Optional.of(JavafmtBinary.isSupportedVersion(reported.output()));
-            case JavafmtBinary.VersionProbe.Failed _ -> Optional.of(false);
-            case JavafmtBinary.VersionProbe.Inconclusive _ -> Optional.empty();
-        };
-    }
+    enum Verdict { SUPPORTED, TOO_OLD, UNKNOWN }
 }
