@@ -56,21 +56,14 @@ tasks.named<JavaCompile>(nativeDaemonTest.compileJavaTaskName) {
     }
 }
 
-abstract class NativeBinaryDirectory : CommandLineArgumentProvider {
-    @get:InputDirectory
-    @get:PathSensitive(PathSensitivity.NONE)
-    abstract val directory: DirectoryProperty
-
-    override fun asArguments() = listOf("-Djavafmt.test.nativeBinaryDir=${directory.get().asFile.absolutePath}")
-}
-
 tasks.register<Test>("nativeDaemonTest") {
     description = "Runs the native javafmt binary as a daemon over both wire formats."
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     testClassesDirs = nativeDaemonTest.output.classesDirs
     classpath = nativeDaemonTest.runtimeClasspath
-    jvmArgumentProviders.add(objects.newInstance<NativeBinaryDirectory>().apply {
-        directory = tasks.named<BuildNativeImageTask>("nativeCompile").flatMap { it.outputDirectory }
+    jvmArgumentProviders.add(objects.newInstance<FilePathArgument>().apply {
+        propertyName = "javafmt.test.nativeBinaryDir"
+        files.from(tasks.named<BuildNativeImageTask>("nativeCompile").flatMap { it.outputDirectory })
     })
     extensions.configure<JacocoTaskExtension> {
         isEnabled = false

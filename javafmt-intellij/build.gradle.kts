@@ -129,8 +129,10 @@ tasks.named<Test>("test") {
     systemProperty("javafmt.nativeChecksums", nativeChecksumsPath.getOrElse(""))
     systemProperty("java.awt.headless", "true")
     val pluginJar = relocatedPluginJar.flatMap { it.archiveFile }
-    inputs.file(pluginJar).withPropertyName("pluginJar").withPathSensitivity(PathSensitivity.NONE)
-    systemProperty("javafmt.pluginJar", pluginJar.get().asFile.absolutePath)
+    jvmArgumentProviders.add(objects.newInstance<FilePathArgument>().apply {
+        propertyName = "javafmt.pluginJar"
+        files.from(pluginJar)
+    })
     javaLauncher.set(javaToolchains.launcherFor {
         languageVersion.set(JavaLanguageVersion.of(25))
     })

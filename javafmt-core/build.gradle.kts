@@ -46,7 +46,7 @@ sourceSets["main"].java.srcDir(generateVersionClass)
 // Where the corpus gate reads java.base from. Resolved from the same toolchain the module compiles
 // against, so the corpus is always the JDK javafmt claims to support and the run stays offline.
 val corpusSourceZip = javaToolchains.launcherFor(java.toolchain).map {
-    it.metadata.installationPath.file("lib/src.zip").asFile.absolutePath
+    it.metadata.installationPath.file("lib/src.zip")
 }
 
 testing {
@@ -68,7 +68,10 @@ testing {
                     testTask.configure {
                         shouldRunAfter(tasks.named("test"))
                         maxHeapSize = "2g"
-                        systemProperty("javafmt.corpus.srczip", corpusSourceZip.get())
+                        jvmArgumentProviders.add(objects.newInstance<FilePathArgument>().apply {
+                            propertyName = "javafmt.corpus.srczip"
+                            files.from(corpusSourceZip)
+                        })
                         // The summary table is the deliverable: a reader of the build log has to be
                         // able to see the counts move without opening the HTML report.
                         testLogging.showStandardStreams = true
@@ -131,7 +134,7 @@ jmh {
     // RealWorldCorpus benchmarks against javafmt's own sources — real production Java, no download
     // step, no third-party license to carry. Reading happens in @Setup, never in a measured method.
     jvmArgsAppend.add("-Djavafmt.corpus=${layout.projectDirectory.dir("src/main/java").asFile.absolutePath}")
-    jvmArgsAppend.add(corpusSourceZip.map { "-Djavafmt.corpus.srczip=$it" })
+    jvmArgsAppend.add(corpusSourceZip.map { "-Djavafmt.corpus.srczip=${it.asFile.absolutePath}" })
     // google-java-format drives javac through internal APIs, so GjfComparisonBenchmark cannot even
     // load without these. javafmt itself needs none of them — that is the distribution tradeoff
     // JavaParser's javadoc records — but the benchmark JVM hosts both formatters.

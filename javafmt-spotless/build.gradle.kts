@@ -50,10 +50,10 @@ val integrationTestTask = tasks.register<Test>("integrationTest") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     testClassesDirs = integrationTest.output.classesDirs
     classpath = integrationTest.runtimeClasspath
-    inputs.files(generatedBuildClasspath).withNormalizer(ClasspathNormalizer::class)
-    // Resolved as the task is realized rather than inside a doFirst: a closure written in the
-    // build script cannot be stored in the configuration cache.
-    systemProperty("javafmt.generatedBuildClasspath", generatedBuildClasspath.asPath)
+    jvmArgumentProviders.add(objects.newInstance<ClasspathArgument>().apply {
+        propertyName = "javafmt.generatedBuildClasspath"
+        files.from(generatedBuildClasspath)
+    })
 }
 
 tasks.named("check") {
