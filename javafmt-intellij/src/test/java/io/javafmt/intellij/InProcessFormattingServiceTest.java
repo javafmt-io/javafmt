@@ -1,15 +1,8 @@
 package io.javafmt.intellij;
 
-import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
-import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.psi.PsiDocumentManager;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.codeStyle.CodeStyleManager;
 import io.javafmt.Fixtures;
 import io.javafmt.JavafmtConfig;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,8 +10,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,22 +17,10 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
 
     private static final String STAR_IMPORT = "import java.util.*;\n\nclass Order { List<String> lines; }\n";
 
-    private final List<Notification> notifications = new CopyOnWriteArrayList<>();
-
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         JavafmtSettings.getInstance(getProject()).setEnabled(true);
-        getProject()
-                .getMessageBus()
-                .connect(getTestRootDisposable())
-                .subscribe(Notifications.TOPIC,
-                        new Notifications() {
-                            @Override
-                            public void notify(@NotNull final Notification notification) {
-                                notifications.add(notification);
-                            }
-                        });
     }
 
     @Test
@@ -106,11 +85,5 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
                         JavafmtFormattingService.timing(
                                 "Foo.java", JavafmtApplicationSettings.Engine.NATIVE, new JavafmtConfig.Analysis.ParseOnly(), Duration.ofMillis(3)))
                 .isEqualTo("javafmt: formatted Foo.java in 3 ms (native, parse-only)");
-    }
-
-    private void reformat(final PsiFile file) {
-        WriteCommandAction.runWriteCommandAction(
-                getProject(), () -> CodeStyleManager.getInstance(getProject()).reformatText(file, List.of(file.getTextRange())));
-        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
     }
 }

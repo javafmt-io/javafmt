@@ -102,9 +102,7 @@ class JavafmtBinaryTest {
 
     @Test
     void resolveFindsAnExecutableOnAPathTheJvmsEnvironmentDoesNotHave(@TempDir final Path dir) throws Exception {
-        final var fake = dir.resolve("javafmt");
-        Files.writeString(fake, "#!/bin/sh\nexit 0\n");
-        Files.setPosixFilePermissions(fake, PosixFilePermissions.fromString("rwxr-xr-x"));
+        final var fake = FakeBinaries.executable(dir, "javafmt", "#!/bin/sh\nexit 0\n");
         assertThat(System.getenv("PATH")).doesNotContain(dir.toString());
         assertThat(JavafmtBinary.resolveOnPath(dir.toString())).contains(fake);
     }
@@ -152,9 +150,6 @@ class JavafmtBinaryTest {
     }
 
     private static Path fakeBinaryScript(final Path dir, final String script) throws IOException {
-        final var path = dir.resolve("javafmt-fake");
-        Files.writeString(path, script);
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
-        return path;
+        return FakeBinaries.executable(dir, "javafmt-fake", script);
     }
 }

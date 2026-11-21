@@ -15,9 +15,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,16 +69,14 @@ public final class FakeDaemon {
                 .map(FakeDaemon::location)
                 .distinct()
                 .collect(Collectors.joining(File.pathSeparator));
-        final var path = dir.resolve(name);
-        Files.writeString(
-                path,
+        return FakeBinaries.executable(
+                dir,
+                name,
                 "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo '" + VERSION_OUTPUT + "'\n    exit 0\nfi\nexec '" + java + "' -cp '"
                         + classpath
                         + "' "
                         + FakeDaemon.class.getName()
                         + "\n");
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
-        return path;
     }
 
     private static FormatReply answer(final FormatRequest request) {

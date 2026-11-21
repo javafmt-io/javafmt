@@ -2,14 +2,21 @@ package io.javafmt.intellij;
 
 import com.intellij.ide.scratch.ScratchRootType;
 import com.intellij.lang.java.JavaLanguage;
+import com.intellij.notification.Notification;
+import com.intellij.notification.Notifications;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
+import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.testFramework.EdtTestUtil;
 import com.intellij.testFramework.VfsTestUtil;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +30,9 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Base class for javafmt IntelliJ plugin tests on the light Java fixture. Resets {@link JavafmtSettings} after every test. */
 // LightJavaCodeInsightFixtureTestCase's JUnit 3-era runBare() used to dispatch every test onto the
@@ -31,6 +40,23 @@ import java.util.Objects;
 // on the JUnit Platform, so OnTheEdt restores it here.
 @ExtendWith(JavafmtIntellijTestCase.OnTheEdt.class)
 public abstract class JavafmtIntellijTestCase extends LightJavaCodeInsightFixtureTestCase {
+
+    protected final List<Notification> notifications = new CopyOnWriteArrayList<>();
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        getProject()
+                .getMessageBus()
+                .connect(getTestRootDisposable())
+                .subscribe(Notifications.TOPIC,
+                        new Notifications() {
+                            @Override
+                            public void notify(@NotNull final Notification notification) {
+                                notifications.add(notification);
+                            }
+                        });
+    }
 
     @Override
     protected void tearDown() throws Exception {
@@ -42,6 +68,16 @@ public abstract class JavafmtIntellijTestCase extends LightJavaCodeInsightFixtur
         } finally {
             super.tearDown();
         }
+    }
+
+    protected void reformat(final PsiFile file) {
+        reformatRange(file, file.getTextRange());
+    }
+
+    protected void reformatRange(final PsiFile file, final TextRange range) {
+        WriteCommandAction.runWriteCommandAction(
+                getProject(), () -> CodeStyleManager.getInstance(getProject()).reformatText(file, List.of(range)));
+        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
     }
 
     protected PsiFile scratchFile(final String name, final String text) {

@@ -17,7 +17,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -146,9 +145,6 @@ class JavafmtBinaryProviderTest {
     }
 
     private static Path javafmtReporting(final Path dir, final String version) throws IOException {
-        final var path = dir.resolve("javafmt");
-        Files.writeString(path, "#!/bin/sh\necho '" + version + "'\n");
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
-        return path;
+        return FakeBinaries.executable(dir, "javafmt", "#!/bin/sh\necho '" + version + "'\n");
     }
 }

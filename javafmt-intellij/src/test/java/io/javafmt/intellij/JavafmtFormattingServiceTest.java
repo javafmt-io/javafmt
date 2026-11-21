@@ -5,15 +5,10 @@ import com.intellij.formatting.FormattingContext;
 import com.intellij.formatting.service.AsyncDocumentFormattingService;
 import com.intellij.formatting.service.AsyncFormattingRequest;
 import com.intellij.formatting.service.FormattingServiceUtil;
-import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.ServiceContainerUtil;
 import io.javafmt.Fixtures;
@@ -28,12 +23,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -55,8 +48,6 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
 
     private static final String DOWNLOADED = "javafmt-" + FakeRelease.VERSION + "-linux-x64";
 
-    private final List<Notification> notifications = new CopyOnWriteArrayList<>();
-
     private JavafmtFormattingService service;
 
     @Override
@@ -64,16 +55,6 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         super.setUp();
         JavafmtApplicationSettings.getInstance().setEngine(JavafmtApplicationSettings.Engine.NATIVE);
         service = new JavafmtFormattingService();
-        getProject()
-                .getMessageBus()
-                .connect(getTestRootDisposable())
-                .subscribe(Notifications.TOPIC,
-                        new Notifications() {
-                            @Override
-                            public void notify(@NotNull final Notification notification) {
-                                notifications.add(notification);
-                            }
-                        });
     }
 
     @Override
@@ -165,9 +146,10 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         final var file = myFixture.configureByText("Broken.java", "class Broken { int x = ; }");
         reformat(file);
         // A formatter failure must never look like success; the user gets told javafmt did nothing.
-        assertThat(notifications).isNotEmpty();
-        assertThat(notifications.getFirst().getContent()).contains("Broken.java");
-        assertThat(notifications.getFirst().getType()).isEqualTo(NotificationType.WARNING);
+        assertThat(notifications).singleElement().satisfies(notification -> {
+            assertThat(notification.getContent()).contains("Broken.java");
+            assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
+        });
     }
 
     @Test
@@ -197,12 +179,11 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     public void testCancellingAFormatLeavesThePlatformsThreadUninterrupted(@TempDir final Path dir) throws Exception {
         enableJavafmt();
         final var started = dir.resolve("started");
-        final var binary = dir.resolve("javafmt-fake-blocking");
-        Files.writeString(
-                binary,
+        final var binary = FakeBinaries.executable(
+                dir,
+                "javafmt-fake-blocking",
                 "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo '" + FakeDaemon.VERSION_OUTPUT + "'\n    exit 0\nfi\ntouch '" + started
                         + "'\ncat > /dev/null\n");
-        Files.setPosixFilePermissions(binary, PosixFilePermissions.fromString("rwxr-xr-x"));
         JavafmtSettings.getInstance(getProject()).setBinaryPath(binary.toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         final var installed = new CompletableFuture<String>();
@@ -256,9 +237,10 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         reformat(file);
         assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
-        assertThat(notifications).isNotEmpty();
-        assertThat(notifications.getFirst().getType()).isEqualTo(NotificationType.WARNING);
-        assertThat(notifications.getFirst().getContent()).contains("No javafmt binary found");
+        assertThat(notifications).singleElement().satisfies(notification -> {
+            assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
+            assertThat(notification.getContent()).contains("No javafmt binary found");
+        });
     }
 
     @Test
@@ -269,9 +251,10 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         reformat(file);
         assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
-        assertThat(notifications).isNotEmpty();
-        assertThat(notifications.getFirst().getType()).isEqualTo(NotificationType.WARNING);
-        assertThat(notifications.getFirst().getContent()).contains(JavafmtBinary.minimumVersion());
+        assertThat(notifications).singleElement().satisfies(notification -> {
+            assertThat(notification.getType()).isEqualTo(NotificationType.WARNING);
+            assertThat(notification.getContent()).contains(JavafmtBinary.minimumVersion());
+        });
     }
 
     @Test
@@ -312,13 +295,12 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     public void testSuccessiveReformatsShareOneJavafmtProcess(@TempDir final Path dir) throws IOException {
         enableJavafmt();
         final var starts = dir.resolve("daemon-starts");
-        final var binary = dir.resolve("javafmt-fake-warm");
-        Files.writeString(
-                binary,
+        final var binary = FakeBinaries.executable(
+                dir,
+                "javafmt-fake-warm",
                 "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo '" + FakeDaemon.VERSION_OUTPUT + "'\n    exit 0\nfi\necho x >> '" + starts
                         + "'\n"
                         + JavafmtDaemonTest.ECHO_REQUESTS);
-        Files.setPosixFilePermissions(binary, PosixFilePermissions.fromString("rwxr-xr-x"));
         JavafmtSettings.getInstance(getProject()).setBinaryPath(binary.toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         reformat(file);
@@ -481,10 +463,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                 + "    exit 0\n"
                 + "fi\n"
                 + "exit 1\n";
-        final var path = dir.resolve("javafmt-fake-old");
-        Files.writeString(path, script);
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
-        return path;
+        return FakeBinaries.executable(dir, "javafmt-fake-old", script);
     }
 
     /**
@@ -500,22 +479,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                 + "    echo '" + FakeDaemon.VERSION_OUTPUT + "'\n"
                 + "    exit 0\n"
                 + "fi\n" + JavafmtDaemonTest.ECHO_REQUESTS;
-        final var path = dir.resolve("javafmt-fake-counting");
-        Files.writeString(path, script);
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
-        return path;
-    }
-
-    /** Reformats the whole file the way <em>Reformat Code</em> does, through the platform's own entry point. */
-    private void reformat(final PsiFile file) {
-        reformatRange(file, file.getTextRange());
-    }
-
-    /** Reformats one range the way <em>Reformat Code</em> on a selection does. */
-    private void reformatRange(final PsiFile file, final TextRange range) {
-        WriteCommandAction.runWriteCommandAction(
-                getProject(), () -> CodeStyleManager.getInstance(getProject()).reformatText(file, List.of(range)));
-        PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+        return FakeBinaries.executable(dir, "javafmt-fake-counting", script);
     }
 
     private record CapturingRequest(PsiFile file, CompletableFuture<String> installed) implements AsyncFormattingRequest {

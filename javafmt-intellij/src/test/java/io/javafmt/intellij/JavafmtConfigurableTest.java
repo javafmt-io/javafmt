@@ -12,7 +12,6 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -91,7 +90,7 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
 
     @Test
     void binaryPathFieldWritesThroughToSettings() {
-        final var field = (TextFieldWithBrowseButton) findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME);
+        final var field = (TextFieldWithBrowseButton) findByName(JavafmtConfigurable.BINARY_PATH_FIELD_NAME);
         field.setText("/opt/javafmt");
         assertThat(configurable.isModified()).isTrue();
         configurable.apply();
@@ -102,9 +101,7 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     @EnabledOnOs({OS.MAC, OS.LINUX})
     void openingTheSettingsPageDoesNotWaitForASlowBinary(@TempDir final Path dir) throws IOException {
         final var answered = dir.resolve("answered");
-        final var slow = dir.resolve("javafmt-slow");
-        Files.writeString(slow, "#!/bin/sh\nsleep 3\necho 'javafmt 9.9.9'\ntouch '" + answered + "'\n");
-        Files.setPosixFilePermissions(slow, PosixFilePermissions.fromString("rwxr-xr-x"));
+        final var slow = FakeBinaries.executable(dir, "javafmt-slow", "#!/bin/sh\nsleep 3\necho 'javafmt 9.9.9'\ntouch '" + answered + "'\n");
         JavafmtSettings.getInstance(getProject()).setBinaryPath(slow.toString());
         // reset() runs on the EDT when the Settings dialog opens the page, so probing the binary
         // there freezes the dialog for as long as the binary takes to answer.
@@ -115,7 +112,7 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
         configurable.disposeUIResources();
         PlatformTestUtil.waitWithEventsDispatching("the probe never answered", () -> Files.exists(answered), 10);
         final var settled = System.nanoTime() + Duration.ofMillis(500).toNanos();
-        PlatformTestUtil.waitWithEventsDispatching("unreachable", () -> System.nanoTime() > settled, 10);
+        PlatformTestUtil.waitWithEventsDispatching("the clock stopped", () -> System.nanoTime() > settled, 10);
         assertThat(status().getText()).isEqualTo(status);
     }
 
@@ -148,9 +145,7 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     @Test
     public void testEngineStartsInProcess() {
         assertThat(engine().getSelectedItem()).isEqualTo(JavafmtApplicationSettings.Engine.IN_PROCESS);
-        assertThat(
-                        findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME)
-                                .isEnabled())
+        assertThat(findByName(JavafmtConfigurable.BINARY_PATH_FIELD_NAME).isEnabled())
                 .isFalse();
     }
 
@@ -158,9 +153,7 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     public void testChoosingTheNativeEngineIsAppliedAndEnablesTheBinaryPath() {
         engine().setSelectedItem(JavafmtApplicationSettings.Engine.NATIVE);
         assertThat(configurable.isModified()).isTrue();
-        assertThat(
-                        findByName(configurable, JavafmtConfigurable.BINARY_PATH_FIELD_NAME)
-                                .isEnabled())
+        assertThat(findByName(JavafmtConfigurable.BINARY_PATH_FIELD_NAME).isEnabled())
                 .isTrue();
         configurable.apply();
         assertThat(JavafmtApplicationSettings.getInstance().getEngine()).isEqualTo(JavafmtApplicationSettings.Engine.NATIVE);
@@ -176,18 +169,18 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     }
 
     private JBLabel status() {
-        return (JBLabel) findByName(configurable, JavafmtConfigurable.BINARY_STATUS_LABEL_NAME);
+        return (JBLabel) findByName(JavafmtConfigurable.BINARY_STATUS_LABEL_NAME);
     }
 
     private JComboBox<?> engine() {
-        return (JComboBox<?>) findByName(configurable, JavafmtConfigurable.ENGINE_COMBO_BOX_NAME);
+        return (JComboBox<?>) findByName(JavafmtConfigurable.ENGINE_COMBO_BOX_NAME);
     }
 
     private JCheckBox checkBox(final String name) {
-        return (JCheckBox) findByName(configurable, name);
+        return (JCheckBox) findByName(name);
     }
 
-    private JComponent findByName(final JavafmtConfigurable ignoredConfigurable, final String name) {
+    private JComponent findByName(final String name) {
         return UIUtil.findComponentsOfType(form, JComponent.class).stream()
                 .filter(component -> name.equals(component.getName()))
                 .findFirst()

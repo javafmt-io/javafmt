@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
@@ -321,10 +320,7 @@ class JavafmtDaemonTest {
     }
 
     static Path script(final Path dir, final String body) throws IOException {
-        final var path = dir.resolve("javafmt-fake-daemon");
-        Files.writeString(path, "#!/bin/sh\n[ \"$1\" = \"--daemon\" ] || exit 9\n" + body);
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rwxr-xr-x"));
-        return path;
+        return FakeBinaries.executable(dir, "javafmt-fake-daemon", "#!/bin/sh\n[ \"$1\" = \"--daemon\" ] || exit 9\n" + body);
     }
 
     private static JavafmtDaemon start(final Path executable) throws ExecutionException {
