@@ -39,6 +39,8 @@ import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
@@ -59,7 +61,7 @@ final class CommentAttacher {
             return new ParsedUnit(tree, source, positions, List.of(), List.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), List.of());
         }
         final var slots = new ArrayList<Slot>();
-        final var opaque = new ArrayList<long[]>();
+        final var opaque = new ArrayList<Span>();
         collectCompilationUnit(tree, source, positions, slots, opaque);
         slots.sort(SLOT_ORDER);
         final var fileHeader = new ArrayList<CommentToken>();
@@ -75,29 +77,30 @@ final class CommentAttacher {
         for (final var c : comments) {
             index = advancePast(slots, index, c);
             if (opaque.stream()
-                    .anyMatch(span -> span[0] <= c.start() && c.end() <= span[1])) {
+                    .anyMatch(span -> span.contains(c))) {
                 continue;
             }
-            final var slot = firstEnclosing(slots, index, c, source);
-            if (slot == null || slot.reach() == Reach.CATCH_ALL) {
+            final var enclosing = firstEnclosing(slots, index, c, source);
+            if (enclosing.isEmpty()) {
                 loose.add(c);
                 continue;
             }
+            final var slot = enclosing.get();
             final var previous = slot.previous();
             if (previous != null && sameLine(source, (int) slot.lo(), c.start())) {
                 if (positions.getEndPosition(tree, previous) >= tokens.endBefore(c)) {
-                    trailing.computeIfAbsent(previous, _ -> new ArrayList<>()).add(c);
+                    append(trailing, previous, c);
                 } else {
                     loose.add(c);
                 }
                 continue;
             }
             if (followsTheLastElementsComma(slot, c, source)) {
-                trailing.computeIfAbsent(previous, _ -> new ArrayList<>()).add(c);
+                append(trailing, Objects.requireNonNull(previous), c);
                 continue;
             }
             if (trailsPastTheSeparator(slot, c, source, tree, positions) && slot.owner() != null) {
-                interior.computeIfAbsent(slot.owner(), _ -> new ArrayList<>()).add(c);
+                append(interior, slot.owner(), c);
                 continue;
             }
             switch (slot.kind()) {
@@ -105,35 +108,30 @@ final class CommentAttacher {
                 case FILE_FOOTER -> fileFooter.add(c);
                 case LEADING -> {
                     if (slot.owner() != null && positions.getStartPosition(tree, slot.owner()) == tokens.startAfter(c)) {
-                        leading.computeIfAbsent(slot.owner(), _ -> new ArrayList<>())
-                                .add(c);
+                        append(leading, slot.owner(), c);
                     } else {
                         loose.add(c);
                     }
                 }
                 case INTERIOR -> {
                     if (slot.owner() != null) {
-                        interior.computeIfAbsent(slot.owner(), _ -> new ArrayList<>())
-                                .add(c);
+                        append(interior, slot.owner(), c);
                     }
                 }
                 case TAIL -> {
                     if (slot.owner() != null) {
-                        tail.computeIfAbsent(slot.owner(), _ -> new ArrayList<>())
-                                .add(c);
+                        append(tail, slot.owner(), c);
                     }
                 }
                 case BRACE_LINE -> {
                     if (slot.owner() != null) {
-                        braceLine.computeIfAbsent(slot.owner(), _ -> new ArrayList<>())
-                                .add(c);
+                        append(braceLine, slot.owner(), c);
                     }
                 }
                 case LOOSE -> loose.add(c);
                 case BEFORE_BRACE -> {
                     if (slot.owner() != null && c.text().startsWith("//")) {
-                        braceLine.computeIfAbsent(slot.owner(), _ -> new ArrayList<>())
-                                .add(c);
+                        append(braceLine, slot.owner(), c);
                     } else {
                         loose.add(c);
                     }
@@ -157,20 +155,23 @@ final class CommentAttacher {
     }
 
     /**
-     * The tightest slot at or after {@code from} that fully encloses {@code c}, or {@code null} if
-     * none does. Slots are sorted by ascending {@code hi}, so the first enclosing match is also the
+     * The tightest slot at or after {@code from} that fully encloses {@code c}, or empty if none
+     * does or the tightest one is a catch-all. Slots are sorted by ascending {@code hi}, so the first enclosing match is also the
      * innermost. Scanning forward past a non-enclosing candidate matters: a comment can sit inside
      * a construct whose own gap slots all start after it, and the enclosing self-span slot for that
      * construct sits further along the list.
      */
-    @Nullable
-    private Slot firstEnclosing(final List<Slot> slots, final int from, final CommentToken c, final String source) {
+    private Optional<Slot> firstEnclosing(final List<Slot> slots, final int from, final CommentToken c, final String source) {
         return IntStream.range(from, slots.size())
                 .mapToObj(slots::get)
                 .filter(s -> s.lo() <= c.start() && s.hi() >= c.end())
                 .filter(s -> s.reach() != Reach.SAME_LINE || sameLine(source, (int) s.lo(), c.start()))
                 .findFirst()
-                .orElse(null);
+                .filter(s -> s.reach() != Reach.CATCH_ALL);
+    }
+
+    private void append(final Map<Tree, List<CommentToken>> channel, final Tree owner, final CommentToken c) {
+        channel.computeIfAbsent(owner, _ -> new ArrayList<>()).add(c);
     }
 
     private boolean sameLine(final String source, final int from, final int to) {
@@ -265,7 +266,7 @@ final class CommentAttacher {
                                         final String source,
                                         final SourcePositions pos,
                                         final List<Slot> slots,
-                                        final List<long[]> opaque) {
+                                        final List<Span> opaque) {
         final var ordered = Stream.of(
                         Stream.ofNullable(cu.getPackage()), cu.getImports().stream(), Stream.ofNullable(cu.getModule()), cu.getTypeDecls().stream())
                 .<Tree>flatMap(stream -> stream)
@@ -273,7 +274,7 @@ final class CommentAttacher {
                 .sorted(Comparator.comparingLong(t -> pos.getStartPosition(cu, t)))
                 .toList();
         if (ordered.isEmpty()) {
-            addWholeSourceFileHeaderSlot(slots, source);
+            slots.add(new Slot(null, null, 0L, source.length(), Kind.FILE_HEADER));
             return;
         }
         slots.add(new Slot(null, null, 0L, pos.getStartPosition(cu, ordered.getFirst()), Kind.FILE_HEADER));
@@ -290,15 +291,6 @@ final class CommentAttacher {
         }
         slots.add(new Slot(previous, null, previousEnd, source.length(), Kind.FILE_FOOTER));
         new Collector(cu, pos, source, slots, opaque).scan(cu, null);
-    }
-
-    /**
-     * Adds a slot spanning the whole source when there are no top-level declarations at all — a
-     * compilation unit needn't declare anything, so the source may be nothing but comments, and
-     * without a slot that spans it every one of those comments would be dropped.
-     */
-    private void addWholeSourceFileHeaderSlot(final List<Slot> slots, final String source) {
-        slots.add(new Slot(null, null, 0L, source.length(), Kind.FILE_HEADER));
     }
 
     private boolean isAttachmentSite(final Tree t) {
@@ -327,6 +319,13 @@ final class CommentAttacher {
      * marks a slot in a comma-separated list whose renderer knows how to place a comment the author
      * left after the comma.
      */
+    private record Span(long start, long end) {
+
+        boolean contains(final CommentToken c) {
+            return start <= c.start() && c.end() <= end;
+        }
+    }
+
     private record Slot(@Nullable Tree previous, @Nullable Tree owner, long lo, long hi, Kind kind, Reach reach, boolean crossesSeparator) {
 
         Slot(@Nullable final Tree previous, @Nullable final Tree owner, final long lo, final long hi, final Kind kind) {
@@ -380,9 +379,9 @@ final class CommentAttacher {
 
         private final List<Slot> slots;
 
-        private final List<long[]> opaque;
+        private final List<Span> opaque;
 
-        Collector(final CompilationUnitTree cu, final SourcePositions pos, final String source, final List<Slot> slots, final List<long[]> opaque) {
+        Collector(final CompilationUnitTree cu, final SourcePositions pos, final String source, final List<Slot> slots, final List<Span> opaque) {
             this.cu = cu;
             this.pos = pos;
             this.source = source;
@@ -405,7 +404,7 @@ final class CommentAttacher {
             final var start = pos.getStartPosition(cu, node);
             final var end = pos.getEndPosition(cu, node);
             if (start >= 0 && end > start && source.lastIndexOf('\n', (int) end - 1) > start) {
-                opaque.add(new long[]{start, end});
+                opaque.add(new Span(start, end));
             }
             return null;
         }
@@ -420,18 +419,20 @@ final class CommentAttacher {
             // written past a constant's comma annotates that constant rather than the next one.
             // Nothing else in the list can match: the gap a comment has to cross is spaces, tabs
             // and commas only, and every other member is separated by a `;` or a `}`.
-            collect(node, members(node, isRecord), true, node.getKind() == Tree.Kind.ENUM);
+            final var members = members(node, isRecord);
+            collect(node, members, true, node.getKind() == Tree.Kind.ENUM);
             collectAnnotations(node.getModifiers());
             collectHeaderBraceLine(node, isRecord);
-            members(node, isRecord).stream()
+            members.stream()
                     .flatMap(member -> member instanceof VariableTree v && !TreeFacts.isEnumConstant(v, cu, pos)
                             ? Stream.of(v.getModifiers())
                             : Stream.empty())
                     .forEach(this::collectAnnotations);
             if (isRecord) {
-                collect(node, recordComponents(node), false);
-                collectBeforeClosingParenthesis(node, recordComponents(node), Kind.LOOSE);
-                recordComponents(node).stream()
+                final var components = recordComponents(node);
+                collect(node, components, false);
+                collectBeforeClosingParenthesis(node, components, Kind.LOOSE);
+                components.stream()
                         .flatMap(component -> component instanceof VariableTree v ? Stream.of(v.getModifiers()) : Stream.empty())
                         .forEach(modifiers -> collectAnnotations(modifiers, false));
             }
@@ -447,9 +448,7 @@ final class CommentAttacher {
         @Override
         public Void visitBlock(final BlockTree node, final Void p) {
             collect(node, node.getStatements(), true);
-            collectBraceLine(node, pos.getStartPosition(cu, node), node.getStatements().stream()
-                    .map(statement -> (Tree) statement)
-                    .toList());
+            collectBraceLine(node, pos.getStartPosition(cu, node), node.getStatements());
             node.getStatements().stream()
                     .flatMap(statement -> statement instanceof VariableTree v ? Stream.of(v.getModifiers()) : Stream.empty())
                     .forEach(this::collectAnnotations);
@@ -473,10 +472,6 @@ final class CommentAttacher {
             collectChainJoint(node);
         }
 
-        private void collectAnnotationLineEnds(final ModifiersTree modifiers) {
-            modifiers.getAnnotations().forEach(this::collectLineEnd);
-        }
-
         private void collectLineEnd(final AnnotationTree annotation) {
             final var end = pos.getEndPosition(cu, annotation);
             if (end < 0) {
@@ -496,7 +491,7 @@ final class CommentAttacher {
         }
 
         private void collectAnnotations(final ModifiersTree modifiers, final boolean withHeaderGap) {
-            collectAnnotationLineEnds(modifiers);
+            modifiers.getAnnotations().forEach(this::collectLineEnd);
             final var annotations = modifiers.getAnnotations();
             final var gaps = annotations.stream()
                     .map(this::gapAfter)
@@ -761,9 +756,7 @@ final class CommentAttacher {
         protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final Void p) {
             final var expression = node instanceof SwitchTree statement ? statement.getExpression() : ((SwitchExpressionTree) node).getExpression();
             collect(node, cases, false);
-            collectBraceLine(node, pos.getEndPosition(cu, expression), cases.stream()
-                    .map(c -> (Tree) c)
-                    .toList());
+            collectBraceLine(node, pos.getEndPosition(cu, expression), cases);
         }
 
         private void collectColonFormBody(final CaseTree node) {
@@ -859,7 +852,7 @@ final class CommentAttacher {
             }
         }
 
-        private void collectBraceLine(final Tree owner, final long searchFrom, final List<Tree> contents) {
+        private void collectBraceLine(final Tree owner, final long searchFrom, final List<? extends Tree> contents) {
             final var end = pos.getEndPosition(cu, owner);
             if (searchFrom < 0 || end < 0) {
                 return;
