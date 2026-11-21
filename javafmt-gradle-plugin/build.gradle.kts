@@ -39,6 +39,8 @@ dependencies {
     "engineImplementation"(project(":javafmt-core"))
     "engineCompileOnly"(libs.jspecify)
     compileOnly(engine.output)
+    testImplementation(gradleApi())
+    testImplementation(engine.runtimeClasspath)
     "functionalTestImplementation"(gradleTestKit())
     "functionalTestImplementation"(platform(libs.junit.bom))
     "functionalTestImplementation"(libs.junit.jupiter)

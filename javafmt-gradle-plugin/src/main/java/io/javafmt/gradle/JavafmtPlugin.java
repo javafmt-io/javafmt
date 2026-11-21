@@ -91,6 +91,16 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
         }
     }
 
+    static Stream<Path> upToTheRepositoryRoot(final Path directory) {
+        final var ancestors = Stream.iterate(directory.toAbsolutePath().normalize(), Objects::nonNull, Path::getParent)
+                .toList();
+        final var root = IntStream.range(0, ancestors.size())
+                .filter(i -> Files.exists(ancestors.get(i).resolve(".git")))
+                .findFirst()
+                .orElse(ancestors.size() - 1);
+        return ancestors.subList(0, root + 1).stream();
+    }
+
     private record PluginProperties(String engineHash, String foojayVersion) {}
 
     private static final class RatchetFromSet implements Spec<Task> {
@@ -170,22 +180,12 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             final var directories = sourceDirectories(sourceSet);
             return Stream.concat(
                     directories.stream()
-                            .flatMap(SourceSetTasks::upToTheRepositoryRoot)
+                            .flatMap(JavafmtPlugin::upToTheRepositoryRoot)
                             .distinct()
                             .map(directory -> directory.resolve(PROJECT_FILE).toFile()),
                     directories.stream()
                             .map(directory -> project.fileTree(directory, tree -> tree.include("**/" + PROJECT_FILE))))
                     .toList();
-        }
-
-        private static Stream<Path> upToTheRepositoryRoot(final Path directory) {
-            final var ancestors = Stream.iterate(directory.toAbsolutePath().normalize(), Objects::nonNull, Path::getParent)
-                    .toList();
-            final var root = IntStream.range(0, ancestors.size())
-                    .filter(i -> Files.exists(ancestors.get(i).resolve(".git")))
-                    .findFirst()
-                    .orElse(ancestors.size() - 1);
-            return ancestors.subList(0, root + 1).stream();
         }
 
         private List<ConfigurableFileTree> javaSources(final SourceSet sourceSet) {
