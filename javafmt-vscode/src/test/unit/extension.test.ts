@@ -134,7 +134,7 @@ function diagnostics(): { set: jest.Mock; delete: jest.Mock } {
     return (vscode.languages.createDiagnosticCollection as jest.Mock).mock.results.at(-1)?.value;
 }
 
-function restartCommand(): () => void {
+function restartCommand(): () => Promise<void> {
     return (vscode.commands.registerCommand as jest.Mock).mock.calls.filter((call) => call[0] === 'javafmt.restartDaemon').at(-1)[1];
 }
 
@@ -278,8 +278,8 @@ describe('after activate()', () => {
     });
 
     describe('the restart command', () => {
-        it('says nothing was restarted, and why, when no binary can be started', () => {
-            restartCommand()();
+        it('says nothing was restarted, and why, when no binary can be started', async () => {
+            await restartCommand()();
             expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('no javafmt binary found'));
         });
@@ -460,13 +460,44 @@ describe('after activate()', () => {
             ]);
         });
 
-        it('says the daemon restarted when the restart command starts a new one', () => {
-            jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
+        function restartingInto(next: MockProcess): Promise<void> {
+            jest.spyOn(child_process, 'spawn').mockImplementationOnce(() => mockProcess()).mockImplementation(() => next);
             onlyExecutable((p) => p === bundled);
             deactivate();
             activate(makeContext('/ext'));
-            restartCommand()();
+            return restartCommand()();
+        }
+
+        it('says the daemon restarted only once the new one has started', async () => {
+            const next = mockProcess();
+            const restarted = restartingInto(next);
+            expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+            next.emit('spawn');
+            await restarted;
             expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('javafmt daemon restarted.');
+        });
+
+        it('reports a restart whose daemon fails to start, with the cause, instead of saying it restarted', async () => {
+            const next = mockProcess();
+            const restarted = restartingInto(next);
+            next.emit('error', new Error('spawn ENOENT'));
+            await restarted;
+            expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('javafmt: daemon failed: spawn ENOENT');
+        });
+
+        it('reports a restart whose daemon has not started within 10s, and stops it', async () => {
+            jest.useFakeTimers();
+            const next = mockProcess();
+            const restarted = restartingInto(next);
+            await jest.advanceTimersByTimeAsync(9_999);
+            expect(vscode.window.showErrorMessage).not.toHaveBeenCalledWith('javafmt: daemon did not start within 10s');
+            await jest.advanceTimersByTimeAsync(1);
+            await restarted;
+            expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('javafmt: daemon did not start within 10s');
+            expect(next.kill).toHaveBeenCalled();
+            expect(mockStatusItem.detail).toBe('daemon did not start within 10s');
         });
 
         it('clears the diagnostics of a document whose formatting fails', async () => {

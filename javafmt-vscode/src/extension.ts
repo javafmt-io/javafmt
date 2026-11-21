@@ -176,6 +176,20 @@ function within(lookup: Promise<Classpath>, timeoutMs: number): Promise<Classpat
     });
 }
 
+function started(proc: Daemon, timeoutMs: number): Promise<string | undefined> {
+    return new Promise((resolve) => {
+        const settle = (failure?: string): void => {
+            clearTimeout(timer);
+            proc.off('spawn', onSpawn).off('error', onError);
+            resolve(failure);
+        };
+        const onSpawn = (): void => settle();
+        const onError = (err: Error): void => settle(`daemon failed: ${err.message}`);
+        const timer = setTimeout(() => settle(`daemon did not start within ${timeoutMs / 1000}s`), timeoutMs);
+        proc.once('spawn', onSpawn).once('error', onError);
+    });
+}
+
 class Session {
     private daemon: Daemon | null = null;
 
@@ -215,11 +229,7 @@ class Session {
             this.output,
             this.diagnostics,
             this.statusItem,
-            vscode.commands.registerCommand('javafmt.restartDaemon', () => {
-                if (this.restartDaemon()) {
-                    void vscode.window.showInformationMessage('javafmt daemon restarted.');
-                }
-            }),
+            vscode.commands.registerCommand('javafmt.restartDaemon', () => this.restartAndReport()),
             vscode.workspace.onDidCloseTextDocument((doc) => this.diagnostics.delete(doc.uri)),
             vscode.workspace.onDidChangeConfiguration((e) => {
                 if (e.affectsConfiguration('javafmt')) {
@@ -328,11 +338,25 @@ class Session {
         }
     }
 
-    private restartDaemon(): boolean {
+    private restartDaemon(): Daemon | null {
         this.reportedMissingBinary = false;
         this.stopDaemon();
         this.startDaemon();
-        return this.daemon !== null;
+        return this.daemon;
+    }
+
+    private async restartAndReport(): Promise<void> {
+        const proc = this.restartDaemon();
+        if (!proc) {
+            return;
+        }
+        const failure = await started(proc, REQUEST_TIMEOUT_MS);
+        if (failure === undefined) {
+            void vscode.window.showInformationMessage('javafmt daemon restarted.');
+            return;
+        }
+        this.daemonGone(proc, failure);
+        void vscode.window.showErrorMessage(`javafmt: ${failure}`);
     }
 
     private stopDaemon(reason = 'daemon stopped'): void {
