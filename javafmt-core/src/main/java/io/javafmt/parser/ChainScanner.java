@@ -1,8 +1,11 @@
 package io.javafmt.parser;
 
 import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.SwitchExpressionTree;
+import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreeScanner;
@@ -18,7 +21,7 @@ import java.util.function.Supplier;
  * compile can be scanned. Visits happen in the same order as {@link TreeScanner}: each operator of
  * a binary chain from the outermost in, then the leftmost operand, then the right operands from the
  * innermost out. Override {@link #visitBinaryOperator} to see each operator and {@link
- * #visitInvocation} to see each method call; {@link #visitBinary}, {@link #visitMethodInvocation}
+ * #visitInvocation} to see each method call, and {@link #visitCases} to see each switch; {@link #visitBinary}, {@link #visitMethodInvocation}
  * and {@link #visitMemberSelect} are final.
  */
 public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullable Object> extends TreeScanner<R, P> {
@@ -82,10 +85,27 @@ public abstract class ChainScanner<R extends @Nullable Object, P extends @Nullab
         return scanSelectorChain(node, p);
     }
 
+    @Override
+    @Nullable
+    public R visitSwitch(final SwitchTree node, final P p) {
+        visitCases(node, node.getCases(), p);
+        return super.visitSwitch(node, p);
+    }
+
+    @Override
+    @Nullable
+    public R visitSwitchExpression(final SwitchExpressionTree node, final P p) {
+        visitCases(node, node.getCases(), p);
+        return super.visitSwitchExpression(node, p);
+    }
+
     /** Called once for each operator in a chain, before any of the chain's operands are scanned. */
     protected void visitBinaryOperator(final BinaryTree node, final P p) {}
 
     protected void visitInvocation(final MethodInvocationTree node, final P p) {}
+
+    /** Called once for each switch statement and switch expression, before its cases are scanned. */
+    protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final P p) {}
 
     @Nullable
     private R scanSelectorChain(final Tree node, final P p) {

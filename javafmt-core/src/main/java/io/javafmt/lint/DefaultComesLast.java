@@ -2,8 +2,6 @@ package io.javafmt.lint;
 
 import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.DefaultCaseLabelTree;
-import com.sun.source.tree.SwitchExpressionTree;
-import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
@@ -42,15 +40,8 @@ public final class DefaultComesLast implements ScanningRule {
         final var diagnostics = new ArrayList<Diagnostic>();
         final var scanner = new ChainScanner<Void, Void>() {
             @Override
-            public Void visitSwitch(final SwitchTree node, final Void p) {
-                inspect(node, node.getCases(), edits, diagnostics, unit);
-                return super.visitSwitch(node, null);
-            }
-
-            @Override
-            public Void visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
-                inspect(node, node.getCases(), edits, diagnostics, unit);
-                return super.visitSwitchExpression(node, null);
+            protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final Void p) {
+                inspect(node, cases, edits, diagnostics, unit);
             }
         };
         return new RuleScan(scanner, () -> new LintResult(edits, diagnostics));

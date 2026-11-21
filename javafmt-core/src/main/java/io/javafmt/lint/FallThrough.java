@@ -1,8 +1,7 @@
 package io.javafmt.lint;
 
 import com.sun.source.tree.CaseTree;
-import com.sun.source.tree.SwitchExpressionTree;
-import com.sun.source.tree.SwitchTree;
+import com.sun.source.tree.Tree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.ParsedUnit;
@@ -30,15 +29,8 @@ public final class FallThrough implements WarningRule {
         final var unit = context.unit();
         return LintScan.collect(context, diagnostics -> new ChainScanner<>() {
             @Override
-            public Void visitSwitch(final SwitchTree node, final Void p) {
-                inspect(node.getCases(), diagnostics, unit);
-                return super.visitSwitch(node, null);
-            }
-
-            @Override
-            public Void visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
-                inspect(node.getCases(), diagnostics, unit);
-                return super.visitSwitchExpression(node, null);
+            protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final Void p) {
+                inspect(cases, diagnostics, unit);
             }
         });
     }

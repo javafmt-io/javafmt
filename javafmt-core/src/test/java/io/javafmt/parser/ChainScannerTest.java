@@ -1,14 +1,18 @@
 package io.javafmt.parser;
 
 import com.sun.source.tree.BinaryTree;
+import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.LiteralTree;
 import com.sun.source.tree.MethodInvocationTree;
+import com.sun.source.tree.SwitchExpressionTree;
+import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.TreeScanner;
 import org.jspecify.annotations.Nullable;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -53,6 +57,59 @@ class ChainScannerTest {
     void reportsTheSamePathAsTreePathScanner(final String source) {
         final var unit = JavaParser.parseUnit(source).tree();
         assertThat(chainPaths(unit)).isEqualTo(javacPaths(unit));
+    }
+
+    @Test
+    void reportsEachSwitchOnceWithItsCases() {
+        final var unit = JavaParser.parseUnit("""
+                class Switches {
+
+                    int f(int a, int b) {
+                        switch (a) {
+                            case 1:
+                                break;
+                            default:
+                                break;
+                        }
+                        final var inner = switch (b) {
+                            case 1 -> switch (a) {
+                                case 2 -> 3;
+                                default -> 4;
+                            };
+                            case 2 -> 5;
+                            default -> 6;
+                        };
+                        return inner;
+                    }
+                }
+                """)
+                .tree();
+        final var javac = new ArrayList<String>();
+        new TreeScanner<Void, Void>() {
+            @Override
+            public Void visitSwitch(final SwitchTree node, final Void unused) {
+                javac.add(node.getKind() + " " + node.getCases().size());
+                return super.visitSwitch(node, null);
+            }
+
+            @Override
+            public Void visitSwitchExpression(final SwitchExpressionTree node, final Void unused) {
+                javac.add(node.getKind() + " " + node.getCases().size());
+                return super.visitSwitchExpression(node, null);
+            }
+        }.scan(unit, null);
+        final var chain = new ArrayList<String>();
+        new ChainScanner<Void, Void>() {
+            @Override
+            protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final Void unused) {
+                chain.add(node.getKind() + " " + cases.size());
+                final List<? extends CaseTree> expected = node instanceof SwitchTree statement
+                        ? statement.getCases()
+                        : ((SwitchExpressionTree) node).getCases();
+                assertThat(cases).isSameAs(expected);
+            }
+        }.scan(unit, null);
+        assertThat(chain).hasSize(3).isEqualTo(javac);
     }
 
     static Stream<Arguments> reductions() {

@@ -1,9 +1,11 @@
 package io.javafmt.lint;
 
 import com.sun.source.tree.BlockTree;
+import com.sun.source.tree.CaseTree;
 import com.sun.source.tree.CatchTree;
 import com.sun.source.tree.SwitchTree;
 import com.sun.source.tree.SynchronizedTree;
+import com.sun.source.tree.Tree;
 import com.sun.source.tree.TryTree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
@@ -59,11 +61,10 @@ public final class EmptyBlock implements WarningRule {
             }
 
             @Override
-            public Void visitSwitch(final SwitchTree node, final Void p) {
-                if (node.getCases().isEmpty()) {
+            protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final Void p) {
+                if (node instanceof SwitchTree && cases.isEmpty()) {
                     diagnostics.add(new Diagnostic.Warning("empty switch body", unit.positionOf(node)));
                 }
-                return super.visitSwitch(node, null);
             }
         });
     }

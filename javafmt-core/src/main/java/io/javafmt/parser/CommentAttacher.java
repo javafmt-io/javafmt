@@ -758,21 +758,12 @@ final class CommentAttacher {
         }
 
         @Override
-        public Void visitSwitch(final SwitchTree node, final Void p) {
-            collect(node, node.getCases(), false);
-            collectBraceLine(node, pos.getEndPosition(cu, node.getExpression()), node.getCases().stream()
+        protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final Void p) {
+            final var expression = node instanceof SwitchTree statement ? statement.getExpression() : ((SwitchExpressionTree) node).getExpression();
+            collect(node, cases, false);
+            collectBraceLine(node, pos.getEndPosition(cu, expression), cases.stream()
                     .map(c -> (Tree) c)
                     .toList());
-            return super.visitSwitch(node, null);
-        }
-
-        @Override
-        public Void visitSwitchExpression(final SwitchExpressionTree node, final Void p) {
-            collect(node, node.getCases(), false);
-            collectBraceLine(node, pos.getEndPosition(cu, node.getExpression()), node.getCases().stream()
-                    .map(c -> (Tree) c)
-                    .toList());
-            return super.visitSwitchExpression(node, null);
         }
 
         private void collectColonFormBody(final CaseTree node) {
