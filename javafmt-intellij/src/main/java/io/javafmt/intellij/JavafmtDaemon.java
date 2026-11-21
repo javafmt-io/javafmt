@@ -27,7 +27,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -47,7 +46,7 @@ final class JavafmtDaemon {
 
     private final AtomicInteger ids = new AtomicInteger();
 
-    private final AtomicReference<Optional<JavafmtBinary.Outcome>> stopped = new AtomicReference<>(Optional.empty());
+    private volatile Optional<JavafmtBinary.Outcome> stopped = Optional.empty();
 
     private final FutureTask<Void> writer;
 
@@ -75,7 +74,7 @@ final class JavafmtDaemon {
     }
 
     boolean isAlive() {
-        return stopped.get().isEmpty();
+        return stopped.isEmpty();
     }
 
     JavafmtBinary.Outcome format(final String source, final FileScope scope) {
@@ -85,7 +84,7 @@ final class JavafmtDaemon {
         final var reply = new CompletableFuture<JavafmtBinary.Outcome>();
         pending.put(id, reply);
         try {
-            final var ended = stopped.get();
+            final var ended = stopped;
             if (ended.isPresent()) {
                 return ended.get();
             }
@@ -113,10 +112,11 @@ final class JavafmtDaemon {
         return new JavafmtBinary.Outcome.Refused(reason, true);
     }
 
-    private void stop(final JavafmtBinary.Outcome outcome) {
-        if (!stopped.compareAndSet(Optional.empty(), Optional.of(outcome))) {
+    private synchronized void stop(final JavafmtBinary.Outcome outcome) {
+        if (stopped.isPresent()) {
             return;
         }
+        stopped = Optional.of(outcome);
         pending.values().forEach(reply -> reply.complete(outcome));
         writer.cancel(true);
         if (process.isAlive()) {
