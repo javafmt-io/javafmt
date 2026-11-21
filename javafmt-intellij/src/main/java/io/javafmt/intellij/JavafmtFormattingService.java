@@ -171,7 +171,9 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                 try {
                     request.onTextReady(content);
                 } catch (final RuntimeException | Error installFailure) {
-                    escaped.addSuppressed(installFailure);
+                    if (installFailure != escaped) {
+                        escaped.addSuppressed(installFailure);
+                    }
                 }
                 throw escaped;
             }

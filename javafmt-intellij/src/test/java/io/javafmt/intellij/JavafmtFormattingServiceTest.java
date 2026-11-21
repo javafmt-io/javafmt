@@ -172,6 +172,23 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                 .satisfies(thrown -> assertThat(thrown.getSuppressed()).contains(installFailure));
     }
 
+    @Test
+    public void testASelfSuppressionNeverReplacesTheEscapedFailure(@TempDir final Path dir) throws IOException {
+        enableJavafmt();
+        final var escaped = new OutOfMemoryError("Java heap space");
+        usePathSearch(dir, () -> {
+            throw escaped;
+        });
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        final var task = service.createFormattingTask(
+                new CapturingRequest(file, new CopyOnWriteArrayList<>(), () -> {
+                    throw escaped;
+                }));
+        assertThatThrownBy(task::run)
+                .isSameAs(escaped)
+                .satisfies(thrown -> assertThat(thrown.getSuppressed()).isEmpty());
+    }
+
     static Stream<Arguments> escapes() {
         final Supplier<String> cancelled = () -> {
             throw new ProcessCanceledException();
