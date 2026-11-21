@@ -1,11 +1,46 @@
 package io.javafmt.builder;
 
+import io.javafmt.Diagnostic;
+import io.javafmt.Javafmt;
+import io.javafmt.JavafmtConfig;
+import io.javafmt.parser.JavaParser;
+import io.javafmt.parser.ParseException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
 
 import static io.javafmt.builder.RendererTestSupport.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RecordRendererTest {
+
+    private static final String COMPACT_CONSTRUCTOR_WITH_THROWS = "record R(int x) {\n\n    R throws Exception {}\n}\n";
+
+    static Stream<JavafmtConfig> analyses() {
+        return Stream.of(JavafmtConfig.defaults(), JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed("")));
+    }
+
+    @ParameterizedTest
+    @MethodSource("analyses")
+    void aCompactConstructorWithAThrowsClauseIsRefusedAsAParseError(final JavafmtConfig config) {
+        final var result = Javafmt.formatWithResult(COMPACT_CONSTRUCTOR_WITH_THROWS, config);
+        assertThat(result.output()).isEqualTo(COMPACT_CONSTRUCTOR_WITH_THROWS);
+        assertThat(result.diagnostics())
+                .singleElement()
+                .isInstanceOf(Diagnostic.ParseError.class)
+                .extracting(Diagnostic::message)
+                .asString()
+                .contains("throws clause not allowed");
+    }
+
+    @Test
+    void theParserRefusesACompactConstructorWithAThrowsClauseSoItNeverReachesTheRenderer() {
+        assertThatThrownBy(() -> JavaParser.parseUnit(COMPACT_CONSTRUCTOR_WITH_THROWS))
+                .isInstanceOf(ParseException.class);
+    }
 
     @Test
     void emptyRecord_rendersOnOneLine() {
