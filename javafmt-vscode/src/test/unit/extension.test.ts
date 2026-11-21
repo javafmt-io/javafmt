@@ -135,7 +135,7 @@ function diagnostics(): { set: jest.Mock; delete: jest.Mock } {
 }
 
 function restartCommand(): () => void {
-    return (vscode.commands.registerCommand as jest.Mock).mock.calls.find((call) => call[0] === 'javafmt.restartDaemon')[1];
+    return (vscode.commands.registerCommand as jest.Mock).mock.calls.filter((call) => call[0] === 'javafmt.restartDaemon').at(-1)[1];
 }
 
 function formatProvider(): vscodeTypes.DocumentFormattingEditProvider & {
