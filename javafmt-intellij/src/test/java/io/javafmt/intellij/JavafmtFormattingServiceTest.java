@@ -154,6 +154,24 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         assertThat(installed).containsExactly(Fixtures.UNFORMATTED_FOO);
     }
 
+    @Test
+    public void testTheEscapedFailureStaysPrimaryWhenInstallingTheOriginalTextAlsoFails(@TempDir final Path dir) throws IOException {
+        enableJavafmt();
+        final var escaped = new NoClassDefFoundError("io/javafmt/Javafmt");
+        usePathSearch(dir, () -> {
+            throw escaped;
+        });
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        final var installFailure = new IllegalStateException("the platform rejected the text");
+        final var task = service.createFormattingTask(
+                new CapturingRequest(file, new CopyOnWriteArrayList<>(), () -> {
+                    throw installFailure;
+                }));
+        assertThatThrownBy(task::run)
+                .isSameAs(escaped)
+                .satisfies(thrown -> assertThat(thrown.getSuppressed()).contains(installFailure));
+    }
+
     static Stream<Arguments> escapes() {
         final Supplier<String> cancelled = () -> {
             throw new ProcessCanceledException();
@@ -604,7 +622,11 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         static final Duration TIMEOUT = DEFAULT_TIMEOUT;
     }
 
-    private record CapturingRequest(PsiFile file, List<String> installed) implements AsyncFormattingRequest {
+    private record CapturingRequest(PsiFile file, List<String> installed, Runnable onInstall) implements AsyncFormattingRequest {
+
+        CapturingRequest(final PsiFile file, final List<String> installed) {
+            this(file, installed, () -> {});
+        }
 
         @Override
         @NotNull
@@ -643,6 +665,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         @Override
         public void onTextReady(final String updatedText) {
             installed.add(updatedText);
+            onInstall.run();
         }
 
         @Override

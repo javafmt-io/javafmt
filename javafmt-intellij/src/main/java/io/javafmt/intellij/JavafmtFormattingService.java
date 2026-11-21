@@ -168,7 +168,11 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             try {
                 return text.get();
             } catch (final Throwable escaped) {
-                request.onTextReady(content);
+                try {
+                    request.onTextReady(content);
+                } catch (final RuntimeException | Error installFailure) {
+                    escaped.addSuppressed(installFailure);
+                }
                 throw escaped;
             }
         }
