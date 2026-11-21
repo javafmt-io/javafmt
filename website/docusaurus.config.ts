@@ -4,13 +4,10 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
     title: 'javafmt',
-    tagline: 'An opinionated, high-performance Java code formatter for modern LTS (Java 25+).',
 
     url: 'https://javafmt.io',
     baseUrl: '/',
 
-    organizationName: 'javafmt-io',
-    projectName: 'javafmt',
     trailingSlash: false,
 
     onBrokenLinks: 'throw',
@@ -22,18 +19,13 @@ const config: Config = {
         },
     },
 
-    i18n: {
-        defaultLocale: 'en',
-        locales: ['en'],
-    },
-
     presets: [
         [
             'classic',
             {
                 docs: {
                     path: '../docs',
-                    sidebarPath: './sidebars.ts',
+                    exclude: ['superpowers/**'],
                     editUrl: 'https://github.com/javafmt-io/javafmt/edit/main/docs/',
                 },
                 blog: false,
@@ -50,7 +42,7 @@ const config: Config = {
             items: [
                 {
                     type: 'docSidebar',
-                    sidebarId: 'tutorialSidebar',
+                    sidebarId: 'defaultSidebar',
                     position: 'left',
                     label: 'Docs',
                 },
@@ -83,7 +75,7 @@ const config: Config = {
         prism: {
             theme: prismThemes.github,
             darkTheme: prismThemes.dracula,
-            additionalLanguages: ['java', 'groovy', 'kotlin', 'bash'],
+            additionalLanguages: ['java', 'kotlin', 'bash', 'properties'],
         },
     } satisfies Preset.ThemeConfig,
 };

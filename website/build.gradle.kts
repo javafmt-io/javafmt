@@ -11,30 +11,32 @@ node {
     download.set(false)
 }
 
+val siteConfig = files(
+    "docusaurus.config.ts",
+    "tsconfig.json",
+    "package.json",
+    "package-lock.json",
+)
+
 val docusaurusBuild = tasks.register<NpmTask>("docusaurusBuild") {
     group = "build"
-    description = "Build the Docusaurus website into website/build/."
+    description = "Build the Docusaurus website into website/build/site/."
     args.set(listOf("run", "build"))
     dependsOn(tasks.named("npmInstall"))
-    inputs.files(fileTree(isolated.rootProject.projectDirectory.dir("docs")))
-    inputs.files(fileTree(layout.projectDirectory.dir("src")))
-    inputs.files(fileTree(layout.projectDirectory.dir("static")))
-    inputs.file(layout.projectDirectory.file("docusaurus.config.ts"))
-    inputs.file(layout.projectDirectory.file("sidebars.ts"))
-    inputs.file(layout.projectDirectory.file("tsconfig.json"))
-    inputs.file(layout.projectDirectory.file("package.json"))
-    inputs.file(layout.projectDirectory.file("package-lock.json"))
-    outputs.dir(layout.projectDirectory.dir("build"))
+    inputs.dir(isolated.rootProject.projectDirectory.dir("docs"))
+    inputs.dir(layout.projectDirectory.dir("src"))
+    inputs.files(siteConfig)
+    outputs.dir(layout.buildDirectory.dir("site"))
 }
 
-val docusaurusStart = tasks.register<NpmTask>("docusaurusStart") {
+tasks.register<NpmTask>("docusaurusStart") {
     group = "documentation"
     description = "Run the Docusaurus dev server (long-running)."
     args.set(listOf("run", "start"))
     dependsOn(tasks.named("npmInstall"))
 }
 
-val docusaurusServe = tasks.register<NpmTask>("docusaurusServe") {
+tasks.register<NpmTask>("docusaurusServe") {
     group = "documentation"
     description = "Serve the built site for local preview."
     args.set(listOf("run", "serve"))
@@ -43,14 +45,10 @@ val docusaurusServe = tasks.register<NpmTask>("docusaurusServe") {
 
 val docusaurusTypecheck = tasks.register<NpmTask>("docusaurusTypecheck") {
     group = "verification"
-    description = "Run TypeScript type-checking on docusaurus.config.ts and sidebars.ts."
+    description = "Run TypeScript type-checking on docusaurus.config.ts."
     args.set(listOf("run", "typecheck"))
     dependsOn(tasks.named("npmInstall"))
-    inputs.file(layout.projectDirectory.file("docusaurus.config.ts"))
-    inputs.file(layout.projectDirectory.file("sidebars.ts"))
-    inputs.file(layout.projectDirectory.file("tsconfig.json"))
-    inputs.file(layout.projectDirectory.file("package.json"))
-    inputs.file(layout.projectDirectory.file("package-lock.json"))
+    inputs.files(siteConfig)
     outputs.file(layout.buildDirectory.file("typecheck.ok"))
     doLast { outputs.files.singleFile.writeText("ok") }
 }
