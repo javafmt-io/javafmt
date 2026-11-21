@@ -37,14 +37,14 @@ class DaemonTest {
     @Test
     void theBinaryFixtureRequestsGetTheBinaryFixtureReplies() {
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)), out);
+        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(DaemonFixtures.bytes(DaemonFixtures.REQUESTS_HEX)), out, Daemon.DEFAULT_THREADS);
         assertThat(DaemonFixtures.hexFrames(out.toByteArray())).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_HEX);
     }
 
     @Test
     void theJsonFixtureRequestsGetTheJsonFixtureReplies() {
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.JSON, input(DaemonFixtures.text(DaemonFixtures.REQUESTS_JSON)), out);
+        Daemon.serve(Wire.JSON, input(DaemonFixtures.text(DaemonFixtures.REQUESTS_JSON)), out, Daemon.DEFAULT_THREADS);
         assertThat(out.toString(StandardCharsets.UTF_8).lines().toList()).containsExactlyInAnyOrderElementsOf(DaemonFixtures.REPLIES_JSON);
     }
 
@@ -52,7 +52,11 @@ class DaemonTest {
     void aMalformedFrameDoesNotKillTheLoop() {
         final var garbage = new byte[]{3, (byte) 0xff, (byte) 0xff, (byte) 0xff};
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(garbage, delimited(DaemonFixtures.request(1, "class A {}")))), out);
+        Daemon.serve(
+                Wire.BINARY,
+                new ByteArrayInputStream(concat(garbage, delimited(DaemonFixtures.request(1, "class A {}")))),
+                out,
+                Daemon.DEFAULT_THREADS);
         assertThat(replies(out))
                 .extracting(FormatReply::getId)
                 .containsExactly(1);
@@ -62,14 +66,14 @@ class DaemonTest {
     void aJsonRequestCarriesItsClasspath() {
         final var out = new ByteArrayOutputStream();
         final var source = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
-        Daemon.serve(Wire.JSON, input("{\"id\":1,\"source\":" + quoted(source) + ",\"classpath\":\"\"}\n"), out);
+        Daemon.serve(Wire.JSON, input("{\"id\":1,\"source\":" + quoted(source) + ",\"classpath\":\"\"}\n"), out, Daemon.DEFAULT_THREADS);
         assertThat(out.toString(StandardCharsets.UTF_8)).contains("import java.util.List;");
     }
 
     @Test
     void aMalformedJsonLineDoesNotKillTheLoop() {
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.JSON, input("{not json}\n{\"id\":1,\"source\":\"class A {}\"}\n"), out);
+        Daemon.serve(Wire.JSON, input("{not json}\n{\"id\":1,\"source\":\"class A {}\"}\n"), out, Daemon.DEFAULT_THREADS);
         assertThat(out.toString(StandardCharsets.UTF_8)).startsWith("{\"id\":1,");
     }
 
@@ -77,7 +81,7 @@ class DaemonTest {
     void aTruncatedFinalFrameIsDropped() {
         final var whole = delimited(DaemonFixtures.request(1, "class A {}"));
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(whole, Arrays.copyOf(whole, whole.length - 2))), out);
+        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(whole, Arrays.copyOf(whole, whole.length - 2))), out, Daemon.DEFAULT_THREADS);
         assertThat(replies(out))
                 .extracting(FormatReply::getId)
                 .containsExactly(1);
@@ -91,6 +95,7 @@ class DaemonTest {
                 Wire.BINARY,
                 new ByteArrayInputStream(delimited(DaemonFixtures.request(1, "class A {}"))),
                 out,
+                Daemon.DEFAULT_THREADS,
                 _ -> {
                     throw new OutOfMemoryError("simulated");
                 },
@@ -151,7 +156,13 @@ class DaemonTest {
                 .reduce("a", (inner, level) -> "f" + level + "(" + inner + ")", (_, right) -> right);
         final var source = "class Deep {\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(DaemonFixtures.request(1, source))), out, DaemonHandler::handle, _ -> {});
+        Daemon.serve(
+                Wire.BINARY,
+                new ByteArrayInputStream(delimited(DaemonFixtures.request(1, source))),
+                out,
+                Daemon.DEFAULT_THREADS,
+                DaemonHandler::handle,
+                _ -> {});
         assertThat(replies(out))
                 .singleElement()
                 .satisfies(reply -> assertThat(reply.getDiagnosticsList()).isEmpty());
@@ -167,6 +178,7 @@ class DaemonTest {
                 new ByteArrayInputStream(
                         concat(delimited(DaemonFixtures.request(1, "class A {}")), delimited(DaemonFixtures.request(2, "class B {}")))),
                 out,
+                Daemon.DEFAULT_THREADS,
                 request -> {
                     if (request.getId() == 1) {
                         throw new OutOfMemoryError("simulated");
@@ -203,6 +215,7 @@ class DaemonTest {
                 Wire.BINARY,
                 new ByteArrayInputStream(delimited(DaemonFixtures.request(1, "class A {}"))),
                 out,
+                Daemon.DEFAULT_THREADS,
                 _ -> {
                     throw new IllegalStateException("boom");
                 },
@@ -224,7 +237,7 @@ class DaemonTest {
                 .setId(4)
                 .build();
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request)), out);
+        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request)), out, Daemon.DEFAULT_THREADS);
         assertThat(replies(out)).singleElement().satisfies(reply -> {
             assertThat(reply.getDiagnosticsList())
                     .extracting(Diagnostic::getKind, Diagnostic::getMessage)
@@ -245,7 +258,8 @@ class DaemonTest {
                         delimited(FormatRequest.newBuilder()
                                 .setSource("class A {}")
                                 .build())),
-                out);
+                out,
+                Daemon.DEFAULT_THREADS);
         assertThat(out.toByteArray()).isEmpty();
     }
 
@@ -293,7 +307,7 @@ class DaemonTest {
                 received.write(buffer, offset, length);
             }
         };
-        Daemon.serve(wire, in, out);
+        Daemon.serve(wire, in, out, Daemon.DEFAULT_THREADS);
         assertThat(repliedBeforeReadingOn).isFalse();
         assertThat(received.size()).isPositive();
     }
@@ -304,7 +318,7 @@ class DaemonTest {
                 .mapToObj(i -> delimited(DaemonFixtures.request(i, "class A" + i + " {   }")))
                 .reduce(new byte[0], DaemonTest::concat);
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(requests), out);
+        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(requests), out, Daemon.DEFAULT_THREADS);
         assertThat(replies(out))
                 .extracting(FormatReply::getId)
                 .containsExactlyInAnyOrderElementsOf(IntStream.range(1, 51)

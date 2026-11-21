@@ -26,20 +26,8 @@ public final class Daemon {
 
     private final long STACK_SIZE = 64L * 1024 * 1024;
 
-    public void serve(final Wire wire, final InputStream in, final OutputStream out) {
-        serve(wire, in, out, DEFAULT_THREADS);
-    }
-
     public void serve(final Wire wire, final InputStream in, final OutputStream out, final int threads) {
         serve(wire, in, out, threads, DaemonHandler::handle, Daemon::exit);
-    }
-
-    void serve(final Wire wire,
-               final InputStream in,
-               final OutputStream out,
-               final Function<FormatRequest, FormatReply> handler,
-               final Consumer<Error> fatal) {
-        serve(wire, in, out, DEFAULT_THREADS, handler, fatal);
     }
 
     void serve(final Wire wire,
