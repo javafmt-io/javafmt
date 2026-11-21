@@ -139,8 +139,9 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
          * interrupt there returns at once, leaves the file alone without a notification, and the
          * daemon drops the late reply.
          */
-        @Nullable
-        private Thread worker;
+        private Optional<Thread> worker = Optional.empty();
+
+        private boolean interrupted;
 
         private JavafmtFormattingTask(final AsyncFormattingRequest request) {
             this.request = request;
@@ -149,13 +150,16 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
         @Override
         public void run() {
             synchronized (this) {
-                worker = Thread.currentThread();
+                worker = Optional.of(Thread.currentThread());
             }
             try {
                 format();
             } finally {
                 synchronized (this) {
-                    worker = null;
+                    worker = Optional.empty();
+                    if (interrupted) {
+                        Thread.interrupted();
+                    }
                 }
             }
         }
@@ -288,9 +292,10 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
         @Override
         public synchronized boolean cancel() {
-            if (worker != null) {
-                worker.interrupt();
-            }
+            worker.ifPresent(thread -> {
+                interrupted = true;
+                thread.interrupt();
+            });
             return true;
         }
     }

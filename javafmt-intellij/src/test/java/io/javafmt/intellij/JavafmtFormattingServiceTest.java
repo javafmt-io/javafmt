@@ -1,6 +1,9 @@
 package io.javafmt.intellij;
 
+import com.intellij.application.options.CodeStyle;
+import com.intellij.formatting.FormattingContext;
 import com.intellij.formatting.service.AsyncDocumentFormattingService;
+import com.intellij.formatting.service.AsyncFormattingRequest;
 import com.intellij.formatting.service.FormattingServiceUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -20,13 +23,16 @@ import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -179,6 +185,34 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         reformat(file);
         assertThat(file.getText()).isEqualTo(Fixtures.UNFORMATTED_FOO);
         assertThat(notifications).isEmpty();
+    }
+
+    @Test
+    public void testCancellingAFormatLeavesThePlatformsThreadUninterrupted(@TempDir final Path dir) throws Exception {
+        enableJavafmt();
+        final var started = dir.resolve("started");
+        final var binary = dir.resolve("javafmt-fake-blocking");
+        Files.writeString(
+                binary,
+                "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo '" + FakeDaemon.VERSION_OUTPUT + "'\n    exit 0\nfi\ntouch '" + started
+                        + "'\ncat > /dev/null\n");
+        Files.setPosixFilePermissions(binary, PosixFilePermissions.fromString("rwxr-xr-x"));
+        JavafmtSettings.getInstance(getProject()).setBinaryPath(binary.toString());
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        final var installed = new CompletableFuture<String>();
+        final var task = service.createFormattingTask(new CapturingRequest(file, installed));
+        final var interruptedAfterRun = new CompletableFuture<Boolean>();
+        final var worker = Thread.ofPlatform().start(() -> {
+            task.run();
+            interruptedAfterRun.complete(Thread.currentThread().isInterrupted());
+        });
+        PlatformTestUtil.waitWithEventsDispatching("the daemon never started", () -> Files.exists(started), 20);
+        task.cancel();
+        assertThat(interruptedAfterRun)
+                .succeedsWithin(Duration.ofSeconds(20))
+                .isEqualTo(false);
+        assertThat(installed).isCompletedWithValue(Fixtures.UNFORMATTED_FOO);
+        worker.join();
     }
 
     @Test
@@ -474,5 +508,57 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         WriteCommandAction.runWriteCommandAction(
                 getProject(), () -> CodeStyleManager.getInstance(getProject()).reformatText(file, List.of(range)));
         PsiDocumentManager.getInstance(getProject()).commitAllDocuments();
+    }
+
+    private record CapturingRequest(PsiFile file, CompletableFuture<String> installed) implements AsyncFormattingRequest {
+
+        @Override
+        @NotNull
+        public String getDocumentText() {
+            return Fixtures.UNFORMATTED_FOO;
+        }
+
+        @Override
+        @NotNull
+        public File getIOFile() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        @NotNull
+        public List<TextRange> getFormattingRanges() {
+            return List.of(file.getTextRange());
+        }
+
+        @Override
+        public boolean canChangeWhitespaceOnly() {
+            return false;
+        }
+
+        @Override
+        public boolean isQuickFormat() {
+            return false;
+        }
+
+        @Override
+        @NotNull
+        public FormattingContext getContext() {
+            return FormattingContext.create(file, CodeStyle.getSettings(file));
+        }
+
+        @Override
+        public void onTextReady(final String updatedText) {
+            installed.complete(updatedText);
+        }
+
+        @Override
+        public void onError(@NotNull final String title, @NotNull final String message) {
+            installed.completeExceptionally(new AssertionError(title + ": " + message));
+        }
+
+        @Override
+        public void onError(@NotNull final String title, @NotNull final String message, final int offset) {
+            onError(title, message);
+        }
     }
 }
