@@ -7,7 +7,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -60,7 +59,7 @@ public final class JavafmtBinaryProvider {
                 .filter(binary -> versionGate.verdict(binary) == VersionGate.Verdict.SUPPORTED);
     }
 
-    synchronized CompletableFuture<Installation> download(@Nullable final Project project) {
+    synchronized CompletableFuture<Installation> download(final Project project) {
         final var installed = installer.installed();
         if (installed.isPresent()) {
             return CompletableFuture.completedFuture(new Installation.Installed(installed.get()));

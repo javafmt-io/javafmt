@@ -14,7 +14,6 @@ import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
 import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.UIUtil;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -137,7 +136,6 @@ public final class JavafmtConfigurable implements Configurable {
     }
 
     @Override
-    @Nullable
     public JComponent createComponent() {
         final var hint = new JBLabel("<html>When enabled, javafmt replaces IntelliJ's formatter for whole-file <i>Reformat Code</i> on Java files."
                                              + " Reformatting a selection, and any request that may only touch whitespace, still goes to IntelliJ's"

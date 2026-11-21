@@ -388,7 +388,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                         assertThat(notification.getContent()).contains("downloading");
                     });
             go.countDown();
-            assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Installed.class);
+            assertThat(provider.download(getProject()).get(20, TimeUnit.SECONDS))
+                    .isInstanceOf(Installation.Installed.class);
             assertThat(release.requests()).isEqualTo(1);
         }
     }
@@ -399,7 +400,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         final var binary = Files.readAllBytes(fakeBinary(dir));
         try (final var release = FakeRelease.serving(Map.of(DOWNLOADED, binary))) {
             final var provider = useDownloadsFrom(release, dir.resolve("cache"), FakeRelease.sha256(binary));
-            assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Installed.class);
+            assertThat(provider.download(getProject()).get(20, TimeUnit.SECONDS))
+                    .isInstanceOf(Installation.Installed.class);
             final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
             reformat(file);
             assertThat(myFixture.getEditor().getDocument().getText()).isEqualTo(Fixtures.FORMATTED_FOO);

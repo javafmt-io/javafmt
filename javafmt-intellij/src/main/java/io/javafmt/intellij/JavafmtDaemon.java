@@ -5,6 +5,7 @@ import com.intellij.execution.configurations.GeneralCommandLine;
 import com.intellij.execution.process.OSProcessUtil;
 import com.intellij.execution.process.ProcessIOExecutorService;
 import com.intellij.openapi.diagnostic.Logger;
+import io.javafmt.JavafmtConfig;
 import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
 
@@ -88,7 +89,7 @@ final class JavafmtDaemon {
             if (ended.isPresent()) {
                 return ended.get();
             }
-            requests.add(scope.request(id, source));
+            requests.add(request(id, source, scope));
             return reply.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (final TimeoutException _) {
             final var refused = refused("javafmt did not respond within " + timeout.toSeconds() + "s");
@@ -106,6 +107,17 @@ final class JavafmtDaemon {
 
     void stop() {
         stop(new Outcome.Cancelled());
+    }
+
+    private static FormatRequest request(final int id, final String source, final FileScope scope) {
+        final var request = FormatRequest.newBuilder()
+                .setId(id)
+                .setSource(source);
+        scope.path().ifPresent(file -> request.setPath(file.toString()));
+        if (scope.analysis() instanceof JavafmtConfig.Analysis.Attributed(var classpath)) {
+            request.setClasspath(classpath);
+        }
+        return request.build();
     }
 
     private static Outcome refused(final String reason) {

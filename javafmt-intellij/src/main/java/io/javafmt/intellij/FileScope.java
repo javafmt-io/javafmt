@@ -8,8 +8,6 @@ import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.roots.TestSourcesFilter;
 import com.intellij.openapi.vfs.VirtualFile;
 import io.javafmt.JavafmtConfig;
-import io.javafmt.ProjectFile;
-import io.javafmt.daemon.protocol.FormatRequest;
 
 import java.nio.file.Path;
 import java.util.Objects;
@@ -33,25 +31,6 @@ record FileScope(Optional<Path> path, JavafmtConfig.Analysis analysis) {
                         .<JavafmtConfig.Analysis>map(module -> new JavafmtConfig.Analysis.Attributed(
                                 classpath(module, TestSourcesFilter.isTestSources(file, project))))
                         .orElseGet(JavafmtConfig.Analysis.ParseOnly::new)));
-    }
-
-    JavafmtConfig config() {
-        return JavafmtConfig.defaults().withAnalysis(analysis);
-    }
-
-    ProjectFile projectFile() {
-        return path.map(ProjectFile::forFile).orElseGet(ProjectFile::none);
-    }
-
-    FormatRequest request(final int id, final String source) {
-        final var request = FormatRequest.newBuilder()
-                .setId(id)
-                .setSource(source);
-        path.ifPresent(file -> request.setPath(file.toString()));
-        if (analysis instanceof JavafmtConfig.Analysis.Attributed(var classpath)) {
-            request.setClasspath(classpath);
-        }
-        return request.build();
     }
 
     private static String classpath(final Module module, final boolean test) {

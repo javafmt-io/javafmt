@@ -2,6 +2,8 @@ package io.javafmt.intellij;
 
 import com.intellij.openapi.progress.EmptyProgressIndicator;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.testFramework.TestApplicationManager;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -45,8 +47,8 @@ class JavafmtBinaryProviderTest {
                     dir.resolve("cache"),
                     ASSET,
                     dir.resolve("empty-path").toString());
-            final var first = provider.download(null);
-            final var second = provider.download(null);
+            final var first = provider.download(defaultProject());
+            final var second = provider.download(defaultProject());
             go.countDown();
             assertThat(second).isSameAs(first);
             assertThat(first.get(20, TimeUnit.SECONDS))
@@ -63,8 +65,10 @@ class JavafmtBinaryProviderTest {
                     dir.resolve("cache"),
                     ASSET,
                     dir.resolve("empty-path").toString());
-            assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Failed.class);
-            assertThat(provider.download(null).get(20, TimeUnit.SECONDS)).isInstanceOf(Installation.Failed.class);
+            assertThat(provider.download(defaultProject()).get(20, TimeUnit.SECONDS))
+                    .isInstanceOf(Installation.Failed.class);
+            assertThat(provider.download(defaultProject()).get(20, TimeUnit.SECONDS))
+                    .isInstanceOf(Installation.Failed.class);
             assertThat(release.requests()).isEqualTo(2);
         }
     }
@@ -77,7 +81,7 @@ class JavafmtBinaryProviderTest {
         try (final var release = FakeRelease.serving(Map.of(NAME, BINARY))) {
             final var provider = provider(
                     release.base(), cache, ASSET, dir.resolve("empty-path").toString());
-            assertThat(provider.download(null)).isCompletedWithValue(new Installation.Installed(installed));
+            assertThat(provider.download(defaultProject())).isCompletedWithValue(new Installation.Installed(installed));
             assertThat(provider.describe()).contains(installed.toString());
             assertThat(release.requests()).isZero();
         }
@@ -125,6 +129,10 @@ class JavafmtBinaryProviderTest {
 
     private static JavafmtBinaryProvider provider(final URI base, final Path cache, final ReleaseAsset asset, final String searchPath) {
         return new JavafmtBinaryProvider(new BinaryInstaller(base, cache, asset), JavafmtBinaryProviderTest::runOnNewThread, () -> searchPath);
+    }
+
+    private static Project defaultProject() {
+        return ProjectManager.getInstance().getDefaultProject();
     }
 
     static void runOnNewThread(final Task.Backgroundable task) {

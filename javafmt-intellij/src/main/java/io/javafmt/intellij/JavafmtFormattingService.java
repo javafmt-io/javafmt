@@ -9,15 +9,13 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import io.javafmt.JavafmtConfig;
-import io.javafmt.daemon.protocol.Diagnostic;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 /**
  * Runs javafmt from <em>Reformat Code</em>, inside the IDE or through the native {@code javafmt}
@@ -60,7 +58,6 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
     }
 
     @Override
-    @Nullable
     protected FormattingTask createFormattingTask(@NotNull final AsyncFormattingRequest request) {
         return new JavafmtFormattingTask(request);
     }
@@ -103,21 +100,14 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
      * reported as an error; everything else is a problem with the source in front of the user,
      * which they can act on themselves.
      */
-    private static void report(final Project project, final String fileName, final Outcome.Formatted formatted) {
-        final var message = fileName + " was left unformatted:\n" + describe(formatted);
-        if (formatted.hasInternalError()) {
-            LOG.warn("javafmt: " + message);
-            notifyUser(project, NotificationType.ERROR, message);
-        } else {
-            LOG.info("javafmt: " + message);
-            notifyUser(project, NotificationType.WARNING, message);
-        }
-    }
-
-    private static String describe(final Outcome.Formatted formatted) {
-        return formatted.diagnostics().stream()
-                .map(Diagnostic::getMessage)
-                .collect(Collectors.joining("\n"));
+    private static void leftUnformatted(final Project project,
+                                        final String fileName,
+                                        final boolean internal,
+                                        final String detail,
+                                        final Consumer<String> log) {
+        final var message = fileName + " was left unformatted: " + detail;
+        log.accept("javafmt: " + message);
+        notifyUser(project, internal ? NotificationType.ERROR : NotificationType.WARNING, message);
     }
 
     private static void notifyUser(final Project project, final NotificationType type, final String message) {
@@ -186,11 +176,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                     switch (outcome) {
                         case Outcome.Cancelled _ -> content;
                         case Outcome.Refused refused -> {
-                            LOG.warn("javafmt: " + refused.reason());
-                            notifyUser(
-                                    project,
-                                    refused.internal() ? NotificationType.ERROR : NotificationType.WARNING,
-                                    fileName + " was left unformatted: " + refused.reason());
+                            leftUnformatted(project, fileName, refused.internal(), refused.reason(), LOG::warn);
                             yield content;
                         }
                         case Outcome.Formatted formatted -> textFor(project, fileName, content, formatted);
@@ -275,13 +261,14 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
         private static String textFor(final Project project, final String fileName, final String content, final Outcome.Formatted formatted) {
             if (formatted.hasFailure()) {
-                report(project, fileName, formatted);
+                leftUnformatted(
+                        project, fileName, formatted.hasInternalError(), formatted.messages(), formatted.hasInternalError() ? LOG::warn : LOG::info);
                 return content;
             }
             if (!formatted.diagnostics().isEmpty()) {
                 // Warning-only rules fire on ordinary code, so a balloon per reformat would be
                 // noise; the log keeps them reachable while the reformat itself goes through.
-                LOG.info("javafmt: " + fileName + ":\n" + describe(formatted));
+                LOG.info("javafmt: " + fileName + ":\n" + formatted.messages());
             }
             return formatted.output();
         }

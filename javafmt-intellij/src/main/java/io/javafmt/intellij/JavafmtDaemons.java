@@ -26,13 +26,13 @@ public final class JavafmtDaemons implements Disposable {
 
     Outcome format(final BinaryIdentity binary, final String source, final FileScope scope) {
         Objects.requireNonNull(binary, "binary");
-        final Optional<JavafmtDaemon> daemon;
         try {
-            daemon = daemonFor(binary);
+            return daemonFor(binary)
+                    .map(daemon -> daemon.format(source, scope))
+                    .orElseGet(Outcome.Cancelled::new);
         } catch (final ExecutionException e) {
             return new Outcome.Refused("could not run " + binary.path() + ": " + e.getMessage(), false);
         }
-        return daemon.map(running -> running.format(source, scope)).orElseGet(Outcome.Cancelled::new);
     }
 
     static void stopAll() {

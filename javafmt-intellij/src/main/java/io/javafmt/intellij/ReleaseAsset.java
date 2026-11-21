@@ -24,11 +24,11 @@ sealed interface ReleaseAsset {
         if (os.isEmpty()) {
             return new Unpublished("javafmt publishes no native binary for " + osName);
         }
-        final var target = os.get() + "-" + architecture(osArch.toLowerCase(Locale.ROOT));
-        final var name = "javafmt-" + version + "-" + target + ("win32".equals(os.get()) ? ".exe" : "");
         if (checksums.isEmpty()) {
             return new Unpublished("this build of the javafmt plugin carries no binary checksums to verify a download against");
         }
+        final var target = os.get() + "-" + architecture(osArch.toLowerCase(Locale.ROOT));
+        final var name = "javafmt-" + version + "-" + target + ("win32".equals(os.get()) ? ".exe" : "");
         return Optional.ofNullable(checksums.get(name))
                 .<ReleaseAsset>map(sha256 -> new Published(name, sha256))
                 .orElseGet(() -> new Unpublished("javafmt " + version + " publishes no native binary for " + target));
@@ -57,7 +57,10 @@ sealed interface ReleaseAsset {
         if (osName.startsWith("linux")) {
             return Optional.of("linux");
         }
-        return osName.startsWith("windows") ? Optional.of("win32") : Optional.empty();
+        if (osName.startsWith("windows")) {
+            return Optional.of("win32");
+        }
+        return Optional.empty();
     }
 
     private static String architecture(final String osArch) {

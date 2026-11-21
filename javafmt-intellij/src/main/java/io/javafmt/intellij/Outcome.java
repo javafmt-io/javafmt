@@ -6,6 +6,7 @@ import io.javafmt.daemon.protocol.Severity;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /** What one format attempt produced. */
 public sealed interface Outcome {
@@ -24,6 +25,12 @@ public sealed interface Outcome {
         public boolean hasInternalError() {
             return diagnostics.stream()
                     .anyMatch(diagnostic -> diagnostic.getKind() == Kind.KIND_INTERNAL);
+        }
+
+        public String messages() {
+            return diagnostics.stream()
+                    .map(Diagnostic::getMessage)
+                    .collect(Collectors.joining("\n"));
         }
 
         public boolean hasFailure() {

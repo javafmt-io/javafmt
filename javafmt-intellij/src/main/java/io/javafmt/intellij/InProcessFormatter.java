@@ -1,6 +1,8 @@
 package io.javafmt.intellij;
 
 import io.javafmt.Javafmt;
+import io.javafmt.JavafmtConfig;
+import io.javafmt.ProjectFile;
 import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
@@ -17,7 +19,12 @@ class InProcessFormatter {
         if (Thread.currentThread().isInterrupted()) {
             return new Outcome.Cancelled();
         }
-        final var result = Javafmt.formatWithResult(source, scope.config(), scope.projectFile());
+        final var result = Javafmt.formatWithResult(
+                source,
+                JavafmtConfig.defaults().withAnalysis(scope.analysis()),
+                scope.path()
+                        .map(ProjectFile::forFile)
+                        .orElseGet(ProjectFile::none));
         if (Thread.currentThread().isInterrupted()) {
             return new Outcome.Cancelled();
         }
