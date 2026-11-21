@@ -16,7 +16,7 @@ publishing {
             from(components["java"])
             pom {
                 name.set(project.name)
-                description.set(project.description ?: providers.gradleProperty("javafmt.description").get())
+                description.set(providers.provider { project.description }.orElse(providers.gradleProperty("javafmt.description")))
                 url.set("https://javafmt.io")
                 licenses {
                     license {

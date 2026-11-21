@@ -171,4 +171,3 @@ Every Maven Central artifact ships with a sources JAR, a Javadoc JAR, and GPG si
 - **Signing fails.** Confirm `JRELEASER_GPG_SECRET_KEY` is the full armored block including the header and footer lines, and that it matches `JRELEASER_GPG_PASSPHRASE`.
 - **Namespace not verified.** DNS TXT records can take up to 24 h to propagate; `dig TXT verify.javafmt.io` is the quickest sanity check.
 - **Central upload rejected.** Make sure every required POM field is present — name, description, url, license, developer, scm. The full failure reason is in `build/jreleaser/trace.log` inside the uploaded artifact.
-- **`maven-plugin-development` publication name.** The plugin creates a publication whose exact name varies by version. If the signing step fails for that module, run `gradle :javafmt-maven-plugin:outgoingVariants` locally to inspect the available publications.

@@ -8,17 +8,11 @@ buildscript {
 
 plugins {
     id("javafmt.java-conventions")
+    id("javafmt.publish-conventions")
     alias(libs.plugins.maven.plugin.development)
-    `maven-publish`
-    signing
 }
 
 description = "Maven plugin for javafmt, the opinionated Java code formatter."
-
-java {
-    withJavadocJar()
-    withSourcesJar()
-}
 
 dependencies {
     implementation(project(":javafmt-core"))
@@ -33,50 +27,8 @@ dependencies {
     testRuntimeOnly(libs.slf4j.simple)
 }
 
-// maven-plugin-development creates its own MavenPublication; configure POM metadata on all of them.
-afterEvaluate {
-    publishing {
-        publications {
-            withType<MavenPublication>().configureEach {
-                pom {
-                    name.set("javafmt-maven-plugin")
-                    description.set(project.description ?: "")
-                    url.set("https://javafmt.io")
-                    licenses {
-                        license {
-                            name.set("MIT License")
-                            url.set("https://opensource.org/licenses/MIT")
-                        }
-                    }
-                    developers {
-                        developer {
-                            id.set("jschneidereit")
-                            name.set("Jim Schneidereit")
-                            email.set("jim@javafmt.io")
-                        }
-                    }
-                    scm {
-                        connection.set("scm:git:https://github.com/javafmt-io/javafmt.git")
-                        developerConnection.set("scm:git:ssh://github.com/javafmt-io/javafmt.git")
-                        url.set("https://github.com/javafmt-io/javafmt")
-                    }
-                }
-            }
-        }
-        repositories {
-            maven {
-                name = "staging"
-                url = isolated.rootProject.projectDirectory.dir("build/staging-deploy").asFile.toURI()
-            }
-        }
-    }
-
-    val signingKey: String? = System.getenv("JRELEASER_GPG_SECRET_KEY")
-    val signingPassword: String? = System.getenv("JRELEASER_GPG_PASSPHRASE")
-    if (signingKey != null && signingPassword != null) {
-        signing {
-            useInMemoryPgpKeys(signingKey, signingPassword)
-            sign(*publishing.publications.toTypedArray())
-        }
+publishing {
+    publications.named<MavenPublication>("mavenJava") {
+        pom.packaging = "maven-plugin"
     }
 }
