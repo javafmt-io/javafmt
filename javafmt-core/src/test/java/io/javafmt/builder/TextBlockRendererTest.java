@@ -1,10 +1,9 @@
 package io.javafmt.builder;
 
 import io.javafmt.Javafmt;
-import io.javafmt.parser.JavaParser;
-import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
 
+import static io.javafmt.builder.RendererTestSupport.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -16,14 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * indent would re-indent the literal on every format pass, compounding indefinitely).
  */
 class TextBlockRendererTest {
-
-    private static final int WIDTH = 150;
-
-    private static String format(final String source) {
-        return new Printer(WIDTH).print(
-                        DocBuilder.build(JavaParser.parseUnit(source)).doc())
-                .stripTrailing();
-    }
 
     @Test
     void textBlockInsideMethod_interiorLinesKeepAuthoredIndent() {

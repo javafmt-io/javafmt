@@ -1,20 +1,11 @@
 package io.javafmt.builder;
 
-import io.javafmt.parser.JavaParser;
-import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
 
+import static io.javafmt.builder.RendererTestSupport.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class EnumRendererTest {
-
-    private static final int WIDTH = 150;
-
-    private static String format(final String source) {
-        return new Printer(WIDTH).print(
-                        DocBuilder.build(JavaParser.parseUnit(source)).doc())
-                .stripTrailing();
-    }
 
     @Test
     void emptyEnum_rendersOnOneLine() {
@@ -22,7 +13,7 @@ class EnumRendererTest {
     }
 
     @Test
-    void enumWithConstants_fitsOnOneLine_declarationOrderNoTrailingComma() {
+    void enumWithConstants_fitsOnOneLine_keepsOrderWithoutTrailingComma() {
         assertThat(format("enum Color { RED, GREEN, BLUE }")).isEqualTo("enum Color { RED, GREEN, BLUE }");
     }
 
@@ -41,7 +32,7 @@ class EnumRendererTest {
     }
 
     @Test
-    void alreadySortedEnum_isIdempotent() {
+    void formattedEnum_isIdempotent() {
         final var input = "enum Color { BLUE, GREEN, RED }";
         assertThat(format(format(input))).isEqualTo(format(input));
     }

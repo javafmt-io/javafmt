@@ -13,7 +13,6 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.ParsedUnit;
-import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +20,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import javax.tools.JavaFileObject;
 
+import static io.javafmt.builder.RendererTestSupport.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -29,14 +29,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Exhaustive rendering behaviour lives in the per-renderer test classes.
  */
 class DocBuilderTest {
-
-    private static final int WIDTH = 150;
-
-    private static String format(final String source) {
-        return new Printer(WIDTH).print(
-                        DocBuilder.build(JavaParser.parseUnit(source)).doc())
-                .stripTrailing();
-    }
 
     @Test
     void emptyClass_rendersOnOneLine() {

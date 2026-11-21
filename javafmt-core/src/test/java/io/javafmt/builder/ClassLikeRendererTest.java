@@ -1,7 +1,5 @@
 package io.javafmt.builder;
 
-import io.javafmt.parser.JavaParser;
-import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -11,17 +9,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
+import static io.javafmt.builder.RendererTestSupport.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ClassLikeRendererTest {
-
-    private static final int WIDTH = 150;
-
-    private static String format(final String source) {
-        return new Printer(WIDTH).print(
-                        DocBuilder.build(JavaParser.parseUnit(source)).doc())
-                .stripTrailing();
-    }
 
     @ParameterizedTest
     @ValueSource(strings = {"class Foo {}", "class Foo {   }", "class Foo {\n\n}", "class Foo {\n\n    \n}"})

@@ -16,24 +16,6 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 class DocTest {
 
-    static Stream<Doc> allVariants() {
-        return Stream.of(
-                new Doc.Text("t"),
-                Doc.LINE,
-                Doc.SOFT_LINE,
-                Doc.HARD_LINE,
-                new Doc.Indent(new Doc.Text("i")),
-                new Doc.Group(new Doc.Text("g")),
-                new Doc.Concat(List.of()),
-                new Doc.IfBreak(new Doc.Text("b"), new Doc.Text("f")));
-    }
-
-    @ParameterizedTest
-    @MethodSource("allVariants")
-    void everyVariantIsADoc(final Doc doc) {
-        assertThat(doc).isInstanceOf(Doc.class);
-    }
-
     @Nested
     class TextTests {
 

@@ -4,8 +4,6 @@ import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
-import io.javafmt.parser.JavaParser;
-import io.javafmt.printer.Printer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -15,17 +13,10 @@ import java.util.List;
 import java.util.Set;
 import javax.lang.model.element.Modifier;
 
+import static io.javafmt.builder.RendererTestSupport.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ModifierRendererTest {
-
-    private static final int WIDTH = 150;
-
-    private static String format(final String source) {
-        return new Printer(WIDTH).print(
-                        DocBuilder.build(JavaParser.parseUnit(source)).doc())
-                .stripTrailing();
-    }
 
     @Test
     void modifiersEmittedInJlsOrder() {
