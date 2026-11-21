@@ -40,7 +40,6 @@ public final class ArrayTrailingComma implements ScanningRule {
                 ArrayTrailingComma::distinct);
     }
 
-    /** javac gives a compact constructor's parameters the record components' annotations, so an array in one is visited twice. */
     private static LintResult distinct(final List<LintEdit> edits) {
         return LintResult.ofEdits(List.copyOf(new LinkedHashSet<>(edits)));
     }
