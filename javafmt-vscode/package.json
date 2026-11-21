@@ -50,7 +50,7 @@
     "package:target": "vsce package --target",
     "publish:marketplace": "vsce publish --oidc --packagePath",
     "publish:openvsx": "ovsx publish --trusted-publishing --packagePath",
-    "test": "jest --json --outputFile=build/test-results.json",
+    "test": "tsc -p tsconfig.test.json && jest --json --outputFile=build/test-results.json",
     "test:integration": "vscode-test"
   },
   "dependencies": {

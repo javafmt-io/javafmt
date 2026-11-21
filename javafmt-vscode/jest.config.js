@@ -6,7 +6,7 @@ module.exports = {
     moduleNameMapper: {
         '^vscode$': '<rootDir>/src/__mocks__/vscode.ts',
         '^fs$': '<rootDir>/src/__mocks__/fs.js',
-        '^child_process$': '<rootDir>/src/__mocks__/child_process.js',
+        '^child_process$': '<rootDir>/src/__mocks__/child_process.ts',
     },
     clearMocks: true,
     collectCoverage: true,

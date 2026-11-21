@@ -1,16 +1,16 @@
-import { create, fromBinary } from '@bufbuild/protobuf';
-import { sizeDelimitedEncode, sizeDelimitedPeek } from '@bufbuild/protobuf/wire';
+import { create } from '@bufbuild/protobuf';
+import { sizeDelimitedEncode } from '@bufbuild/protobuf/wire';
 import { activate, deactivate, toDiagnostics, statusFor, vsceTarget } from '../../extension';
-import { Diagnostic, DiagnosticSchema, FormatReplySchema, FormatRequest, FormatRequestSchema, Kind, Severity } from '../../gen/daemon_pb';
+import { Diagnostic, DiagnosticSchema, FormatReplySchema, FormatRequest, Kind, Severity } from '../../gen/daemon_pb';
 import * as child_process from 'child_process';
-import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { PassThrough } from 'stream';
+import { MockProcess, mockProcess } from '../../__mocks__/child_process';
 import { DiagnosticSeverity, LanguageStatusSeverity, Position, mockOutputChannel, mockStatusItem } from '../../__mocks__/vscode';
 import * as vscode from 'vscode';
 import type * as vscodeTypes from 'vscode';
+import { decodeRequest } from './wire';
 
 function diagnostic(severity: Severity, kind: Kind, message: string, line: number, column: number): Diagnostic {
     return create(DiagnosticSchema, { severity, kind, message, line, column });
@@ -21,29 +21,21 @@ describe('toDiagnostics', () => {
         expect(toDiagnostics([])).toEqual([]);
     });
 
-    it('converts 1-based line/column to 0-based vscode.Position', () => {
-        const [d] = toDiagnostics([diagnostic(Severity.WARNING, Kind.WARNING, 'FallThrough', 3, 5)]);
-        expect(d.range.start).toEqual(new Position(2, 4));
+    it.each([
+        { line: 3, column: 5, expected: new Position(2, 4) },
+        { line: 0, column: 0, expected: new Position(0, 0) },
+    ])('puts a diagnostic at line $line, column $column on $expected', ({ line, column, expected }) => {
+        const [d] = toDiagnostics([diagnostic(Severity.ERROR, Kind.PARSE, 'm', line, column)]);
+        expect(d.range.start).toEqual(expected);
     });
 
-    it('clamps unknown position (line=0, column=0) to Position(0, 0)', () => {
-        const [d] = toDiagnostics([diagnostic(Severity.ERROR, Kind.PARSE, 'parse error', 0, 0)]);
-        expect(d.range.start).toEqual(new Position(0, 0));
-    });
-
-    it('maps an error to DiagnosticSeverity.Error', () => {
-        const [d] = toDiagnostics([diagnostic(Severity.ERROR, Kind.LINT, 'e', 1, 1)]);
-        expect(d.severity).toBe(DiagnosticSeverity.Error);
-    });
-
-    it('maps a warning to DiagnosticSeverity.Warning', () => {
-        const [d] = toDiagnostics([diagnostic(Severity.WARNING, Kind.WARNING, 'w', 1, 1)]);
-        expect(d.severity).toBe(DiagnosticSeverity.Warning);
-    });
-
-    it('treats a severity it does not know as an error', () => {
-        const [d] = toDiagnostics([diagnostic(7 as Severity, Kind.LINT, 'e', 1, 1)]);
-        expect(d.severity).toBe(DiagnosticSeverity.Error);
+    it.each([
+        { severity: Severity.ERROR, expected: DiagnosticSeverity.Error },
+        { severity: Severity.WARNING, expected: DiagnosticSeverity.Warning },
+        { severity: 7 as Severity, expected: DiagnosticSeverity.Error },
+    ])('maps severity $severity to $expected', ({ severity, expected }) => {
+        const [d] = toDiagnostics([diagnostic(severity, Kind.LINT, 'm', 1, 1)]);
+        expect(d.severity).toBe(expected);
     });
 
     it('sets range.start === range.end (zero-width point diagnostic)', () => {
@@ -71,20 +63,13 @@ describe('toDiagnostics', () => {
 });
 
 describe('statusFor', () => {
-    it('ready: idle at information severity', () => {
-        expect(statusFor('ready')).toEqual({ detail: 'ready', severity: LanguageStatusSeverity.Information, busy: false });
-    });
-
-    it('formatting: busy at information severity', () => {
-        expect(statusFor('formatting')).toEqual({ detail: 'formatting', severity: LanguageStatusSeverity.Information, busy: true });
-    });
-
-    it('error with detail: shows the detail at error severity', () => {
-        expect(statusFor('error', 'daemon crashed')).toEqual({ detail: 'daemon crashed', severity: LanguageStatusSeverity.Error, busy: false });
-    });
-
-    it('error without detail: falls back to "error"', () => {
-        expect(statusFor('error').detail).toBe('error');
+    it.each([
+        { state: 'ready', detail: undefined, expected: { detail: 'ready', severity: LanguageStatusSeverity.Information, busy: false } },
+        { state: 'formatting', detail: undefined, expected: { detail: 'formatting', severity: LanguageStatusSeverity.Information, busy: true } },
+        { state: 'error', detail: 'daemon crashed', expected: { detail: 'daemon crashed', severity: LanguageStatusSeverity.Error, busy: false } },
+        { state: 'error', detail: undefined, expected: { detail: 'error', severity: LanguageStatusSeverity.Error, busy: false } },
+    ] as const)('$state with detail $detail', ({ state, detail, expected }) => {
+        expect(statusFor(state, detail)).toEqual(expected);
     });
 });
 
@@ -96,43 +81,27 @@ function makeContext(prefix = '/nonexistent-extension'): vscodeTypes.ExtensionCo
     } as unknown as vscodeTypes.ExtensionContext;
 }
 
-function mockProcess(): child_process.ChildProcess {
-    return Object.assign(new EventEmitter(), {
-        stdin: Object.assign(new EventEmitter(), { write: jest.fn() }),
-        stdout: new PassThrough(),
-        stderr: new PassThrough(),
-        kill: jest.fn(),
-    }) as unknown as child_process.ChildProcess;
+function sentRequests(proc: MockProcess): FormatRequest[] {
+    return (proc.stdin.write as jest.Mock).mock.calls.map((call) => decodeRequest(call[0] as Uint8Array));
 }
 
-function decodeRequest(bytes: Uint8Array): FormatRequest {
-    const peek = sizeDelimitedPeek(bytes);
-    if (peek.eof) {
-        throw new Error('no whole request was written');
-    }
-    return fromBinary(FormatRequestSchema, bytes.subarray(peek.offset, peek.offset + peek.size));
+function nextRequest(proc: MockProcess): Promise<FormatRequest> {
+    return new Promise((resolve) => {
+        proc.stdin.once('data', (bytes: Uint8Array) => resolve(decodeRequest(bytes)));
+    });
 }
 
-function sentRequests(proc: child_process.ChildProcess): FormatRequest[] {
-    return (proc.stdin!.write as jest.Mock).mock.calls.map((call) => decodeRequest(call[0] as Uint8Array));
-}
-
-function sentRequestId(proc: child_process.ChildProcess): number {
-    return sentRequests(proc).at(-1)?.id ?? 0;
-}
-
-function echoingProcess(): child_process.ChildProcess {
+function echoingProcess(): MockProcess {
     const proc = mockProcess();
-    (proc.stdin!.write as jest.Mock).mockImplementation((bytes: Uint8Array) => {
+    proc.stdin.on('data', (bytes: Uint8Array) => {
         const request = decodeRequest(bytes);
-        reply(proc, request.id ?? 0, request.source ?? '');
-        return true;
+        reply(proc, request.id, request.source ?? '');
     });
     return proc;
 }
 
-function reply(proc: child_process.ChildProcess, id: number, output: string): void {
-    (proc.stdout as PassThrough).write(sizeDelimitedEncode(FormatReplySchema, create(FormatReplySchema, { id, output })));
+function reply(proc: MockProcess, id: number, output: string): void {
+    proc.stdout.write(sizeDelimitedEncode(FormatReplySchema, create(FormatReplySchema, { id, output })));
 }
 
 function onlyExecutable(isExecutable: (p: string) => boolean): void {
@@ -184,8 +153,8 @@ type ClasspathResult = { projectRoot: string; classpaths: string[]; modulepaths:
 
 type JavaExtensionApi = {
     serverMode: string;
-    getClasspaths: jest.Mock<Promise<ClasspathResult>, [string, { scope: string }]>;
-    isTestFile: jest.Mock<Promise<boolean>, [string]>;
+    getClasspaths: jest.Mock<Promise<ClasspathResult>, []>;
+    isTestFile: jest.Mock<Promise<boolean>, []>;
     onDidClasspathUpdate: jest.Mock;
     onDidProjectsImport: jest.Mock;
     onDidProjectsDelete: jest.Mock;
@@ -215,6 +184,7 @@ function javaExtension(overrides: Partial<JavaExtensionApi> = {}, isActive = tru
 
 describe('after activate()', () => {
     beforeEach(() => {
+        onlyExecutable(() => false);
         deactivate();
         activate(makeContext());
     });
@@ -241,10 +211,14 @@ describe('after activate()', () => {
         });
     });
 
+    afterEach(() => {
+        realFileSystem();
+    });
+
     const bundled = path.join('/ext', 'bin', vsceTarget(process.platform, process.arch), process.platform === 'win32' ? 'javafmt.exe' : 'javafmt');
 
-    // Spies are created inside each test (after the outer beforeEach's activate() runs) so
-    // the module-level spawn mock does not pre-count calls from the outer beforeEach setup.
+    const itOnPosix = process.platform === 'win32' ? it.skip : it;
+
     describe('startDaemon spawn behavior', () => {
         afterEach(() => {
             jest.restoreAllMocks();
@@ -253,7 +227,6 @@ describe('after activate()', () => {
 
         afterEach(() => {
             jest.useRealTimers();
-            realFileSystem();
         });
 
         it('spawns the binary bundled for this platform in daemon mode, with no Java runtime involved', () => {
@@ -264,10 +237,8 @@ describe('after activate()', () => {
             expect(spawnSpy).toHaveBeenCalledWith(bundled, ['--daemon'], expect.any(Object));
         });
 
-        it('restores the executable bit the VSIX zip dropped from the bundled binary before running it', () => {
-            if (process.platform === 'win32') {
-                return;
-            }
+        itOnPosix('restores the executable bit the VSIX zip dropped from the bundled binary before running it', () => {
+            realFileSystem();
             const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
             const extensionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'javafmt-ext-'));
             const binary = path.join(extensionPath, 'bin', vsceTarget(process.platform, process.arch), 'javafmt');
@@ -301,10 +272,6 @@ describe('after activate()', () => {
         });
 
         it('reports a missing binary once per session, not on every format', async () => {
-            onlyExecutable(() => false);
-            deactivate();
-            (vscode.window.showErrorMessage as jest.Mock).mockClear();
-            activate(makeContext('/ext'));
             await formatProvider().provideDocumentFormattingEdits(document());
             await formatProvider().provideDocumentFormattingEdits(document());
             expect(vscode.window.showErrorMessage).toHaveBeenCalledTimes(1);
@@ -350,7 +317,7 @@ describe('after activate()', () => {
             onlyExecutable((p) => p === bundled);
             deactivate();
             activate(makeContext('/ext'));
-            (first.stdin as unknown as EventEmitter).emit('error', new Error('write EPIPE'));
+            first.stdin.emit('error', new Error('write EPIPE'));
             expect(first.kill).toHaveBeenCalled();
         });
 
@@ -360,8 +327,9 @@ describe('after activate()', () => {
             onlyExecutable((p) => p === bundled);
             deactivate();
             activate(makeContext('/ext'));
+            const sent = nextRequest(proc);
             const edits = formatProvider().provideDocumentFormattingEdits(document());
-            reply(proc, sentRequestId(proc), 'class A {}\n');
+            reply(proc, (await sent).id, 'class A {}\n');
             await expect(edits).resolves.toEqual([expect.objectContaining({ newText: 'class A {}\n' })]);
         });
 
@@ -372,7 +340,7 @@ describe('after activate()', () => {
             deactivate();
             activate(makeContext('/ext'));
             const edits = formatProvider().provideDocumentFormattingEdits(document());
-            (proc.stdout as PassThrough).write(Buffer.from([3, 0xff, 0xff, 0xff]));
+            proc.stdout.write(Buffer.from([3, 0xff, 0xff, 0xff]));
             await expect(edits).resolves.toEqual([]);
             expect(proc.kill).toHaveBeenCalled();
             expect(mockStatusItem.detail).toContain('not part of its protocol');
@@ -386,10 +354,11 @@ describe('after activate()', () => {
             deactivate();
             activate(makeContext('/ext'));
             configurationChanged((section) => section === 'javafmt');
+            const sent = nextRequest(second);
             const edits = formatProvider().provideDocumentFormattingEdits(document());
             first.emit('exit', 1);
             first.emit('error', new Error('spawn EACCES'));
-            reply(second, sentRequestId(second), 'class A {}\n');
+            reply(second, (await sent).id, 'class A {}\n');
             await expect(edits).resolves.toEqual([expect.objectContaining({ newText: 'class A {}\n' })]);
             expect(second.kill).not.toHaveBeenCalled();
         });
@@ -401,8 +370,10 @@ describe('after activate()', () => {
             onlyExecutable((p) => p === bundled);
             deactivate();
             activate(makeContext('/ext'));
+            const sent = nextRequest(first);
             const edits = formatProvider().provideDocumentFormattingEdits(document());
-            jest.advanceTimersByTime(10_000);
+            await sent;
+            await jest.advanceTimersByTimeAsync(10_000);
             await expect(edits).resolves.toEqual([]);
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('did not respond within 10s'));
             expect(first.kill).toHaveBeenCalled();
@@ -410,7 +381,7 @@ describe('after activate()', () => {
     });
 
     describe('the file and its classpath', () => {
-        let proc: child_process.ChildProcess;
+        let proc: MockProcess;
 
         beforeEach(() => {
             proc = echoingProcess();
@@ -425,7 +396,6 @@ describe('after activate()', () => {
             (vscode.extensions.getExtension as jest.Mock).mockReset();
             deactivate();
             jest.useRealTimers();
-            realFileSystem();
         });
 
         async function format(uri: object = fileUri(MAIN_SOURCE)): Promise<FormatRequest> {

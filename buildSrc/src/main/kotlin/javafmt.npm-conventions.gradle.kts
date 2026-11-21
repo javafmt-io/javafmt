@@ -28,6 +28,8 @@ val npmTest = tasks.register<NpmTask>("npmTest") {
     dependsOn(tasks.named("npmInstall"))
     inputs.files(fileTree(layout.projectDirectory.dir("src")) { include("**/*.ts") })
     inputs.file(layout.projectDirectory.file("jest.config.js"))
+    inputs.file(layout.projectDirectory.file("tsconfig.json"))
+    inputs.file(layout.projectDirectory.file("tsconfig.test.json"))
     inputs.file(layout.projectDirectory.file("package.json"))
     inputs.file(layout.projectDirectory.file("package-lock.json"))
     outputs.file(layout.buildDirectory.file("test-results.json"))
