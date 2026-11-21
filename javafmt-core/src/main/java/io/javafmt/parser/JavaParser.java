@@ -62,15 +62,9 @@ import javax.tools.ToolProvider;
  * (a reused file manager) and accept the cost of {@code initPlugins} per task;
  * {@code parseUnits(List)} (one task per batch) recovers most of the lost throughput while
  * staying inside the public API.
- *
- * <p>{@link #HAS_JAVAC_INTERNAL_ACCESS} probes {@code jdk.compiler}'s exports at class
- * initialization; a future opt-in fast path can branch on it before attempting an internal-API
- * shortcut.
  */
 @UtilityClass
 public final class JavaParser {
-
-    public final boolean HAS_JAVAC_INTERNAL_ACCESS = computeHasJavacInternalAccess();
 
     private final JavaCompiler COMPILER = lookupCompiler();
 
@@ -134,23 +128,6 @@ public final class JavaParser {
             session.end();
             ATTRIBUTION_FILE_MANAGERS.giveBack(classpath, fileManager);
         }
-    }
-
-    private boolean computeHasJavacInternalAccess() {
-        final var jdkCompiler = ModuleLayer.boot()
-                .findModule("jdk.compiler")
-                .orElse(null);
-        if (jdkCompiler == null) {
-            return false;
-        }
-        final var self = JavaParser.class.getModule();
-        return Stream.of(
-                        "com.sun.tools.javac.api",
-                        "com.sun.tools.javac.file",
-                        "com.sun.tools.javac.parser",
-                        "com.sun.tools.javac.tree",
-                        "com.sun.tools.javac.util")
-                .allMatch(p -> jdkCompiler.isExported(p, self));
     }
 
     public CompilationUnitTree parse(final String source) {

@@ -230,14 +230,6 @@ class JavaParserTest {
     }
 
     @Test
-    void hasJavacInternalAccessIsFalseWithoutAddExports() {
-        // The default build does not add --add-exports for jdk.compiler internals; the
-        // probe reflects that. If a future fast path opts into the internal-API path,
-        // it should branch on this constant rather than blindly attempting the access.
-        assertThat(JavaParser.HAS_JAVAC_INTERNAL_ACCESS).isFalse();
-    }
-
-    @Test
     void packageInfoStyleFileHeaderJavadocSurvivesAsFileHeader() {
         // Reproduces a suspected gap in CommentAttacher: a leading Javadoc on a file with
         // only a package declaration should be captured as the file header, not silently lost.
