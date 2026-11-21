@@ -1,5 +1,6 @@
 package io.javafmt.intellij;
 
+import com.intellij.formatting.FormattingContext;
 import com.intellij.formatting.service.AsyncDocumentFormattingService;
 import com.intellij.formatting.service.AsyncFormattingRequest;
 import com.intellij.notification.NotificationGroupManager;
@@ -160,6 +161,22 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             final var project = context.getProject();
             final var fileName = context.getContainingFile().getName();
             final var content = request.getDocumentText();
+            request.onTextReady(textToInstall(context, project, fileName, content));
+        }
+
+        private static String textToInstall(final FormattingContext context, final Project project, final String fileName, final String content) {
+            try {
+                return formattedText(context, project, fileName, content);
+            } catch (final RuntimeException e) {
+                if (Logger.shouldRethrow(e)) {
+                    throw e;
+                }
+                leftUnformatted(project, fileName, true, e.toString(), message -> LOG.warn(message, e));
+                return content;
+            }
+        }
+
+        private static String formattedText(final FormattingContext context, final Project project, final String fileName, final String content) {
             final var scope = Optional.ofNullable(context.getVirtualFile())
                     .map(file -> FileScope.of(project, file))
                     .orElseGet(FileScope::none);
@@ -175,15 +192,14 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
                                     () -> JavafmtDaemons.getInstance(project).format(binary, content, scope)))
                             .orElseGet(Outcome.Cancelled::new);
             };
-            request.onTextReady(
-                    switch (outcome) {
-                        case Outcome.Cancelled _ -> content;
-                        case Outcome.Refused refused -> {
-                            leftUnformatted(project, fileName, refused.internal(), refused.reason(), LOG::warn);
-                            yield content;
-                        }
-                        case Outcome.Formatted formatted -> textFor(project, fileName, content, formatted);
-                    });
+            return switch (outcome) {
+                case Outcome.Cancelled _ -> content;
+                case Outcome.Refused refused -> {
+                    leftUnformatted(project, fileName, refused.internal(), refused.reason(), LOG::warn);
+                    yield content;
+                }
+                case Outcome.Formatted formatted -> textFor(project, fileName, content, formatted);
+            };
         }
 
         private static Outcome timed(final String fileName,

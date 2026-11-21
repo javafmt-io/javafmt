@@ -7,6 +7,7 @@ import com.intellij.formatting.service.AsyncFormattingRequest;
 import com.intellij.formatting.service.FormattingServiceUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiFile;
 import com.intellij.testFramework.PlatformTestUtil;
@@ -27,10 +28,14 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 // Formatting happens by spawning a fake javafmt binary (a /bin/sh script, following the pattern
 // established by JavafmtBinaryTest), so this class shares that test's OS restriction.
@@ -79,13 +84,66 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         enableJavafmt();
         JavafmtSettings.getInstance(getProject()).setBinaryPath("javafmt\0");
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
-        final var installed = new CompletableFuture<String>();
+        final var installed = new CopyOnWriteArrayList<String>();
         service.createFormattingTask(new CapturingRequest(file, installed)).run();
         PlatformTestUtil.dispatchAllEventsInIdeEventQueue();
-        assertThat(installed).isCompletedWithValue(Fixtures.UNFORMATTED_FOO);
+        assertThat(installed).containsExactly(Fixtures.UNFORMATTED_FOO);
         assertThat(notifications)
                 .singleElement()
                 .satisfies(notification -> assertThat(notification.getContent()).contains("No javafmt binary found"));
+    }
+
+    @Test
+    public void testAnUnexpectedFailureInstallsTheOriginalTextOnceAndSaysWhy(@TempDir final Path dir) throws IOException {
+        enableJavafmt();
+        usePathSearch(dir, () -> {
+            throw new IllegalStateException("boom");
+        });
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        final var installed = new CopyOnWriteArrayList<String>();
+        service.createFormattingTask(new CapturingRequest(file, installed)).run();
+        PlatformTestUtil.dispatchAllEventsInIdeEventQueue();
+        assertThat(installed).containsExactly(Fixtures.UNFORMATTED_FOO);
+        assertThat(notifications).singleElement().satisfies(notification -> {
+            assertThat(notification.getType()).isEqualTo(NotificationType.ERROR);
+            assertThat(notification.getContent()).contains("Foo.java", "boom");
+        });
+    }
+
+    @Test
+    public void testAnUnexpectedFailureAfterACancelLeavesThePlatformsThreadUninterrupted(@TempDir final Path dir) throws Exception {
+        enableJavafmt();
+        final var task = new AtomicReference<AsyncDocumentFormattingService.FormattingTask>();
+        usePathSearch(dir, () -> {
+            task.get().cancel();
+            throw new IllegalStateException("boom");
+        });
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        final var installed = new CopyOnWriteArrayList<String>();
+        task.set(service.createFormattingTask(new CapturingRequest(file, installed)));
+        final var interruptedAfterRun = new CompletableFuture<Boolean>();
+        final var worker = Thread.ofPlatform().start(() -> {
+            task.get().run();
+            interruptedAfterRun.complete(Thread.currentThread().isInterrupted());
+        });
+        assertThat(interruptedAfterRun)
+                .succeedsWithin(Duration.ofSeconds(20))
+                .isEqualTo(false);
+        assertThat(installed).containsExactly(Fixtures.UNFORMATTED_FOO);
+        worker.join();
+    }
+
+    @Test
+    public void testThePlatformsCancellationStillPropagates(@TempDir final Path dir) throws IOException {
+        enableJavafmt();
+        usePathSearch(dir, () -> {
+            throw new ProcessCanceledException();
+        });
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        final var installed = new CopyOnWriteArrayList<String>();
+        final var task = service.createFormattingTask(new CapturingRequest(file, installed));
+        assertThatThrownBy(task::run).isInstanceOf(ProcessCanceledException.class);
+        assertThat(installed).isEmpty();
     }
 
     @Test
@@ -202,7 +260,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                         + "'\ncat > /dev/null\n");
         JavafmtSettings.getInstance(getProject()).setBinaryPath(binary.toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
-        final var installed = new CompletableFuture<String>();
+        final var installed = new CopyOnWriteArrayList<String>();
         final var task = service.createFormattingTask(new CapturingRequest(file, installed));
         final var interruptedAfterRun = new CompletableFuture<Boolean>();
         final var worker = Thread.ofPlatform().start(() -> {
@@ -214,7 +272,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         assertThat(interruptedAfterRun)
                 .succeedsWithin(Duration.ofSeconds(20))
                 .isEqualTo(false);
-        assertThat(installed).isCompletedWithValue(Fixtures.UNFORMATTED_FOO);
+        assertThat(installed).containsExactly(Fixtures.UNFORMATTED_FOO);
         worker.join();
     }
 
@@ -442,11 +500,19 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     private JavafmtBinaryProvider useDownloadsFrom(final FakeRelease release, final Path cache, final String sha256) {
-        final var installer = new BinaryInstaller(release.base(), cache, new ReleaseAsset.Published(DOWNLOADED, sha256));
-        final var provider = new JavafmtBinaryProvider(
-                installer,
-                JavafmtBinaryProviderTest::runOnNewThread,
+        return useProvider(
+                new BinaryInstaller(release.base(), cache, new ReleaseAsset.Published(DOWNLOADED, sha256)),
                 () -> cache.resolve("empty-path").toString());
+    }
+
+    private void usePathSearch(final Path dir, final Supplier<String> searchPath) throws IOException {
+        useProvider(
+                new BinaryInstaller(FakeRelease.unreachable(), dir, new ReleaseAsset.Published(DOWNLOADED, FakeRelease.sha256(new byte[0]))),
+                searchPath);
+    }
+
+    private JavafmtBinaryProvider useProvider(final BinaryInstaller installer, final Supplier<String> searchPath) {
+        final var provider = new JavafmtBinaryProvider(installer, JavafmtBinaryProviderTest::runOnNewThread, searchPath);
         ServiceContainerUtil.replaceService(ApplicationManager.getApplication(), JavafmtBinaryProvider.class, provider, getTestRootDisposable());
         return provider;
     }
@@ -503,7 +569,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         static final Duration TIMEOUT = DEFAULT_TIMEOUT;
     }
 
-    private record CapturingRequest(PsiFile file, CompletableFuture<String> installed) implements AsyncFormattingRequest {
+    private record CapturingRequest(PsiFile file, List<String> installed) implements AsyncFormattingRequest {
 
         @Override
         @NotNull
@@ -541,12 +607,12 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
 
         @Override
         public void onTextReady(final String updatedText) {
-            installed.complete(updatedText);
+            installed.add(updatedText);
         }
 
         @Override
         public void onError(@NotNull final String title, @NotNull final String message) {
-            installed.completeExceptionally(new AssertionError(title + ": " + message));
+            installed.add("onError " + title + ": " + message);
         }
 
         @Override
