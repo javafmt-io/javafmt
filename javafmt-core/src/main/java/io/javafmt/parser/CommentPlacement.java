@@ -34,7 +34,7 @@ public final class CommentPlacement {
                 .sorted(Comparator.comparingInt(misplaced -> misplaced.comment().start()))
                 .<Diagnostic>map(misplaced -> new Diagnostic.LintError(
                         misplaced.message(),
-                        positionOf(source, misplaced.comment().start())))
+                        Position.at(source, misplaced.comment().start())))
                 .toList();
         return errors.isEmpty() ? Optional.empty() : Optional.of(new ParseException(BETWEEN_CODE, errors));
     }
@@ -47,15 +47,6 @@ public final class CommentPlacement {
     private boolean codeAfter(final String source, final boolean[] inComment, final int end) {
         return IntStream.iterate(end, i -> i < source.length() && source.charAt(i) != '\n', i -> i + 1)
                 .anyMatch(i -> !inComment[i] && !Character.isWhitespace(source.charAt(i)));
-    }
-
-    private Position positionOf(final String source, final int offset) {
-        final var line = (int) source.substring(0, offset)
-                .chars()
-                .filter(c -> c == '\n')
-                .count()
-                + 1;
-        return new Position.At(line, offset - (source.lastIndexOf('\n', offset - 1) + 1) + 1, offset);
     }
 
     private record Misplaced(CommentToken comment, String message) {}

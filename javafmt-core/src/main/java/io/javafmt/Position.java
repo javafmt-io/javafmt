@@ -18,6 +18,15 @@ public sealed interface Position permits Position.At, Position.Unknown {
         };
     }
 
+    static Position at(final String source, final int offset) {
+        final var line = (int) source.substring(0, offset)
+                .chars()
+                .filter(c -> c == '\n')
+                .count()
+                + 1;
+        return new At(line, offset - (source.lastIndexOf('\n', offset - 1) + 1) + 1, offset);
+    }
+
     /** A known location: 1-based {@code line} and {@code column}, and a 0-based char {@code offset}. */
     record At(int line, int column, int offset) implements Position {}
 

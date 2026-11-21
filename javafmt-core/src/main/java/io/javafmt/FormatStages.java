@@ -153,13 +153,7 @@ final class FormatStages {
         if (offset.isEmpty()) {
             return new Position.Unknown();
         }
-        final var at = offset.getAsInt();
-        final var line = (int) linted.substring(0, at)
-                .chars()
-                .filter(c -> c == '\n')
-                .count()
-                + 1;
-        return new Position.At(line, at - (linted.lastIndexOf('\n', at - 1) + 1) + 1, at);
+        return Position.at(linted, offset.getAsInt());
     }
 
     /**
