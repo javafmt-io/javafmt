@@ -19,10 +19,11 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("final ");
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("class Fixture {\n\n    void test() {\n        final int x = 5;\n    }\n}\n");
     }
 
     @ParameterizedTest
@@ -46,7 +47,7 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 
@@ -61,7 +62,7 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 
@@ -76,7 +77,7 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 
@@ -91,7 +92,7 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 
@@ -105,7 +106,7 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 
@@ -117,7 +118,7 @@ class FinalLocalVariableTest {
                 int x = 5;
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 
@@ -135,10 +136,21 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
-        // outer x and r are unreassigned in the enclosing block; lambda's x is a separate scope
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).hasSize(2);
-        assertThat(result.edits()).allSatisfy(e -> assertThat(e.replacement()).isEqualTo("final "));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("""
+                           class Fixture {
+
+                               void test() {
+                                   final int x = 5;
+                                   final Runnable r = () -> {
+                                       int x = 10;
+                                       x = 20;
+                                   };
+                               }
+                           }
+                           """);
     }
 
     @Test
@@ -158,10 +170,24 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
-        // outer x and r are unreassigned in the enclosing block; inner class is a separate scope
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).hasSize(2);
-        assertThat(result.edits()).allSatisfy(e -> assertThat(e.replacement()).isEqualTo("final "));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("""
+                           class Fixture {
+
+                               void test() {
+                                   final int x = 5;
+                                   final Runnable r = new Runnable() {
+                                       @Override
+                                       public void run() {
+                                           int x = 10;
+                                           x = 20;
+                                       }
+                                   };
+                               }
+                           }
+                           """);
     }
 
     @Test
@@ -177,10 +203,10 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
-        // a and c are unreassigned; b is reassigned
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).hasSize(2);
-        assertThat(result.edits()).allSatisfy(e -> assertThat(e.replacement()).isEqualTo("final "));
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("class Fixture {\n\n    void test() {\n        final int a = 1;\n        int b = 2;\n        final int c = 3;\n        b = 5;\n    }\n}\n");
     }
 
     @Test
@@ -198,7 +224,7 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 
@@ -215,7 +241,7 @@ class FinalLocalVariableTest {
                 }
             }
             """);
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalLocalVariable(), unit.source());
         assertThat(result.edits()).isEmpty();
     }
 }

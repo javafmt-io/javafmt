@@ -1,8 +1,8 @@
 package io.javafmt.lint;
 
-import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,18 +10,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UpperEllTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {
-            "class Fixture { long x = 1l; }",
-            "class Fixture { long x = 0l; }",
-            "class Fixture { long x = 100_000l; }",
-            "class Fixture { long x = 0xDEADl; }",
+    @CsvSource(delimiter = '|', value = {
+            "class Fixture { long x = 1l; }|class Fixture { long x = 1L; }",
+            "class Fixture { long x = 0l; }|class Fixture { long x = 0L; }",
+            "class Fixture { long x = 100_000l; }|class Fixture { long x = 100_000L; }",
+            "class Fixture { long x = 0xDEADl; }|class Fixture { long x = 0xDEADL; }",
     })
-    void lowercaseLSuffixGetsReplacedWithUppercase(final String src) {
-        final var unit = JavaParser.parseUnit(src);
-        final var result = new UpperEll().apply(LintContext.parseOnly(unit));
+    void lowercaseLSuffixGetsReplacedWithUppercase(final String src, final String expected) {
+        final var result = LintFixtures.apply(new UpperEll(), src);
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("L");
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintFixtures.fix(new UpperEll(), src)).isEqualTo(expected);
     }
 
     @ParameterizedTest
@@ -32,22 +31,14 @@ class UpperEllTest {
             "class Fixture { int x = 1; }",
     })
     void upperLSuffixOrNonLongLiteralProducesNoEdits(final String src) {
-        final var unit = JavaParser.parseUnit(src);
-        final var result = new UpperEll().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new UpperEll(), src).edits()).isEmpty();
+        assertThat(LintFixtures.fix(new UpperEll(), src)).isEqualTo(src);
     }
 
     @Test
     void multipleLowercaseLSuffixesAllFixed() {
-        final var unit = JavaParser.parseUnit("""
-            class Fixture {
-
-                long a = 1l;
-                long b = 2l;
-            }
-            """);
-        final var result = new UpperEll().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(2);
-        assertThat(result.edits()).allMatch(e -> e.replacement().equals("L"));
+        final var src = "class Fixture {\n\n    long a = 1l;\n    long b = 2l;\n}\n";
+        assertThat(LintFixtures.apply(new UpperEll(), src).edits()).hasSize(2);
+        assertThat(LintFixtures.fix(new UpperEll(), src)).isEqualTo("class Fixture {\n\n    long a = 1L;\n    long b = 2L;\n}\n");
     }
 }

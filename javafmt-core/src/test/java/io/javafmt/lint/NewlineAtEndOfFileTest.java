@@ -1,7 +1,8 @@
 package io.javafmt.lint;
 
-import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -9,46 +10,32 @@ class NewlineAtEndOfFileTest {
 
     @Test
     void fileWithoutTrailingNewlineGetsOneInserted() {
-        final var unit = JavaParser.parseUnit("class Fixture {}");
-        final var result = new NewlineAtEndOfFile().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new NewlineAtEndOfFile(), "class Fixture {}");
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("\n");
         assertThat(result.edits().getFirst().start()).isEqualTo(16);
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintFixtures.fix(new NewlineAtEndOfFile(), "class Fixture {}"))
+                .isEqualTo("class Fixture {}\n");
     }
 
     @Test
     void fileWithExactlyOneTrailingNewlineEmitsNoEdits() {
-        final var unit = JavaParser.parseUnit("class Fixture {}\n");
-        final var result = new NewlineAtEndOfFile().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(
+                        LintFixtures.apply(new NewlineAtEndOfFile(), "class Fixture {}\n")
+                                .edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new NewlineAtEndOfFile(), "class Fixture {}\n"))
+                .isEqualTo("class Fixture {}\n");
     }
 
-    @Test
-    void fileWithTwoTrailingNewlinesTrimmedToOne() {
-        final var unit = JavaParser.parseUnit("class Fixture {}\n\n");
-        final var result = new NewlineAtEndOfFile().apply(LintContext.parseOnly(unit));
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {"2|17|18", "3|17|19"})
+    void extraTrailingNewlinesAreTrimmedToOne(final int newlines, final int start, final int end) {
+        final var source = "class Fixture {}" + "\n".repeat(newlines);
+        final var result = LintFixtures.apply(new NewlineAtEndOfFile(), source);
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEmpty();
-        // deletes the second newline
-        assertThat(result.edits().getFirst().start()).isEqualTo(17);
-        assertThat(result.edits().getFirst().end()).isEqualTo(18);
-    }
-
-    @Test
-    void fileWithThreeTrailingNewlinesTrimmedToOne() {
-        final var unit = JavaParser.parseUnit("class Fixture {}\n\n\n");
-        final var result = new NewlineAtEndOfFile().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEmpty();
-        assertThat(result.edits().getFirst().start()).isEqualTo(17);
-        assertThat(result.edits().getFirst().end()).isEqualTo(19);
-    }
-
-    @Test
-    void ruleIsIdempotentOnFileWithExistingNewline() {
-        final var unit = JavaParser.parseUnit("class Fixture {}\n");
-        final var result = new NewlineAtEndOfFile().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(result.edits().getFirst().start()).isEqualTo(start);
+        assertThat(result.edits().getFirst().end()).isEqualTo(end);
+        assertThat(LintFixtures.fix(new NewlineAtEndOfFile(), source)).isEqualTo("class Fixture {}\n");
     }
 }

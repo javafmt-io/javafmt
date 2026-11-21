@@ -15,10 +15,10 @@ class ArrayTrailingCommaTest {
                 int[] arr = {1};
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new ArrayTrailingComma(), unit.source());
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo(",");
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).isEqualTo("class Fixture {\n\n    int[] arr = {1,};\n}\n");
     }
 
     @Test
@@ -29,9 +29,9 @@ class ArrayTrailingCommaTest {
                 int[] arr = {1, 2, 3};
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo(",");
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).isEqualTo("class Fixture {\n\n    int[] arr = {1, 2, 3,};\n}\n");
     }
 
     @Test
@@ -42,8 +42,9 @@ class ArrayTrailingCommaTest {
                 int[] arr = {1, 2, 3,};
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).isEqualTo(unit.source());
     }
 
     @Test
@@ -54,8 +55,9 @@ class ArrayTrailingCommaTest {
                 int[] arr = {};
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).isEqualTo(unit.source());
     }
 
     @Test
@@ -68,8 +70,9 @@ class ArrayTrailingCommaTest {
                 }
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).isEqualTo(unit.source());
     }
 
     @Test
@@ -80,10 +83,10 @@ class ArrayTrailingCommaTest {
                 int[][] arr = {{1, 2}, {3, 4}};
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        // outer array + two inner arrays, none have trailing commas
-        assertThat(result.edits()).hasSize(3);
-        assertThat(result.edits()).allSatisfy(e -> assertThat(e.replacement()).isEqualTo(","));
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), unit.source()).edits())
+                .hasSize(3);
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    int[][] arr = {{1, 2,}, {3, 4,},};\n}\n");
     }
 
     @Test
@@ -122,9 +125,10 @@ class ArrayTrailingCommaTest {
                 };
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("2,   // two, three, and so on");
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    int[] arr = {\n        1,  // one\n        2,   // two, three, and so on\n    };\n}\n");
     }
 
     @Test
@@ -135,9 +139,10 @@ class ArrayTrailingCommaTest {
                 int[] arr = {1, 2 /* a, b */};
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("1, 2 /* a, b */,");
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    int[] arr = {1, 2 /* a, b */,};\n}\n");
     }
 
     @Test

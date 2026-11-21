@@ -6,9 +6,11 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 final class LintFixtures {
 
+    LintResult apply(final LintRule rule, final String source) {
+        return rule.apply(LintContext.parseOnly(JavaParser.parseUnit(source)));
+    }
+
     String fix(final LintRule rule, final String source) {
-        final var unit = JavaParser.parseUnit(source);
-        return LintEngine.applyEdits(
-                source, rule.apply(LintContext.parseOnly(unit)).edits());
+        return LintEngine.applyEdits(source, apply(rule, source).edits());
     }
 }

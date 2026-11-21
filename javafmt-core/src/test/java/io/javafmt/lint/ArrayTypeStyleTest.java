@@ -17,10 +17,12 @@ class ArrayTypeStyleTest {
                 void test(final String arguments[]) {}
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[] arguments");
-        assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).diagnostics())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test(final String[] arguments) {}\n}\n");
     }
 
     @Test
@@ -31,8 +33,9 @@ class ArrayTypeStyleTest {
                 void test(final String[] arguments) {}
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).isEqualTo(unit.source());
     }
 
     @Test
@@ -43,9 +46,9 @@ class ArrayTypeStyleTest {
                 int values[];
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("int[] values");
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).isEqualTo("class Fixture {\n\n    int[] values;\n}\n");
     }
 
     @Test
@@ -58,9 +61,10 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("int[] x");
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test() {\n        final int[] x = new int[3];\n    }\n}\n");
     }
 
     @Test
@@ -71,9 +75,10 @@ class ArrayTypeStyleTest {
                 void test(final String arguments[][]) {}
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[][] arguments");
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test(final String[][] arguments) {}\n}\n");
     }
 
     @Test
@@ -84,9 +89,10 @@ class ArrayTypeStyleTest {
                 public static void main(final String arguments[]) {}
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEqualTo("String[] arguments");
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
+                .hasSize(1);
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    public static void main(final String[] arguments) {}\n}\n");
     }
 
     @Test
@@ -102,8 +108,9 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).isEqualTo(unit.source());
     }
 
     @Test
@@ -118,7 +125,8 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).contains("int[] first()");
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    int[] first() {\n        return null;\n    }\n}\n");
     }
 
     @Test
@@ -131,7 +139,8 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).contains("static String[][] names(final int n)");
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    static String[][] names(final int n) {\n        return null;\n    }\n}\n");
     }
 
     @Test
@@ -144,8 +153,9 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        assertThat(new ArrayTypeStyle().apply(LintContext.parseOnly(unit)).edits())
+        assertThat(LintFixtures.apply(new ArrayTypeStyle(), unit.source()).edits())
                 .isEmpty();
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).isEqualTo(unit.source());
     }
 
     @ParameterizedTest
@@ -157,6 +167,6 @@ class ArrayTypeStyleTest {
     })
     void aCommentAmongTheCStyleBracketsMovesAfterTheName(final String declaration, final String expected) {
         final var unit = JavaParser.parseUnit("class Fixture {\n    " + declaration + "\n}\n");
-        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).contains("    " + expected + "\n");
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).isEqualTo("class Fixture {\n    " + expected + "\n}\n");
     }
 }

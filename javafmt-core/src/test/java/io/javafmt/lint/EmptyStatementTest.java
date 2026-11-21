@@ -54,10 +54,11 @@ class EmptyStatementTest {
                 native void doSomething();
             }
             """);
-        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new EmptyStatement(), unit.source());
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).isEmpty();
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintFixtures.fix(new EmptyStatement(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test() {\n        \n        doSomething();\n    }\n    native void doSomething();\n}\n");
     }
 
     @Test
@@ -71,8 +72,10 @@ class EmptyStatementTest {
                 }
             }
             """);
-        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(2);
+        assertThat(LintFixtures.apply(new EmptyStatement(), unit.source()).edits())
+                .hasSize(2);
+        assertThat(LintFixtures.fix(new EmptyStatement(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test() {\n        \n        \n    }\n}\n");
     }
 
     @Test
@@ -86,8 +89,9 @@ class EmptyStatementTest {
                 native void doSomething();
             }
             """);
-        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new EmptyStatement(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new EmptyStatement(), unit.source())).isEqualTo(unit.source());
     }
 
     @Test
@@ -102,8 +106,9 @@ class EmptyStatementTest {
                 }
             }
             """);
-        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new EmptyStatement(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new EmptyStatement(), unit.source())).isEqualTo(unit.source());
     }
 
     @ParameterizedTest

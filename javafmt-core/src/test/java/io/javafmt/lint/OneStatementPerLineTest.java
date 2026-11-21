@@ -17,10 +17,11 @@ class OneStatementPerLineTest {
                 }
             }
             """);
-        final var result = new OneStatementPerLine().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new OneStatementPerLine(), unit.source());
         assertThat(result.edits()).hasSize(1);
-        assertThat(result.edits().getFirst().replacement()).startsWith("\n");
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintFixtures.fix(new OneStatementPerLine(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test() {\n        int a = 1;\n        int b = 2;\n    }\n}\n");
     }
 
     @Test
@@ -34,8 +35,9 @@ class OneStatementPerLineTest {
                 }
             }
             """);
-        final var result = new OneStatementPerLine().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new OneStatementPerLine(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new OneStatementPerLine(), unit.source())).isEqualTo(unit.source());
     }
 
     @Test
@@ -51,8 +53,22 @@ class OneStatementPerLineTest {
                 native void doC();
             }
             """);
-        final var result = new OneStatementPerLine().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).hasSize(2);
+        assertThat(LintFixtures.apply(new OneStatementPerLine(), unit.source()).edits())
+                .hasSize(2);
+        assertThat(LintFixtures.fix(new OneStatementPerLine(), unit.source()))
+                .isEqualTo("""
+                           class Fixture {
+
+                               void test() {
+                                   doA();
+                                   doB();
+                                   doC();
+                               }
+                               native void doA();
+                               native void doB();
+                               native void doC();
+                           }
+                           """);
     }
 
     @Test
@@ -68,7 +84,8 @@ class OneStatementPerLineTest {
                 native void doB();
             }
             """);
-        final var result = new OneStatementPerLine().apply(LintContext.parseOnly(unit));
-        assertThat(result.edits()).isEmpty();
+        assertThat(LintFixtures.apply(new OneStatementPerLine(), unit.source()).edits())
+                .isEmpty();
+        assertThat(LintFixtures.fix(new OneStatementPerLine(), unit.source())).isEqualTo(unit.source());
     }
 }

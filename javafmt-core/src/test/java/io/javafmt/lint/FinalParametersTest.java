@@ -22,7 +22,7 @@ class FinalParametersTest {
                 }
             }
             """);
-        final var result = new FinalParameters().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalParameters(), unit.source());
         assertThat(result.edits()).isEmpty();
         assertThat(result.diagnostics()).hasSize(1);
         final var warning = result.diagnostics().getFirst();
@@ -67,9 +67,11 @@ class FinalParametersTest {
                 }
             }
             """);
-        final var result = new FinalParameters().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalParameters(), unit.source());
         assertThat(result.edits()).hasSize(1);
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+                .isEqualTo("class Fixture {\n\n    int twice(final int x) {\n        return x + x;\n    }\n}\n");
     }
 
     @Test
@@ -89,7 +91,7 @@ class FinalParametersTest {
                 }
             }
             """);
-        final var result = new FinalParameters().apply(LintContext.parseOnly(unit));
+        final var result = LintFixtures.apply(new FinalParameters(), unit.source());
         assertThat(result.edits()).isEmpty();
         assertThat(result.diagnostics()).isEmpty();
     }
