@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -72,14 +73,11 @@ public final class RoundTripVerifier {
 
     /** Where the two streams first differ, with a little of each side for context. */
     private Optional<String> firstDifference(final List<Token> before, final List<Token> after) {
-        final var shared = Math.min(before.size(), after.size());
-        final var at = IntStream.range(0, shared)
-                .filter(i -> !before.get(i).text().equals(after.get(i).text()))
-                .findFirst()
-                .orElse(before.size() == after.size() ? -1 : shared);
-        if (at < 0) {
+        final var divergence = divergence(before, after);
+        if (divergence.isEmpty()) {
             return Optional.empty();
         }
+        final var at = divergence.getAsInt();
         return Optional.of(
                 "tokens changed: the output diverges at token " + at + ", where the source has " + describe(texts(window(before, at)))
                         + " and the output has "
@@ -98,18 +96,21 @@ public final class RoundTripVerifier {
     public OptionalInt firstDifferingOffset(final String before, final String after) {
         final var beforeBody = partition(normalizedTokens(before)).body();
         final var afterBody = partition(normalizedTokens(after)).body();
-        final var shared = Math.min(beforeBody.size(), afterBody.size());
+        return divergence(beforeBody, afterBody).stream()
+                .filter(i -> i < beforeBody.size())
+                .map(i -> beforeBody.get(i).start())
+                .findFirst();
+    }
+
+    private OptionalInt divergence(final List<Token> before, final List<Token> after) {
+        final var shared = Math.min(before.size(), after.size());
         final var at = IntStream.range(0, shared)
-                .filter(i -> !beforeBody.get(i)
-                        .text()
-                        .equals(afterBody.get(i).text()))
+                .filter(i -> !before.get(i).text().equals(after.get(i).text()))
                 .findFirst();
         if (at.isPresent()) {
-            return OptionalInt.of(beforeBody.get(at.getAsInt()).start());
+            return at;
         }
-        return beforeBody.size() > shared
-                ? OptionalInt.of(beforeBody.get(shared).start())
-                : OptionalInt.empty();
+        return before.size() == after.size() ? OptionalInt.empty() : OptionalInt.of(shared);
     }
 
     private List<Token> window(final List<Token> tokens, final int at) {
@@ -177,9 +178,7 @@ public final class RoundTripVerifier {
     }
 
     private String normalizeComment(final String text) {
-        return text.lines()
-                .map(String::strip)
-                .reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
+        return text.lines().map(String::strip).collect(Collectors.joining("\n"));
     }
 
     private Optional<String> compare(final String kind, final List<String> before, final List<String> after) {
@@ -212,7 +211,7 @@ public final class RoundTripVerifier {
         final var shown = items.stream()
                 .limit(5)
                 .map(RoundTripVerifier::quote)
-                .collect(java.util.stream.Collectors.joining(", "));
+                .collect(Collectors.joining(", "));
         return items.size() > 5 ? shown + " and " + (items.size() - 5) + " more" : shown;
     }
 
