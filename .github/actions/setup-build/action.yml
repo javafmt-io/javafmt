@@ -1,5 +1,5 @@
 name: Set up the build
-description: Installs the JDK and Gradle that .sdkmanrc pins, so every workflow builds with the same versions as a local sdkman shell.
+description: Installs the JDK and Gradle that .sdkmanrc pins, and on request the Node.js that .nvmrc pins, so every workflow builds with the same versions as a local shell.
 
 inputs:
   graalvm:
@@ -10,6 +10,12 @@ inputs:
     default: 'true'
   cache-encryption-key:
     description: The key setup-gradle encrypts the configuration cache with.
+    default: ''
+  node:
+    description: Install the Node.js version .nvmrc pins, for the npm builds of javafmt-vscode and website.
+    default: 'false'
+  npm-cache-dependency-path:
+    description: The lock file to key npm's download cache on. Leave it empty to skip the cache.
     default: ''
 
 outputs:
@@ -44,6 +50,14 @@ runs:
         java-version: ${{ steps.versions.outputs.java-feature }}
         distribution: graalvm-community
         native-image-job-reports: 'true'
+
+    - name: Set up Node.js
+      if: inputs.node == 'true'
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: .nvmrc
+        cache: ${{ inputs.npm-cache-dependency-path != '' && 'npm' || '' }}
+        cache-dependency-path: ${{ inputs.npm-cache-dependency-path }}
 
     - name: Set up Gradle
       if: inputs.setup-gradle == 'true'

@@ -23,15 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 'lts/*'
-          cache: 'npm'
-          cache-dependency-path: website/package-lock.json
-
-      - name: Set up Java and Gradle
+      - name: Set up Java, Gradle and Node.js
         uses: ./.github/actions/setup-build
         with:
+          node: 'true'
+          npm-cache-dependency-path: website/package-lock.json
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Build website
