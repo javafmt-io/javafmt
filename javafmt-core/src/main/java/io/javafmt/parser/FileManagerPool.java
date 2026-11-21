@@ -70,6 +70,7 @@ final class FileManagerPool {
         return idle.size() > capacity ? Optional.of(idle.removeLast().manager()) : Optional.empty();
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private static <T> T applyOrClose(final StandardJavaFileManager manager, final Function<StandardJavaFileManager, T> work) {
         try {
             return work.apply(manager);
@@ -77,7 +78,9 @@ final class FileManagerPool {
             try {
                 close(manager);
             } catch (final Throwable closing) {
-                failure.addSuppressed(closing);
+                if (closing != failure) {
+                    failure.addSuppressed(closing);
+                }
             }
             throw failure;
         }

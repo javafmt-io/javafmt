@@ -151,11 +151,14 @@ public final class SourceFiles {
         }
     }
 
+    @SuppressWarnings("ReferenceEquality")
     private void deleteAfter(final Throwable failure, final Path temp) {
         try {
             Files.deleteIfExists(temp);
         } catch (final Throwable deleting) {
-            failure.addSuppressed(deleting);
+            if (deleting != failure) {
+                failure.addSuppressed(deleting);
+            }
         }
     }
 

@@ -209,6 +209,17 @@ class SourceFilesTest {
     }
 
     @Test
+    void aDeleteThatRethrowsTheWritesOwnFailureStillThrowsIt() throws IOException {
+        final var failure = new IllegalStateException("write failed");
+        final var file = dir.resolve("A.java");
+        Files.writeString(file, "class A {}");
+        final var failing = new FailingWritesFileSystem(failure, true).wrap(file);
+        assertThatThrownBy(() -> SourceFiles.write(failing, "class A {\n}\n"))
+                .isSameAs(failure)
+                .satisfies(thrown -> assertThat(thrown.getSuppressed()).isEmpty());
+    }
+
+    @Test
     void writeGivesANewFileThePermissionsAPlainCreateWould() throws IOException {
         final var plain = Files.createFile(dir.resolve("Plain.java"));
         final var file = dir.resolve("New.java");

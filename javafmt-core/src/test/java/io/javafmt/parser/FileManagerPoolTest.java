@@ -82,6 +82,17 @@ class FileManagerPoolTest {
     }
 
     @Test
+    void aManagerWhoseCloseRethrowsTheWorksOwnFailureStillThrowsIt() {
+        final var shared = new IllegalStateException("work failed");
+        final var pool = new FileManagerPool(2, () -> managerWhoseCloseThrows(shared));
+        assertThatThrownBy(() -> pool.lend("a", _ -> {
+            throw shared;
+        }))
+                .isSameAs(shared)
+                .satisfies(thrown -> assertThat(thrown.getSuppressed()).isEmpty());
+    }
+
+    @Test
     void aManagerWhoseWorkReturnsGoesBackToThePool() {
         final var pool = new FileManagerPool(2, this::recordingManager);
         final var lent = pool.lend("a", Function.identity());

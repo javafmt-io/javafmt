@@ -36,10 +36,14 @@ final class FailingWritesFileSystem extends FileSystem {
     private final Provider provider;
 
     FailingWritesFileSystem(final Throwable failure) {
+        this(failure, false);
+    }
+
+    FailingWritesFileSystem(final Throwable failure, final boolean deletesFailToo) {
         if (!(failure instanceof RuntimeException || failure instanceof Error)) {
             throw new IllegalArgumentException("failure must be unchecked: " + failure);
         }
-        provider = new Provider(this, failure);
+        provider = new Provider(this, failure, deletesFailToo);
     }
 
     Path wrap(final Path path) {
@@ -144,19 +148,26 @@ final class FailingWritesFileSystem extends FileSystem {
 
         private final Throwable failure;
 
+        private final boolean deletesFailToo;
+
         private final FileSystemProvider delegate = DEFAULT.provider();
 
-        private Provider(final FailingWritesFileSystem fileSystem, final Throwable failure) {
+        private Provider(final FailingWritesFileSystem fileSystem, final Throwable failure, final boolean deletesFailToo) {
             this.fileSystem = fileSystem;
             this.failure = failure;
+            this.deletesFailToo = deletesFailToo;
         }
 
-        @Override
-        public OutputStream newOutputStream(final Path path, final OpenOption... options) {
+        private RuntimeException fail() {
             if (failure instanceof RuntimeException unchecked) {
                 throw unchecked;
             }
             throw (Error) failure;
+        }
+
+        @Override
+        public OutputStream newOutputStream(final Path path, final OpenOption... options) {
+            throw fail();
         }
 
         @Override
@@ -197,6 +208,9 @@ final class FailingWritesFileSystem extends FileSystem {
 
         @Override
         public void delete(final Path path) throws IOException {
+            if (deletesFailToo) {
+                throw fail();
+            }
             delegate.delete(unwrap(path));
         }
 
