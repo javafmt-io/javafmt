@@ -4,24 +4,15 @@ import org.jetbrains.intellij.platform.gradle.tasks.ComposedJarTask
 import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 
 plugins {
-    java
-    jacoco
+    id("javafmt.java-base-conventions")
     alias(libs.plugins.intellijPlatform)
     id("javafmt.spotless-conventions")
 }
-
-group = "io.javafmt"
 
 repositories {
     mavenCentral()
     intellijPlatform {
         defaultRepositories()
-    }
-}
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(25))
     }
 }
 
@@ -43,9 +34,6 @@ val protocolRuntime = configurations.resolvable("protocolRuntime") {
 
 dependencies {
     implementation(project(":javafmt-core"))
-    compileOnly(libs.jspecify)
-    compileOnly(libs.lombok)
-    annotationProcessor(libs.lombok)
     protocol(project(":javafmt-daemon")) {
         capabilities {
             requireFeature("protocol")
@@ -65,13 +53,9 @@ dependencies {
         testFramework(TestFrameworkType.JUnit5)
     }
 
-    testImplementation(platform(libs.junit.bom))
-    testImplementation(libs.junit.jupiter)
     testImplementation(libs.junit4)
-    testImplementation(libs.assertj.core)
     testImplementation(testFixtures(project(":javafmt-core")))
     testImplementation(testFixtures(project(":javafmt-daemon")))
-    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 val relocatedPluginJar = tasks.register<ShadowJar>("relocatedPluginJar") {
@@ -114,13 +98,6 @@ val generateNativeChecksums = tasks.register("generateNativeChecksums") {
 
 sourceSets["main"].resources.srcDir(generateNativeChecksums)
 
-tasks.withType<Javadoc>().configureEach {
-    (options as StandardJavadocDocletOptions).apply {
-        addBooleanOption("Xdoclint:all,-missing", true)
-        addBooleanOption("Werror", true)
-    }
-}
-
 tasks.named<Test>("test") {
     useJUnitPlatform { excludeEngines("junit-vintage") }
     // The version gate is derived from the plugin's own version, so the test that pins the two
@@ -141,10 +118,6 @@ tasks.named<Test>("test") {
         isIncludeNoLocationClasses = true
         excludes = listOf("jdk.internal.*")
     }
-}
-
-jacoco {
-    toolVersion = libs.versions.jacoco.get()
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {

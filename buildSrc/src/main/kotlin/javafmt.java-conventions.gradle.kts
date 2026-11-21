@@ -1,10 +1,9 @@
 import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
+    id("javafmt.java-base-conventions")
     `java-library`
-    jacoco
     id("net.ltgt.errorprone")
 }
 
@@ -16,43 +15,9 @@ apply(plugin = "javafmt.spotless-conventions")
 
 val libs = the<VersionCatalogsExtension>().named("libs")
 
-group = "io.javafmt"
-
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(25))
-    }
-}
-
 dependencies {
-    annotationProcessor(libs.findLibrary("lombok").get())
-    compileOnly(libs.findLibrary("jspecify").get())
-    compileOnly(libs.findLibrary("lombok").get())
     errorprone(libs.findLibrary("errorprone-core").get())
     errorprone(libs.findLibrary("nullaway").get())
-    testAnnotationProcessor(libs.findLibrary("lombok").get())
-    testCompileOnly(libs.findLibrary("jspecify").get())
-    testCompileOnly(libs.findLibrary("lombok").get())
-    testImplementation(libs.findLibrary("assertj-core").get())
-    testImplementation(libs.findLibrary("junit-jupiter").get())
-    testImplementation(platform(libs.findLibrary("junit-bom").get()))
-    testRuntimeOnly(libs.findLibrary("junit-platform-launcher").get())
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
-
-    testLogging {
-        events("skipped", "failed")
-        exceptionFormat = TestExceptionFormat.FULL
-        showExceptions = true
-        showCauses = true
-        showStackTraces = true
-    }
-}
-
-jacoco {
-    toolVersion = libs.findVersion("jacoco").get().requiredVersion
 }
 
 val jacocoXmlReport = layout.buildDirectory.file("reports/jacoco/test/jacocoTestReport.xml")
@@ -81,13 +46,6 @@ val coverageReportElements = configurations.create("coverageReportElements") {
 
 artifacts.add(coverageReportElements.name, jacocoXmlReport) {
     builtBy(jacocoTestReport)
-}
-
-tasks.withType<Javadoc>().configureEach {
-    (options as StandardJavadocDocletOptions).apply {
-        addBooleanOption("Xdoclint:all,-missing", true)
-        addBooleanOption("Werror", true)
-    }
 }
 
 tasks.withType<JavaCompile>().configureEach {
