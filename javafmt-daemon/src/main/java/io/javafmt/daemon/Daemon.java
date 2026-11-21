@@ -86,7 +86,7 @@ public final class Daemon {
             final FormatRequest request;
             try {
                 request = wire.decode(frame, FormatRequest.newBuilder()).build();
-            } catch (final IOException | RuntimeException e) {
+            } catch (final RuntimeException e) {
                 log.warn("dropped a malformed request", e);
                 return Optional.empty();
             }

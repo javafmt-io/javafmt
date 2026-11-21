@@ -84,7 +84,8 @@ class WireTest {
     @ValueSource(strings = {"{not json}", "[]", "{\"id\":\"x\"}", "{\"unknown\":1}"})
     void aJsonLineThatIsNotARequestIsRejected(final String line) {
         assertThatThrownBy(() -> Wire.JSON.decode(line.getBytes(StandardCharsets.UTF_8), FormatRequest.newBuilder()))
-                .isInstanceOf(InvalidProtocolBufferException.class);
+                .isInstanceOf(UncheckedIOException.class)
+                .hasCauseInstanceOf(InvalidProtocolBufferException.class);
     }
 
     @ParameterizedTest
@@ -104,11 +105,7 @@ class WireTest {
                 : DaemonFixtures.text(List.of(fixture.get(index))).getBytes(StandardCharsets.UTF_8);
         final var frame = wire.frames(new ByteArrayInputStream(bytes)).toList();
         assertThat(frame).hasSize(1);
-        try {
-            return wire.decode(frame.getFirst(), builder).build();
-        } catch (final InvalidProtocolBufferException e) {
-            throw new UncheckedIOException(e);
-        }
+        return wire.decode(frame.getFirst(), builder).build();
     }
 
     private static void assertEncodes(final Message message, final String hex, final String json) {

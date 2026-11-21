@@ -38,10 +38,14 @@ public enum Wire {
         };
     }
 
-    <B extends Message.Builder> B decode(final byte[] frame, final B builder) throws InvalidProtocolBufferException {
-        switch (this) {
-            case BINARY -> builder.mergeFrom(frame);
-            case JSON -> PARSER.merge(new String(frame, StandardCharsets.UTF_8), builder);
+    <B extends Message.Builder> B decode(final byte[] frame, final B builder) {
+        try {
+            switch (this) {
+                case BINARY -> builder.mergeFrom(frame);
+                case JSON -> PARSER.merge(new String(frame, StandardCharsets.UTF_8), builder);
+            }
+        } catch (final InvalidProtocolBufferException e) {
+            throw new UncheckedIOException(e);
         }
         return builder;
     }
