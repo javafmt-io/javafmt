@@ -72,37 +72,25 @@ record TestBuild(Path dir) {
 
     Path write(final String relative, final String content) {
         final var path = dir.resolve(relative);
-        try {
+        return unchecked(() -> {
             Files.createDirectories(path.getParent());
-            Files.writeString(path, content);
-        } catch (final IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        return path;
+            return Files.writeString(path, content);
+        });
     }
 
     void move(final String from, final String to) {
-        try {
-            Files.move(dir.resolve(from), dir.resolve(to));
-        } catch (final IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        unchecked(() -> Files.move(dir.resolve(from), dir.resolve(to)));
     }
 
     void delete(final String relative) {
-        try {
+        unchecked(() -> {
             Files.delete(dir.resolve(relative));
-        } catch (final IOException e) {
-            throw new UncheckedIOException(e);
-        }
+            return null;
+        });
     }
 
     String read(final String relative) {
-        try {
-            return Files.readString(dir.resolve(relative));
-        } catch (final IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return unchecked(() -> Files.readString(dir.resolve(relative)));
     }
 
     BuildResult run(final String... arguments) {
@@ -127,5 +115,19 @@ record TestBuild(Path dir) {
                 .withArguments(Stream.concat(Stream.of("--stacktrace", "--no-watch-fs"), Stream.of(arguments))
                         .toList())
                 .forwardOutput();
+    }
+
+    private static <T> T unchecked(final IoSupplier<T> action) {
+        try {
+            return action.get();
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @FunctionalInterface
+    private interface IoSupplier<T> {
+
+        T get() throws IOException;
     }
 }

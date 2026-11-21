@@ -87,11 +87,9 @@ sourceSets.main {
     resources.srcDir(pluginResources)
 }
 
-tasks.withType<JavaCompile>().configureEach {
-    if (name == "compileFunctionalTestJava") {
-        options.errorprone {
-            check("NullAway", CheckSeverity.OFF)
-        }
+tasks.named<JavaCompile>(functionalTest.compileJavaTaskName) {
+    options.errorprone {
+        check("NullAway", CheckSeverity.OFF)
     }
 }
 
