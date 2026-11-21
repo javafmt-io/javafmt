@@ -18,8 +18,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -39,9 +37,9 @@ import javax.tools.ToolProvider;
  * <p><b>Threading.</b> A parse borrows a {@link StandardJavaFileManager} from a shared pool
  * and returns it when the call ends, so javac's boot-classpath scan and {@code JarFile}
  * inflation are paid once per manager rather than once per call. A manager is never used by two
- * calls at once, because it is not thread-safe, and the pool holds no more managers than the most
- * parses that ever ran at the same time, however many threads a long-lived host such as the
- * Gradle daemon cycles through. Attribution has a pool of its own: see {@link #attributing}.
+ * calls at once, because it is not thread-safe, and the pool keeps a bounded number of idle
+ * managers, however many threads a long-lived host such as the Gradle daemon cycles through.
+ * Attribution has a pool of its own: see {@link #attributing}.
  * Per-call: the {@link com.sun.source.util.JavacTask},
  * its diagnostic collector, and the in-memory {@link JavaFileObject}.
  *
@@ -70,17 +68,17 @@ public final class JavaParser {
 
     private final Pattern OUT_OF_MEMORY = Pattern.compile("java\\.lang\\.OutOfMemoryError(?:: ([^\\r\\n]*))?");
 
-    private final Queue<StandardJavaFileManager> IDLE_FILE_MANAGERS = new ConcurrentLinkedQueue<>();
+    final int FILE_MANAGER_POOL_CAPACITY = Math.max(2, Runtime.getRuntime().availableProcessors());
 
-    final int ATTRIBUTION_POOL_CAPACITY = Math.max(2, Runtime.getRuntime().availableProcessors());
+    private final FileManagerPool PARSE_FILE_MANAGERS = new FileManagerPool(FILE_MANAGER_POOL_CAPACITY, JavaParser::newFileManager);
 
     /**
-     * Kept apart from {@link #IDLE_FILE_MANAGERS} because setting {@code -classpath} on a task
+     * Kept apart from {@link #PARSE_FILE_MANAGERS} because setting {@code -classpath} on a task
      * mutates the manager's classpath location, which would pollute the parse-only path, and keyed
      * by classpath so two classpaths never see each other's locations. Reuse matters because ~96%
      * of a single-file attribution is fixed setup (measured: 6.7 ms for one file, 11.4 ms for 32).
      */
-    private final FileManagerPool ATTRIBUTION_FILE_MANAGERS = new FileManagerPool(ATTRIBUTION_POOL_CAPACITY, JavaParser::newFileManager);
+    private final FileManagerPool ATTRIBUTION_FILE_MANAGERS = new FileManagerPool(FILE_MANAGER_POOL_CAPACITY, JavaParser::newFileManager);
 
     private final List<String> TASK_OPTIONS = List.of("-proc:none");
 
@@ -104,7 +102,7 @@ public final class JavaParser {
     }
 
     int idleFileManagers() {
-        return IDLE_FILE_MANAGERS.size();
+        return PARSE_FILE_MANAGERS.idleCount();
     }
 
     int idleAttributionFileManagers() {
@@ -269,16 +267,13 @@ public final class JavaParser {
         if (sources.isEmpty()) {
             return List.of();
         }
-        final var fileManager = Optional.ofNullable(IDLE_FILE_MANAGERS.poll()).orElseGet(JavaParser::newFileManager);
-        try {
+        return PARSE_FILE_MANAGERS.lend("", fileManager -> {
             final var batch = parseBatch(sources, fileManager, TASK_OPTIONS);
             final var positions = Trees.instance(batch.task()).getSourcePositions();
             return IntStream.range(0, batch.stripped().size())
                     .mapToObj(i -> resolve(batch, i, positions))
                     .toList();
-        } finally {
-            IDLE_FILE_MANAGERS.offer(fileManager);
-        }
+        });
     }
 
     /**

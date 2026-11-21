@@ -10,11 +10,11 @@ import java.util.function.Supplier;
 import javax.tools.StandardJavaFileManager;
 
 /**
- * Idle attribution file managers, keyed by the classpath their task was given. A manager is lent to
- * one caller at a time and comes back when that caller's attribution work is finished, or is closed
- * if that work throws. Holds at most {@code capacity} idle managers across all classpaths; returning
- * one past that closes the one idle the longest, so a long-lived host that sees many classpaths keeps
- * neither an unbounded number of managers nor their jar files open.
+ * Idle javac file managers, keyed by the classpath their task was given. A manager is lent to one
+ * caller at a time and comes back when that caller's work is finished, or is closed if that work
+ * throws. Holds at most {@code capacity} idle managers across all classpaths; returning one past
+ * that closes the one idle the longest, so a long-lived host that sees many classpaths keeps neither
+ * an unbounded number of managers nor their jar files open.
  */
 final class FileManagerPool {
 

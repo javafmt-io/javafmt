@@ -24,18 +24,22 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 class JavaParserTest {
 
     @Test
-    void parsingOnManyShortLivedThreadsKeepsNoFileManagerPerThread() {
-        final var before = JavaParser.idleFileManagers();
-        IntStream.range(0, 20).forEach(i -> {
-            final var thread = Thread.ofPlatform().start(() -> JavaParser.parse("class T" + i + " {}"));
-            try {
-                thread.join();
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException(e);
-            }
-        });
-        assertThat(JavaParser.idleFileManagers()).isLessThanOrEqualTo(Math.max(before, 1));
+    void idleParseFileManagersAreBoundedHoweverManyParsesOverlap() {
+        final var capacity = JavaParser.FILE_MANAGER_POOL_CAPACITY;
+        final var parses = capacity * 4;
+        final var source = IntStream.range(0, 5_000)
+                .mapToObj(i -> "int f" + i + " = " + i + ";")
+                .collect(Collectors.joining(" ", "class Wide { ", " }"));
+        final var ready = new CountDownLatch(parses);
+        IntStream.range(0, parses)
+                .mapToObj(_ -> Thread.ofPlatform().start(() -> {
+                    ready.countDown();
+                    awaitUninterruptibly(ready);
+                    JavaParser.parse(source);
+                }))
+                .toList()
+                .forEach(JavaParserTest::joinUninterruptibly);
+        assertThat(JavaParser.idleFileManagers()).isLessThanOrEqualTo(capacity);
     }
 
     @Test
@@ -133,7 +137,7 @@ class JavaParserTest {
 
     @Test
     void idleAttributionFileManagersAreBoundedAcrossManyClasspaths() {
-        final var capacity = JavaParser.ATTRIBUTION_POOL_CAPACITY;
+        final var capacity = JavaParser.FILE_MANAGER_POOL_CAPACITY;
         final var prefix = System.getProperty("java.io.tmpdir") + "/javafmt-classpath-";
         IntStream.range(0, capacity + 5).forEach(i -> JavaParser.attributing(prefix + i, session -> session.attribute("class A {}")));
         assertThat(JavaParser.idleAttributionFileManagers()).isLessThanOrEqualTo(capacity);
@@ -374,6 +378,15 @@ class JavaParserTest {
     private static void awaitUninterruptibly(final CountDownLatch latch) {
         try {
             latch.await();
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void joinUninterruptibly(final Thread thread) {
+        try {
+            thread.join();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
