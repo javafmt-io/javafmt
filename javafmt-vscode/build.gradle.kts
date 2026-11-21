@@ -113,14 +113,6 @@ fun vsceTarget(): String {
     }
 }
 
-// The target being packaged for, when that differs from the machine vsceTarget() autodetects --
-// e.g. a future publish job that stages every matrix leg's artifact into one bin/ before packaging
-// each VSIX in turn. VSCE_TARGET matches the env var native.yml/package:target already key off.
-fun requestedTarget(): String =
-    System.getenv("VSCE_TARGET")
-        ?: (findProperty("vsceTarget") as String?)
-        ?: vsceTarget()
-
 val copyNativeBinary = tasks.register<Copy>("copyNativeBinary") {
     from(nativeExecutableFiles)
     into(layout.projectDirectory.dir("bin").dir(vsceTarget()))
@@ -136,7 +128,7 @@ val copyNativeBinary = tasks.register<Copy>("copyNativeBinary") {
 // before vsce ever runs.
 val stageTargetBinary = tasks.register<Delete>("stageTargetBinary") {
     dependsOn(copyNativeBinary)
-    val target = requestedTarget()
+    val target = vsceTarget()
     delete(vsceTargets.filter { it != target }.map { layout.projectDirectory.dir("bin").dir(it) })
     delete(fileTree(layout.projectDirectory.dir("bin")) { exclude("$target/**") })
 }
@@ -145,7 +137,7 @@ tasks.register<NpmTask>("packageVsixTarget") {
     dependsOn(tasks.named("npmBuild"), stageTargetBinary)
     val vsixVersion = project.version.toString().substringBefore('-')
     inputs.property("vsixVersion", vsixVersion)
-    args.set(listOf("run", "package:target", "--", requestedTarget(), vsixVersion, "--no-git-tag-version", "--no-update-package-json"))
+    args.set(listOf("run", "package:target", "--", vsceTarget(), vsixVersion, "--no-git-tag-version", "--no-update-package-json"))
     inputs.dir(layout.projectDirectory.dir("bin"))
 }
 

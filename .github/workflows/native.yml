@@ -86,8 +86,6 @@ jobs:
 
       - name: Package the VS Code extension for this platform
         run: gradle :javafmt-vscode:packageVsixTarget
-        env:
-          VSCE_TARGET: ${{ matrix.target }}
 
       - name: Stage release assets
         shell: bash
