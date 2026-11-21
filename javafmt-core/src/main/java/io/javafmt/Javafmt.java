@@ -91,6 +91,11 @@ public final class Javafmt {
         return BatchFormatter.formatFiles(paths, config, cache, threads);
     }
 
+    /**
+     * As {@link #formatFiles}, but each result is formatted as the stream reaches it. The stream
+     * holds the threads that do the formatting until it is closed, so close it, with
+     * try-with-resources, even when reading stops early or fails.
+     */
     public Stream<FileResult> formatFilesLazily(final List<Path> paths, final JavafmtConfig config, final FormatCache cache, final int threads) {
         Objects.requireNonNull(paths, "paths");
         Objects.requireNonNull(config, "config");
