@@ -2,6 +2,8 @@ package io.javafmt.daemon;
 
 import io.javafmt.Position;
 import io.javafmt.daemon.protocol.Diagnostic;
+import io.javafmt.daemon.protocol.FormatReply;
+import io.javafmt.daemon.protocol.FormatRequest;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
 import org.junit.jupiter.api.Test;
@@ -123,6 +125,21 @@ class DaemonHandlerTest {
         assertThat(reply.getDiagnosticsList())
                 .extracting(Diagnostic::getKind)
                 .containsExactly(Kind.KIND_CLI);
+    }
+
+    @Test
+    void aRequestWithoutASourceIsRejectedByTheHandler() {
+        assertThat(
+                DaemonHandler.handle(FormatRequest.newBuilder()
+                        .setId(9)
+                        .build()))
+                .isEqualTo(FormatReply.newBuilder()
+                        .setId(9)
+                        .addDiagnostics(Diagnostic.newBuilder()
+                                .setSeverity(Severity.SEVERITY_ERROR)
+                                .setKind(Kind.KIND_CLI)
+                                .setMessage("source: value is required"))
+                        .build());
     }
 
     @ParameterizedTest

@@ -17,6 +17,9 @@ import java.nio.file.Path;
 final class DaemonHandler {
 
     FormatReply handle(final FormatRequest request) {
+        if (!request.hasSource()) {
+            return failure(request.getId(), "", Kind.KIND_CLI, "source: value is required");
+        }
         final ProjectFile projectFile;
         try {
             projectFile = request.hasPath() ? ProjectFile.forFile(Path.of(request.getPath())) : ProjectFile.none();

@@ -98,9 +98,6 @@ public final class Daemon {
         }
 
         private FormatReply answer(final FormatRequest request) {
-            if (!request.hasSource()) {
-                return DaemonHandler.failure(request.getId(), "", Kind.KIND_CLI, "source: value is required");
-            }
             try {
                 return handler.apply(request);
             } catch (final RuntimeException e) {
