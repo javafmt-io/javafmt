@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -90,6 +91,17 @@ class FileManagerPoolTest {
         }))
                 .isSameAs(shared)
                 .satisfies(thrown -> assertThat(thrown.getSuppressed()).isEmpty());
+    }
+
+    @Test
+    void aFailureToCloseAnEvictedManagerKeepsTheResultOfTheWorkThatEvictedIt() {
+        final var managers = List.of(managerWhoseCloseThrows(new IllegalStateException("close failed")), recordingManager())
+                .iterator();
+        final var pool = new FileManagerPool(1, managers::next);
+        pool.lend("a", Function.identity());
+        final var result = pool.lend("b", _ -> "formatted");
+        assertThat(result).isEqualTo("formatted");
+        assertThat(pool.idleCount()).isEqualTo(1);
     }
 
     @Test

@@ -46,7 +46,7 @@ final class FileManagerPool {
     }
 
     void giveBack(final String classpath, final StandardJavaFileManager manager) {
-        evictAfterAdding(new Idle(classpath, manager)).ifPresent(FileManagerPool::close);
+        evictAfterAdding(new Idle(classpath, manager)).ifPresent(FileManagerPool::closeEvicted);
     }
 
     synchronized int idleCount() {
@@ -83,6 +83,14 @@ final class FileManagerPool {
                 }
             }
             throw failure;
+        }
+    }
+
+    private static void closeEvicted(final StandardJavaFileManager manager) {
+        try {
+            close(manager);
+        } catch (final RuntimeException e) {
+            LOG.log(System.Logger.Level.DEBUG, "Could not close an evicted javac file manager", e);
         }
     }
 
