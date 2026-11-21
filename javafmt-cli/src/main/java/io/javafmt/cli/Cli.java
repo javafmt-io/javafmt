@@ -5,7 +5,6 @@ import picocli.CommandLine;
 
 import java.io.Console;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
@@ -37,10 +36,13 @@ public final class Cli {
             final PrintStream err,
             final boolean stdinIsATerminal,
             final Path workingDirectory) {
-        final var outWriter = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8), true);
-        final var errWriter = new PrintWriter(new OutputStreamWriter(err, StandardCharsets.UTF_8), true);
+        final var utf8Out = new PrintStream(out, true, StandardCharsets.UTF_8);
+        final var utf8Err = new PrintStream(err, true, StandardCharsets.UTF_8);
+        final var outWriter = new PrintWriter(utf8Out, true, StandardCharsets.UTF_8);
+        final var errWriter = new PrintWriter(utf8Err, true, StandardCharsets.UTF_8);
         try {
-            return new CommandLine(new FormatCommand(in, out, err, stdinIsATerminal, workingDirectory)).setCaseInsensitiveEnumValuesAllowed(true)
+            return new CommandLine(
+                            new FormatCommand(in, utf8Out, utf8Err, stdinIsATerminal, workingDirectory)).setCaseInsensitiveEnumValuesAllowed(true)
                     .setOut(outWriter)
                     .setErr(errWriter)
                     .setExecutionExceptionHandler(Cli::reportInternalError)
@@ -54,6 +56,8 @@ public final class Cli {
         } finally {
             outWriter.flush();
             errWriter.flush();
+            utf8Out.flush();
+            utf8Err.flush();
         }
     }
 

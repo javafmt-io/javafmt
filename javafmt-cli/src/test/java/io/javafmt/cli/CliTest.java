@@ -796,6 +796,34 @@ class CliTest {
         assertThat(run.err()).contains("--json only applies to --daemon");
     }
 
+    @Test
+    void invalidUtf8OnStdin_isRejected() {
+        final var run = runStdin(new ByteArrayInputStream(new byte[]{(byte) 0xff, (byte) 0xfe, 'a'}));
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.out()).isEmpty();
+        assertThat(run.err()).contains("javafmt: <stdin>: read failed: not valid UTF-8");
+    }
+
+    @Test
+    void outputIsUtf8WhateverThePlatformCharset() {
+        final var out = new ByteArrayOutputStream();
+        final var exit = Cli.run(
+                new String[0],
+                new ByteArrayInputStream("class A { String s = \"é\"; }".getBytes(StandardCharsets.UTF_8)),
+                new PrintStream(out, true, StandardCharsets.ISO_8859_1),
+                new PrintStream(new ByteArrayOutputStream(), true, StandardCharsets.ISO_8859_1));
+        assertThat(exit).isZero();
+        assertThat(out.toString(StandardCharsets.UTF_8)).contains("\"é\"");
+    }
+
+    @Test
+    void checkOnStdin_parseError_reportsOnStderrAndKeepsStdoutEmpty() {
+        final var run = runStdin("class {", "--check");
+        assertThat(run.exit()).isEqualTo(1);
+        assertThat(run.err()).contains("error:");
+        assertThat(run.out()).isEmpty();
+    }
+
     private static Run run(final String... arguments) {
         return runStdin("", arguments);
     }

@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
@@ -84,18 +85,22 @@ final class FormatRun {
     /**
      * Formats stdin to stdout, or in check mode reports via exit code alone.
      *
-     * <p>On a parse/lint error, still emits the unchanged source alongside the stderr diagnostic so
+     * <p>Outside check mode, on a parse/lint error, still emits the unchanged source alongside the stderr diagnostic so
      * a pipe stays lossless. In check mode stdout is the answer channel, not a place to write the
      * formatted source — printing it there would corrupt a {@code javafmt --check < F.java > out}
      * pipeline, so silence plus the exit code is the whole contract.
      */
     int runStdin(final Arguments parsed, final ProjectFile projectFile, final InputStream in, final PrintStream out, final PrintStream err) {
         try {
-            final var source = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            final var source = StandardCharsets.UTF_8.newDecoder()
+                    .decode(ByteBuffer.wrap(in.readAllBytes()))
+                    .toString();
             final var result = Javafmt.formatWithResult(source, parsed.config(), projectFile);
             reportDiagnostics(parsed.jsonDiagnostics() ? "" : "<stdin>", result, parsed, err);
             if (result.hasErrors()) {
-                out.print(result.output());
+                if (!parsed.check) {
+                    out.print(result.output());
+                }
                 return 1;
             }
             if (parsed.check) {
