@@ -10,6 +10,7 @@ import io.javafmt.JavafmtVersion;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
@@ -51,7 +52,11 @@ public final class JavafmtBinary {
     private static final List<Integer> MINIMUM_VERSION = components(MINIMUM_VERSION_TEXT);
 
     public static Optional<Path> executableAt(final String configuredPath) {
-        return Optional.of(Path.of(configuredPath)).filter(JavafmtBinary::isExecutableFile);
+        try {
+            return Optional.of(Path.of(configuredPath)).filter(JavafmtBinary::isExecutableFile);
+        } catch (final InvalidPathException _) {
+            return Optional.empty();
+        }
     }
 
     static boolean isExecutableFile(final Path path) {

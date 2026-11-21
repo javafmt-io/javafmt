@@ -67,9 +67,25 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     @Test
-    public void testThePlatformWaitsLongerThanTheDaemonsOwnTimeout() {
+    public void testOnlyTheNativeEngineWaitsPastTheDaemonsOwnTimeout() {
         assertThat(JavafmtDaemons.FORMAT_TIMEOUT).isGreaterThan(JavafmtBinary.TIMEOUT);
-        assertThat(service.getTimeout()).isGreaterThan(JavafmtDaemons.FORMAT_TIMEOUT);
+        assertThat(AsyncDocumentFormattingService.getTimeout(service)).isEqualTo(JavafmtDaemons.FORMAT_TIMEOUT.plus(JavafmtBinary.TIMEOUT));
+        JavafmtApplicationSettings.getInstance().setEngine(JavafmtApplicationSettings.Engine.IN_PROCESS);
+        assertThat(AsyncDocumentFormattingService.getTimeout(service)).isEqualTo(PlatformDefaults.TIMEOUT);
+    }
+
+    @Test
+    public void testAConfiguredPathThatIsNotAPathLeavesTheFileAloneAndSaysSo() {
+        enableJavafmt();
+        JavafmtSettings.getInstance(getProject()).setBinaryPath("javafmt\0");
+        final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
+        final var installed = new CompletableFuture<String>();
+        service.createFormattingTask(new CapturingRequest(file, installed)).run();
+        PlatformTestUtil.dispatchAllEventsInIdeEventQueue();
+        assertThat(installed).isCompletedWithValue(Fixtures.UNFORMATTED_FOO);
+        assertThat(notifications)
+                .singleElement()
+                .satisfies(notification -> assertThat(notification.getContent()).contains("No javafmt binary found"));
     }
 
     @Test
@@ -480,6 +496,11 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                 + "    exit 0\n"
                 + "fi\n" + JavafmtDaemonTest.ECHO_REQUESTS;
         return FakeBinaries.executable(dir, "javafmt-fake-counting", script);
+    }
+
+    private abstract static class PlatformDefaults extends AsyncDocumentFormattingService {
+
+        static final Duration TIMEOUT = DEFAULT_TIMEOUT;
     }
 
     private record CapturingRequest(PsiFile file, CompletableFuture<String> installed) implements AsyncFormattingRequest {
