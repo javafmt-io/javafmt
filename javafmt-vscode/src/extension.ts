@@ -43,6 +43,8 @@ const REQUEST_TIMEOUT_MS = 10_000;
 
 const CLASSPATH_TIMEOUT_MS = 2_000;
 
+const OWNER_EXECUTE = 0o100;
+
 const JAVA_EXTENSION_ID = 'redhat.java';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -250,7 +252,7 @@ function bundledDirectory(extensionPath: string, platform: string, arch: string)
     return target ? path.join(extensionPath, 'bin', target) : undefined;
 }
 
-function makeBundledBinaryExecutable(extensionPath: string, platform: string, arch: string): void {
+export function makeBundledBinaryExecutable(extensionPath: string, platform: string, arch: string): void {
     const directory = bundledDirectory(extensionPath, platform, arch);
     if (!directory || platform === 'win32') {
         return;
@@ -259,7 +261,7 @@ function makeBundledBinaryExecutable(extensionPath: string, platform: string, ar
     try {
         const stats = fs.statSync(bundled);
         if (stats.isFile() && !isExecutableFile(bundled)) {
-            fs.chmodSync(bundled, stats.mode | fs.constants.S_IXUSR);
+            fs.chmodSync(bundled, stats.mode | OWNER_EXECUTE);
         }
     } catch {}
 }

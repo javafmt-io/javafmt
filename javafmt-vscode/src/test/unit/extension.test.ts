@@ -1,10 +1,9 @@
 import { create } from '@bufbuild/protobuf';
 import { sizeDelimitedEncode } from '@bufbuild/protobuf/wire';
-import { activate, deactivate, toDiagnostics, statusFor, vsceTarget } from '../../extension';
+import { activate, deactivate, makeBundledBinaryExecutable, toDiagnostics, statusFor, vsceTarget } from '../../extension';
 import { Diagnostic, DiagnosticSchema, FormatReplySchema, FormatRequest, Kind, Severity } from '../../gen/daemon_pb';
 import * as child_process from 'child_process';
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { MockProcess, mockProcess } from '../../__mocks__/child_process';
 import { DiagnosticSeverity, LanguageStatusSeverity, Position, Range, mockOutputChannel, mockStatusItem } from '../../__mocks__/vscode';
@@ -117,6 +116,7 @@ function realFileSystem(): void {
     const actual = jest.requireActual<typeof fs>('node:fs');
     (fs.accessSync as jest.Mock).mockImplementation(actual.accessSync);
     (fs.statSync as jest.Mock).mockImplementation(actual.statSync);
+    (fs.chmodSync as jest.Mock).mockImplementation(actual.chmodSync);
 }
 
 function configureBinaryPathOnce(binaryPath: string): void {
@@ -190,6 +190,55 @@ function javaExtension(overrides: Partial<JavaExtensionApi> = {}, isActive = tru
     return api;
 }
 
+describe('makeBundledBinaryExecutable', () => {
+    const binary = path.join('/ext', 'bin', 'linux-x64', 'javafmt');
+
+    function bundledBinary(mode: number, executable: boolean): jest.Mock {
+        (fs.statSync as jest.Mock).mockImplementation(() => ({ isFile: () => true, mode }));
+        (fs.accessSync as jest.Mock).mockImplementation(() => {
+            if (!executable) {
+                throw new Error('EACCES');
+            }
+        });
+        return (fs.chmodSync as jest.Mock).mockImplementation(() => {});
+    }
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+        realFileSystem();
+    });
+
+    it('restores the executable bit the VSIX zip dropped from the bundled binary', () => {
+        const chmod = bundledBinary(0o100644, false);
+        makeBundledBinaryExecutable('/ext', 'linux', 'x64');
+        expect(chmod).toHaveBeenCalledWith(binary, 0o100744);
+    });
+
+    it('leaves a binary that is already executable alone', () => {
+        const chmod = bundledBinary(0o100755, true);
+        makeBundledBinaryExecutable('/ext', 'linux', 'x64');
+        expect(chmod).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        { platform: 'win32', arch: 'x64' },
+        { platform: 'freebsd', arch: 'x64' },
+    ])('has nothing to restore on $platform', ({ platform, arch }) => {
+        const chmod = bundledBinary(0o100644, false);
+        makeBundledBinaryExecutable('/ext', platform, arch);
+        expect(chmod).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when the binary is not bundled', () => {
+        const chmod = bundledBinary(0o100644, false);
+        (fs.statSync as jest.Mock).mockImplementation(() => {
+            throw new Error('ENOENT');
+        });
+        makeBundledBinaryExecutable('/ext', 'linux', 'x64');
+        expect(chmod).not.toHaveBeenCalled();
+    });
+});
+
 describe('after activate()', () => {
     beforeEach(() => {
         onlyExecutable(() => false);
@@ -242,8 +291,6 @@ describe('after activate()', () => {
 
     const bundled = path.join('/ext', 'bin', vsceTarget(process.platform, process.arch), process.platform === 'win32' ? 'javafmt.exe' : 'javafmt');
 
-    const itOnPosix = process.platform === 'win32' ? it.skip : it;
-
     describe('startDaemon spawn behavior', () => {
         afterEach(() => {
             jest.restoreAllMocks();
@@ -260,23 +307,6 @@ describe('after activate()', () => {
             deactivate();
             activate(makeContext('/ext'));
             expect(spawnSpy).toHaveBeenCalledWith(bundled, ['--daemon'], { stdio: ['pipe', 'pipe', 'ignore'] });
-        });
-
-        itOnPosix('restores the executable bit the VSIX zip dropped from the bundled binary before running it', () => {
-            realFileSystem();
-            const spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => mockProcess());
-            const extensionPath = fs.mkdtempSync(path.join(os.tmpdir(), 'javafmt-ext-'));
-            const binary = path.join(extensionPath, 'bin', vsceTarget(process.platform, process.arch), 'javafmt');
-            fs.mkdirSync(path.dirname(binary), { recursive: true });
-            fs.writeFileSync(binary, '#!/bin/sh\n', { mode: 0o644 });
-            try {
-                deactivate();
-                activate(makeContext(extensionPath));
-                expect(fs.statSync(binary).mode & 0o777).toBe(0o744);
-                expect(spawnSpy).toHaveBeenCalledWith(binary, ['--daemon'], expect.any(Object));
-            } finally {
-                fs.rmSync(extensionPath, { recursive: true, force: true });
-            }
         });
 
         it('falls back to javafmt on PATH when nothing is bundled', () => {
