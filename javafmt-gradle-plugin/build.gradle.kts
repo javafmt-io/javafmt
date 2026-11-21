@@ -16,10 +16,6 @@ tasks.named<JavaCompile>("compileJava") {
     options.errorprone.disable("JavaxInjectOnAbstractMethod")
 }
 
-configurations.implementation {
-    dependencyConstraints.clear()
-}
-
 listOf(configurations.apiElements, configurations.runtimeElements).forEach { elements ->
     elements.configure {
         attributes {

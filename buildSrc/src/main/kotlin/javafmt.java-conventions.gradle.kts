@@ -25,9 +25,6 @@ java {
 }
 
 dependencies {
-    constraints {
-        implementation(libs.findLibrary("slf4j-api").get())
-    }
     annotationProcessor(libs.findLibrary("lombok").get())
     compileOnly(libs.findLibrary("jspecify").get())
     compileOnly(libs.findLibrary("lombok").get())
