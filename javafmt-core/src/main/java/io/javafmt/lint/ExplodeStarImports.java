@@ -38,10 +38,11 @@ public final class ExplodeStarImports implements LintRule {
 
     @Override
     public LintResult apply(final LintContext context) {
-        final var attribution = context.attributionFor(ExplodeStarImports.class);
-        if (attribution.isEmpty()) {
+        final var attributed = context.attributionFor(ExplodeStarImports.class);
+        if (attributed.isEmpty()) {
             return LintResult.EMPTY;
         }
+        final var resolved = attributed.get();
         final var unit = context.unit();
         final var stars = unit.tree().getImports().stream()
                 .filter(Declarations::isStarImport)
@@ -49,9 +50,9 @@ public final class ExplodeStarImports implements LintRule {
         if (stars.isEmpty()) {
             return LintResult.EMPTY;
         }
-        return resolveUses(unit, attribution.get())
+        return resolveUses(unit, resolved)
                 .map(uses -> LintResult.ofEdits(stars.stream()
-                        .flatMap(s -> editFor(s, uses, attribution.get(), unit).stream())
+                        .flatMap(s -> editFor(s, uses, resolved, unit).stream())
                         .toList()))
                 .orElse(LintResult.EMPTY);
     }
@@ -84,11 +85,15 @@ public final class ExplodeStarImports implements LintRule {
             }
         })
                 .stream()
-                .map(path -> attribution.trees().getElement(path))
+                .map(path -> Optional.ofNullable(attribution.trees().getElement(path)))
                 .toList();
         final var anyUnresolved = elements.stream()
-                .anyMatch(e -> e == null || e.asType().getKind() == TypeKind.ERROR);
-        return anyUnresolved ? Optional.empty() : Optional.of(elements);
+                .anyMatch(e -> e.isEmpty() || e.get().asType().getKind() == TypeKind.ERROR);
+        return anyUnresolved
+                ? Optional.empty()
+                : Optional.of(elements.stream()
+                        .flatMap(Optional::stream)
+                        .toList());
     }
 
     private static Optional<LintEdit> editFor(final ImportTree imp, final List<Element> uses, final Attribution attribution, final ParsedUnit unit) {
