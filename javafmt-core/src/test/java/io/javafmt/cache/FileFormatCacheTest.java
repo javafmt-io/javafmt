@@ -5,6 +5,7 @@ import io.javafmt.JavafmtVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -190,6 +191,20 @@ class FileFormatCacheTest {
         cache.save();
         assertThat(FileFormatCache.load(cacheFile, KEY).isUpToDate(path, content))
                 .isTrue();
+    }
+
+    @Test
+    void aFailedSaveLeavesNoTempFile(@TempDir final Path dir) throws Exception {
+        final var cacheFile = dir.resolve(".javafmt-cache");
+        Files.createDirectories(cacheFile);
+        Files.writeString(cacheFile.resolve("occupant"), "x");
+        final var path = Files.writeString(dir.resolve("A.java"), "class A {}\n");
+        final var cache = FileFormatCache.load(cacheFile, KEY);
+        cache.recordFormatted(path, "class A {}\n");
+        assertThatThrownBy(cache::save).isInstanceOf(UncheckedIOException.class);
+        try (final var list = Files.list(dir)) {
+            assertThat(list.map(Path::getFileName).map(Path::toString)).containsExactlyInAnyOrder(".javafmt-cache", "A.java");
+        }
     }
 
     @Test

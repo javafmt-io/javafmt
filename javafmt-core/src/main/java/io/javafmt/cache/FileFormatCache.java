@@ -1,14 +1,13 @@
 package io.javafmt.cache;
 
 import io.javafmt.JavafmtVersion;
+import io.javafmt.SourceFiles;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
@@ -127,22 +126,18 @@ public final class FileFormatCache implements FormatCache {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            final var body = hashByPath.entrySet().stream()
-                    .filter(FileFormatCache::stillExists)
-                    .sorted(Map.Entry.comparingByKey())
-                    .map(e -> e.getValue() + " " + e.getKey())
-                    .collect(Collectors.joining("\n", header + "\n", "\n"));
-            final var directory = parent != null ? parent : Path.of(".");
-            final var temporary = Files.createTempFile(
-                    directory, cacheFile.getFileName().toString() + ".", ".tmp");
-            Files.writeString(temporary, body, StandardCharsets.UTF_8);
-            try {
-                Files.move(temporary, cacheFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (final AtomicMoveNotSupportedException _) {
-                Files.move(temporary, cacheFile, StandardCopyOption.REPLACE_EXISTING);
-            }
         } catch (final IOException e) {
             throw new UncheckedIOException("failed to save javafmt cache to " + cacheFile, e);
+        }
+        final var body = hashByPath.entrySet().stream()
+                .filter(FileFormatCache::stillExists)
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> e.getValue() + " " + e.getKey())
+                .collect(Collectors.joining("\n", header + "\n", "\n"));
+        try {
+            SourceFiles.write(cacheFile.toAbsolutePath(), body);
+        } catch (final UncheckedIOException e) {
+            throw new UncheckedIOException("failed to save javafmt cache to " + cacheFile, e.getCause());
         }
     }
 
