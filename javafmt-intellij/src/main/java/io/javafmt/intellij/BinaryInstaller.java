@@ -53,7 +53,7 @@ final class BinaryInstaller {
     Optional<Path> installed() {
         return switch (asset) {
             case ReleaseAsset.Published published ->
-                Optional.of(installDir.resolve(published.name())).filter(path -> Files.isRegularFile(path) && Files.isExecutable(path));
+                Optional.of(installDir.resolve(published.name())).filter(JavafmtBinary::isExecutableFile);
             case ReleaseAsset.Unpublished _ -> Optional.empty();
         };
     }

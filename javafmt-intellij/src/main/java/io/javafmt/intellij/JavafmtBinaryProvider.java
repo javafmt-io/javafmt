@@ -25,7 +25,7 @@ public final class JavafmtBinaryProvider {
 
     private final Supplier<String> searchPath;
 
-    private final VersionGate versionGate = new VersionGate(binary -> new JavafmtBinary(binary.path()).version());
+    private final VersionGate versionGate = new VersionGate(binary -> JavafmtBinary.version(binary.path()));
 
     private final AtomicBoolean downloadNoticed = new AtomicBoolean();
 

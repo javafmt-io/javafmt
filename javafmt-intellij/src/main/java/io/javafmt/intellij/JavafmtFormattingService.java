@@ -232,7 +232,7 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
         private static Optional<BinaryIdentity> locate(final Project project, final JavafmtBinaryProvider provider) {
             final var configured = JavafmtSettings.getInstance(project).getBinaryPath();
             if (!configured.isBlank()) {
-                final var found = JavafmtBinary.resolve(configured).flatMap(BinaryIdentity::of);
+                final var found = JavafmtBinary.executableAt(configured).flatMap(BinaryIdentity::of);
                 if (found.isEmpty()) {
                     notifyUser(
                             project,

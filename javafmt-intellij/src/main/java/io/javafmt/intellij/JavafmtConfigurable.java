@@ -120,8 +120,8 @@ public final class JavafmtConfigurable implements Configurable {
         if (configuredPath.isBlank()) {
             return JavafmtBinaryProvider.getInstance().describe();
         }
-        return JavafmtBinary.resolve(configuredPath)
-                .map(path -> new JavafmtBinary(path).version()
+        return JavafmtBinary.executableAt(configuredPath)
+                .map(path -> JavafmtBinary.version(path)
                         .reportedVersion()
                         .map(v -> path + " (" + v + ")")
                         .orElse(path.toString()))

@@ -28,13 +28,13 @@ class JavafmtBinaryTest {
     @Test
     void versionReadsTheBinaryVersionString(@TempDir final Path dir) throws Exception {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\necho '" + FakeDaemon.VERSION_OUTPUT + "'\n");
-        assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Reported(FakeDaemon.VERSION_OUTPUT));
+        assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Reported(FakeDaemon.VERSION_OUTPUT));
     }
 
     @Test
     void aBinaryThatExitsWithAnErrorFailsTheProbe(@TempDir final Path dir) throws Exception {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\nexit 2\n");
-        assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Failed());
+        assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Failed());
     }
 
     @Test
@@ -42,7 +42,7 @@ class JavafmtBinaryTest {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\nexec sleep 15\n");
         Thread.currentThread().interrupt();
         try {
-            assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
+            assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
         } finally {
             Thread.interrupted();
         }
@@ -65,7 +65,7 @@ class JavafmtBinaryTest {
             caller.interrupt();
         });
         try {
-            assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
+            assertThat(JavafmtBinary.version(fake)).isEqualTo(new JavafmtBinary.VersionProbe.Inconclusive());
             assertThat(Duration.between(interruptedAt.join(), Instant.now())).isLessThan(Duration.ofSeconds(2));
         } finally {
             Thread.interrupted();
@@ -77,18 +77,18 @@ class JavafmtBinaryTest {
 
     @Test
     void aBinaryThatCannotBeStartedFailsTheProbe(@TempDir final Path dir) {
-        assertThat(new JavafmtBinary(dir.resolve("absent")).version()).isEqualTo(new JavafmtBinary.VersionProbe.Failed());
+        assertThat(JavafmtBinary.version(dir.resolve("absent"))).isEqualTo(new JavafmtBinary.VersionProbe.Failed());
     }
 
     @Test
-    void resolveFindsAConfiguredExecutable(@TempDir final Path dir) throws Exception {
+    void aConfiguredExecutableIsFound(@TempDir final Path dir) throws Exception {
         final var fake = fakeBinaryScript(dir, "#!/bin/sh\nexit 0\n");
-        assertThat(JavafmtBinary.resolve(fake.toString())).contains(fake);
+        assertThat(JavafmtBinary.executableAt(fake.toString())).contains(fake);
     }
 
     @Test
-    void resolveRejectsAConfiguredPathThatIsNotAFile(@TempDir final Path dir) {
-        assertThat(JavafmtBinary.resolve(dir.resolve("absent").toString())).isEmpty();
+    void aConfiguredPathThatIsNotAFileIsRejected(@TempDir final Path dir) {
+        assertThat(JavafmtBinary.executableAt(dir.resolve("absent").toString())).isEmpty();
     }
 
     @Test
@@ -119,7 +119,7 @@ class JavafmtBinaryTest {
 
     @Test
     void resolveOnAnAbsentPathFindsNothing() {
-        assertThat(JavafmtBinary.resolveOnPath(null)).isEmpty();
+        assertThat(JavafmtBinary.resolveOnPath("")).isEmpty();
     }
 
     @Test

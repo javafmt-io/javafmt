@@ -28,8 +28,6 @@ import java.util.stream.Stream;
  * Finds the native {@code javafmt} binary and checks its version. Formatting itself goes through
  * the long-lived {@code javafmt --daemon} process that {@link JavafmtDaemons} keeps per project.
  *
- * <p>The binary embeds its own runtime, so {@code javafmt-core} is never loaded into the IDE.
- *
  * <p><b>{@link #version} returns within roughly {@code TIMEOUT} (10s) of being called, or at once
  * when the calling thread is interrupted.</b> The probe runs on the platform's process I/O pool and
  * killing a hung child happens there too, never on the calling thread.
@@ -54,20 +52,12 @@ public final class JavafmtBinary {
 
     private static final List<Integer> MINIMUM_VERSION = components(MINIMUM_VERSION_TEXT);
 
-    private final Path executable;
-
-    public JavafmtBinary(final Path executable) {
-        this.executable = Objects.requireNonNull(executable, "executable");
+    public static Optional<Path> executableAt(final String configuredPath) {
+        return Optional.of(Path.of(configuredPath)).filter(JavafmtBinary::isExecutableFile);
     }
 
-    /** The configured path when it is an executable file, else the first {@code javafmt} on the IDE's PATH. */
-    public static Optional<Path> resolve(final String configuredPath) {
-        Objects.requireNonNull(configuredPath, "configuredPath");
-        if (!configuredPath.isBlank()) {
-            final var configured = Path.of(configuredPath);
-            return Files.isExecutable(configured) && Files.isRegularFile(configured) ? Optional.of(configured) : Optional.empty();
-        }
-        return resolveOnPath(searchPath());
+    static boolean isExecutableFile(final Path path) {
+        return Files.isRegularFile(path) && Files.isExecutable(path);
     }
 
     /**
@@ -81,7 +71,7 @@ public final class JavafmtBinary {
      * to paper over exactly that: it loads the login shell's environment.
      */
     static String searchPath() {
-        return PathEnvironmentVariableUtil.getPathVariableValue();
+        return Objects.requireNonNullElse(PathEnvironmentVariableUtil.getPathVariableValue(), "");
     }
 
     /**
@@ -89,13 +79,13 @@ public final class JavafmtBinary {
      * none. Package-private so a test can search a PATH of its own rather than the machine's.
      */
     static Optional<Path> resolveOnPath(final String pathVariableValue) {
-        if (pathVariableValue == null || pathVariableValue.isBlank()) {
+        if (pathVariableValue.isBlank()) {
             return Optional.empty();
         }
         return Stream.of("javafmt", "javafmt.exe")
                 .flatMap(name -> Optional.ofNullable(PathEnvironmentVariableUtil.findInPath(name, pathVariableValue, null)).stream())
                 .map(File::toPath)
-                .filter(candidate -> Files.isExecutable(candidate) && Files.isRegularFile(candidate))
+                .filter(JavafmtBinary::isExecutableFile)
                 .findFirst();
     }
 
@@ -146,16 +136,15 @@ public final class JavafmtBinary {
         return index < components.size() ? components.get(index) : 0;
     }
 
-    public VersionProbe version() {
-        final CapturingProcessHandler handler;
+    public static VersionProbe version(final Path executable) {
         try {
-            handler = new CapturingProcessHandler(new GeneralCommandLine(executable.toString(), "--version"));
+            final var handler = new CapturingProcessHandler(new GeneralCommandLine(executable.toString(), "--version"));
+            final var run = CompletableFuture.supplyAsync(
+                    () -> handler.runProcess(Math.toIntExact(TIMEOUT.toMillis()), true), ProcessIOExecutorService.INSTANCE);
+            return await(run, TIMEOUT, () -> ProcessIOExecutorService.INSTANCE.execute(handler::destroyProcess));
         } catch (final ExecutionException _) {
             return new VersionProbe.Failed();
         }
-        final var run = CompletableFuture.supplyAsync(
-                () -> handler.runProcess(Math.toIntExact(TIMEOUT.toMillis()), true), ProcessIOExecutorService.INSTANCE);
-        return await(run, TIMEOUT, () -> ProcessIOExecutorService.INSTANCE.execute(handler::destroyProcess));
     }
 
     static VersionProbe await(final CompletableFuture<ProcessOutput> run, final Duration timeout, final Runnable destroy) {
@@ -231,4 +220,6 @@ public final class JavafmtBinary {
             }
         }
     }
+
+    private JavafmtBinary() {}
 }
