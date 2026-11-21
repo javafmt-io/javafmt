@@ -333,8 +333,6 @@ final class ExpressionRenderers {
     Doc renderBindingPattern(final BindingPatternTree node, final Recursor recursor) {
         final var variable = node.getVariable();
         final var typeDoc = variable.getType() == null ? new Doc.Text("var") : recursor.scan(variable.getType());
-        // `if (o instanceof final String s)` is legal and the modifier was simply never read, so
-        // the file came back refused rather than formatted.
         final var modifiers = ModifierRenderer.prefixOf(variable.getModifiers(), recursor);
         return Doc.concat(modifiers, typeDoc, new Doc.Text(" " + Names.of(variable)));
     }

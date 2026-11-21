@@ -285,8 +285,6 @@ public final class DocBuilder {
         final var hasPackage = node.getPackageName() != null;
         final var packageAnnotations = node.getPackageAnnotations().stream()
                 .flatMap(a -> Stream.of(recursor.scan(a), Doc.HARD_LINE));
-        // The blank line after the package declaration normally comes from the import section. With
-        // no imports there is no import section, and the first type ran straight into the package.
         final var packageSeparator = node.getImports().isEmpty() ? Stream.<Doc>of(Doc.HARD_LINE) : Stream.<Doc>empty();
         final var pkgStream = node.getPackage() == null
                 ? Stream.<Doc>empty()

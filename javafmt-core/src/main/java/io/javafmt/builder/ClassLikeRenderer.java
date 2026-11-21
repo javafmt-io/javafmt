@@ -26,9 +26,6 @@ final class ClassLikeRenderer {
         final var namePart = Doc.concatOf(Stream.of(Stream.of(prefix), MethodRenderer.typeParamsPart(node.getTypeParameters(), recursor)));
         final var headerDoc = buildTypeDeclarationHeader(
                 namePart, isInterface ? null : node.getExtendsClause(), node.getImplementsClause(), isInterface, node.getPermitsClause(), recursor);
-        // Members render in source order. The utility-class constructor used to be pinned to the
-        // bottom here; that is now the MemberOrder lint rule, so the reorder lands in the source
-        // the output verifier compares against rather than looking like tokens moving underneath it.
         final var members = TypeBodyRenderer.renderMembers(
                 bodyMembers(node), node.getSimpleName().toString(), recursor);
         return TypeBodyRenderer.withBody(node, headerDoc, members, recursor.trailingInside(node), recursor);
@@ -82,9 +79,8 @@ final class ClassLikeRenderer {
     }
 
     /**
-     * Renders an implicit (unnamed) class — a Java 25 compact source file with no
-     * explicit class declaration. The members are emitted at top level (no header, no
-     * braces, no indentation wrapper), separated by blank lines, in declaration order.
+     * Renders an implicit class, a Java 25 compact source file: members at top level with no
+     * header or braces, separated by blank lines.
      */
     Doc renderImplicit(final ClassTree node, final Recursor recursor) {
         final var className = node.getSimpleName().toString();

@@ -99,14 +99,9 @@ final class EnumRenderer {
     }
 
     /**
-     * The last constant before the body declarations, with the {@code ;} the body needs.
-     *
-     * <p>The {@code ;} goes on a line of its own when the constant carries a trailing comment.
-     * {@link LeadingCommentAttacher#attach} writes a trailing comment after everything else on the
-     * line, so a {@code ;} emitted with the constant ends up in front of it — and a comment after
-     * the {@code ;} no longer belongs to the constant but to whatever declaration comes next, which
-     * is where the following pass put it. {@code java/lang/reflect/AccessFlag.java} moved its
-     * {@code // did not exist} down a line on every run.
+     * The last constant before the body declarations, with the {@code ;} the body needs. The
+     * {@code ;} goes on a line of its own when the constant carries a trailing comment, since that
+     * comment is written after everything else on the line.
      */
     private Doc lastConstant(final VariableTree constant, final Recursor recursor) {
         final var rendered = renderConstant(constant, recursor);
@@ -117,9 +112,8 @@ final class EnumRenderer {
 
     /**
      * The break before the closing brace. Hard once a comment sits on the last separator's line, or
-     * a {@code //} comment follows a last constant that has no separator after it, both so the enum cannot print flat with its brace inside a {@code //} comment and because a
-     * {@link Doc#LINE} there would be a second newline after the one the comment already needs,
-     * leaving a blank line above the brace.
+     * a {@code //} comment follows a last constant that has no separator after it, so the brace
+     * never lands inside a comment and no blank line appears above it.
      */
     private Doc beforeTheClosingBrace(final List<CommentToken> pastTheLastSeparator, final List<CommentToken> afterTheLastConstant) {
         return pastTheLastSeparator.isEmpty() && afterTheLastConstant.isEmpty() ? Doc.LINE : Doc.HARD_LINE;
@@ -127,9 +121,8 @@ final class EnumRenderer {
 
     /**
      * The comments the author left on their own line after the last constant of an enum with no
-     * body declarations. A hard line each, so an enum carrying one never prints flat and folds the
-     * closing brace into a {@code //} comment. {@code java/lang/StackStreamFactory.java} documents
-     * each of its three {@code WalkerState} constants this way and javafmt dropped the last one.
+     * body declarations. A hard line each, so the closing brace never folds into a {@code //}
+     * comment.
      *
      * <p>Only {@link LeadingCommentAttacher#tail}: a comment on the last separator's own line
      * arrives on {@code interior} instead, and the trailing separator has already written it there.

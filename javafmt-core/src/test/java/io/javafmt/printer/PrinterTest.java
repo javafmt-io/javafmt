@@ -372,14 +372,6 @@ class PrinterTest {
     @Nested
     class VerbatimTests {
 
-        // A text block as it would appear in source at column 8:
-        //         """
-        //         hello
-        //         world
-        //         """
-        // The string captured by Verbatim begins at the opening triple-quote and ends at the
-        // closing one. When the printer emits this verbatim at a different output column we
-        // expect a uniform shift on every line after the first.
         private static String textBlock(final int indent) {
             final var pad = " ".repeat(indent);
             return "\"\"\"\n" + pad + "hello\n" + pad + "world\n" + pad + "\"\"\"";

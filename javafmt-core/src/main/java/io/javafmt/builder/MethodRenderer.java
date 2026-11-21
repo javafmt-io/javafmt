@@ -108,8 +108,6 @@ final class MethodRenderer {
 
     Doc appendBody(final Doc header, final MethodTree node, final Recursor recursor) {
         if (node.getBody() == null) {
-            // An annotation element's default is part of its declaration, not a body; nothing else
-            // reads it, so a `String value() default "x";` came out as a required element.
             return Optional.ofNullable(node.getDefaultValue())
                     .map(value -> Doc.concat(header, new Doc.Text(" default "), recursor.scan(value), new Doc.Text(";")))
                     .orElseGet(() -> Doc.concat(header, new Doc.Text(";")));

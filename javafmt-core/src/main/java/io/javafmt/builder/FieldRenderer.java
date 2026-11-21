@@ -12,11 +12,8 @@ final class FieldRenderer {
 
     /**
      * A field or local declaration. A field's annotations always take their own lines. On a local,
-     * an annotation the author wrote inline stays inline only while it carries no arguments; one
-     * that does takes its own line above, as it already would on a method. Inlining every annotation whatever the author wrote left nowhere to break —
-     * {@code java/lang/module/Configuration.java} declares three locals as
-     * {@code @SuppressWarnings(value = {"rawtypes", "unchecked"}) final Entry<…>[] … = …}, the
-     * longest of them 198 characters.
+     * an annotation written inline stays inline only while it carries no arguments; one that does
+     * takes its own line above, as it would on a method.
      */
     Doc render(final VariableTree node, final Recursor recursor) {
         final var modifiers = node.getModifiers();

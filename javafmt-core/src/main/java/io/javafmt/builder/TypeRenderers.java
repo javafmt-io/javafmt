@@ -105,11 +105,8 @@ final class TypeRenderers {
         if (arguments.isEmpty()) {
             return Doc.concat(recursor.scan(node.getType()), new Doc.Text("<>"));
         }
-        // Deliberately not a WrappableList. A type-argument list sits to the left of whatever the
-        // declaration goes on to say, so its group is decided before the method chain further right
-        // has chosen to break; the fit check sees the whole statement and breaks here instead,
-        // giving `List<\n Map.Entry<\n String,`. Type arguments wide enough to matter on their own
-        // are rare, and this cure is worse.
+        // Not a WrappableList: its group would be decided before a method chain further right breaks,
+        // splitting the type arguments instead of the chain.
         return new Doc.Concat(Stream.concat(Stream.of(recursor.scan(node.getType())), typeArguments(arguments, recursor)));
     }
 
@@ -151,8 +148,6 @@ final class TypeRenderers {
     }
 
     Doc renderTypeParameter(final TypeParameterTree node, final Recursor recursor) {
-        // `class Box<@Marker T>` is legal and the annotations were simply never read, so six files
-        // of java.base's reference classes came back refused rather than formatted.
         final var annotations = node.getAnnotations().stream()
                 .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
         final var nameDoc = Doc.concatOf(
