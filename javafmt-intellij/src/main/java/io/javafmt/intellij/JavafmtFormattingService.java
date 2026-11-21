@@ -222,30 +222,27 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
         }
 
         private static Optional<BinaryIdentity> locate(final Project project, final JavafmtBinaryProvider provider) {
-            final var configured = JavafmtSettings.getInstance(project).getBinaryPath();
-            if (!configured.isBlank()) {
-                final var found = JavafmtBinary.executableAt(configured).flatMap(BinaryIdentity::of);
-                if (found.isEmpty()) {
+            return switch (provider.lookup(JavafmtSettings.getInstance(project).getBinaryPath(), project)) {
+                case BinaryLookup.Found found -> Optional.of(found.binary());
+                case BinaryLookup.MissingAt missing -> {
                     notifyUser(
                             project,
                             NotificationType.WARNING,
-                            "No javafmt binary found at " + configured + ". Fix javafmt.binaryPath under Settings | Tools | javafmt, or clear it.");
+                            "No javafmt binary found at " + missing.configuredPath()
+                                    + ". Fix javafmt.binaryPath under Settings | Tools | javafmt, or clear it.");
+                    yield Optional.empty();
                 }
-                return found;
-            }
-            final var onPath = provider.onPath();
-            if (onPath.isPresent()) {
-                return onPath;
-            }
-            final var download = provider.download(project);
-            download.thenAccept(installation -> reportFailedDownload(project, provider, installation));
-            if (download.isDone() && download.join() instanceof Installation.Installed installed) {
-                return BinaryIdentity.of(installed.executable());
-            }
-            if (!download.isDone() && provider.claimDownloadNotice()) {
-                notifyUser(project, NotificationType.INFORMATION, "javafmt is downloading its formatter; formatting will start when it's ready.");
-            }
-            return Optional.empty();
+                case BinaryLookup.Pending pending -> {
+                    pending.download().thenAccept(installation -> reportFailedDownload(project, provider, installation));
+                    if (!pending.download().isDone() && provider.claimDownloadNotice()) {
+                        notifyUser(
+                                project,
+                                NotificationType.INFORMATION,
+                                "javafmt is downloading its formatter; formatting will start when it's ready.");
+                    }
+                    yield Optional.empty();
+                }
+            };
         }
 
         private static void reportFailedDownload(final Project project, final JavafmtBinaryProvider provider, final Installation installation) {

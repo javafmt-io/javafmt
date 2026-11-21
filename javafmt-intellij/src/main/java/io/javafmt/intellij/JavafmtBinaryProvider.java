@@ -53,6 +53,29 @@ public final class JavafmtBinaryProvider {
         return versionGate.verdict(binary);
     }
 
+    BinaryLookup lookup(final String configuredPath, final Project project) {
+        if (!configuredPath.isBlank()) {
+            return JavafmtBinary.executableAt(configuredPath)
+                    .flatMap(BinaryIdentity::of)
+                    .<BinaryLookup>map(BinaryLookup.Found::new)
+                    .orElseGet(() -> new BinaryLookup.MissingAt(configuredPath));
+        }
+        return onPath()
+                .<BinaryLookup>map(BinaryLookup.Found::new)
+                .orElseGet(() -> downloaded(project));
+    }
+
+    private BinaryLookup downloaded(final Project project) {
+        final var download = download(project);
+        final var pending = new BinaryLookup.Pending(download);
+        if (download.isDone() && download.join() instanceof Installation.Installed installed) {
+            return BinaryIdentity.of(installed.executable())
+                    .<BinaryLookup>map(BinaryLookup.Found::new)
+                    .orElse(pending);
+        }
+        return pending;
+    }
+
     Optional<BinaryIdentity> onPath() {
         return JavafmtBinary.resolveOnPath(searchPath.get())
                 .flatMap(BinaryIdentity::of)

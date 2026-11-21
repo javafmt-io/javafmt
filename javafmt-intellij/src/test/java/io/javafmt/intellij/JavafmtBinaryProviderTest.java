@@ -17,6 +17,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -97,13 +98,68 @@ class JavafmtBinaryProviderTest {
 
     @Test
     @EnabledOnOs({OS.MAC, OS.LINUX})
+    void aConfiguredExecutableIsFound(@TempDir final Path dir) throws Exception {
+        final var configured = javafmtReporting(dir, "javafmt 0.0.1");
+        final var provider = provider(
+                FakeRelease.unreachable(),
+                dir.resolve("cache"),
+                ASSET,
+                dir.resolve("empty-path").toString());
+        assertThat(provider.lookup(configured.toString(), defaultProject()))
+                .isEqualTo(new BinaryLookup.Found(BinaryIdentity.of(configured).orElseThrow()));
+    }
+
+    @Test
+    void aConfiguredPathWithoutAnExecutableIsMissing(@TempDir final Path dir) throws Exception {
+        final var configured = dir.resolve("absent").toString();
+        final var provider = provider(FakeRelease.unreachable(), dir.resolve("cache"), ASSET, dir.toString());
+        assertThat(provider.lookup(configured, defaultProject())).isEqualTo(new BinaryLookup.MissingAt(configured));
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
     void aSupportedJavafmtOnPathIsPreferredToADownload(@TempDir final Path dir) throws Exception {
         final var onPath = javafmtReporting(dir, "javafmt 99.0.0");
         final var provider = provider(FakeRelease.unreachable(), dir.resolve("cache"), ASSET, dir.toString());
-        assertThat(provider.onPath().map(BinaryIdentity::path)).contains(onPath);
+        assertThat(provider.lookup("", defaultProject()))
+                .isEqualTo(new BinaryLookup.Found(BinaryIdentity.of(onPath).orElseThrow()));
         assertThat(provider.describe())
                 .contains(onPath.toString())
                 .contains("PATH");
+    }
+
+    @Test
+    void aDownloadedBinaryIsFound(@TempDir final Path dir) throws Exception {
+        final var cache = Files.createDirectories(dir.resolve("cache"));
+        final var installed = Files.write(cache.resolve(NAME), BINARY);
+        assertThat(installed.toFile().setExecutable(true)).isTrue();
+        final var provider = provider(
+                FakeRelease.unreachable(),
+                cache,
+                ASSET,
+                dir.resolve("empty-path").toString());
+        assertThat(provider.lookup("", defaultProject()))
+                .isEqualTo(new BinaryLookup.Found(BinaryIdentity.of(installed).orElseThrow()));
+    }
+
+    @Test
+    void aBinaryStillDownloadingIsPending(@TempDir final Path dir) throws Exception {
+        final var go = new CountDownLatch(1);
+        try (final var release = FakeRelease.servingAfter(go, Map.of(NAME, BINARY))) {
+            final var provider = provider(
+                    release.base(),
+                    dir.resolve("cache"),
+                    ASSET,
+                    dir.resolve("empty-path").toString());
+            assertThat(provider.lookup("", defaultProject())).isInstanceOfSatisfying(BinaryLookup.Pending.class, pending -> {
+                assertThat(pending.download()).isNotDone();
+                go.countDown();
+                assertThat(pending.download())
+                        .succeedsWithin(Duration.ofSeconds(20))
+                        .isEqualTo(new Installation.Installed(
+                                dir.resolve("cache").resolve(NAME)));
+            });
+        }
     }
 
     @Test
