@@ -9,14 +9,15 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.TryTree;
 import io.javafmt.Diagnostic;
 import io.javafmt.parser.ChainScanner;
+import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
 import java.util.List;
 
 /**
  * Warns about empty {@code catch} and {@code finally} blocks, empty {@code synchronized} blocks,
- * empty static initializers and empty {@code switch} bodies. A block holding a comment is
- * suppressed — the comment is the author saying the emptiness is deliberate.
+ * empty static initializers and empty {@code switch} bodies. A block or {@code switch} body holding
+ * a comment is suppressed — the comment is the author saying the emptiness is deliberate.
  *
  * <p>A method body is not reported, nor a constructor's. An empty method is usually a design: a
  * no-op implementation of an interface, a listener callback with nothing to do. Checkstyle's
@@ -60,11 +61,22 @@ public final class EmptyBlock implements WarningRule {
 
             @Override
             protected void visitCases(final Tree node, final List<? extends CaseTree> cases, final Void p) {
-                if (node instanceof SwitchTree && cases.isEmpty()) {
+                if (node instanceof SwitchTree switchTree && cases.isEmpty() && !holdsAComment(switchTree, unit)) {
                     diagnostics.add(new Diagnostic.Warning("empty switch body", unit.positionOf(node)));
                 }
             }
         });
+    }
+
+    private static boolean holdsAComment(final SwitchTree node, final ParsedUnit unit) {
+        final var selectorEnd = unit.endOf(node.getExpression());
+        final var end = unit.endOf(node);
+        if (selectorEnd < 0 || end <= selectorEnd) {
+            return false;
+        }
+        final var open = CommentScanner.skipWhitespaceAndComments(unit.source(), selectorEnd);
+        return open + 1 < end - 1
+            && !unit.source().substring(open + 1, end - 1).isBlank();
     }
 
     private static void checkEmpty(final BlockTree block, final String what, final ParsedUnit unit, final List<Diagnostic> diagnostics) {

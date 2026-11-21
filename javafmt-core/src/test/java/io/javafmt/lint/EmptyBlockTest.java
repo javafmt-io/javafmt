@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.stream.Stream;
 
@@ -127,7 +128,8 @@ class EmptyBlockTest {
                         "static " + block,
                         "void m() { try { init(); } catch (RuntimeException e) " + block + " }",
                         "void m() { try { init(); } finally " + block + " }",
-                        "void m() { synchronized (this) " + block + " }"));
+                        "void m() { synchronized (this) " + block + " }",
+                        "void m(int x) { switch (x) " + block + " }"));
     }
 
     @ParameterizedTest
@@ -136,6 +138,16 @@ class EmptyBlockTest {
         final var unit = JavaParser.parseUnit("class Fixture {\n    " + member + "\n    static void init() {}\n}\n");
         assertThat(new EmptyBlock().apply(LintContext.parseOnly(unit)).diagnostics())
                 .isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"switch (x) {}", "switch (x) {\n    }", "switch ((x)) /* c */ {}", "switch (x) { }"})
+    void aSwitchBodyWithNothingBetweenItsBracesWarns(final String statement) {
+        final var unit = JavaParser.parseUnit("class Fixture {\n    void m(int x) { " + statement + " }\n}\n");
+        assertThat(new EmptyBlock().apply(LintContext.parseOnly(unit)).diagnostics())
+                .singleElement()
+                .extracting(Diagnostic::message)
+                .isEqualTo("empty switch body");
     }
 
     @ParameterizedTest
