@@ -91,7 +91,7 @@ final class ClassLikeRenderer {
     Doc renderImplicit(final ClassTree node, final Recursor recursor) {
         final var className = node.getSimpleName().toString();
         final var members = bodyMembers(node)
-                .flatMap(m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor)).stream())
+                .map(m -> BodyMemberRenderer.render(m, className, recursor))
                 .toList();
         if (members.isEmpty()) {
             return new Doc.Text("");

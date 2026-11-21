@@ -12,7 +12,6 @@ import io.javafmt.parser.CommentToken;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -49,7 +48,7 @@ final class SwitchExpressionRenderer {
         }
         if (body instanceof BlockTree blockBody) {
             final var statements = blockBody.getStatements().stream()
-                    .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
+                    .map(recursor::scan)
                     .toList();
             return BlockRenderer.buildBlock(
                     Doc.concat(prefixDoc, new Doc.Text(" -> {")),
@@ -127,7 +126,7 @@ final class SwitchExpressionRenderer {
         final var prefix = Doc.concatOf(
                 Stream.of(Stream.of(prefixDoc, new Doc.Text(":")), BlockRenderer.braceLineComments(recursor.braceLine(node))));
         final var statements = node.getStatements().stream()
-                .flatMap(s -> Optional.ofNullable(recursor.scan(s)).stream())
+                .map(recursor::scan)
                 .toList();
         if (statements.isEmpty()) {
             return prefix;

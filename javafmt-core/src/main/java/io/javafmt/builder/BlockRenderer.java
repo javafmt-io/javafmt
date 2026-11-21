@@ -25,9 +25,7 @@ final class BlockRenderer {
             return Stream.concat(statementDocs, tailDocs).toList();
         }
         recursor.emitWarning("added braces around single-statement body", statement);
-        return Optional.ofNullable(recursor.scan(statement))
-                .map(List::of)
-                .orElse(List.of());
+        return List.of(recursor.scan(statement));
     }
 
     /**
@@ -40,16 +38,12 @@ final class BlockRenderer {
      */
     Stream<Doc> statementDocs(final List<? extends StatementTree> statements, final Recursor recursor) {
         return statements.stream()
-                .gather(Pairs.<StatementTree, Optional<Doc>>withPrevious((previous, statement) -> statementDoc(previous, statement, recursor)))
-                .flatMap(Optional::stream);
+                .gather(Pairs.<StatementTree, Doc>withPrevious((previous, statement) -> statementDoc(previous, statement, recursor)));
     }
 
-    private Optional<Doc> statementDoc(final Optional<StatementTree> previous, final StatementTree statement, final Recursor recursor) {
-        return Optional.ofNullable(recursor.scan(statement))
-                .map(doc -> previous.filter(p -> recursor.blankLineBetween(p, statement))
-                                .isPresent()
-                        ? Doc.concat(Doc.HARD_LINE, doc)
-                        : doc);
+    private Doc statementDoc(final Optional<StatementTree> previous, final StatementTree statement, final Recursor recursor) {
+        final var doc = recursor.scan(statement);
+        return previous.filter(p -> recursor.blankLineBetween(p, statement)).isPresent() ? Doc.concat(Doc.HARD_LINE, doc) : doc;
     }
 
     Doc braced(final Doc header, final StatementTree body, final Recursor recursor) {

@@ -6,7 +6,6 @@ import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
-import java.util.Optional;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -30,9 +29,7 @@ final class LambdaRenderer {
         if (block.getStatements().size() != 1 || !BlockRenderer.writtenOnOneLine(node, block, recursor)) {
             return BlockRenderer.braced(header, block, recursor);
         }
-        return Optional.ofNullable(recursor.scan(block.getStatements().getFirst()))
-                .map(statement -> keptOnOneLine(header, statement))
-                .orElseGet(() -> BlockRenderer.braced(header, block, recursor));
+        return keptOnOneLine(header, recursor.scan(block.getStatements().getFirst()));
     }
 
     private Doc keptOnOneLine(final Doc header, final Doc statement) {

@@ -90,9 +90,7 @@ final class TypeBodyRenderer {
 
     /** The member-collect pipeline all three type renderers repeat. */
     List<Member> renderMembers(final Stream<? extends Tree> memberStream, final String className, final Recursor recursor) {
-        return memberStream.flatMap(m -> Optional.ofNullable(BodyMemberRenderer.render(m, className, recursor))
-                        .map(doc -> new Member(m, doc))
-                        .stream())
+        return memberStream.map(m -> new Member(m, BodyMemberRenderer.render(m, className, recursor)))
                 .toList();
     }
 

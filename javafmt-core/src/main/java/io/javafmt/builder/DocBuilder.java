@@ -74,7 +74,6 @@ import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -100,13 +99,13 @@ public final class DocBuilder {
         @Override
         public Doc scan(final Tree node) {
             Objects.requireNonNull(node, "node");
-            return Objects.requireNonNull(DocBuilder.this.scan(node));
+            return DocBuilder.this.scan(node);
         }
 
         @Override
         public Doc scanBeforeComments(final Tree node, final UnaryOperator<Doc> adjust) {
             Objects.requireNonNull(node, "node");
-            return Objects.requireNonNull(DocBuilder.this.scan(node, adjust));
+            return DocBuilder.this.scan(node, adjust);
         }
 
         @Override
@@ -119,13 +118,6 @@ public final class DocBuilder {
         public MethodChainRenderer.ChainDocs scanChain(final MethodInvocationTree node) {
             Objects.requireNonNull(node, "node");
             return DocBuilder.this.scanChain(node);
-        }
-
-        @Override
-        @Nullable
-        public Doc scanNullable(final Tree node) {
-            Objects.requireNonNull(node, "node");
-            return DocBuilder.this.scan(node);
         }
 
         @Override
@@ -250,11 +242,7 @@ public final class DocBuilder {
         this.attacher = new CommentAttacher(unit);
     }
 
-    @Nullable
-    private Doc scan(@Nullable final Tree tree) {
-        if (tree == null) {
-            return null;
-        }
+    private Doc scan(final Tree tree) {
         return scan(tree, UnaryOperator.identity());
     }
 
@@ -363,9 +351,9 @@ public final class DocBuilder {
         final var module = node.getModule();
         final var moduleStream = module == null
                 ? Stream.<Doc>empty()
-                : Optional.ofNullable(scan(module)).stream();
+                : Stream.of(scan(module));
         final var typeDeclarationsStream = Doc.intersperse(Doc.BLANK_LINE, node.getTypeDecls().stream()
-                .flatMap(declaration -> Optional.ofNullable(scan(declaration)).stream()));
+                .map(this::scan));
         return Doc.concatOf(
                 Stream.of(
                         CommentDocs.fileHeaderStream(unit.fileHeader()),
@@ -407,7 +395,7 @@ public final class DocBuilder {
 
     private Doc visitBlock(final BlockTree node) {
         final var statements = node.getStatements().stream()
-                .flatMap(s -> Optional.ofNullable(scan(s)).stream())
+                .map(this::scan)
                 .toList();
         return BlockRenderer.buildBlock(new Doc.Text("{"), attacher.braceLine(node), statements, attacher.trailingInside(node));
     }

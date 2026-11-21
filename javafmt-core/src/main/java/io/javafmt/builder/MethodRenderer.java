@@ -6,7 +6,6 @@ import com.sun.source.tree.TypeParameterTree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,10 +14,9 @@ import java.util.stream.Stream;
 @UtilityClass
 final class MethodRenderer {
 
-    @Nullable
     static Doc render(final MethodTree node, final Recursor recursor) {
         if (node.getName().contentEquals("<init>")) {
-            return null;
+            throw new IllegalStateException("constructor reached MethodRenderer: " + node.getName() + " in " + node);
         }
         final var modifiers = node.getModifiers();
         final var typeParameters = node.getTypeParameters();

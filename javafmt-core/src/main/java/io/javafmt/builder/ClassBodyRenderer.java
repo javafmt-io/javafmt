@@ -4,7 +4,6 @@ import com.sun.source.tree.ClassTree;
 import io.javafmt.doc.Doc;
 import lombok.experimental.UtilityClass;
 
-import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -17,7 +16,7 @@ final class ClassBodyRenderer {
 
     Doc render(final ClassTree body, final Recursor recursor) {
         final var members = body.getMembers().stream()
-                .flatMap(m -> Optional.ofNullable(recursor.scanNullable(m)).stream())
+                .map(recursor::scan)
                 .toList();
         final var indentedMembers = members.isEmpty()
                 ? Stream.<Doc>empty()

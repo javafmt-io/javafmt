@@ -1,10 +1,12 @@
 package io.javafmt.builder;
 
 import com.sun.source.tree.AnnotationTree;
+import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.ImportTree;
 import com.sun.source.tree.LineMap;
+import com.sun.source.tree.MethodTree;
 import com.sun.source.tree.ModuleTree;
 import com.sun.source.tree.PackageTree;
 import com.sun.source.tree.Tree;
@@ -129,6 +131,34 @@ class DocBuilderTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("OTHER")
                 .hasMessageContaining("<synthetic-OTHER-node>");
+    }
+
+    @Test
+    void constructorDispatchedAsPlainMemberThrows() {
+        final var realUnit = JavaParser.parseUnit("class Foo { Foo() {} }");
+        final var constructor = ((ClassTree) realUnit.tree()
+                        .getTypeDecls()
+                        .getFirst()).getMembers()
+                .stream()
+                .filter(MethodTree.class::isInstance)
+                .findFirst()
+                .orElseThrow();
+        final var wrapped = new SyntheticCompilationUnit(realUnit.tree(), constructor);
+        final var unit = new ParsedUnit(
+                wrapped,
+                "",
+                realUnit.sourcePositions(),
+                List.of(),
+                List.of(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                new IdentityHashMap<>(),
+                List.of());
+        assertThatThrownBy(() -> DocBuilder.build(unit, JavafmtConfig.defaults()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("<init>");
     }
 
     @Nested

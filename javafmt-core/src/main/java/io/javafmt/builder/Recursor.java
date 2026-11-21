@@ -8,7 +8,6 @@ import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.doc.LeadingCommentAttacher;
-import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -22,9 +21,6 @@ interface Recursor extends LeadingCommentAttacher {
     Doc scanLeavingTrailing(Tree node, UnaryOperator<Doc> adjust);
 
     MethodChainRenderer.ChainDocs scanChain(MethodInvocationTree node);
-
-    @Nullable
-    Doc scanNullable(Tree node);
 
     <T> T renderingEachTreeOnce(Supplier<T> layouts);
 
