@@ -35,7 +35,7 @@ class FinalForEachVariableTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("rewritten")
     void aForEachVariableGainsFinal(final String label, final String loop, final String expected) {
-        assertThat(fix(inMethod(loop))).isEqualTo(inMethod(expected));
+        assertThat(LintFixtures.fix(new FinalForEachVariable(), inMethod(loop))).isEqualTo(inMethod(expected));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -56,17 +56,10 @@ class FinalForEachVariableTest {
             "for (@Audited var s : xs) { use(s); }",
     })
     void aFinalOrReassignedOrBasicLoopVariableIsLeftAlone(final String loop) {
-        assertThat(fix(inMethod(loop))).isEqualTo(inMethod(loop));
+        assertThat(LintFixtures.fix(new FinalForEachVariable(), inMethod(loop))).isEqualTo(inMethod(loop));
     }
 
     private static String inMethod(final String loop) {
         return "class C {\n    void m() {\n        " + loop + "\n    }\n}\n";
-    }
-
-    private static String fix(final String source) {
-        final var unit = JavaParser.parseUnit(source);
-        return LintEngine.applyEdits(
-                source,
-                new FinalForEachVariable().apply(LintContext.parseOnly(unit)).edits());
     }
 }

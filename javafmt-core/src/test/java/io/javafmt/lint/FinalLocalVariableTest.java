@@ -32,8 +32,7 @@ class FinalLocalVariableTest {
     })
     void finalGoesAfterTheAnnotations(final String declaration, final String finalized) {
         final var unit = JavaParser.parseUnit("class Fixture { void test() { " + declaration + " } }");
-        final var result = new FinalLocalVariable().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains(finalized);
+        assertThat(LintFixtures.fix(new FinalLocalVariable(), unit.source())).contains(finalized);
     }
 
     @Test

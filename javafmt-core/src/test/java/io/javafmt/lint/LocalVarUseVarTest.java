@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class LocalVarUseVarTest {
 
     private static String rewritten(final String body) {
-        final var unit = JavaParser.parseUnit("""
+        return LintFixtures.fix(new LocalVarUseVar(), """
                 import java.util.ArrayList;
                 import java.util.Collection;
                 import java.util.Collections;
@@ -28,9 +28,6 @@ class LocalVarUseVarTest {
                     }
                 }
                 """.formatted(body));
-        return LintEngine.applyEdits(
-                unit.source(),
-                new LocalVarUseVar().apply(LintContext.parseOnly(unit)).edits());
     }
 
     @ParameterizedTest

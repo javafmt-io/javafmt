@@ -118,8 +118,7 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("int[] first()");
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).contains("int[] first()");
     }
 
     @Test
@@ -132,8 +131,7 @@ class ArrayTypeStyleTest {
                 }
             }
             """);
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("static String[][] names(final int n)");
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).contains("static String[][] names(final int n)");
     }
 
     @Test
@@ -159,7 +157,6 @@ class ArrayTypeStyleTest {
     })
     void aCommentAmongTheCStyleBracketsMovesAfterTheName(final String declaration, final String expected) {
         final var unit = JavaParser.parseUnit("class Fixture {\n    " + declaration + "\n}\n");
-        final var result = new ArrayTypeStyle().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("    " + expected + "\n");
+        assertThat(LintFixtures.fix(new ArrayTypeStyle(), unit.source())).contains("    " + expected + "\n");
     }
 }

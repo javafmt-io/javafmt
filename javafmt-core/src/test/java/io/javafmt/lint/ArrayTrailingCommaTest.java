@@ -92,8 +92,7 @@ class ArrayTrailingCommaTest {
             @SuppressWarnings({"foo", "bar"})
             class Fixture {}
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("{\"foo\", \"bar\",}");
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).contains("{\"foo\", \"bar\",}");
     }
 
     @Test
@@ -104,8 +103,7 @@ class ArrayTrailingCommaTest {
                 Fixture {}
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source()))
                 .contains("{\"a\", \"b\",}")
                 .doesNotContain(",,");
     }
@@ -151,8 +149,7 @@ class ArrayTrailingCommaTest {
                 };
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("2 /* x */ /* y */, // z");
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).contains("2 /* x */ /* y */, // z");
     }
 
     @Test
@@ -164,7 +161,6 @@ class ArrayTrailingCommaTest {
                     /* x */};
             }
             """);
-        final var result = new ArrayTrailingComma().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("2,\n");
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source())).contains("2,\n");
     }
 }

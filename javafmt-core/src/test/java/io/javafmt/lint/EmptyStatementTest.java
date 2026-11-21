@@ -25,8 +25,7 @@ class EmptyStatementTest {
                 /* ; */ ;
             }
             """);
-        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+        assertThat(LintFixtures.fix(new EmptyStatement(), unit.source()))
                 .isEqualTo("""
                            class Fixture {
                               \s
@@ -119,8 +118,7 @@ class EmptyStatementTest {
     void deletesTheSemicolonAfterTheLastResource(final String statement, final String expected) {
         final var unit = JavaParser.parseUnit(
                 "class Fixture {\n    void test(Resource held) throws Exception {\n        " + statement + "\n    }\n}\n");
-        final var result = new EmptyStatement().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+        assertThat(LintFixtures.fix(new EmptyStatement(), unit.source()))
                 .isEqualTo("class Fixture {\n    void test(Resource held) throws Exception {\n        " + expected + "\n    }\n}\n");
     }
 }

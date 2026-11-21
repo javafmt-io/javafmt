@@ -3,27 +3,28 @@ package io.javafmt.lint;
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ExplicitInitializationTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {
-            "class Fixture { int x = 0; }",
-            "class Fixture { byte x = 0; }",
-            "class Fixture { short x = 0; }",
-            "class Fixture { boolean x = false; }",
-            "class Fixture { Object x = null; }",
-            "class Fixture { String x = null; }",
+    @CsvSource(delimiter = '|', value = {
+            "class Fixture { int x = 0; }|class Fixture { int x; }",
+            "class Fixture { byte x = 0; }|class Fixture { byte x; }",
+            "class Fixture { short x = 0; }|class Fixture { short x; }",
+            "class Fixture { boolean x = false; }|class Fixture { boolean x; }",
+            "class Fixture { Object x = null; }|class Fixture { Object x; }",
+            "class Fixture { String x = null; }|class Fixture { String x; }",
     })
-    void redundantDefaultInitializerRemovedFromField(final String src) {
+    void redundantDefaultInitializerRemovedFromField(final String src, final String expected) {
         final var unit = JavaParser.parseUnit(src);
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
         assertThat(result.diagnostics()).isEmpty();
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), src)).isEqualTo(expected);
     }
 
     @Test
@@ -32,6 +33,8 @@ class ExplicitInitializationTest {
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), unit.source()))
+                .isEqualTo("class Fixture { long x; }");
     }
 
     @Test
@@ -40,6 +43,8 @@ class ExplicitInitializationTest {
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), unit.source()))
+                .isEqualTo("class Fixture { double x; }");
     }
 
     @Test
@@ -48,6 +53,8 @@ class ExplicitInitializationTest {
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), unit.source()))
+                .isEqualTo("class Fixture { float x; }");
     }
 
     @Test
@@ -89,6 +96,8 @@ class ExplicitInitializationTest {
         final var unit = JavaParser.parseUnit("class Fixture { static int count = 0; }");
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), unit.source()))
+                .isEqualTo("class Fixture { static int count; }");
     }
 
     @Test
@@ -96,6 +105,8 @@ class ExplicitInitializationTest {
         final var unit = JavaParser.parseUnit("class Fixture { int[] data = null; }");
         final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), unit.source()))
+                .isEqualTo("class Fixture { int[] data; }");
     }
 
     @Test
@@ -197,8 +208,8 @@ class ExplicitInitializationTest {
                 private /* why */ int x = 0;
             }
             """);
-        final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("private /* why */ int x;");
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), unit.source()))
+                .contains("private /* why */ int x;");
     }
 
     @Test
@@ -210,8 +221,8 @@ class ExplicitInitializationTest {
                 private char marker = '\\0';
             }
             """);
-        final var result = new ExplicitInitialization().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("private char marker;");
+        assertThat(LintFixtures.fix(new ExplicitInitialization(), unit.source()))
+                .contains("private char marker;");
     }
 
     @Test

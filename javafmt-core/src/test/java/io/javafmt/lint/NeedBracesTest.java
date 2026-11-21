@@ -21,6 +21,8 @@ class NeedBracesTest {
             """);
         final var result = new NeedBraces().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(2);
+        assertThat(LintFixtures.fix(new NeedBraces(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test(final int x) {\n        if (x > 0) { doSomething(); }\n    }\n    native void doSomething();\n}\n");
         assertThat(result.diagnostics()).isEmpty();
     }
 
@@ -39,6 +41,8 @@ class NeedBracesTest {
             """);
         final var result = new NeedBraces().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(4);
+        assertThat(LintFixtures.fix(new NeedBraces(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test(final int x) {\n        if (x > 0) { doA(); }\n        else { doB(); }\n    }\n    native void doA();\n    native void doB();\n}\n");
     }
 
     @Test
@@ -59,6 +63,8 @@ class NeedBracesTest {
             """);
         final var result = new NeedBraces().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(4);
+        assertThat(LintFixtures.fix(new NeedBraces(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test(final int x) {\n        if (x > 0) { doA(); }\n        else if (x < 0) { doB(); }\n    }\n    native void doA();\n    native void doB();\n}\n");
     }
 
     @Test
@@ -97,6 +103,8 @@ class NeedBracesTest {
             """);
         final var result = new NeedBraces().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(2);
+        assertThat(LintFixtures.fix(new NeedBraces(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test(final int x) {\n        while (x > 0) { tick(); }\n    }\n    native void tick();\n}\n");
     }
 
     @Test
@@ -112,6 +120,8 @@ class NeedBracesTest {
             """);
         final var result = new NeedBraces().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(2);
+        assertThat(LintFixtures.fix(new NeedBraces(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test(final int x) {\n        do { tick(); } while (x > 0);\n    }\n    native void tick();\n}\n");
     }
 
     @Test
@@ -127,6 +137,8 @@ class NeedBracesTest {
             """);
         final var result = new NeedBraces().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(2);
+        assertThat(LintFixtures.fix(new NeedBraces(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    void test() {\n        for (int i = 0; i < 10; i++) { tick(); }\n    }\n    native void tick();\n}\n");
     }
 
     @Test
@@ -143,6 +155,8 @@ class NeedBracesTest {
             """);
         final var result = new NeedBraces().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(2);
+        assertThat(LintFixtures.fix(new NeedBraces(), unit.source()))
+                .isEqualTo("import java.util.List;\nclass Fixture {\n\n    void test(final List<String> items) {\n        for (String s : items) { tick(s); }\n    }\n    native void tick(String s);\n}\n");
     }
 
     @Test

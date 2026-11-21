@@ -22,6 +22,7 @@ class RedundantModifierTest {
         // Both 'public' and 'abstract' are redundant on an interface method
         assertThat(result.edits()).hasSize(2);
         assertThat(result.edits()).allMatch(e -> e.replacement().isEmpty());
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("interface Fixture {\n\n    void method();\n}\n");
         assertThat(result.diagnostics()).isEmpty();
     }
 
@@ -36,6 +37,7 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(3);
         assertThat(result.edits()).allMatch(e -> e.replacement().isEmpty());
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("interface Fixture {\n\n    int VALUE = 42;\n}\n");
     }
 
     @Test
@@ -62,6 +64,7 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("interface Fixture {\n\n    default void method() {}\n}\n");
     }
 
     @Test
@@ -76,6 +79,8 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source()))
+                .isEqualTo("interface Fixture {\n\n    static int helper() { return 0; }\n}\n");
     }
 
     @Test
@@ -89,6 +94,7 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("class Outer {\n\n    interface Inner {}\n}\n");
     }
 
     @Test
@@ -102,6 +108,7 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("class Outer {\n\n    enum Status { A, B }\n}\n");
     }
 
     @Test
@@ -115,6 +122,7 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEmpty();
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("final class Fixture {\n\n    public void method() {}\n}\n");
     }
 
     @Test
@@ -141,6 +149,7 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(2);
         assertThat(result.edits()).allMatch(e -> e.replacement().isEmpty());
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source())).isEqualTo("interface Fixture {\n\n    /* c */ void method();\n}\n");
     }
 
     @Test
@@ -156,6 +165,8 @@ class RedundantModifierTest {
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(2);
         assertThat(result.edits()).allMatch(e -> e.replacement().isEmpty());
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source()))
+                .isEqualTo("interface Fixture {\n\n    @SuppressWarnings(\"varargs\") // creating a stream from an array is safe\n    void method();\n}\n");
     }
 
     @Test
@@ -171,6 +182,8 @@ class RedundantModifierTest {
             """);
         final var result = new RedundantModifier().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(3);
+        assertThat(LintFixtures.fix(new RedundantModifier(), unit.source()))
+                .isEqualTo("interface Fixture {\n\n    \n    // why this constant exists\n    int VALUE = 42;\n}\n");
     }
 
     @Test

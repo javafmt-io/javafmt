@@ -122,6 +122,27 @@ class RoundTripVerifierTest {
     }
 
     @Test
+    void theDivergingOffsetIsWhereTheChangedTokenStartsInTheInput() {
+        final var before = "class A {\n    int x = 1;\n}\n";
+        final var after = "class A {\n    int x = 2;\n}\n";
+        assertThat(RoundTripVerifier.firstDifferingOffset(before, after)).hasValue(before.indexOf('1'));
+    }
+
+    @Test
+    void aLongerInputDivergesWhereTheOutputStops() {
+        final var before = "class A {\n    int x = 1;\n    int y = 2;\n}\n";
+        final var after = "class A {\n    int x = 1;\n";
+        assertThat(RoundTripVerifier.firstDifferingOffset(before, after)).hasValue(before.indexOf("int y"));
+    }
+
+    @Test
+    void aLongerOutputHasNoDivergingOffset() {
+        final var before = "class A {\n    int x = 1;\n";
+        final var after = "class A {\n    int x = 1;\n    int y = 2;\n}\n";
+        assertThat(RoundTripVerifier.firstDifferingOffset(before, after)).isEmpty();
+    }
+
+    @Test
     void anUnchangedFileHasNoDivergingOffset() {
         final var source = "class A {\n    int x = 1;\n}\n";
         assertThat(RoundTripVerifier.firstDifferingOffset(source, source)).isEmpty();

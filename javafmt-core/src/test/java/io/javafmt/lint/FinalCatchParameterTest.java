@@ -27,7 +27,8 @@ class FinalCatchParameterTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("rewritten")
     void aCatchParameterGainsFinal(final String label, final String catchClause, final String expected) {
-        assertThat(fix(inMethod(catchClause))).isEqualTo(inMethod(expected));
+        assertThat(LintFixtures.fix(new FinalCatchParameter(), inMethod(catchClause)))
+                .isEqualTo(inMethod(expected));
     }
 
     @ParameterizedTest(name = "{0}")
@@ -41,17 +42,11 @@ class FinalCatchParameterTest {
     @ParameterizedTest
     @ValueSource(strings = {"catch (final IOException e) {}", "catch (IOException e) { e = null; }", "catch (@Annotated final IOException e) {}"})
     void aFinalOrReassignedCatchParameterIsLeftAlone(final String catchClause) {
-        assertThat(fix(inMethod(catchClause))).isEqualTo(inMethod(catchClause));
+        assertThat(LintFixtures.fix(new FinalCatchParameter(), inMethod(catchClause)))
+                .isEqualTo(inMethod(catchClause));
     }
 
     private static String inMethod(final String catchClause) {
         return "class C {\n    void m() {\n        try { run(); } " + catchClause + "\n    }\n}\n";
-    }
-
-    private static String fix(final String source) {
-        final var unit = JavaParser.parseUnit(source);
-        return LintEngine.applyEdits(
-                source,
-                new FinalCatchParameter().apply(LintContext.parseOnly(unit)).edits());
     }
 }

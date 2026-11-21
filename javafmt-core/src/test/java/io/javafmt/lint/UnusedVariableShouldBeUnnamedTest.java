@@ -43,7 +43,8 @@ class UnusedVariableShouldBeUnnamedTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("renamed")
     void anUnusedVariableIsRenamedToAnUnderscore(final String label, final String body, final String expected) {
-        assertThat(fix(inMethod(body))).isEqualTo(inMethod(expected));
+        assertThat(LintFixtures.fix(new UnusedVariableShouldBeUnnamed(), inMethod(body)))
+                .isEqualTo(inMethod(expected));
     }
 
     @ParameterizedTest
@@ -65,13 +66,15 @@ class UnusedVariableShouldBeUnnamedTest {
             "var called = compute(); called();",
     })
     void aVariableThatIsUsedOrCannotBeUnnamedIsLeftAlone(final String body) {
-        assertThat(fix(inMethod(body))).isEqualTo(inMethod(body));
+        assertThat(LintFixtures.fix(new UnusedVariableShouldBeUnnamed(), inMethod(body)))
+                .isEqualTo(inMethod(body));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"class C { int unusedField = 1; }", "class C { void m(String unusedParameter) {} }", "record R(int unusedComponent) {}"})
     void fieldsParametersAndRecordComponentsAreLeftAlone(final String source) {
-        assertThat(fix(source)).isEqualTo(source);
+        assertThat(LintFixtures.fix(new UnusedVariableShouldBeUnnamed(), source))
+                .isEqualTo(source);
     }
 
     @ParameterizedTest(name = "{0}")
@@ -97,11 +100,5 @@ class UnusedVariableShouldBeUnnamedTest {
 
     private static String inMethod(final String body) {
         return "class C {\n    void m(Object o, Iterable<String> items) {\n        " + body + "\n    }\n}\n";
-    }
-
-    private static String fix(final String source) {
-        final var unit = JavaParser.parseUnit(source);
-        return LintEngine.applyEdits(source, new UnusedVariableShouldBeUnnamed().apply(LintContext.parseOnly(unit))
-                .edits());
     }
 }

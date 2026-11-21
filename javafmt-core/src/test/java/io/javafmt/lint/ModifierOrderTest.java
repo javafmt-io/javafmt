@@ -21,6 +21,7 @@ class ModifierOrderTest {
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEqualTo("public static");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).isEqualTo("class Fixture {\n\n    public static int x = 0;\n}\n");
         assertThat(result.diagnostics()).isEmpty();
     }
 
@@ -35,6 +36,7 @@ class ModifierOrderTest {
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEqualTo("static final");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).isEqualTo("class Fixture {\n\n    static final int X = 1;\n}\n");
     }
 
     @Test
@@ -48,6 +50,8 @@ class ModifierOrderTest {
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEqualTo("public abstract");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source()))
+                .isEqualTo("abstract class Fixture {\n\n    public abstract void method();\n}\n");
     }
 
     @ParameterizedTest
@@ -82,6 +86,7 @@ class ModifierOrderTest {
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEqualTo("synchronized native");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).isEqualTo("class Fixture {\n\n    synchronized native void method();\n}\n");
     }
 
     @Test
@@ -97,6 +102,8 @@ class ModifierOrderTest {
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEqualTo("/* c */ public static final");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source()))
+                .isEqualTo("class Fixture {\n\n    /* c */ public static final int X = 1;\n}\n");
     }
 
     @Test
@@ -124,8 +131,7 @@ class ModifierOrderTest {
     void keywordsAfterALineCommentFollowingTheAnnotationsAreReordered(final String annotationLine) {
         final var source = "class Fixture {\n    " + annotationLine + "\n    public final static char NUL = 0;\n}\n";
         final var unit = JavaParser.parseUnit(source);
-        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits()))
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source()))
                 .isEqualTo("class Fixture {\n    " + annotationLine + "\n    public static final char NUL = 0;\n}\n");
     }
 
@@ -140,6 +146,8 @@ class ModifierOrderTest {
         final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
         assertThat(result.edits()).hasSize(1);
         assertThat(result.edits().getFirst().replacement()).isEqualTo("abstract sealed");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source()))
+                .isEqualTo("abstract sealed class Fixture permits Impl {}\n\nfinal class Impl extends Fixture {}\n");
     }
 
     @Test
@@ -155,8 +163,7 @@ class ModifierOrderTest {
                 static private final int VALUE = 1;
             }
             """);
-        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("private static final int VALUE");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).contains("private static final int VALUE");
     }
 
     @Test
@@ -167,8 +174,7 @@ class ModifierOrderTest {
                 static @Deprecated private final int VALUE = 1;
             }
             """);
-        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("private static final @Deprecated int VALUE");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).contains("private static final @Deprecated int VALUE");
     }
 
     @Test
@@ -181,8 +187,7 @@ class ModifierOrderTest {
                 static @jdk.internal.RequiresIdentity private final int VALUE = 1;
             }
             """);
-        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("private static final @jdk.internal.RequiresIdentity int VALUE");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).contains("private static final @jdk.internal.RequiresIdentity int VALUE");
     }
 
     @Test
@@ -193,8 +198,7 @@ class ModifierOrderTest {
                 static @SuppressWarnings("a)b") public int VALUE = 1;
             }
             """);
-        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("public static @SuppressWarnings(\"a)b\") int VALUE");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).contains("public static @SuppressWarnings(\"a)b\") int VALUE");
     }
 
     @ParameterizedTest
@@ -220,8 +224,7 @@ class ModifierOrderTest {
     })
     void anAnnotationAfterTheKeywordsOfADeclarationWithoutATypeMovesInFrontOfThem(final String source, final String reordered) {
         final var unit = JavaParser.parseUnit(source);
-        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains(reordered);
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).contains(reordered);
     }
 
     @Test
@@ -248,7 +251,6 @@ class ModifierOrderTest {
             @Deprecated
             public @interface Marker {}
             """);
-        final var result = new ModifierOrder().apply(LintContext.parseOnly(unit));
-        assertThat(LintEngine.applyEdits(unit.source(), result.edits())).contains("public @interface Marker");
+        assertThat(LintFixtures.fix(new ModifierOrder(), unit.source())).contains("public @interface Marker");
     }
 }
