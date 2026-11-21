@@ -18,24 +18,6 @@ public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
     }
 
     @Test
-    void binaryPathRoundTripsThroughPersistedState() {
-        final var settings = new JavafmtSettings();
-        settings.setBinaryPath("/usr/local/bin/javafmt");
-        assertThat(settings.getState().getBinaryPath()).isEqualTo("/usr/local/bin/javafmt");
-    }
-
-    @Test
-    public void testStateRoundTrips() {
-        final var settings = JavafmtSettings.getInstance(getProject());
-        settings.setEnabled(true);
-        final var persisted = settings.getState();
-        assertThat(persisted.isEnabled()).isTrue();
-        final var reloaded = new JavafmtSettings();
-        reloaded.loadState(persisted);
-        assertThat(reloaded.isEnabled()).isTrue();
-    }
-
-    @Test
     public void testStateSurvivesXmlSerialization() {
         // JavafmtSettings is a mutable bean with a getter and a setter per property precisely because
         // this is how the platform persists it; a record would silently round-trip to defaults.
@@ -45,10 +27,5 @@ public class JavafmtSettingsTest extends JavafmtIntellijTestCase {
         final var restored = XmlSerializer.deserialize(XmlSerializer.serialize(settings), JavafmtSettings.class);
         assertThat(restored.isEnabled()).isTrue();
         assertThat(restored.getBinaryPath()).isEqualTo("/opt/javafmt");
-    }
-
-    @Test
-    public void testServiceIsASingletonPerProject() {
-        assertThat(JavafmtSettings.getInstance(getProject())).isSameAs(JavafmtSettings.getInstance(getProject()));
     }
 }

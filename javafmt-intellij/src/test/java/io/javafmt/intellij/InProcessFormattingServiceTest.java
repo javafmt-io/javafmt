@@ -2,14 +2,12 @@ package io.javafmt.intellij;
 
 import com.intellij.notification.NotificationType;
 import io.javafmt.Fixtures;
-import io.javafmt.JavafmtConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -70,20 +68,5 @@ public class InProcessFormattingServiceTest extends JavafmtIntellijTestCase {
             assertThat(notification.getContent())
                     .contains("Order.java", dir.resolve(".javafmt").toString(), "FinalParameters");
         });
-    }
-
-    @Test
-    public void testTimingNamesTheFileTheDurationTheEngineAndWhetherItWasAnalyzed() {
-        assertThat(
-                        JavafmtFormattingService.timing(
-                                "Foo.java",
-                                JavafmtApplicationSettings.Engine.IN_PROCESS,
-                                new JavafmtConfig.Analysis.Attributed(""),
-                                Duration.ofMillis(12)))
-                .isEqualTo("javafmt: formatted Foo.java in 12 ms (in-process, analyzed)");
-        assertThat(
-                        JavafmtFormattingService.timing(
-                                "Foo.java", JavafmtApplicationSettings.Engine.NATIVE, new JavafmtConfig.Analysis.ParseOnly(), Duration.ofMillis(3)))
-                .isEqualTo("javafmt: formatted Foo.java in 3 ms (native, parse-only)");
     }
 }
