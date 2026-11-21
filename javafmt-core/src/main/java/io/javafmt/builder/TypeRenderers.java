@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import javax.lang.model.element.Name;
 
 @UtilityClass
 final class TypeRenderers {
@@ -54,8 +55,9 @@ final class TypeRenderers {
                 .mapToObj(i -> i == 0 ? lines[i] : CommentDocs.expandLeadingWhitespace(lines[i]))
                 .collect(Collectors.joining("\n"));
         final var start = unit.startOf(node);
-        final var source = unit.source();
-        return new Doc.Verbatim(expanded, CommentDocs.expandedWidth(source.substring(source.lastIndexOf('\n', start - 1) + 1, start)));
+        final var lineStart = lineStartBefore(unit.source(), start);
+        return new Doc.Verbatim(
+                expanded, CommentDocs.expandedWidth(unit.source().substring(lineStart, start)));
     }
 
     /**
@@ -66,9 +68,11 @@ final class TypeRenderers {
      */
     private int sourceColumnOf(final LiteralTree node, final ParsedUnit unit) {
         final var start = unit.startOf(node);
-        final var source = unit.source();
-        final var previousNewline = source.lastIndexOf('\n', start - 1);
-        return start - previousNewline - 1;
+        return start - lineStartBefore(unit.source(), start);
+    }
+
+    private int lineStartBefore(final String source, final int offset) {
+        return source.lastIndexOf('\n', offset - 1) + 1;
     }
 
     Doc renderEmptyStatement(final EmptyStatementTree node) {
@@ -76,11 +80,15 @@ final class TypeRenderers {
     }
 
     Doc renderBreak(final BreakTree node) {
-        return node.getLabel() == null ? new Doc.Text("break;") : new Doc.Text("break " + node.getLabel() + ";");
+        return jump("break", node.getLabel());
     }
 
     Doc renderContinue(final ContinueTree node) {
-        return node.getLabel() == null ? new Doc.Text("continue;") : new Doc.Text("continue " + node.getLabel() + ";");
+        return jump("continue", node.getLabel());
+    }
+
+    private Doc jump(final String keyword, @Nullable final Name label) {
+        return new Doc.Text(label == null ? keyword + ";" : keyword + " " + label + ";");
     }
 
     Doc renderDefaultCaseLabel(final DefaultCaseLabelTree node) {
@@ -90,10 +98,6 @@ final class TypeRenderers {
     /** The unnamed pattern (JEP 456), as in {@code case Point(var x, _)}. */
     Doc renderAnyPattern(final AnyPatternTree node) {
         return new Doc.Text("_");
-    }
-
-    Doc renderArrayType(final ArrayTypeTree node, final Recursor recursor) {
-        return renderArrayDimensions(node, recursor);
     }
 
     Doc renderParameterizedType(final ParameterizedTypeTree node, final Recursor recursor) {
@@ -109,7 +113,7 @@ final class TypeRenderers {
         return new Doc.Concat(Stream.concat(Stream.of(recursor.scan(node.getType())), typeArguments(arguments, recursor)));
     }
 
-    static Stream<Doc> typeArguments(final List<? extends Tree> arguments, final Recursor recursor) {
+    Stream<Doc> typeArguments(final List<? extends Tree> arguments, final Recursor recursor) {
         if (arguments.isEmpty()) {
             return Stream.empty();
         }
@@ -151,8 +155,8 @@ final class TypeRenderers {
         // of java.base's reference classes came back refused rather than formatted.
         final var annotations = node.getAnnotations().stream()
                 .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
-        final var nameDoc = (Doc) new Doc.Concat(
-                Stream.concat(annotations, Stream.of(new Doc.Text(node.getName().toString()))));
+        final var nameDoc = Doc.concatOf(
+                Stream.of(annotations, Stream.of(new Doc.Text(node.getName().toString()))));
         final var bounds = node.getBounds();
         if (bounds.isEmpty()) {
             return nameDoc;
@@ -163,11 +167,11 @@ final class TypeRenderers {
     }
 
     Doc renderAnnotatedType(final AnnotatedTypeTree node, final Recursor recursor) {
+        if (node.getUnderlyingType() instanceof ArrayTypeTree) {
+            return renderArrayType(node, recursor);
+        }
         final var annotations = node.getAnnotations().stream()
                 .flatMap(a -> Stream.of(recursor.scan(a), new Doc.Text(" ")));
-        if (node.getUnderlyingType() instanceof ArrayTypeTree) {
-            return renderArrayDimensions(node, recursor);
-        }
         if (node.getUnderlyingType() instanceof MemberSelectTree qualified) {
             return renderQualifiedTypeAnnotation(qualified, annotations, recursor);
         }
@@ -183,7 +187,7 @@ final class TypeRenderers {
      * element type, puts every annotation back on its own brackets: {@code char[] @A []} and
      * {@code byte @A [][]} are different types, and recursing inward instead swapped them.
      */
-    private Doc renderArrayDimensions(final Tree type, final Recursor recursor) {
+    Doc renderArrayType(final Tree type, final Recursor recursor) {
         return renderDimensions(type, "[]", recursor);
     }
 

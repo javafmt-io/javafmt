@@ -89,7 +89,7 @@ final class ModifierRenderer {
             return "";
         }
         final var unknown = flags.stream()
-                .filter((javax.lang.model.element.Modifier m) -> !JavaModifiers.KNOWN_MODIFIERS.contains(m))
+                .filter(m -> !JavaModifiers.KNOWN_MODIFIERS.contains(m))
                 .toList();
         if (!unknown.isEmpty()) {
             throw new IllegalStateException("Unknown modifier(s): " + unknown);

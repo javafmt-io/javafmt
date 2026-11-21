@@ -3,6 +3,7 @@ package io.javafmt.builder;
 import com.sun.source.tree.AssertTree;
 import com.sun.source.tree.ExpressionStatementTree;
 import com.sun.source.tree.LabeledStatementTree;
+import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.ReturnTree;
 import com.sun.source.tree.SynchronizedTree;
 import com.sun.source.tree.ThrowTree;
@@ -22,7 +23,7 @@ final class SimpleStatementRenderers {
     }
 
     Doc renderSynchronized(final SynchronizedTree node, final Recursor recursor) {
-        final var inner = node.getExpression() instanceof com.sun.source.tree.ParenthesizedTree pt ? pt.getExpression() : node.getExpression();
+        final var inner = node.getExpression() instanceof ParenthesizedTree pt ? pt.getExpression() : node.getExpression();
         final var header = Doc.concat(new Doc.Text("synchronized ("), recursor.scan(inner), new Doc.Text(")"));
         return BlockRenderer.braced(header, node.getBlock(), recursor);
     }

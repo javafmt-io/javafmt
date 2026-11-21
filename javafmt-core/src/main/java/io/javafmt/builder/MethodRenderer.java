@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 @UtilityClass
 final class MethodRenderer {
 
-    static Doc render(final MethodTree node, final Recursor recursor) {
+    Doc render(final MethodTree node, final Recursor recursor) {
         if (node.getName().contentEquals("<init>")) {
             throw new IllegalStateException("constructor reached MethodRenderer: " + node.getName() + " in " + node);
         }
