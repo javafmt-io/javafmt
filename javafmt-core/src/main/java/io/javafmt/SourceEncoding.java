@@ -14,7 +14,7 @@ import java.util.Objects;
  */
 public record SourceEncoding(boolean byteOrderMark, String lineEnding) {
 
-    private static final char BOM = '﻿';
+    private static final char BOM = '\uFEFF';
 
     public SourceEncoding {
         Objects.requireNonNull(lineEnding, "lineEnding");

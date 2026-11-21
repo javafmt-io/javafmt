@@ -9,9 +9,9 @@ import io.javafmt.printer.Printer;
 import lombok.experimental.UtilityClass;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @UtilityClass
@@ -86,34 +86,30 @@ final class FormatStages {
             final var built = DocBuilder.build(lintOutcome.unit());
             final var output = withOneTrailingNewline(PRINTER.print(built.doc()));
             final var linted = lintOutcome.unit().source();
-            final var mismatch = verifyOutput(config, source, linted, output);
-            if (mismatch.isPresent()) {
-                return new FormatResult(source, List.of(new Diagnostic.InternalError(mismatch.get(), whereItDiverged(linted, output))));
-            }
-            return withDiagnostics(new FormatResult(output, built.diagnostics()), lintOutcome.diagnostics());
+            return verifyOutput(config, source, linted, output)
+                    .map(mismatch -> new FormatResult(source, List.of(new Diagnostic.InternalError(mismatch, whereItDiverged(linted, output)))))
+                    .orElseGet(() -> withDiagnostics(new FormatResult(output, built.diagnostics()), lintOutcome.diagnostics()));
         } catch (final RuntimeException | AssertionError | StackOverflowError t) {
             return internalErrorResult(source, t);
         }
     }
 
-    private String withOneTrailingNewline(final String printed) {
-        final var end = printed.length()
-                - (int) IntStream.iterate(printed.length() - 1, i -> i >= 0 && printed.charAt(i) == '\n', i -> i - 1)
-                        .count();
-        if (end == 0) {
-            return "";
+    String withOneTrailingNewline(final String printed) {
+        var end = printed.length();
+        while (end > 0 && printed.charAt(end - 1) == '\n') {
+            end--;
         }
-        return end == printed.length() - 1 ? printed : printed.substring(0, end) + "\n";
+        return end == 0 ? "" : printed.substring(0, end) + "\n";
     }
 
     /** javafmt itself failed on source that parsed; the input is returned untouched. */
     FormatResult internalErrorResult(final String source, final Throwable t) {
-        final var message = t.getMessage();
         return new FormatResult(
                 source,
                 List.of(
                         new Diagnostic.InternalError(
-                                t.getClass().getSimpleName() + ": " + (message == null ? t.toString() : message), new Position.Unknown())));
+                                t.getClass().getSimpleName() + ": " + Objects.requireNonNullElseGet(t.getMessage(), t::toString),
+                                new Position.Unknown())));
     }
 
     /**
@@ -182,8 +178,8 @@ final class FormatStages {
     private FormatResult parseExceptionToResult(final String source, final ParseException e) {
         final var diagnostics = e.getDiagnostics();
         if (diagnostics.isEmpty()) {
-            final var message = e.getMessage();
-            return new FormatResult(source, List.of(new Diagnostic.ParseError(message == null ? e.toString() : message, new Position.Unknown())));
+            return new FormatResult(
+                    source, List.of(new Diagnostic.ParseError(Objects.requireNonNullElseGet(e.getMessage(), e::toString), new Position.Unknown())));
         }
         return new FormatResult(source, diagnostics);
     }

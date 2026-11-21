@@ -1,5 +1,6 @@
 package io.javafmt;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -11,7 +12,7 @@ import java.util.Objects;
  *     coverage gap costs the user a reformat rather than their code. On by default; costs an
  *     extra lex of both strings per file. See {@link io.javafmt.parser.RoundTripVerifier}.
  */
-public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysis, int release) implements java.io.Serializable {
+public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysis, int release) implements Serializable {
 
     public static final int LATEST_RELEASE = 25;
 
@@ -22,13 +23,9 @@ public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysi
         }
     }
 
-    public JavafmtConfig() {
-        this(true, true, new Analysis.ParseOnly(), LATEST_RELEASE);
-    }
-
-    /** Returns a copy with {@link #verifyOutput()} set to {@code verify}. */
-    public JavafmtConfig withVerifyOutput(final boolean verify) {
-        return new JavafmtConfig(verify, lint, analysis, release);
+    /** Returns a copy with {@link #verifyOutput()} set to {@code newVerifyOutput}. */
+    public JavafmtConfig withVerifyOutput(final boolean newVerifyOutput) {
+        return new JavafmtConfig(newVerifyOutput, lint, analysis, release);
     }
 
     public JavafmtConfig withAnalysis(final Analysis newAnalysis) {
@@ -53,10 +50,10 @@ public record JavafmtConfig(boolean verifyOutput, boolean lint, Analysis analysi
 
     /** The default configuration: output verification on, lint pass on, parse-only, latest release. */
     public static JavafmtConfig defaults() {
-        return new JavafmtConfig();
+        return new JavafmtConfig(true, true, new Analysis.ParseOnly(), LATEST_RELEASE);
     }
 
-    public sealed interface Analysis extends java.io.Serializable {
+    public sealed interface Analysis extends Serializable {
 
         record ParseOnly() implements Analysis {}
 

@@ -25,7 +25,9 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
 
     String ANALYZE_SKIP = "analyze.skip";
 
-    Set<String> analyzeSkip();
+    default Set<String> analyzeSkip() {
+        return Set.of();
+    }
 
     static ProjectFile none() {
         return new None();
@@ -114,13 +116,7 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
                 .collect(Collectors.joining(", "));
     }
 
-    record None() implements ProjectFile {
-
-        @Override
-        public Set<String> analyzeSkip() {
-            return Set.of();
-        }
-    }
+    record None() implements ProjectFile {}
 
     record Settings(String location, Set<String> analyzeSkip) implements ProjectFile {
 
@@ -135,11 +131,6 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
         public Invalid {
             Objects.requireNonNull(location, "location");
             Objects.requireNonNull(problem, "problem");
-        }
-
-        @Override
-        public Set<String> analyzeSkip() {
-            return Set.of();
         }
     }
 }

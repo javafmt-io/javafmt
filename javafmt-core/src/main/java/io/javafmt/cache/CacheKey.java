@@ -6,7 +6,7 @@ import io.javafmt.ProjectFile;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The part of a run's configuration that decides what a formatted file looks like.
@@ -35,7 +35,7 @@ public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, Stri
     public static CacheKey of(final JavafmtConfig config, final Collection<ProjectFile> projectFiles) {
         Objects.requireNonNull(config, "config");
         final var described = projectFiles.stream()
-                .flatMap(projectFile -> describe(projectFile).stream())
+                .flatMap(CacheKey::describe)
                 .toList();
         return switch (config.analysis()) {
             case JavafmtConfig.Analysis.ParseOnly() -> new CacheKey(config.lint(), config.verifyOutput(), false, "", config.release(), described);
@@ -44,15 +44,12 @@ public record CacheKey(boolean lint, boolean verifyOutput, boolean analyze, Stri
         };
     }
 
-    private static List<String> describe(final ProjectFile projectFile) {
+    private static Stream<String> describe(final ProjectFile projectFile) {
         return switch (projectFile) {
-            case ProjectFile.None() -> List.of();
-            case ProjectFile.Settings(var location, var analyzeSkip) -> List.of(
-                    location + " " + ProjectFile.ANALYZE_SKIP + "="
-                            + analyzeSkip.stream()
-                                    .sorted()
-                                    .collect(Collectors.joining(",")));
-            case ProjectFile.Invalid(var location, var problem) -> List.of(location + " invalid: " + problem);
+            case ProjectFile.None() -> Stream.empty();
+            case ProjectFile.Settings(var location, var analyzeSkip) ->
+                Stream.of(location + " " + ProjectFile.ANALYZE_SKIP + "=" + String.join(",", analyzeSkip));
+            case ProjectFile.Invalid(var location, var problem) -> Stream.of(location + " invalid: " + problem);
         };
     }
 

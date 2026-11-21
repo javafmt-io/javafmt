@@ -1,5 +1,7 @@
 package io.javafmt;
 
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
 
 import java.io.IOException;
@@ -159,11 +161,10 @@ public final class SourceFiles {
          * though an unreadable directory were empty.
          */
         public List<Path> filesOrThrow() {
-            unreadable.stream()
-                    .findFirst()
-                    .ifPresent(u -> {
-                        throw new UncheckedIOException("Failed to walk " + u.path(), u.error());
-                    });
+            if (!unreadable.isEmpty()) {
+                final var first = unreadable.getFirst();
+                throw new UncheckedIOException("Failed to walk " + first.path(), first.error());
+            }
             return files;
         }
     }
@@ -173,6 +174,7 @@ public final class SourceFiles {
      * into. Recording a failed entry and continuing is the whole point: one directory the user
      * cannot read must not hide the siblings they can.
      */
+    @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     private static final class Collector extends SimpleFileVisitor<Path> {
 
         private final Path root;
@@ -182,11 +184,6 @@ public final class SourceFiles {
         private final List<Path> files = new ArrayList<>();
 
         private final List<Unreadable> unreadable = new ArrayList<>();
-
-        private Collector(final Path root, final boolean applyDefaultExcludes) {
-            this.root = root;
-            this.applyDefaultExcludes = applyDefaultExcludes;
-        }
 
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attributes) {
@@ -213,7 +210,7 @@ public final class SourceFiles {
                     files.stream()
                             .sorted()
                             .toList(),
-                    List.copyOf(unreadable));
+                    unreadable);
         }
     }
 }

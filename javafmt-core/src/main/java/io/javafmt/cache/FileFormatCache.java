@@ -67,9 +67,6 @@ public final class FileFormatCache implements FormatCache {
         Objects.requireNonNull(cacheFile, "cacheFile");
         Objects.requireNonNull(key, "key");
         final var header = HEADER_PREFIX + key.fingerprint();
-        if (!Files.isRegularFile(cacheFile)) {
-            return new FileFormatCache(cacheFile, header, Map.of());
-        }
         try {
             final var lines = Files.readAllLines(cacheFile, StandardCharsets.UTF_8);
             final var parsed = parseLines(lines, header);

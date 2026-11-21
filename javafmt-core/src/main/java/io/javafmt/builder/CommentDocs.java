@@ -53,11 +53,7 @@ final class CommentDocs {
         if (comments.isEmpty()) {
             return doc;
         }
-        return Doc.concatOf(
-                Stream.of(
-                        comments.stream()
-                                .flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE)),
-                        Stream.of(doc)));
+        return Doc.concatOf(Stream.of(fileHeaderStream(comments), Stream.of(doc)));
     }
 
     Doc appendTrailing(final Doc doc, final List<CommentToken> comments) {
@@ -169,9 +165,6 @@ final class CommentDocs {
     }
 
     Stream<Doc> fileHeaderStream(final List<CommentToken> comments) {
-        if (comments.isEmpty()) {
-            return Stream.empty();
-        }
         return comments.stream()
                 .flatMap(c -> Stream.of(renderComment(c), Doc.HARD_LINE));
     }
