@@ -5,15 +5,11 @@ import java.io.PrintStream
 plugins {
     id("javafmt.java-conventions")
     application
-    id("javafmt.native-conventions")
+    id("org.graalvm.buildtools.native")
 }
 
 application {
     mainClass.set("io.javafmt.cli.Main")
-}
-
-nativeBinary {
-    imageName.set("javafmt")
 }
 
 tasks.named<JavaCompile>("compileJava") {
@@ -21,15 +17,29 @@ tasks.named<JavaCompile>("compileJava") {
     options.errorprone.option("NullAway:ExcludedFieldAnnotations", "picocli.CommandLine.Spec")
 }
 
+val graalLauncher = javaToolchains.launcherFor {
+    languageVersion.set(JavaLanguageVersion.of(25))
+    vendor.set(JvmVendorSpec.GRAAL_VM)
+}
+
 graalvmNative {
     binaries {
         named("main") {
-            mainClass.set("io.javafmt.cli.Main")
-            javaLauncher.set(javaToolchains.launcherFor {
-                languageVersion.set(JavaLanguageVersion.of(25))
-                vendor.set(JvmVendorSpec.GRAAL_VM)
-            })
+            imageName.set("javafmt")
+            mainClass.set(application.mainClass)
+            javaLauncher.set(graalLauncher)
+            sharedLibrary.set(false)
+            buildArgs.addAll(
+                "--no-fallback",
+                "-O2",
+                "--initialize-at-build-time=org.slf4j",
+                "--initialize-at-run-time=com.sun.tools.javac.file.Locations",
+                "--add-modules=jdk.compiler",
+            )
         }
+    }
+    agent {
+        defaultMode.set("standard")
     }
 }
 
@@ -92,10 +102,7 @@ val tracingAgentCapture = tasks.register<JavaExec>("tracingAgentCapture") {
     mainClass.set(application.mainClass)
     classpath = sourceSets.main.get().runtimeClasspath
     // The native-image-agent dylib only ships with GraalVM, not Temurin/OpenJDK.
-    javaLauncher.set(javaToolchains.launcherFor {
-        languageVersion.set(JavaLanguageVersion.of(25))
-        vendor.set(JvmVendorSpec.GRAAL_VM)
-    })
+    javaLauncher.set(graalLauncher)
     // --check exits 1 when input != expected (most non-idempotent fixtures); we only care
     // about exercising parse/format code paths under the agent, not the diagnostic outcome.
     isIgnoreExitValue = true
