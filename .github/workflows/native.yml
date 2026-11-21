@@ -12,8 +12,8 @@ on:
 # First-time setup: before this workflow can succeed, the GraalVM tracing agent
 # must be run locally to collect reflection metadata:
 #
-#   gradle -Pagent :javafmt-cli:test
-#   gradle :javafmt-cli:metadataCopy --task test \
+#   gradle :javafmt-cli:tracingAgentCapture -Pagent
+#   gradle :javafmt-cli:metadataCopy --task tracingAgentCapture \
 #     --dir javafmt-cli/src/main/resources/META-INF/native-image/io.javafmt/javafmt-cli
 #
 # Commit the generated metadata, then re-trigger this workflow. This metadata is already

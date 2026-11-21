@@ -5,6 +5,7 @@ import java.io.File
 import java.io.Serializable
 import java.net.URLClassLoader
 import java.security.MessageDigest
+import java.util.HexFormat
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -60,7 +61,7 @@ object JavafmtFormatter {
      */
     private data class JarEntry(val path: String, val sha256: String) : Serializable
 
-    private data class ClasspathState(val jars: ArrayList<String>, val analysisClasspath: String?, val release: Int) : Serializable
+    private data class ClasspathState(val jars: ArrayList<String>, val analysisClasspath: String, val release: Int) : Serializable
 
     /**
      * Top-level serializable function that materializes the [ClasspathState]
@@ -80,10 +81,9 @@ object JavafmtFormatter {
             }
             val clazz = Class.forName(FORMATTER_CLASS, true, loader)
             val method = clazz.getMethod(APPLY_METHOD, String::class.java, File::class.java, String::class.java, Int::class.javaPrimitiveType)
-            val classpath = state.analysisClasspath ?: ""
             return FormatterFunc.NeedsFile { input, file ->
                 try {
-                    method.invoke(null, input, file, classpath, state.release) as String
+                    method.invoke(null, input, file, state.analysisClasspath, state.release) as String
                 } catch (t: ReflectiveOperationException) {
                     val cause = t.cause ?: t
                     throw RuntimeException("javafmt formatter invocation failed: ${cause.message}", cause)
@@ -92,16 +92,6 @@ object JavafmtFormatter {
         }
     }
 
-    private fun sha256(file: File): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { stream ->
-            val buffer = ByteArray(8192)
-            while (true) {
-                val read = stream.read(buffer)
-                if (read <= 0) break
-                digest.update(buffer, 0, read)
-            }
-        }
-        return digest.digest().joinToString("") { "%02x".format(it) }
-    }
+    private fun sha256(file: File): String =
+        HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(file.readBytes()))
 }

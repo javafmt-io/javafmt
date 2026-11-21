@@ -9,6 +9,7 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.w3c.dom.Element
 import java.io.StringReader
+import java.util.Locale
 import javax.xml.parsers.DocumentBuilderFactory
 import org.xml.sax.InputSource
 
@@ -56,7 +57,7 @@ object CoverageSummary {
 
     private fun percent(counter: Counter): String {
         val total = counter.covered + counter.missed
-        return if (total == 0L) "n/a" else "%.1f%%".format(java.util.Locale.ROOT, 100.0 * counter.covered / total)
+        return if (total == 0L) "n/a" else "%.1f%%".format(Locale.ROOT, 100.0 * counter.covered / total)
     }
 }
 

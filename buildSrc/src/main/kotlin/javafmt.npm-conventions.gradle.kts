@@ -38,7 +38,7 @@ val npmTest = tasks.register<NpmTask>("npmTest") {
 
 val npmTestIntegration = tasks.register<NpmTask>("npmTestIntegration") {
     group = "verification"
-    description = "Runs VS Code integration tests inside the Extension Development Host; skipped when 'code' is not on PATH."
+    description = "Runs VS Code integration tests inside the Extension Development Host, downloading VS Code on first use."
     args.set(listOf("run", "test:integration"))
     dependsOn(npmBuild, tasks.named("npmInstall"))
     // Integration tests have no stable file output, so Gradle always considers them out-of-date

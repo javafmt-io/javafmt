@@ -1,14 +1,13 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
-import org.gradle.api.artifacts.VersionCatalogsExtension
 
 /**
  * Wires Spotless into the project, configured to run javafmt-spotless against
  * the project's own Java sources. See `JavafmtFormatter.kt` for why we go
  * through a `URLClassLoader` instead of a direct call.
  *
- * `:javafmt-spotless` is carved out — it cannot format itself without depending
- * on its own runtime classpath, which is a circular self-reference. Every other
- * JVM module picks this convention up via `javafmt.java-conventions`.
+ * Every JVM module picks this convention up via `javafmt.java-conventions`,
+ * `:javafmt-spotless` included: it formats itself with the jar built from its
+ * own previous output.
  */
 plugins {
     id("com.diffplug.spotless")
@@ -64,7 +63,7 @@ configure<SpotlessExtension> {
         // compileJava before spotless tasks run, so paths are correct at execution.
         val analysisClasspath = try {
             val external = configurations.named("compileClasspath").get().resolve()
-            val ownClasses = extensions.getByType<org.gradle.api.plugins.JavaPluginExtension>()
+            val ownClasses = extensions.getByType<JavaPluginExtension>()
                 .sourceSets.getByName("main").output.classesDirs.files
             external + ownClasses
         } catch (_: Exception) {
@@ -82,8 +81,8 @@ val javafmtProjectFiles = generateSequence(projectDir) { it.parentFile }
     .takeWhile { it != rootDir.parentFile }
     .map { it.resolve(".javafmt") }
     .toList()
-tasks.matching { it.name.startsWith("spotless") }.configureEach {
-    inputs.files(javafmtFormatterRuntime).withNormalizer(org.gradle.api.tasks.ClasspathNormalizer::class.java)
+tasks.named { it.startsWith("spotless") }.configureEach {
+    inputs.files(javafmtFormatterRuntime).withNormalizer(ClasspathNormalizer::class.java)
     inputs.files(javafmtProjectFiles, fileTree("src") { include("**/.javafmt") })
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("javafmtProjectFiles")
