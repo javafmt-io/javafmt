@@ -39,7 +39,19 @@ class MisplacedCommentTest {
                         "class A {\n\n    void f(int x) {\n        switch (x) {\n            default:\n                // nothing to do\n        }\n    }\n}\n",
                         "// nothing to do",
                         6,
-                        17));
+                        17),
+                Arguments.of(
+                        "class A {\n\n    void f(int x) {\n        switch (x) {\n            // no cases yet\n        }\n    }\n}\n",
+                        "// no cases yet",
+                        5,
+                        13));
+    }
+
+    @Test
+    void aCommentBesideTheBraceOfASwitchWithNoCasesIsKept() {
+        final var result = Javafmt.formatWithResult("class A {\n\n    void f(int x) {\n        switch (x) { // no cases yet\n        }\n    }\n}\n");
+        assertThat(result.output()).contains("switch (x) { // no cases yet\n");
+        assertThat(result.diagnostics()).noneMatch(Diagnostic.LintError.class::isInstance);
     }
 
     @ParameterizedTest
