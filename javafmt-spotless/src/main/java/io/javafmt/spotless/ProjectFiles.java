@@ -32,16 +32,7 @@ record ProjectFiles(Keyed governing, List<Keyed> below, List<String> repositoryR
         } catch (final IOException e) {
             throw new UncheckedIOException("Failed to walk " + root, e);
         }
-        return new ProjectFiles(
-                governing(root),
-                finder.projectFiles.stream()
-                        .sorted()
-                        .map(file -> keyed(root, file))
-                        .toList(),
-                finder.repositoryRoots.stream()
-                        .sorted()
-                        .map(repository -> root.relativize(repository).toString())
-                        .toList());
+        return finder.result();
     }
 
     private static Keyed governing(final Path root) {
@@ -107,10 +98,23 @@ record ProjectFiles(Keyed governing, List<Keyed> below, List<String> repositoryR
             }
             if (isGit(file)) {
                 repositoryRoots.add(directory);
-            } else if (ProjectFile.NAME.equals(String.valueOf(file.getFileName())) && Files.isRegularFile(file)) {
+            } else if (file.endsWith(ProjectFile.NAME) && Files.isRegularFile(file)) {
                 projectFiles.add(file);
             }
             return FileVisitResult.CONTINUE;
+        }
+
+        private ProjectFiles result() {
+            return new ProjectFiles(
+                    governing(root),
+                    projectFiles.stream()
+                            .sorted()
+                            .map(file -> keyed(root, file))
+                            .toList(),
+                    repositoryRoots.stream()
+                            .sorted()
+                            .map(repository -> root.relativize(repository).toString())
+                            .toList());
         }
 
         @Override
@@ -119,7 +123,7 @@ record ProjectFiles(Keyed governing, List<Keyed> below, List<String> repositoryR
         }
 
         private static boolean isGit(final Path path) {
-            return ".git".equals(String.valueOf(path.getFileName()));
+            return path.endsWith(".git");
         }
     }
 }
