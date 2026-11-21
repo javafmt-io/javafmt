@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/** Fails the build when any of the module's main or test Java sources is not formatted. */
 @Mojo(name = "check", defaultPhase = LifecyclePhase.VERIFY, threadSafe = true)
 public final class JavafmtCheckMojo extends AbstractJavafmtMojo {
 

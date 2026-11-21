@@ -33,6 +33,7 @@ final class MojoTestSupport {
         build.setTestSourceDirectory(testDir.toAbsolutePath().toString());
         final var project = new MavenProject();
         project.getModel().setBuild(build);
+        project.setFile(root.toAbsolutePath().resolve("pom.xml").toFile());
         return project;
     }
 
@@ -75,9 +76,7 @@ final class MojoTestSupport {
         repository.write("src/main/java/Invoice.java", UNFORMATTED.replace("Foo", "Invoice"));
         repository.commitAll("initial");
         repository.write("src/main/java/Invoice.java", EDITED_INVOICE);
-        final var project = projectInMavenLayout(dir);
-        project.setFile(dir.resolve("pom.xml").toFile());
-        return project;
+        return projectInMavenLayout(dir);
     }
 
     static final class CapturingLog extends SystemStreamLog {

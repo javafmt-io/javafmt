@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
+/** Formats the module's main and test Java sources in place. */
 @Mojo(name = "format", defaultPhase = LifecyclePhase.PROCESS_SOURCES, threadSafe = true)
 public final class JavafmtMojo extends AbstractJavafmtMojo {
 

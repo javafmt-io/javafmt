@@ -109,6 +109,14 @@ class JavafmtMojoTest {
     }
 
     @Test
+    void aRelativeCacheFileResolvesAgainstTheModuleDirectory(@TempDir final Path dir) throws Exception {
+        Files.writeString(sourceDirectory(dir).resolve("Foo.java"), FORMATTED);
+        final var cacheFile = Path.of("build/javafmt-relative.cache");
+        formatMojo(dir, cacheFile, new CapturingLog()).execute();
+        assertThat(dir.resolve(cacheFile)).exists();
+    }
+
+    @Test
     void formatGoalAlsoRewritesTestSources(@TempDir final Path dir) throws Exception {
         final var main = Files.writeString(sourceDirectory(dir).resolve("Foo.java"), UNFORMATTED);
         final var test = Files.writeString(

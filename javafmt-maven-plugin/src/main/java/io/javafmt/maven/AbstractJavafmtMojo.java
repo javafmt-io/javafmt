@@ -18,6 +18,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.jspecify.annotations.Nullable;
 
+import java.io.File;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -34,41 +35,26 @@ abstract sealed class AbstractJavafmtMojo extends AbstractMojo permits JavafmtMo
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject project;
 
-    /**
-     * Maximum number of files to process concurrently. Defaults to the number of available
-     * processors. Per-file IR build/print is single-threaded; parallelism is at the file
-     * boundary.
-     */
+    /** The most files to format at once; zero, the default, means one per available processor. */
     @Parameter(property = "javafmt.threads", defaultValue = "0")
     private int threads;
 
-    /**
-     * Enable incremental processing. When {@code true}, javafmt keeps a small hash-based
-     * cache of already-formatted files and skips files whose content matches the cached
-     * hash. Default: {@code false}.
-     */
+    /** Skips files that have not changed since javafmt last formatted or checked them. */
     @Parameter(property = "javafmt.cache", defaultValue = "false")
     private boolean cache;
 
-    /**
-     * Cache file location. Defaults to {@code ${project.build.directory}/javafmt.cache}.
-     * Only consulted when {@link #cache} is {@code true}.
-     */
+    /** Where the cache is kept; a relative path resolves against the module's directory. */
     @Nullable
-    @Parameter(property = "javafmt.cacheFile")
-    private String cacheFile;
+    @Parameter(property = "javafmt.cacheFile", defaultValue = "${project.build.directory}/javafmt.cache")
+    private File cacheFile;
 
-    /**
-     * ANT-style glob patterns (matched by {@link java.nio.file.FileSystem#getPathMatcher
-     * "glob:..."}) of source paths to skip. Each entry is tested against both the full path
-     * and the bare filename; a match in either drops the file.
-     */
+    /** Glob patterns of files to skip, each matched against the file's full path and its name. */
     @Parameter
     private List<String> excludes = List.of();
 
     /**
-     * A git ref such as {@code origin/main}. When set, only files that differ from the merge base of {@code HEAD} and this ref,
-     * plus untracked files git does not ignore, are formatted or checked. Default: every file.
+     * A git ref such as origin/main. When set, only files changed since its merge base with HEAD, plus untracked files git
+     * does not ignore, are formatted or checked.
      */
     @Nullable
     @Parameter(property = "javafmt.ratchetFrom")
@@ -80,7 +66,7 @@ abstract sealed class AbstractJavafmtMojo extends AbstractMojo permits JavafmtMo
         this.project = project;
         this.excludes = List.copyOf(excludes);
         this.cache = cacheFile.isPresent();
-        this.cacheFile = cacheFile.map(Path::toString).orElse(null);
+        this.cacheFile = cacheFile.map(Path::toFile).orElse(null);
         this.ratchetFrom = ratchetFrom.orElse(null);
     }
 
@@ -112,11 +98,7 @@ abstract sealed class AbstractJavafmtMojo extends AbstractMojo permits JavafmtMo
 
     private List<Path> changedSinceRatchet(final MavenProject mavenProject, final List<Path> files) {
         return Optional.ofNullable(ratchetFrom)
-                .map(ref -> GitRatchet.since(
-                                ref,
-                                Objects.requireNonNull(mavenProject.getBasedir(), "basedir")
-                                        .toPath())
-                        .keep(files))
+                .map(ref -> GitRatchet.since(ref, basedir(mavenProject)).keep(files))
                 .orElse(files);
     }
 
@@ -152,12 +134,16 @@ abstract sealed class AbstractJavafmtMojo extends AbstractMojo permits JavafmtMo
     }
 
     private FormatCache resolveCache(final MavenProject mavenProject) {
-        if (!cache) {
-            return FormatCache.noop();
-        }
-        final var path = cacheFile != null
-                ? Path.of(cacheFile)
-                : Path.of(mavenProject.getBuild().getDirectory(), "javafmt.cache");
-        return FileFormatCache.load(path, CacheKey.of(CONFIG));
+        return cache
+                ? FileFormatCache.load(
+                        basedir(mavenProject)
+                                .resolve(Objects.requireNonNull(cacheFile, "cacheFile")
+                                        .toPath()),
+                        CacheKey.of(CONFIG))
+                : FormatCache.noop();
+    }
+
+    private static Path basedir(final MavenProject mavenProject) {
+        return Objects.requireNonNull(mavenProject.getBasedir(), "basedir").toPath();
     }
 }
