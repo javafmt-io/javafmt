@@ -100,11 +100,12 @@ public abstract class JavafmtTask extends DefaultTask {
         });
         queue.submit(JavafmtAction.class, parameters -> {
             parameters.getFiles().from(files);
-            parameters.getAnalyze().set(getAnalyze());
             parameters.getRatchetFrom().set(getRatchetFrom());
             parameters.getThreads()
                     .set(Math.min(MAX_THREADS, Runtime.getRuntime().availableProcessors()));
-            parameters.getAnalysisClasspath().set(getAnalysisClasspath().getAsPath());
+            if (getAnalyze().get()) {
+                parameters.getAnalysisClasspath().set(getAnalysisClasspath().getAsPath());
+            }
             parameters.getWrite().set(write);
             parameters.getProjectDirectory().set(getProjectDirectory());
             parameters.getFormatTaskPath().set(getFormatTaskPath());

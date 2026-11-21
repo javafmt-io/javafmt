@@ -17,6 +17,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.workers.WorkAction;
 import org.gradle.workers.WorkParameters;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -39,49 +40,64 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
         final var write = parameters.getWrite().get();
         final var files = List.copyOf(parameters.getFiles().getFiles());
         LOGGER.info("javafmt: processed {} file(s)", files.size());
-        final var outcome = JavafmtEngine.run(
-                new Request(
-                        files,
-                        parameters.getAnalyze().get()
-                                ? Optional.of(parameters.getAnalysisClasspath().get())
-                                : Optional.empty(),
-                        Optional.ofNullable(parameters.getRatchetFrom().getOrNull()),
-                        write,
-                        parameters.getProjectDirectory().get().getAsFile(),
-                        parameters.getThreads().get()));
+        final var outcome = JavafmtEngine.run(request(parameters, files));
         final var problems = getProblems();
         final var reporter = problems.getReporter();
-        final var javafmt = problems.getGroups()
+        final var group = problems.getGroups()
                 .getVerification()
                 .getCodeQuality()
                 .group("javafmt");
-        final var warningId = javafmt.problemId("javafmt warning");
-        outcome.warnings().forEach(warning -> LOGGER.warn("javafmt: {}", warning.description()));
-        reporter.report(outcome.warnings().stream()
-                .map(warning -> problem(reporter, warningId, warning))
-                .toList());
+        final var ids = new ProblemIds(
+                group.problemId("javafmt warning"), group.problemId("File not formatted by javafmt"), group.problemId("javafmt error"));
+        reportWarnings(reporter, ids.warning(), outcome.warnings());
         if (write) {
             outcome.changed().forEach(file -> LOGGER.info("javafmt: formatted {}", file.display()));
         }
-        final var formatTaskPath = parameters.getFormatTaskPath().get();
         final var unformatted = write ? List.<Outcome.Source>of() : outcome.changed();
+        if (!unformatted.isEmpty() || !outcome.errors().isEmpty()) {
+            throw failure(reporter, ids, parameters.getFormatTaskPath().get(), unformatted, outcome.errors());
+        }
+        writeMarker(parameters);
+    }
+
+    private static Request request(final Parameters parameters, final List<File> files) {
+        return new Request(
+                files,
+                Optional.ofNullable(parameters.getAnalysisClasspath().getOrNull()),
+                Optional.ofNullable(parameters.getRatchetFrom().getOrNull()),
+                parameters.getWrite().get(),
+                parameters.getProjectDirectory().get().getAsFile(),
+                parameters.getThreads().get());
+    }
+
+    private static void reportWarnings(final ProblemReporter reporter, final ProblemId id, final List<Outcome.Finding> warnings) {
+        warnings.forEach(warning -> LOGGER.warn("javafmt: {}", warning.description()));
+        reporter.report(warnings.stream()
+                .map(warning -> problem(reporter, id, warning))
+                .toList());
+    }
+
+    private static RuntimeException failure(final ProblemReporter reporter,
+                                            final ProblemIds ids,
+                                            final String formatTaskPath,
+                                            final List<Outcome.Source> unformatted,
+                                            final List<Outcome.Finding> errors) {
         final var message = Stream.concat(
-                unformatted(unformatted, formatTaskPath),
-                outcome.errors().stream()
+                unformattedLines(unformatted, formatTaskPath),
+                errors.stream()
                         .map(Outcome.Finding::description))
                 .collect(Collectors.joining("\n"));
-        if (!message.isEmpty()) {
-            final var unformattedId = javafmt.problemId("File not formatted by javafmt");
-            final var errorId = javafmt.problemId("javafmt error");
-            throw reporter.throwing(
-                    new GradleException(message),
-                    Stream.concat(
-                            unformatted.stream()
-                                    .map(source -> unformattedProblem(reporter, unformattedId, source, formatTaskPath)),
-                            outcome.errors().stream()
-                                    .map(error -> problem(reporter, errorId, error)))
-                            .toList());
-        }
+        return reporter.throwing(
+                new GradleException(message),
+                Stream.concat(
+                        unformatted.stream()
+                                .map(source -> unformattedProblem(reporter, ids.unformatted(), source, formatTaskPath)),
+                        errors.stream()
+                                .map(error -> problem(reporter, ids.error(), error)))
+                        .toList());
+    }
+
+    private static void writeMarker(final Parameters parameters) {
         if (parameters.getMarker().isPresent()) {
             try {
                 Files.writeString(
@@ -92,7 +108,7 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
         }
     }
 
-    private static Stream<String> unformatted(final List<Outcome.Source> unformatted, final String formatTaskPath) {
+    private static Stream<String> unformattedLines(final List<Outcome.Source> unformatted, final String formatTaskPath) {
         if (unformatted.isEmpty()) {
             return Stream.empty();
         }
@@ -119,11 +135,11 @@ public abstract class JavafmtAction implements WorkAction<JavafmtAction.Paramete
         });
     }
 
+    private record ProblemIds(ProblemId warning, ProblemId unformatted, ProblemId error) {}
+
     public interface Parameters extends WorkParameters {
 
         ConfigurableFileCollection getFiles();
-
-        Property<Boolean> getAnalyze();
 
         Property<String> getRatchetFrom();
 
