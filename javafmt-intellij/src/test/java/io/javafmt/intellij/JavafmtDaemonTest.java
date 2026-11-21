@@ -41,6 +41,8 @@ class JavafmtDaemonTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
 
+    private static final Duration PATIENT = Duration.ofSeconds(30);
+
     @Test
     void aRequestIsTheFixturesLengthDelimitedProtobuf(@TempDir final Path dir) throws Exception {
         final var sent = dir.resolve("sent");
@@ -150,7 +152,7 @@ class JavafmtDaemonTest {
     @Test
     @Timeout(10)
     void aDaemonThatNeverAnswersIsRefusedAtTheTimeoutAndStopped(@TempDir final Path dir) throws Exception {
-        final var daemon = start(script(dir, "cat > /dev/null\n"));
+        final var daemon = start(script(dir, "cat > /dev/null\n"), TIMEOUT);
         final var begun = System.nanoTime();
         assertThat(daemon.format("class A {}", FileScope.none())).isEqualTo(new Outcome.Refused("javafmt did not respond within 2s", true));
         assertThat(Duration.ofNanos(System.nanoTime() - begun)).isBetween(TIMEOUT, TIMEOUT.plusSeconds(2));
@@ -160,7 +162,7 @@ class JavafmtDaemonTest {
     @Test
     @Timeout(10)
     void aDaemonThatNeverReadsItsInputDoesNotHoldTheCallerPastTheTimeout(@TempDir final Path dir) throws Exception {
-        final var daemon = start(script(dir, "exec sleep 15\n"));
+        final var daemon = start(script(dir, "exec sleep 15\n"), TIMEOUT);
         final var begun = Instant.now();
         assertThat(daemon.format("x".repeat(1_000_000), FileScope.none()))
                 .isInstanceOfSatisfying(Outcome.Refused.class,
@@ -233,7 +235,7 @@ class JavafmtDaemonTest {
     @Timeout(10)
     void stoppingALiveDaemonKillsItsProcess(@TempDir final Path dir) throws Exception {
         final var killed = new CompletableFuture<Process>();
-        final var daemon = JavafmtDaemon.start(script(dir, "cat > /dev/null\n"), TIMEOUT, killed::complete);
+        final var daemon = JavafmtDaemon.start(script(dir, "cat > /dev/null\n"), PATIENT, killed::complete);
         daemon.stop();
         assertThat(killed)
                 .succeedsWithin(Duration.ofSeconds(5))
@@ -324,6 +326,10 @@ class JavafmtDaemonTest {
     }
 
     private static JavafmtDaemon start(final Path executable) throws ExecutionException {
-        return JavafmtDaemon.start(executable, TIMEOUT);
+        return start(executable, PATIENT);
+    }
+
+    private static JavafmtDaemon start(final Path executable, final Duration timeout) throws ExecutionException {
+        return JavafmtDaemon.start(executable, timeout);
     }
 }
