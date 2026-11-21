@@ -197,6 +197,8 @@ class Session {
 
     private lastId = 0;
 
+    private restarts = 0;
+
     private reportedMissingBinary = false;
 
     private reportedMissingClasspath = false;
@@ -340,6 +342,7 @@ class Session {
 
     private restartDaemon(): Daemon | null {
         this.reportedMissingBinary = false;
+        this.restarts++;
         this.stopDaemon();
         this.startDaemon();
         return this.daemon;
@@ -350,7 +353,11 @@ class Session {
         if (!proc) {
             return;
         }
+        const restart = this.restarts;
         const failure = await started(proc, REQUEST_TIMEOUT_MS);
+        if (restart !== this.restarts) {
+            return;
+        }
         if (failure === undefined) {
             void vscode.window.showInformationMessage('javafmt daemon restarted.');
             return;

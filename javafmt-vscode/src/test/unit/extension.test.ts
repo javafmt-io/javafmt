@@ -486,6 +486,29 @@ describe('after activate()', () => {
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith('javafmt: daemon failed: spawn ENOENT');
         });
 
+        it.each([
+            { event: 'spawn', by: 'another restart' },
+            { event: 'error', by: 'another restart' },
+            { event: 'spawn', by: 'a settings change' },
+        ])('reports nothing for a restart replaced by $by before its daemon emitted $event', async ({ event, by }) => {
+            const replaced = mockProcess();
+            const latest = mockProcess();
+            jest.spyOn(child_process, 'spawn')
+                .mockImplementationOnce(() => mockProcess())
+                .mockImplementationOnce(() => replaced)
+                .mockImplementation(() => latest);
+            onlyExecutable((p) => p === bundled);
+            deactivate();
+            activate(makeContext('/ext'));
+            const first = restartCommand()();
+            const second = by === 'another restart' ? restartCommand()() : configurationChanged((section) => section === 'javafmt');
+            replaced.emit(event, new Error('spawn EACCES'));
+            latest.emit('spawn');
+            await Promise.all([first, second]);
+            expect(vscode.window.showInformationMessage).toHaveBeenCalledTimes(by === 'another restart' ? 1 : 0);
+            expect(vscode.window.showErrorMessage).not.toHaveBeenCalledWith(expect.stringContaining('EACCES'));
+        });
+
         it('reports a restart whose daemon has not started within 10s, and stops it', async () => {
             jest.useFakeTimers();
             const next = mockProcess();
