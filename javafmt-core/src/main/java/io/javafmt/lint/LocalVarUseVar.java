@@ -12,7 +12,6 @@ import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.ParameterizedTypeTree;
-import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.PrimitiveTypeTree;
 import com.sun.source.tree.SwitchExpressionTree;
 import com.sun.source.tree.Tree;
@@ -214,7 +213,7 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
     }
 
     private static boolean keepsItsTypeWithoutTarget(final VariableTree node, final TreePath path, final Attribution attribution) {
-        final var initializer = withoutParentheses(node.getInitializer());
+        final var initializer = Declarations.withoutParentheses(node.getInitializer());
         final var isPoly = switch (initializer) {
             case NewClassTree newClass ->
                 newClass.getClassBody() != null
@@ -351,7 +350,7 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
     }
 
     private static boolean isAnalyzeCandidate(final VariableTree node, final TreePath path, final Attribution attribution) {
-        final var initializer = withoutParentheses(node.getInitializer());
+        final var initializer = Declarations.withoutParentheses(node.getInitializer());
         if (hasNoTypeOfItsOwn(initializer, path, attribution) || carriesTypeWitness(initializer)) {
             return false;
         }
@@ -417,10 +416,6 @@ public final class LocalVarUseVar implements RewriteVerifyingRule {
             }
         }.scan(initializer, null);
         return found.get();
-    }
-
-    private static ExpressionTree withoutParentheses(final ExpressionTree expression) {
-        return expression instanceof ParenthesizedTree parenthesized ? withoutParentheses(parenthesized.getExpression()) : expression;
     }
 
     private static boolean sameText(final Tree a, final Tree b, final ParsedUnit unit) {

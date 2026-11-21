@@ -5,7 +5,6 @@ import com.sun.source.tree.ExpressionTree;
 import com.sun.source.tree.IdentifierTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
-import com.sun.source.tree.ParenthesizedTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
@@ -97,12 +96,12 @@ class VarRetypingCheck {
         }
         final var rejected = unproven.stream()
                 .filter(proposal -> failures.stream()
-                        .anyMatch(f -> inScope(proposal, f, unit, shift)))
+                        .anyMatch(f -> scopeOf(proposal, unit, shift).contains(f)))
                 .toList();
         return unproven.stream()
                 .filter(proposal -> !rejected.contains(proposal))
                 .filter(proposal -> rejected.stream()
-                        .noneMatch(outer -> inScope(outer, shift.start(unit.startOf(proposal.variable())), unit, shift)))
+                        .noneMatch(outer -> scopeOf(outer, unit, shift).contains(shift.start(unit.startOf(proposal.variable())))))
                 .toList();
     }
 
@@ -112,11 +111,7 @@ class VarRetypingCheck {
 
     private boolean inAnyScope(final List<Scope> scopes, final long offset) {
         return scopes.stream()
-                .anyMatch(scope -> offset >= scope.start() && offset < scope.end());
-    }
-
-    private boolean inScope(final LocalVarUseVar.Proposal proposal, final long offset, final ParsedUnit unit, final Shift shift) {
-        return offset >= shift.start(unit.startOf(proposal.scope())) && offset < shift.end(unit.endOf(proposal.scope()));
+                .anyMatch(scope -> scope.contains(offset));
     }
 
     private Set<Long> failures(final ParsedUnit unit,
@@ -164,17 +159,14 @@ class VarRetypingCheck {
         }
         final var beforeElement = beforeAttribution.trees().getElement(before);
         final var afterElement = afterAttribution.trees().getElement(after);
-        final var isRetypedReference = withoutParentheses(before.getLeaf()) instanceof IdentifierTree
+        final var isRetypedReference = before.getLeaf() instanceof ExpressionTree leaf
+            && Declarations.withoutParentheses(leaf) instanceof IdentifierTree
             && beforeElement != null
             && retypedVariables.contains(beforeElement);
         return (isRetypedReference
             || typeName(beforeAttribution.trees().getTypeMirror(before))
                     .equals(typeName(afterAttribution.trees().getTypeMirror(after))))
             && sameSymbol(beforeElement, afterElement, afterAttribution);
-    }
-
-    private Tree withoutParentheses(final Tree tree) {
-        return tree instanceof ParenthesizedTree parenthesized ? withoutParentheses(parenthesized.getExpression()) : tree;
     }
 
     private boolean sameSymbol(@Nullable final Element before, @Nullable final Element after, final Attribution afterAttribution) {
@@ -271,7 +263,12 @@ class VarRetypingCheck {
 
     private record Key(Tree.Kind kind, long start, long end) {}
 
-    private record Scope(int start, int end) {}
+    private record Scope(int start, int end) {
+
+        boolean contains(final long offset) {
+            return offset >= start && offset < end;
+        }
+    }
 
     record Shift(NavigableMap<Integer, Integer> movedFromStart, NavigableMap<Integer, Integer> movedFromEnd) {
 
