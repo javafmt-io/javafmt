@@ -15,19 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      NATIVE_CHECKSUMS: ${{ github.workspace }}/build/release-assets/native/SHA256SUMS
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Pin archive timestamps to the tagged commit
-        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
-
       - name: Set up Java, Gradle and Node.js
         uses: ./.github/actions/setup-build
         with:
           node: 'true'
+          source-date-epoch: 'true'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download native binaries
@@ -60,24 +60,24 @@ jobs:
         run: sudo apt-get install -y xvfb
 
       - name: Build and test
-        run: xvfb-run -a gradle build :javafmt-intellij:buildPlugin -Pjavafmt.nativeChecksums="$GITHUB_WORKSPACE/build/release-assets/native/SHA256SUMS"
+        run: xvfb-run -a gradle build :javafmt-intellij:buildPlugin -Pjavafmt.nativeChecksums="$NATIVE_CHECKSUMS"
+
+      - name: Resolve JReleaser and project versions
+        run: |
+          echo "JRELEASER_VERSION=$(sed -n 's/^jreleaser=//p' .sdkmanrc | tr -d '\r')" >> "$GITHUB_ENV"
+          echo "JRELEASER_PROJECT_VERSION=$(gradle -q currentVersion)" >> "$GITHUB_ENV"
 
       - name: Stage the IntelliJ plugin
         run: |
           plugin=(javafmt-intellij/build/distributions/*.zip)
           [ -f "${plugin[0]}" ]
-          cp "${plugin[0]}" "build/release-assets/javafmt-intellij-$(gradle -q currentVersion).zip"
+          cp "${plugin[0]}" "build/release-assets/javafmt-intellij-${JRELEASER_PROJECT_VERSION}.zip"
 
       - name: Publish to local staging
         run: gradle publishAllPublicationsToStagingRepository
         env:
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
-
-      - name: Resolve JReleaser and project versions
-        run: |
-          echo "JRELEASER_VERSION=$(sed -n 's/^jreleaser=//p' .sdkmanrc)" >> "$GITHUB_ENV"
-          echo "JRELEASER_PROJECT_VERSION=$(gradle -q currentVersion)" >> "$GITHUB_ENV"
 
       - name: Release with JReleaser
         uses: jreleaser/release-action@v2
@@ -113,12 +113,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Pin archive timestamps to the tagged commit
-        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
-
       - name: Set up Java and Gradle
         uses: ./.github/actions/setup-build
         with:
+          source-date-epoch: 'true'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Publish the Gradle plugin to the Plugin Portal
@@ -132,18 +130,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      NATIVE_CHECKSUMS: ${{ github.workspace }}/build/release-assets/native/SHA256SUMS
+      JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
+      JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
+      JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
+      JETBRAINS_PLUGIN_TOKEN: ${{ secrets.JETBRAINS_PLUGIN_TOKEN }}
 
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Pin archive timestamps to the tagged commit
-        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
-
       - name: Set up Java and Gradle
         uses: ./.github/actions/setup-build
         with:
+          source-date-epoch: 'true'
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Download native checksums
@@ -153,11 +155,7 @@ jobs:
           path: build/release-assets/native
 
       - name: Sign the IntelliJ plugin
-        run: gradle :javafmt-intellij:signPlugin -Pjavafmt.nativeChecksums="$GITHUB_WORKSPACE/build/release-assets/native/SHA256SUMS"
-        env:
-          JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
-          JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
-          JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
+        run: gradle :javafmt-intellij:signPlugin -Pjavafmt.nativeChecksums="$NATIVE_CHECKSUMS"
 
       - name: Upload the signed IntelliJ plugin
         uses: actions/upload-artifact@v7
@@ -167,12 +165,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish the IntelliJ plugin to the JetBrains Marketplace
-        run: gradle :javafmt-intellij:publishPlugin -Pjavafmt.nativeChecksums="$GITHUB_WORKSPACE/build/release-assets/native/SHA256SUMS"
-        env:
-          JETBRAINS_CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
-          JETBRAINS_PRIVATE_KEY: ${{ secrets.JETBRAINS_PRIVATE_KEY }}
-          JETBRAINS_PRIVATE_KEY_PASSWORD: ${{ secrets.JETBRAINS_PRIVATE_KEY_PASSWORD }}
-          JETBRAINS_PLUGIN_TOKEN: ${{ secrets.JETBRAINS_PLUGIN_TOKEN }}
+        run: gradle :javafmt-intellij:publishPlugin -Pjavafmt.nativeChecksums="$NATIVE_CHECKSUMS"
 
   publish-vscode-extension:
     needs: release

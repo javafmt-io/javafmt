@@ -2,6 +2,9 @@ name: Set up the build
 description: Installs the JDK and Gradle that .sdkmanrc pins, and on request the Node.js that .nvmrc pins, so every workflow builds with the same versions as a local shell.
 
 inputs:
+  source-date-epoch:
+    description: Export SOURCE_DATE_EPOCH as the checked-out commit's time, so archives built afterwards are reproducible. The repository must already be checked out.
+    default: 'false'
   graalvm:
     description: Install GraalVM Community for the pinned Java feature release instead of Temurin, for native-image builds.
     default: 'false'
@@ -26,6 +29,11 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Pin archive timestamps to the checked-out commit
+      if: inputs.source-date-epoch == 'true'
+      shell: bash
+      run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+
     - name: Read the versions .sdkmanrc pins
       id: versions
       shell: bash
