@@ -1,6 +1,7 @@
 package io.javafmt.spotless;
 
 import io.javafmt.Fixtures;
+import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.JavafmtVersion;
 import org.junit.jupiter.api.Test;
@@ -32,25 +33,6 @@ class JavafmtFormatterStepTest {
             "import java.util.stream.Stream;\n\nclass Foo {\n\n    Stream<String> xs = Stream.<String>of(\"a\");\n}\n";
 
     @Test
-    void applyOnValidSourceReturnsFormattedOutput() {
-        assertThat(JavafmtFormatterStep.apply(Fixtures.UNFORMATTED_FOO)).isEqualTo(Fixtures.FORMATTED_FOO);
-    }
-
-    @Test
-    void applyOnMalformedSourceThrowsWithPositionAndMessage() {
-        assertThatThrownBy(() -> JavafmtFormatterStep.apply("class {"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageMatching("(?s).*\\d+:\\d+.*");
-    }
-
-    @Test
-    void applyOnMalformedSourcePrefersErrorDiagnosticOverWarning() {
-        assertThatThrownBy(() -> JavafmtFormatterStep.apply("class {"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .satisfies(t -> assertThat(t.getMessage()).isNotBlank());
-    }
-
-    @Test
     void createReturnsStepNamedJavafmt() {
         assertThat(JavafmtFormatterStep.create(project.toFile()).getName()).isEqualTo("javafmt");
     }
@@ -70,10 +52,10 @@ class JavafmtFormatterStepTest {
     }
 
     @Test
-    void createFormatsIdenticallyToApply() throws Exception {
+    void createFormatsIdenticallyToJavafmt() throws Exception {
         final var source = "class Foo { int x; String y; void m() { int a = 1; } }";
         final var step = JavafmtFormatterStep.create(project.toFile());
-        assertThat(step.format(source, null)).isEqualTo(JavafmtFormatterStep.apply(source));
+        assertThat(step.format(source, null)).isEqualTo(Javafmt.format(source));
     }
 
     @Test
@@ -302,7 +284,7 @@ class JavafmtFormatterStepTest {
     void applyWithAClasspathThatDoesNotExistFormatsAsWithoutOne(@TempDir final Path dir) {
         final var source = Fixtures.UNFORMATTED_FOO;
         assertThat(JavafmtFormatterStep.apply(source, dir.resolve("Foo.java").toFile(), "/nonexistent/path.jar", 25))
-                .isEqualTo(JavafmtFormatterStep.apply(source));
+                .isEqualTo(Fixtures.FORMATTED_FOO);
     }
 
     @Test

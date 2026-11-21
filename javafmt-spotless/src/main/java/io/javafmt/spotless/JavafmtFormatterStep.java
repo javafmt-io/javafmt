@@ -53,14 +53,6 @@ public final class JavafmtFormatterStep {
         return FormatterStep.create(NAME, new Setup(formatterVersion, config, directory), Setup::state, State::formatter);
     }
 
-    public String apply(final String source) {
-        return apply(source, JavafmtConfig.defaults());
-    }
-
-    public String apply(final String source, final JavafmtConfig config) {
-        return throwOnError(Javafmt.formatWithResult(source, config));
-    }
-
     public String apply(final String source, final File file, final String classpath, final int release) {
         final var config = JavafmtConfig.defaults().withRelease(release);
         return new Func(classpath.isEmpty() ? config : config.withAnalysis(new JavafmtConfig.Analysis.Attributed(classpath))).apply(source, file);
