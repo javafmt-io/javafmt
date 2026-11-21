@@ -75,4 +75,32 @@ public class JavafmtApplicationSettingsTest extends JavafmtIntellijTestCase {
         final Consumer<JavafmtApplicationSettings> loadedState = settings -> settings.loadState(new JavafmtApplicationSettings());
         return Stream.of(Arguments.of(Named.of("setEngine", setter)), Arguments.of(Named.of("loadState", loadedState)));
     }
+
+    @ParameterizedTest
+    @MethodSource("waysToStayNative")
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    void settingTheNativeEngineAgainKeepsTheWarmDaemon(final Consumer<JavafmtApplicationSettings> stayNative, @TempDir final Path dir)
+            throws Exception {
+        final var starts = dir.resolve("starts");
+        final var binary = BinaryIdentity.of(JavafmtDaemonTest.script(dir, "echo started >> '" + starts + "'\n" + JavafmtDaemonTest.ECHO_REQUESTS))
+                .orElseThrow();
+        JavafmtApplicationSettings.getInstance().setEngine(JavafmtApplicationSettings.Engine.NATIVE);
+        assertThat(JavafmtDaemons.getInstance(getProject()).format(binary, "class A {}", FileScope.none()))
+                .isInstanceOf(Outcome.Formatted.class);
+        stayNative.accept(JavafmtApplicationSettings.getInstance());
+        assertThat(JavafmtApplicationSettings.getInstance().getEngine()).isEqualTo(JavafmtApplicationSettings.Engine.NATIVE);
+        assertThat(JavafmtDaemons.getInstance(getProject()).format(binary, "class B {}", FileScope.none()))
+                .isInstanceOf(Outcome.Formatted.class);
+        assertThat(Files.readAllLines(starts)).hasSize(1);
+    }
+
+    static Stream<Arguments> waysToStayNative() {
+        final Consumer<JavafmtApplicationSettings> setter = settings -> settings.setEngine(JavafmtApplicationSettings.Engine.NATIVE);
+        final Consumer<JavafmtApplicationSettings> loadedState = settings -> {
+            final var loaded = new JavafmtApplicationSettings();
+            loaded.setEngine(JavafmtApplicationSettings.Engine.NATIVE);
+            settings.loadState(loaded);
+        };
+        return Stream.of(Arguments.of(Named.of("setEngine", setter)), Arguments.of(Named.of("loadState", loadedState)));
+    }
 }
