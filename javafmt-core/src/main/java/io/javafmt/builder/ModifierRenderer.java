@@ -49,7 +49,7 @@ final class ModifierRenderer {
         return Doc.concat(
                 new Doc.Text(modifiersText(modifiers)),
                 annotationsDoc(
-                        annotations(modifiers, a -> recursor.followsAModifierKeyword(modifiers, a)
+                        annotations(modifiers, a -> recursor.facts().followsAModifierKeyword(modifiers, a)
                             && !followsTypeParameters(a, typeParameters, recursor)),
                         recursor));
     }
@@ -63,7 +63,8 @@ final class ModifierRenderer {
     private List<? extends AnnotationTree> declarationAnnotations(final ModifiersTree modifiers,
                                                                   final List<? extends TypeParameterTree> typeParameters,
                                                                   final Recursor recursor) {
-        return annotations(modifiers, a -> !recursor.followsAModifierKeyword(modifiers, a) && !followsTypeParameters(a, typeParameters, recursor));
+        return annotations(modifiers, a -> !recursor.facts().followsAModifierKeyword(modifiers, a)
+            && !followsTypeParameters(a, typeParameters, recursor));
     }
 
     private List<? extends AnnotationTree> annotations(final ModifiersTree modifiers, final Predicate<AnnotationTree> placed) {
@@ -75,7 +76,7 @@ final class ModifierRenderer {
     private boolean followsTypeParameters(final AnnotationTree annotation,
                                           final List<? extends TypeParameterTree> typeParameters,
                                           final Recursor recursor) {
-        return !typeParameters.isEmpty() && recursor.startsAfter(annotation, typeParameters.getFirst());
+        return !typeParameters.isEmpty() && recursor.facts().startsAfter(annotation, typeParameters.getFirst());
     }
 
     /**
@@ -112,7 +113,8 @@ final class ModifierRenderer {
         final var annotations = declarationAnnotations(modifiers, List.of(), recursor);
         return !annotations.isEmpty()
             && annotations.stream()
-                    .allMatch(a -> a.getArguments().isEmpty() && !recursor.isFollowedByNewline(a));
+                    .allMatch(a -> a.getArguments().isEmpty()
+                        && !recursor.facts().isFollowedByNewline(a));
     }
 
     /**

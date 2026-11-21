@@ -102,7 +102,7 @@ final class MethodRenderer {
         if (p.getType() == null) {
             return Doc.concat(new Doc.Text("var "), name);
         }
-        final var typeDoc = recursor.isVarargs(p) ? TypeRenderers.renderVarargsType(p.getType(), recursor) : recursor.scan(p.getType());
+        final var typeDoc = recursor.facts().isVarargs(p) ? TypeRenderers.renderVarargsType(p.getType(), recursor) : recursor.scan(p.getType());
         return Doc.concat(typeDoc, new Doc.Text(" "), name);
     }
 

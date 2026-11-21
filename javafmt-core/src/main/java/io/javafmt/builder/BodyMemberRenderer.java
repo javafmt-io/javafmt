@@ -18,7 +18,7 @@ final class BodyMemberRenderer {
 
     static Doc render(final Tree member, final String className, final Recursor recursor) {
         if (member instanceof MethodTree mt && mt.getName().contentEquals("<init>")) {
-            return recursor.attach(mt, recursor.isCompactConstructor(mt)
+            return recursor.attach(mt, recursor.facts().isCompactConstructor(mt)
                     ? CompactConstructorRenderer.render(mt, className, recursor)
                     : ConstructorRenderer.render(mt, className, recursor));
         }

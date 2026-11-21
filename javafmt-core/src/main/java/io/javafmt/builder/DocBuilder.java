@@ -37,7 +37,6 @@ import com.sun.source.tree.MemberReferenceTree;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.tree.MethodInvocationTree;
 import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.ModuleTree;
 import com.sun.source.tree.NewArrayTree;
 import com.sun.source.tree.NewClassTree;
@@ -95,6 +94,11 @@ public final class DocBuilder {
     private int renderingOnce;
 
     private final Recursor recursor = new Recursor() {
+        @Override
+        public TreeFacts facts() {
+            return facts;
+        }
+
         @Override
         public Doc scan(final Tree node) {
             Objects.requireNonNull(node, "node");
@@ -160,11 +164,6 @@ public final class DocBuilder {
         }
 
         @Override
-        public boolean isVarargs(final VariableTree param) {
-            return facts.isVarargs(param);
-        }
-
-        @Override
         public String sourceOf(final Tree node) {
             return unit.sourceOf(node);
         }
@@ -175,63 +174,8 @@ public final class DocBuilder {
         }
 
         @Override
-        public boolean isFollowedByNewline(final Tree node) {
-            return facts.isFollowedByNewline(node);
-        }
-
-        @Override
-        public boolean followsAModifierKeyword(final ModifiersTree modifiers, final AnnotationTree annotation) {
-            return facts.followsAModifierKeyword(modifiers, annotation);
-        }
-
-        @Override
-        public boolean startsAfter(final Tree node, final Tree other) {
-            return facts.startsAfter(node, other);
-        }
-
-        @Override
-        public boolean lineBreakBetween(final Tree before, final Tree after) {
-            return facts.lineBreakBetween(before, after);
-        }
-
-        @Override
-        public boolean hasEmptyArgumentList(final AnnotationTree annotation) {
-            return facts.hasEmptyArgumentList(annotation);
-        }
-
-        @Override
         public boolean hasLeadingComments(final Tree node) {
             return !unit.leadingOf(node).isEmpty();
-        }
-
-        @Override
-        public boolean blankLineBetween(final Tree before, final Tree after) {
-            return facts.blankLineBetween(before, after);
-        }
-
-        @Override
-        public boolean hasJavadoc(final Tree node) {
-            return facts.hasJavadoc(node);
-        }
-
-        @Override
-        public boolean isCompactConstructor(final MethodTree ctor) {
-            return facts.isCompactConstructor(ctor);
-        }
-
-        @Override
-        public boolean isEnumConstant(final VariableTree member) {
-            return facts.isEnumConstant(member);
-        }
-
-        @Override
-        public boolean isField(final VariableTree variable) {
-            return facts.isField(variable);
-        }
-
-        @Override
-        public boolean isLoneLambdaBody(final Tree node) {
-            return facts.isLoneLambdaBody(node);
         }
     };
 

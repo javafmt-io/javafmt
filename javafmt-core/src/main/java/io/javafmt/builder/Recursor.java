@@ -1,18 +1,17 @@
 package io.javafmt.builder;
 
-import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.MethodInvocationTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
-import com.sun.source.tree.VariableTree;
 import io.javafmt.doc.Doc;
 import io.javafmt.doc.LeadingCommentAttacher;
+import io.javafmt.parser.TreeFacts;
 
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 interface Recursor extends LeadingCommentAttacher {
+
+    TreeFacts facts();
 
     Doc scan(Tree node);
 
@@ -26,52 +25,7 @@ interface Recursor extends LeadingCommentAttacher {
 
     void emitWarning(String message, Tree at);
 
-    boolean isVarargs(VariableTree param);
-
-    boolean isCompactConstructor(MethodTree ctor);
-
-    /**
-     * Whether {@code member} is an enum constant rather than a field declared in the enum body.
-     * Both are {@link VariableTree}s and both may carry a {@code new} initializer, so the shape
-     * of the tree alone cannot tell them apart.
-     */
-    boolean isEnumConstant(VariableTree member);
-
-    boolean isField(VariableTree variable);
-
-    boolean isLoneLambdaBody(Tree node);
-
-    /**
-     * Whether the source text immediately following {@code node} contains a newline before
-     * the next non-whitespace character. Used to preserve annotation layout: an annotation
-     * that the author put on its own line stays on its own line; an inline annotation
-     * stays inline.
-     */
-    boolean isFollowedByNewline(Tree node);
-
-    boolean followsAModifierKeyword(ModifiersTree modifiers, AnnotationTree annotation);
-
-    boolean startsAfter(Tree node, Tree other);
-
-    boolean lineBreakBetween(Tree before, Tree after);
-
-    boolean hasEmptyArgumentList(AnnotationTree annotation);
-
     boolean hasLeadingComments(Tree node);
-
-    /**
-     * Whether the author left a blank line between two consecutive declarations or statements.
-     * Between plain fields and between statements of a method body, javafmt keeps the author's
-     * grouping rather than imposing one: those blank lines are how a reader is told which
-     * declarations belong together.
-     */
-    boolean blankLineBetween(Tree before, Tree after);
-
-    /**
-     * Whether {@code node} carries a Javadoc comment. A field with Javadoc is separated like a
-     * method rather than packed against its neighbours, which is what google-java-format does.
-     */
-    boolean hasJavadoc(Tree node);
 
     /**
      * The exact source text of {@code node}. Used where reconstructing a node from the parse tree

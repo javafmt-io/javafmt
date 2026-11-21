@@ -73,7 +73,7 @@ final class MethodChainRenderer {
                         Doc.flatWidthOrBreak(joined(links)) < 0);
         final var chainWidth = threeOrMoreCalls
                 ? Doc.widthBeforeFirstBreak(joined(links))
-                : headEnd == links.size() - 1 || recursor.isLoneLambdaBody(node)
+                : headEnd == links.size() - 1 || recursor.facts().isLoneLambdaBody(node)
                         ? -1
                         : Doc.flatWidthOrBreak(joined(links.subList(0, links.size() - 1)));
         final var broken = Doc.Choice.unlessPastTheChainColumn(group, group.contents(), chainWidth);

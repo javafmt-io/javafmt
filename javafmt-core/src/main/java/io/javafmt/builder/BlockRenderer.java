@@ -43,7 +43,10 @@ final class BlockRenderer {
 
     private Doc statementDoc(final Optional<StatementTree> previous, final StatementTree statement, final Recursor recursor) {
         final var doc = recursor.scan(statement);
-        return previous.filter(p -> recursor.blankLineBetween(p, statement)).isPresent() ? Doc.concat(Doc.HARD_LINE, doc) : doc;
+        return previous.filter(p -> recursor.facts().blankLineBetween(p, statement))
+                        .isPresent()
+                ? Doc.concat(Doc.HARD_LINE, doc)
+                : doc;
     }
 
     Doc braced(final Doc header, final StatementTree body, final Recursor recursor) {

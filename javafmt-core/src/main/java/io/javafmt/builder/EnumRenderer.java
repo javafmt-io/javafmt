@@ -163,7 +163,7 @@ final class EnumRenderer {
     }
 
     private boolean isConstant(final Tree member, final Recursor recursor) {
-        return member instanceof VariableTree v && recursor.isEnumConstant(v);
+        return member instanceof VariableTree v && recursor.facts().isEnumConstant(v);
     }
 
     /**

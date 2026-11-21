@@ -77,7 +77,7 @@ final class TypeBodyRenderer {
         }
         final var previousTree = previous.member().tree();
         final var currentTree = current.member().tree();
-        return previousTree != null && currentTree != null && recursor.blankLineBetween(previousTree, currentTree);
+        return previousTree != null && currentTree != null && recursor.facts().blankLineBetween(previousTree, currentTree);
     }
 
     private boolean wantsBlankLineAround(final Member member, final Recursor recursor) {
@@ -85,7 +85,7 @@ final class TypeBodyRenderer {
         if (tree == null) {
             return true;
         }
-        return !(tree instanceof VariableTree) || recursor.hasJavadoc(tree);
+        return !(tree instanceof VariableTree) || recursor.facts().hasJavadoc(tree);
     }
 
     /** The member-collect pipeline all three type renderers repeat. */

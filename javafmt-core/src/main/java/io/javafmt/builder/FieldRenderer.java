@@ -21,7 +21,7 @@ final class FieldRenderer {
     Doc render(final VariableTree node, final Recursor recursor) {
         final var modifiers = node.getModifiers();
         final var preamble = ModifierRenderer.preambleOf(
-                modifiers, recursor, !recursor.isField(node) && ModifierRenderer.rendersLocalAnnotationsInline(modifiers, recursor));
+                modifiers, recursor, !recursor.facts().isField(node) && ModifierRenderer.rendersLocalAnnotationsInline(modifiers, recursor));
         final var typeDoc = node.getType() == null ? new Doc.Text("var") : recursor.scan(node.getType());
         final var head = Doc.concat(preamble.prefix(), typeDoc, new Doc.Text(" " + Names.of(node)));
         final var declaration = node.getInitializer() == null

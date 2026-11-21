@@ -173,8 +173,8 @@ final class ExpressionRenderers {
     }
 
     private boolean authorBrokeIt(final ConditionalExpressionTree node, final Recursor recursor) {
-        return recursor.lineBreakBetween(node.getCondition(), node.getTrueExpression())
-            || recursor.lineBreakBetween(node.getTrueExpression(), node.getFalseExpression());
+        return recursor.facts().lineBreakBetween(node.getCondition(), node.getTrueExpression())
+            || recursor.facts().lineBreakBetween(node.getTrueExpression(), node.getFalseExpression());
     }
 
     private Doc emptyInitializer(final String brace, final List<CommentToken> comments) {
@@ -392,7 +392,7 @@ final class ExpressionRenderers {
         final var name = Doc.concat(new Doc.Text("@"), recursor.scan(node.getAnnotationType()));
         final var arguments = node.getArguments();
         if (arguments.isEmpty()) {
-            return recursor.hasEmptyArgumentList(node) ? Doc.concat(name, emptyArgumentList(node, recursor)) : name;
+            return recursor.facts().hasEmptyArgumentList(node) ? Doc.concat(name, emptyArgumentList(node, recursor)) : name;
         }
         final var sole = arguments.getFirst();
         if (arguments.getLast() instanceof AssignmentTree last
