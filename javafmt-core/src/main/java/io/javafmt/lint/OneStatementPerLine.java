@@ -56,7 +56,7 @@ public final class OneStatementPerLine implements ScanningRule {
         while (splitPoint > currentEnd && Character.isWhitespace(src.charAt(splitPoint - 1))) {
             splitPoint--;
         }
-        final var indent = MultipleVariableDeclarations.extractIndent(src, currentAt.offset());
+        final var indent = Lines.indentAt(src, currentAt.offset());
         return Optional.of(new LintEdit(splitPoint, nextStart, "\n" + indent));
     }
 }

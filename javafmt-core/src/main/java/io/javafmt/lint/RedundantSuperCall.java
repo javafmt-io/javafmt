@@ -87,8 +87,8 @@ public final class RedundantSuperCall implements ScanningRule {
      * the post-lint source, where the comment is already gone.
      */
     private static LintEdit deleteEdit(final String src, final int start, final int end) {
-        final var lineStart = RemoveUnusedImports.lineStartFor(src, start);
-        final var lineEnd = RemoveUnusedImports.lineEndFor(src, end);
+        final var lineStart = Lines.start(src, start);
+        final var lineEnd = Lines.end(src, end);
         if (sharesLineWithOtherCode(src, lineStart, start) || lineCarriesAComment(src, lineStart, lineEnd)) {
             return new LintEdit(start, end, "");
         }

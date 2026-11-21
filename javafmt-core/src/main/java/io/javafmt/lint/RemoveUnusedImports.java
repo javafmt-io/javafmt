@@ -113,27 +113,11 @@ public final class RemoveUnusedImports implements LintRule {
             return Optional.empty();
         }
         final var declarationEnd = semicolon + 1;
-        final var lineStart = lineStartFor(source, start);
-        final var lineEnd = lineEndFor(source, declarationEnd);
+        final var lineStart = Lines.start(source, start);
+        final var lineEnd = Lines.end(source, declarationEnd);
         final var aloneOnLine = source.substring(lineStart, start).isBlank()
             && source.substring(declarationEnd, lineEnd).isBlank();
         return Optional.of(aloneOnLine ? new Span(lineStart, lineEnd) : new Span(start, declarationEnd));
-    }
-
-    static int lineStartFor(final String source, final int pos) {
-        var i = pos;
-        while (i > 0 && source.charAt(i - 1) != '\n') {
-            i--;
-        }
-        return i;
-    }
-
-    static int lineEndFor(final String source, final int pos) {
-        var i = pos;
-        while (i < source.length() && source.charAt(i) != '\n') {
-            i++;
-        }
-        return i < source.length() ? i + 1 : i;
     }
 
     /** The source range one import declaration owns, as {@link #spanOf} decides it. */

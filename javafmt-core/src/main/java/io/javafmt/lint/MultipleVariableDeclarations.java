@@ -107,7 +107,7 @@ public final class MultipleVariableDeclarations implements ScanningRule {
         if (spanEnd < 0) {
             return List.of();
         }
-        final var indent = extractIndent(src, groupStart);
+        final var indent = Lines.indentAt(src, groupStart);
         final var elementTypeEnd = unit.endOf(elementTypeOf(first.getType()));
         if (elementTypeEnd <= groupStart || elementTypeEnd > spanEnd) {
             return List.of();
@@ -284,17 +284,5 @@ public final class MultipleVariableDeclarations implements ScanningRule {
 
     private static List<? extends StatementTree> statementsOf(final CaseTree caseTree) {
         return caseTree.getCaseKind() == CaseTree.CaseKind.STATEMENT ? caseTree.getStatements() : List.of();
-    }
-
-    static String extractIndent(final String src, final int pos) {
-        var lineStart = pos;
-        while (lineStart > 0 && src.charAt(lineStart - 1) != '\n') {
-            lineStart--;
-        }
-        var end = lineStart;
-        while (end < pos && (src.charAt(end) == ' ' || src.charAt(end) == '\t')) {
-            end++;
-        }
-        return src.substring(lineStart, end);
     }
 }

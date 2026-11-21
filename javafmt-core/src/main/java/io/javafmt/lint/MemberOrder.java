@@ -79,7 +79,8 @@ public final class MemberOrder implements LintRule {
                 .map(m -> span(unit, m, bodyStart))
                 .toList();
         final var insertAt = spans.getLast().end();
-        final var indent = " ".repeat(columnOf(unit.source(), spans.getFirst().start()));
+        final var indent = " ".repeat(
+                Lines.column(unit.source(), spans.getFirst().start()));
         final var appended = movers.stream()
                 .map(m -> "\n\n" + indent
                         + unit.source()
@@ -170,10 +171,6 @@ public final class MemberOrder implements LintRule {
                 .max()
                 .orElse(unit.endOf(member));
         return new Span(Math.min(leading, unit.startOf(member)), Math.max(trailing, unit.endOf(member)));
-    }
-
-    private static int columnOf(final String source, final int pos) {
-        return pos - (source.lastIndexOf('\n', pos - 1) + 1);
     }
 
     private record Span(int start, int end) {}
