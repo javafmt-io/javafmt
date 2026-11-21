@@ -45,12 +45,9 @@ public final class TokenScanner {
                 i++;
                 continue;
             }
-            if (c == '/' && i + 1 < n && source.charAt(i + 1) == '/') {
-                i = skipLineComment(source, i, n);
-                continue;
-            }
-            if (c == '/' && i + 1 < n && source.charAt(i + 1) == '*') {
-                i = skipBlockComment(source, i, n);
+            final var commentEnd = CommentScanner.skipComment(source, i);
+            if (commentEnd >= 0) {
+                i = commentEnd;
                 continue;
             }
             final var end = tokenEnd(source, i, n, c);
@@ -63,11 +60,11 @@ public final class TokenScanner {
     private int tokenEnd(final String source, final int start, final int n, final char c) {
         if (c == '"') {
             return start + 2 < n && source.charAt(start + 1) == '"' && source.charAt(start + 2) == '"'
-                    ? endOfTextBlock(source, start, n)
-                    : endOfStringLiteral(source, start, n);
+                    ? CommentScanner.skipTextBlock(source, start, n)
+                    : CommentScanner.skipStringLiteral(source, start, n);
         }
         if (c == '\'') {
-            return endOfCharLiteral(source, start, n);
+            return CommentScanner.skipCharLiteral(source, start, n);
         }
         if (isDigit(c) || (c == '.' && start + 1 < n && isDigit(source.charAt(start + 1)))) {
             return endOfNumericLiteral(source, start, n);
@@ -169,75 +166,5 @@ public final class TokenScanner {
     private boolean signContinuesExponent(final String source, final char c, final int i, final int n, final boolean hex) {
         final var isMarker = hex ? c == 'p' || c == 'P' : c == 'e' || c == 'E';
         return isMarker && i + 1 < n && (source.charAt(i + 1) == '+' || source.charAt(i + 1) == '-');
-    }
-
-    private int endOfStringLiteral(final String source, final int open, final int n) {
-        var i = open + 1;
-        while (i < n) {
-            final var c = source.charAt(i);
-            if (c == '\\' && i + 1 < n) {
-                i += 2;
-                continue;
-            }
-            if (c == '"') {
-                return i + 1;
-            }
-            if (c == '\n' || c == '\r') {
-                return i;
-            }
-            i++;
-        }
-        return i;
-    }
-
-    private int endOfCharLiteral(final String source, final int open, final int n) {
-        var i = open + 1;
-        while (i < n) {
-            final var c = source.charAt(i);
-            if (c == '\\' && i + 1 < n) {
-                i += 2;
-                continue;
-            }
-            if (c == '\'') {
-                return i + 1;
-            }
-            if (c == '\n' || c == '\r') {
-                return i;
-            }
-            i++;
-        }
-        return i;
-    }
-
-    private int endOfTextBlock(final String source, final int open, final int n) {
-        var i = open + 3;
-        while (i + 2 < n) {
-            final var c = source.charAt(i);
-            if (c == '\\' && i + 1 < n) {
-                i += 2;
-                continue;
-            }
-            if (c == '"' && source.charAt(i + 1) == '"' && source.charAt(i + 2) == '"') {
-                return i + 3;
-            }
-            i++;
-        }
-        return n;
-    }
-
-    private int skipLineComment(final String source, final int start, final int n) {
-        var i = start + 2;
-        while (i < n && source.charAt(i) != '\n' && source.charAt(i) != '\r') {
-            i++;
-        }
-        return i;
-    }
-
-    private int skipBlockComment(final String source, final int start, final int n) {
-        var i = start + 2;
-        while (i + 1 < n && !(source.charAt(i) == '*' && source.charAt(i + 1) == '/')) {
-            i++;
-        }
-        return Math.min(i + 2, n);
     }
 }

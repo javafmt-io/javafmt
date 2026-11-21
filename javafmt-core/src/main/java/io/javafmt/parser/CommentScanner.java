@@ -109,7 +109,7 @@ public final class CommentScanner {
         return col;
     }
 
-    private int skipStringLiteral(final String source, final int open, final int n) {
+    int skipStringLiteral(final String source, final int open, final int n) {
         var i = open + 1;
         while (i < n) {
             final var c = source.charAt(i);
@@ -125,7 +125,7 @@ public final class CommentScanner {
         return i;
     }
 
-    private int skipCharLiteral(final String source, final int open, final int n) {
+    int skipCharLiteral(final String source, final int open, final int n) {
         var i = open + 1;
         while (i < n) {
             final var c = source.charAt(i);
@@ -141,7 +141,7 @@ public final class CommentScanner {
         return i;
     }
 
-    private int skipTextBlock(final String source, final int open, final int n) {
+    int skipTextBlock(final String source, final int open, final int n) {
         var i = open + 3;
         while (i + 2 < n) {
             final var c = source.charAt(i);
