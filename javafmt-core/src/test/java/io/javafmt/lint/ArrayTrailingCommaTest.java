@@ -2,6 +2,8 @@ package io.javafmt.lint;
 
 import io.javafmt.parser.JavaParser;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -87,6 +89,14 @@ class ArrayTrailingCommaTest {
                 .hasSize(3);
         assertThat(LintFixtures.fix(new ArrayTrailingComma(), unit.source()))
                 .isEqualTo("class Fixture {\n\n    int[][] arr = {{1, 2,}, {3, 4,},};\n}\n");
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {"{{1}, {2}}|{{1,}, {2,},}", "{{1, 2}, {3}}|{{1, 2,}, {3,},}"})
+    void nestedArraysWhoseLastElementsEndTogetherEachGetOneComma(final String initializer, final String expected) {
+        final var source = "class Fixture {\n\n    int[][] arr = " + initializer + ";\n}\n";
+        assertThat(LintFixtures.apply(new ArrayTrailingComma(), source).edits()).hasSize(3);
+        assertThat(LintFixtures.fix(new ArrayTrailingComma(), source)).isEqualTo("class Fixture {\n\n    int[][] arr = " + expected + ";\n}\n");
     }
 
     @Test

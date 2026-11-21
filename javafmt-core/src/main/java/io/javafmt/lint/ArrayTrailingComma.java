@@ -5,6 +5,8 @@ import io.javafmt.parser.ChainScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,15 +29,20 @@ public final class ArrayTrailingComma implements ScanningRule {
     @Override
     public RuleScan scan(final LintContext context) {
         final var unit = context.unit();
-        return RuleScan.editing(edits -> new ChainScanner<>() {
-            @Override
-            public Void visitNewArray(final NewArrayTree node, final Void p) {
-                editFor(node, unit)
-                        .filter(edit -> !edits.contains(edit))
-                        .ifPresent(edits::add);
-                return super.visitNewArray(node, null);
-            }
-        });
+        return RuleScan.collecting(
+                edits -> new ChainScanner<>() {
+                    @Override
+                    public Void visitNewArray(final NewArrayTree node, final Void p) {
+                        editFor(node, unit).ifPresent(edits::add);
+                        return super.visitNewArray(node, null);
+                    }
+                },
+                ArrayTrailingComma::distinct);
+    }
+
+    /** javac gives a compact constructor's parameters the record components' annotations, so an array in one is visited twice. */
+    private static LintResult distinct(final List<LintEdit> edits) {
+        return LintResult.ofEdits(List.copyOf(new LinkedHashSet<>(edits)));
     }
 
     private static Optional<LintEdit> editFor(final NewArrayTree node, final ParsedUnit unit) {
