@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -82,6 +83,13 @@ class CommentScannerTest {
         void slashSlashStartingALineEndsAtCarriageReturn() {
             final var source = "class C {} // crlf\r\nclass D {}";
             assertThat(texts(source)).singleElement().isEqualTo("// crlf");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"\n", "\r", "\r\n"})
+        void skippingWhitespaceAndCommentsEndsALineCommentAtEveryLineTerminator(final String terminator) {
+            final var source = "a // c" + terminator + "; b";
+            assertThat(CommentScanner.skipWhitespaceAndComments(source, 1)).isEqualTo(source.indexOf(';'));
         }
     }
 }

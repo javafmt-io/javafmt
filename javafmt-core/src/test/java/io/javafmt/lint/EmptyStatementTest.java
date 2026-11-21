@@ -127,4 +127,13 @@ class EmptyStatementTest {
         assertThat(LintFixtures.fix(new EmptyStatement(), unit.source()))
                 .isEqualTo("class Fixture {\n    void test(Resource held) throws Exception {\n        " + expected + "\n    }\n}\n");
     }
+
+    @Test
+    void aLoneCarriageReturnEndsTheLineCommentAfterTheLastResource() {
+        final var source = "class Fixture {\r    void test(Resource held) throws Exception {\r        try (held // c\r) {}\n;\r    }\r}\r";
+        final var result = LintFixtures.apply(new EmptyStatement(), source);
+        assertThat(result.edits()).hasSize(1);
+        assertThat(LintFixtures.fix(new EmptyStatement(), source))
+                .isEqualTo("class Fixture {\r    void test(Resource held) throws Exception {\r        try (held // c\r) {}\n\r    }\r}\r");
+    }
 }

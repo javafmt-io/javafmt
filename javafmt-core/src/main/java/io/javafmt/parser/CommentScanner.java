@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 @UtilityClass
 public final class CommentScanner {
 
-    final String WHITESPACE_OR_COMMENT = "\\p{javaWhitespace}++|//[^\\n]*+|/\\*(?s:.*?)\\*/";
+    final String WHITESPACE_OR_COMMENT = "\\p{javaWhitespace}++|//[^\\r\\n]*+|/\\*(?s:.*?)\\*/";
 
     private final Pattern WHITESPACE_AND_COMMENTS = Pattern.compile("(?:" + WHITESPACE_OR_COMMENT + ")*+");
 
