@@ -14,6 +14,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class DaemonFixtures {
@@ -47,7 +48,7 @@ public final class DaemonFixtures {
     public static String text(final List<String> jsonLines) {
         return jsonLines.stream()
                 .map(line -> line + "\n")
-                .reduce("", String::concat);
+                .collect(Collectors.joining());
     }
 
     public static List<String> violations(final Message message) {

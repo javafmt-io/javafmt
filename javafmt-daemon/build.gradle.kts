@@ -55,16 +55,18 @@ val fixtureElements = configurations.consumable("fixtureElements") {
     }
 }
 
+val protoSourcesDirectory = layout.buildDirectory.dir("proto-sources")
+
 val protoSources = tasks.register<Sync>("protoSources") {
     from(layout.projectDirectory.dir("src/protocol/proto"))
     from(tasks.named("extractIncludeProtocolProto")) {
         include("buf/validate/validate.proto")
     }
-    into(layout.buildDirectory.dir("proto-sources"))
+    into(protoSourcesDirectory)
 }
 
 artifacts {
-    add(protoElements.name, layout.buildDirectory.dir("proto-sources")) {
+    add(protoElements.name, protoSourcesDirectory) {
         builtBy(protoSources)
     }
     add(fixtureElements.name, layout.projectDirectory.dir("src/testFixtures/resources/io/javafmt/daemon"))

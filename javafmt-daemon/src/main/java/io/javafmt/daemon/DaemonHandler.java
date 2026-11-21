@@ -1,9 +1,9 @@
 package io.javafmt.daemon;
 
+import io.javafmt.Diagnostic;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.ProjectFile;
-import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
 import io.javafmt.daemon.protocol.Kind;
@@ -26,9 +26,8 @@ final class DaemonHandler {
         } catch (final InvalidPathException e) {
             return failure(request.getId(), request.getSource(), Kind.KIND_CLI, "path: " + e.getMessage());
         }
-        final var config = request.hasClasspath()
-                ? JavafmtConfig.defaults().withAnalysis(new JavafmtConfig.Analysis.Attributed(request.getClasspath()))
-                : JavafmtConfig.defaults();
+        final var defaults = JavafmtConfig.defaults();
+        final var config = request.hasClasspath() ? defaults.withAnalysis(new JavafmtConfig.Analysis.Attributed(request.getClasspath())) : defaults;
         final var result = Javafmt.formatWithResult(request.getSource(), config, projectFile);
         return FormatReply.newBuilder()
                 .setId(request.getId())
@@ -43,15 +42,15 @@ final class DaemonHandler {
         return FormatReply.newBuilder()
                 .setId(id)
                 .setOutput(output)
-                .addDiagnostics(Diagnostic.newBuilder()
+                .addDiagnostics(io.javafmt.daemon.protocol.Diagnostic.newBuilder()
                         .setSeverity(Severity.SEVERITY_ERROR)
                         .setKind(kind)
                         .setMessage(message))
                 .build();
     }
 
-    Diagnostic diagnostic(final io.javafmt.Diagnostic diagnostic) {
-        return Diagnostic.newBuilder()
+    io.javafmt.daemon.protocol.Diagnostic diagnostic(final Diagnostic diagnostic) {
+        return io.javafmt.daemon.protocol.Diagnostic.newBuilder()
                 .setSeverity(diagnostic.isError() ? Severity.SEVERITY_ERROR : Severity.SEVERITY_WARNING)
                 .setKind(kind(diagnostic))
                 .setMessage(diagnostic.message())
@@ -60,13 +59,13 @@ final class DaemonHandler {
                 .build();
     }
 
-    private Kind kind(final io.javafmt.Diagnostic diagnostic) {
+    private Kind kind(final Diagnostic diagnostic) {
         return switch (diagnostic) {
-            case io.javafmt.Diagnostic.ParseError _ -> Kind.KIND_PARSE;
-            case io.javafmt.Diagnostic.LintError _ -> Kind.KIND_LINT;
-            case io.javafmt.Diagnostic.ConfigError _ -> Kind.KIND_CONFIG;
-            case io.javafmt.Diagnostic.InternalError _ -> Kind.KIND_INTERNAL;
-            case io.javafmt.Diagnostic.Warning _ -> Kind.KIND_WARNING;
+            case Diagnostic.ParseError _ -> Kind.KIND_PARSE;
+            case Diagnostic.LintError _ -> Kind.KIND_LINT;
+            case Diagnostic.ConfigError _ -> Kind.KIND_CONFIG;
+            case Diagnostic.InternalError _ -> Kind.KIND_INTERNAL;
+            case Diagnostic.Warning _ -> Kind.KIND_WARNING;
         };
     }
 }

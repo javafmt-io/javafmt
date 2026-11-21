@@ -5,6 +5,7 @@ import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -15,11 +16,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.SequenceInputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -27,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -66,7 +69,10 @@ class DaemonTest {
     void aJsonRequestCarriesItsClasspath() {
         final var out = new ByteArrayOutputStream();
         final var source = "import java.util.*;\n\nclass Order {\n    List<String> lines;\n}\n";
-        Daemon.serve(Wire.JSON, input("{\"id\":1,\"source\":" + quoted(source) + ",\"classpath\":\"\"}\n"), out, Daemon.DEFAULT_THREADS);
+        final var request = DaemonFixtures.request(1, source).toBuilder()
+                .setClasspath("")
+                .build();
+        Daemon.serve(Wire.JSON, new ByteArrayInputStream(Wire.JSON.encode(request)), out, Daemon.DEFAULT_THREADS);
         assertThat(out.toString(StandardCharsets.UTF_8)).contains("import java.util.List;");
     }
 
@@ -74,7 +80,9 @@ class DaemonTest {
     void aMalformedJsonLineDoesNotKillTheLoop() {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.JSON, input("{not json}\n{\"id\":1,\"source\":\"class A {}\"}\n"), out, Daemon.DEFAULT_THREADS);
-        assertThat(out.toString(StandardCharsets.UTF_8)).startsWith("{\"id\":1,");
+        assertThat(out.toString(StandardCharsets.UTF_8).lines())
+                .singleElement(InstanceOfAssertFactories.STRING)
+                .startsWith("{\"id\":1,");
     }
 
     @Test
@@ -200,14 +208,6 @@ class DaemonTest {
                 .containsExactly(2);
     }
 
-    private static void awaitUninterruptibly(final CountDownLatch latch) {
-        try {
-            latch.await(5, TimeUnit.SECONDS);
-        } catch (final InterruptedException _) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     @Test
     void aRequestThatFailsToFormatStillGetsAReplyCarryingTheFailure() {
         final var out = new ByteArrayOutputStream();
@@ -268,26 +268,19 @@ class DaemonTest {
     void theNextRequestIsReadWhileTheCurrentOneIsStillBeingFormatted(final Wire wire) {
         final var nextRequestRead = new CountDownLatch(1);
         final var repliedBeforeReadingOn = new AtomicBoolean(false);
-        final var first = new ByteArrayInputStream(wire.encode(DaemonFixtures.request(1, "class A {}")));
-        final var in = new InputStream() {
+        final var endOfInput = new InputStream() {
             @Override
             public int read() {
-                final var next = first.read();
-                if (next < 0) {
-                    nextRequestRead.countDown();
-                }
-                return next;
+                nextRequestRead.countDown();
+                return -1;
             }
 
             @Override
             public int read(final byte[] buffer, final int offset, final int length) {
-                final var read = first.read(buffer, offset, length);
-                if (read < 0) {
-                    nextRequestRead.countDown();
-                }
-                return read;
+                return read();
             }
         };
+        final var in = new SequenceInputStream(new ByteArrayInputStream(wire.encode(DaemonFixtures.request(1, "class A {}"))), endOfInput);
         final var received = new ByteArrayOutputStream();
         final var out = new OutputStream() {
             @Override
@@ -327,8 +320,12 @@ class DaemonTest {
         assertThat(replies(out)).allSatisfy(reply -> assertThat(DaemonFixtures.violations(reply)).isEmpty());
     }
 
-    private static String quoted(final String text) {
-        return "\"" + text.replace("\n", "\\n") + "\"";
+    private static void awaitUninterruptibly(final CountDownLatch latch) {
+        try {
+            latch.await(5, TimeUnit.SECONDS);
+        } catch (final InterruptedException _) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static ByteArrayInputStream input(final String text) {
@@ -346,15 +343,16 @@ class DaemonTest {
     }
 
     private static List<FormatReply> replies(final ByteArrayOutputStream out) {
-        return DaemonFixtures.hexFrames(out.toByteArray()).stream()
-                .map(DaemonTest::reply)
+        final var in = new ByteArrayInputStream(out.toByteArray());
+        return Stream.generate(() -> nextReply(in))
+                .takeWhile(Optional::isPresent)
+                .map(Optional::orElseThrow)
                 .toList();
     }
 
-    private static FormatReply reply(final String hexFrame) {
+    private static Optional<FormatReply> nextReply(final InputStream in) {
         try {
-            return FormatReply.parseDelimitedFrom(
-                    new ByteArrayInputStream(HexFormat.of().parseHex(hexFrame)));
+            return Optional.ofNullable(FormatReply.parseDelimitedFrom(in));
         } catch (final IOException e) {
             throw new UncheckedIOException(e);
         }

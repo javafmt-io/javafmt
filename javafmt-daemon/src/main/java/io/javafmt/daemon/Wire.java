@@ -1,6 +1,7 @@
 package io.javafmt.daemon;
 
 import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.CodedOutputStream;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 import com.google.protobuf.util.JsonFormat;
@@ -62,7 +63,8 @@ public enum Wire {
     }
 
     private static byte[] delimited(final Message message) throws IOException {
-        final var out = new ByteArrayOutputStream(message.getSerializedSize() + 5);
+        final var size = message.getSerializedSize();
+        final var out = new ByteArrayOutputStream(CodedOutputStream.computeUInt32SizeNoTag(size) + size);
         message.writeDelimitedTo(out);
         return out.toByteArray();
     }

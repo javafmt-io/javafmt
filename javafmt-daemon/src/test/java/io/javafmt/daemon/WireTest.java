@@ -6,6 +6,7 @@ import io.javafmt.daemon.protocol.FormatReply;
 import io.javafmt.daemon.protocol.FormatRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -20,49 +21,48 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class WireTest {
 
-    static Stream<Integer> requests() {
-        return IntStream.range(0, DaemonFixtures.REQUESTS_HEX.size()).boxed();
+    static Stream<Arguments> requests() {
+        return pairs(DaemonFixtures.REQUESTS_HEX, DaemonFixtures.REQUESTS_JSON);
     }
 
-    static Stream<Integer> replies() {
-        return IntStream.range(0, DaemonFixtures.REPLIES_HEX.size()).boxed();
+    static Stream<Arguments> replies() {
+        return pairs(DaemonFixtures.REPLIES_HEX, DaemonFixtures.REPLIES_JSON);
     }
 
     @ParameterizedTest
     @MethodSource("requests")
-    void eachRequestFixtureIsTheSameRequestOnBothWires(final int index) {
-        final var request = decode(Wire.BINARY, DaemonFixtures.REQUESTS_HEX, index, FormatRequest.newBuilder());
-        assertThat(decode(Wire.JSON, DaemonFixtures.REQUESTS_JSON, index, FormatRequest.newBuilder()))
-                .isEqualTo(request);
-        assertEncodes(request, DaemonFixtures.REQUESTS_HEX.get(index), DaemonFixtures.REQUESTS_JSON.get(index));
+    void eachRequestFixtureIsTheSameRequestOnBothWires(final String hex, final String json) {
+        final var request = decode(Wire.BINARY, hex, FormatRequest.newBuilder());
+        assertThat(decode(Wire.JSON, json, FormatRequest.newBuilder())).isEqualTo(request);
+        assertEncodes(request, hex, json);
     }
 
     @ParameterizedTest
     @MethodSource("replies")
-    void eachReplyFixtureIsTheSameReplyOnBothWires(final int index) {
-        final var reply = decode(Wire.BINARY, DaemonFixtures.REPLIES_HEX, index, FormatReply.newBuilder());
-        assertThat(decode(Wire.JSON, DaemonFixtures.REPLIES_JSON, index, FormatReply.newBuilder()))
-                .isEqualTo(reply);
-        assertEncodes(reply, DaemonFixtures.REPLIES_HEX.get(index), DaemonFixtures.REPLIES_JSON.get(index));
+    void eachReplyFixtureIsTheSameReplyOnBothWires(final String hex, final String json) {
+        final var reply = decode(Wire.BINARY, hex, FormatReply.newBuilder());
+        assertThat(decode(Wire.JSON, json, FormatReply.newBuilder())).isEqualTo(reply);
+        assertEncodes(reply, hex, json);
         assertThat(DaemonFixtures.violations(reply)).isEmpty();
     }
 
     @Test
     void aReplyWithATwoByteLengthIsTheSameReplyOnBothWires() {
-        final var reply = decode(Wire.BINARY, List.of(DaemonFixtures.LARGE_REPLY_HEX), 0, FormatReply.newBuilder());
-        assertThat(decode(Wire.JSON, List.of(DaemonFixtures.LARGE_REPLY_JSON), 0, FormatReply.newBuilder()))
+        final var reply = decode(Wire.BINARY, DaemonFixtures.LARGE_REPLY_HEX, FormatReply.newBuilder());
+        assertThat(decode(Wire.JSON, DaemonFixtures.LARGE_REPLY_JSON, FormatReply.newBuilder()))
                 .isEqualTo(reply);
         assertEncodes(reply, DaemonFixtures.LARGE_REPLY_HEX, DaemonFixtures.LARGE_REPLY_JSON);
-        assertThat(DaemonFixtures.bytes(List.of(DaemonFixtures.LARGE_REPLY_HEX))[0] & 0x80)
+        assertThat(HexFormat.of().parseHex(DaemonFixtures.LARGE_REPLY_HEX)[0] & 0x80)
                 .isNotZero();
     }
 
     @Test
     void aReplySplitAfterTheFirstByteOfItsLengthIsReadWhole() {
-        final var bytes = DaemonFixtures.bytes(List.of(DaemonFixtures.LARGE_REPLY_HEX));
+        final var bytes = HexFormat.of().parseHex(DaemonFixtures.LARGE_REPLY_HEX);
         final var split = new SequenceInputStream(new ByteArrayInputStream(bytes, 0, 1), new ByteArrayInputStream(bytes, 1, bytes.length - 1));
         assertThat(
                         Wire.BINARY.frames(split)
@@ -73,8 +73,8 @@ class WireTest {
 
     @Test
     void onlyTheRequestFixtureWithoutASourceBreaksTheProtocolRules() {
-        final var violations = requests()
-                .map(index -> decode(Wire.BINARY, DaemonFixtures.REQUESTS_HEX, index, FormatRequest.newBuilder()))
+        final var violations = DaemonFixtures.REQUESTS_HEX.stream()
+                .map(hex -> decode(Wire.BINARY, hex, FormatRequest.newBuilder()))
                 .map(DaemonFixtures::violations)
                 .toList();
         assertThat(violations).containsExactly(List.of(), List.of(), List.of("value is required"));
@@ -99,13 +99,15 @@ class WireTest {
                 .containsExactly(DaemonFixtures.REQUESTS_HEX.getFirst().substring(2));
     }
 
-    private static <B extends Message.Builder> Message decode(final Wire wire, final List<String> fixture, final int index, final B builder) {
-        final var bytes = wire == Wire.BINARY
-                ? DaemonFixtures.bytes(List.of(fixture.get(index)))
-                : DaemonFixtures.text(List.of(fixture.get(index))).getBytes(StandardCharsets.UTF_8);
-        final var frame = wire.frames(new ByteArrayInputStream(bytes)).toList();
-        assertThat(frame).hasSize(1);
-        return wire.decode(frame.getFirst(), builder).build();
+    private static Stream<Arguments> pairs(final List<String> hex, final List<String> json) {
+        return IntStream.range(0, hex.size()).mapToObj(index -> arguments(hex.get(index), json.get(index)));
+    }
+
+    private static Message decode(final Wire wire, final String line, final Message.Builder builder) {
+        final var bytes = wire == Wire.BINARY ? HexFormat.of().parseHex(line) : (line + "\n").getBytes(StandardCharsets.UTF_8);
+        final var frames = wire.frames(new ByteArrayInputStream(bytes)).toList();
+        assertThat(frames).hasSize(1);
+        return wire.decode(frames.getFirst(), builder).build();
     }
 
     private static void assertEncodes(final Message message, final String hex, final String json) {
