@@ -113,21 +113,9 @@ final class CommentAttacher {
                         loose.add(c);
                     }
                 }
-                case INTERIOR -> {
-                    if (slot.owner() != null) {
-                        append(interior, slot.owner(), c);
-                    }
-                }
-                case TAIL -> {
-                    if (slot.owner() != null) {
-                        append(tail, slot.owner(), c);
-                    }
-                }
-                case BRACE_LINE -> {
-                    if (slot.owner() != null) {
-                        append(braceLine, slot.owner(), c);
-                    }
-                }
+                case INTERIOR -> attachToOwner(interior, slot, c);
+                case TAIL -> attachToOwner(tail, slot, c);
+                case BRACE_LINE -> attachToOwner(braceLine, slot, c);
                 case LOOSE -> loose.add(c);
                 case BEFORE_BRACE -> {
                     if (slot.owner() != null && c.text().startsWith("//")) {
@@ -168,6 +156,12 @@ final class CommentAttacher {
                 .filter(s -> s.reach() != Reach.SAME_LINE || sameLine(source, (int) s.lo(), c.start()))
                 .findFirst()
                 .filter(s -> s.reach() != Reach.CATCH_ALL);
+    }
+
+    private void attachToOwner(final Map<Tree, List<CommentToken>> channel, final Slot slot, final CommentToken c) {
+        if (slot.owner() != null) {
+            append(channel, slot.owner(), c);
+        }
     }
 
     private void append(final Map<Tree, List<CommentToken>> channel, final Tree owner, final CommentToken c) {
@@ -314,11 +308,6 @@ final class CommentAttacher {
      */
     private enum Reach { SAME_LINE, PRECISE, CATCH_ALL }
 
-    /**
-     * A source range that a comment falling inside it is attached through. {@code crossesSeparator}
-     * marks a slot in a comma-separated list whose renderer knows how to place a comment the author
-     * left after the comma.
-     */
     private record Span(long start, long end) {
 
         boolean contains(final CommentToken c) {
@@ -326,6 +315,11 @@ final class CommentAttacher {
         }
     }
 
+    /**
+     * A source range that a comment falling inside it is attached through. {@code crossesSeparator}
+     * marks a slot in a comma-separated list whose renderer knows how to place a comment the author
+     * left after the comma.
+     */
     private record Slot(@Nullable Tree previous, @Nullable Tree owner, long lo, long hi, Kind kind, Reach reach, boolean crossesSeparator) {
 
         Slot(@Nullable final Tree previous, @Nullable final Tree owner, final long lo, final long hi, final Kind kind) {
@@ -422,14 +416,14 @@ final class CommentAttacher {
             final var members = members(node, isRecord);
             collect(node, members, true, node.getKind() == Tree.Kind.ENUM);
             collectAnnotations(node.getModifiers());
-            collectHeaderBraceLine(node, isRecord);
+            final var components = isRecord ? recordComponents(node) : List.<Tree>of();
+            collectHeaderBraceLine(node, isRecord, components);
             members.stream()
                     .flatMap(member -> member instanceof VariableTree v && !TreeFacts.isEnumConstant(v, cu, pos)
                             ? Stream.of(v.getModifiers())
                             : Stream.empty())
                     .forEach(this::collectAnnotations);
             if (isRecord) {
-                final var components = recordComponents(node);
                 collect(node, components, false);
                 collectBeforeClosingParenthesis(node, components, Kind.LOOSE);
                 components.stream()
@@ -871,7 +865,7 @@ final class CommentAttacher {
             }
         }
 
-        private void collectHeaderBraceLine(final ClassTree node, final boolean isRecord) {
+        private void collectHeaderBraceLine(final ClassTree node, final boolean isRecord, final List<Tree> components) {
             final var classStart = pos.getStartPosition(cu, node);
             final var classEnd = pos.getEndPosition(cu, node);
             if (classStart < 0 || classEnd < 0) {
@@ -884,7 +878,7 @@ final class CommentAttacher {
                             extendsClause,
                             node.getImplementsClause(),
                             node.getPermitsClause(),
-                            isRecord ? recordComponents(node) : List.<Tree>of())
+                            components)
                     .flatMap(List::stream)
                     .mapToLong(t -> pos.getEndPosition(cu, t))
                     .max()

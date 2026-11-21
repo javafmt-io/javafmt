@@ -7,6 +7,7 @@ import lombok.experimental.UtilityClass;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -25,11 +26,12 @@ public final class CommentPlacement {
         final var betweenCode = comments.stream()
                 .filter(comment -> codeBefore(source, inComment, comment.start()) && codeAfter(source, inComment, comment.end()))
                 .toList();
+        final var betweenCodeSet = Set.copyOf(betweenCode);
         final var errors = Stream.concat(
                 betweenCode.stream()
                         .map(comment -> new Misplaced(comment, BETWEEN_CODE)),
                 unit.loose().stream()
-                        .filter(comment -> !betweenCode.contains(comment))
+                        .filter(comment -> !betweenCodeSet.contains(comment))
                         .map(comment -> new Misplaced(comment, UNSUPPORTED)))
                 .sorted(Comparator.comparingInt(misplaced -> misplaced.comment().start()))
                 .<Diagnostic>map(misplaced -> new Diagnostic.LintError(
