@@ -47,7 +47,7 @@ final class DaemonHandler {
                 .build();
     }
 
-    private Diagnostic diagnostic(final io.javafmt.Diagnostic diagnostic) {
+    Diagnostic diagnostic(final io.javafmt.Diagnostic diagnostic) {
         return Diagnostic.newBuilder()
                 .setSeverity(diagnostic.isError() ? Severity.SEVERITY_ERROR : Severity.SEVERITY_WARNING)
                 .setKind(kind(diagnostic))

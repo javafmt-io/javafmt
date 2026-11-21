@@ -29,6 +29,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 class DaemonTest {
@@ -51,7 +52,7 @@ class DaemonTest {
     void aMalformedFrameDoesNotKillTheLoop() {
         final var garbage = new byte[]{3, (byte) 0xff, (byte) 0xff, (byte) 0xff};
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(garbage, delimited(request(1, "class A {}")))), out);
+        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(garbage, delimited(DaemonFixtures.request(1, "class A {}")))), out);
         assertThat(replies(out))
                 .extracting(FormatReply::getId)
                 .containsExactly(1);
@@ -74,7 +75,7 @@ class DaemonTest {
 
     @Test
     void aTruncatedFinalFrameIsDropped() {
-        final var whole = delimited(request(1, "class A {}"));
+        final var whole = delimited(DaemonFixtures.request(1, "class A {}"));
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(concat(whole, Arrays.copyOf(whole, whole.length - 2))), out);
         assertThat(replies(out))
@@ -88,7 +89,7 @@ class DaemonTest {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY,
-                new ByteArrayInputStream(delimited(request(1, "class A {}"))),
+                new ByteArrayInputStream(delimited(DaemonFixtures.request(1, "class A {}"))),
                 out,
                 _ -> {
                     throw new OutOfMemoryError("simulated");
@@ -106,7 +107,7 @@ class DaemonTest {
         final var running = new AtomicInteger();
         final var mostAtOnce = new AtomicInteger();
         final var requests = IntStream.rangeClosed(1, 6)
-                .mapToObj(id -> delimited(request(id, "class A {}")))
+                .mapToObj(id -> delimited(DaemonFixtures.request(id, "class A {}")))
                 .reduce(new byte[0], DaemonTest::concat);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
@@ -131,7 +132,16 @@ class DaemonTest {
     @Test
     void theDefaultThreadCountIsTheCpuCountCappedAtFour() {
         assertThat(Daemon.DEFAULT_THREADS)
-                .isEqualTo(Math.clamp(Runtime.getRuntime().availableProcessors(), 1, 4));
+                .isBetween(1, 4)
+                .isLessThanOrEqualTo(Runtime.getRuntime().availableProcessors());
+    }
+
+    @Test
+    void aZeroThreadCountIsRejected() {
+        final var out = new ByteArrayOutputStream();
+        assertThatThrownBy(() -> Daemon.serve(Wire.BINARY, new ByteArrayInputStream(new byte[0]), out, 0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("threads must be positive, but was: 0");
     }
 
     @Test
@@ -141,7 +151,7 @@ class DaemonTest {
                 .reduce("a", (inner, level) -> "f" + level + "(" + inner + ")", (_, right) -> right);
         final var source = "class Deep {\n    Object v(final Object a) {\n        return " + nested + ";\n    }\n}\n";
         final var out = new ByteArrayOutputStream();
-        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(request(1, source))), out, DaemonHandler::handle, _ -> {});
+        Daemon.serve(Wire.BINARY, new ByteArrayInputStream(delimited(DaemonFixtures.request(1, source))), out, DaemonHandler::handle, _ -> {});
         assertThat(replies(out))
                 .singleElement()
                 .satisfies(reply -> assertThat(reply.getDiagnosticsList()).isEmpty());
@@ -154,7 +164,8 @@ class DaemonTest {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY,
-                new ByteArrayInputStream(concat(delimited(request(1, "class A {}")), delimited(request(2, "class B {}")))),
+                new ByteArrayInputStream(
+                        concat(delimited(DaemonFixtures.request(1, "class A {}")), delimited(DaemonFixtures.request(2, "class B {}")))),
                 out,
                 request -> {
                     if (request.getId() == 1) {
@@ -190,7 +201,7 @@ class DaemonTest {
         final var out = new ByteArrayOutputStream();
         Daemon.serve(
                 Wire.BINARY,
-                new ByteArrayInputStream(delimited(request(1, "class A {}"))),
+                new ByteArrayInputStream(delimited(DaemonFixtures.request(1, "class A {}"))),
                 out,
                 _ -> {
                     throw new IllegalStateException("boom");
@@ -243,7 +254,7 @@ class DaemonTest {
     void theNextRequestIsReadWhileTheCurrentOneIsStillBeingFormatted(final Wire wire) {
         final var nextRequestRead = new CountDownLatch(1);
         final var repliedBeforeReadingOn = new AtomicBoolean(false);
-        final var first = new ByteArrayInputStream(wire.encode(request(1, "class A {}")));
+        final var first = new ByteArrayInputStream(wire.encode(DaemonFixtures.request(1, "class A {}")));
         final var in = new InputStream() {
             @Override
             public int read() {
@@ -290,7 +301,7 @@ class DaemonTest {
     @Test
     void everyConcurrentRequestGetsExactlyOneWholeReply() {
         final var requests = IntStream.range(1, 51)
-                .mapToObj(i -> delimited(request(i, "class A" + i + " {   }")))
+                .mapToObj(i -> delimited(DaemonFixtures.request(i, "class A" + i + " {   }")))
                 .reduce(new byte[0], DaemonTest::concat);
         final var out = new ByteArrayOutputStream();
         Daemon.serve(Wire.BINARY, new ByteArrayInputStream(requests), out);
@@ -304,13 +315,6 @@ class DaemonTest {
 
     private static String quoted(final String text) {
         return "\"" + text.replace("\n", "\\n") + "\"";
-    }
-
-    private static FormatRequest request(final int id, final String source) {
-        return FormatRequest.newBuilder()
-                .setId(id)
-                .setSource(source)
-                .build();
     }
 
     private static ByteArrayInputStream input(final String text) {

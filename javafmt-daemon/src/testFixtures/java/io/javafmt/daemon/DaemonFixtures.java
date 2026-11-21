@@ -5,6 +5,7 @@ import build.buf.protovalidate.ValidatorFactory;
 import build.buf.protovalidate.exceptions.ValidationException;
 import com.google.protobuf.CodedInputStream;
 import com.google.protobuf.Message;
+import io.javafmt.daemon.protocol.FormatRequest;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -31,6 +32,13 @@ public final class DaemonFixtures {
 
     private static final Validator VALIDATOR = ValidatorFactory.newBuilder()
             .build();
+
+    public static FormatRequest request(final int id, final String source) {
+        return FormatRequest.newBuilder()
+                .setId(id)
+                .setSource(source)
+                .build();
+    }
 
     public static byte[] bytes(final List<String> hexFrames) {
         return HexFormat.of().parseHex(String.join("", hexFrames));
