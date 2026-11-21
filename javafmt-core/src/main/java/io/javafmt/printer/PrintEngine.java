@@ -6,10 +6,9 @@ import lombok.experimental.UtilityClass;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.IntStream;
 
 /**
- * The stack-machine printer. Each Group renders flat when {@link #fitsForward} says the rest of
+ * The stack-machine printer. Each Group renders flat when {@link #fits} says the rest of
  * its line fits, otherwise it breaks.
  */
 @UtilityClass
@@ -94,7 +93,7 @@ final class PrintEngine {
                 }
                 case Doc.Group(var contents, var preferBreak) -> {
                     final var flat = new Frame(frame.indent(), Mode.FLAT, contents);
-                    final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fitsForward(flat, column, lineWidth, stack, work));
+                    final var fits = frame.mode() == Mode.FLAT || (!preferBreak && fits(flat, column, lineWidth, stack, work, Reach.FIRST_LINE));
                     stack.push(fits ? flat : new Frame(frame.indent(), Mode.BREAK, contents));
                 }
                 case Doc.IfBreak(var breakContents, var flatContents) ->
@@ -166,10 +165,10 @@ final class PrintEngine {
     }
 
     private void stripTrailingWhitespace(final StringBuilder output, final int verbatimEnd) {
-        final var trailing = (int) IntStream.iterate(output.length() - 1, index -> index >= 0 && isSpaceOrTab(output.charAt(index)), index -> index
-                        - 1)
-                .count();
-        final var start = output.length() - trailing;
+        var start = output.length();
+        while (start > 0 && isSpaceOrTab(output.charAt(start - 1))) {
+            start--;
+        }
         if (start >= verbatimEnd) {
             output.setLength(start);
         }
@@ -177,6 +176,19 @@ final class PrintEngine {
 
     private boolean isSpaceOrTab(final char character) {
         return character == ' ' || character == '\t';
+    }
+
+    private Reach reachOf(final Doc.Choice.Fit fit) {
+        return switch (fit) {
+            case EVERY_LINE -> Reach.EVERY_LINE;
+            case OPENING_LINE -> Reach.OPENING_LINE;
+            case FIRST_BREAK -> Reach.FIRST_BREAK;
+            case FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN -> Reach.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
+        };
+    }
+
+    private boolean stopsAtTheFirstBreak(final Reach reach) {
+        return reach == Reach.FIRST_BREAK || reach == Reach.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
     }
 
     /**
@@ -201,27 +213,6 @@ final class PrintEngine {
      * decision, so only the first line's width is budgeted — the surrounding Group is free to
      * render flat with the literal's body trailing inside.
      */
-    private boolean fitsForward(final Frame candidate,
-                                final int column,
-                                final int lineWidth,
-                                final ArrayDeque<Frame> upcoming,
-                                final ArrayDeque<Frame> work) {
-        return fits(candidate, column, lineWidth, upcoming, work, Reach.FIRST_LINE);
-    }
-
-    private Reach reachOf(final Doc.Choice.Fit fit) {
-        return switch (fit) {
-            case EVERY_LINE -> Reach.EVERY_LINE;
-            case OPENING_LINE -> Reach.OPENING_LINE;
-            case FIRST_BREAK -> Reach.FIRST_BREAK;
-            case FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN -> Reach.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
-        };
-    }
-
-    private boolean stopsAtTheFirstBreak(final Reach reach) {
-        return reach == Reach.FIRST_BREAK || reach == Reach.FIRST_BREAK_WITHOUT_SPLITTING_A_CHAIN;
-    }
-
     private boolean fits(final Frame candidate,
                          final int startColumn,
                          final int lineWidth,
