@@ -61,7 +61,7 @@ public sealed interface ProjectFile extends Serializable permits ProjectFile.Non
                 .orElseGet(ProjectFile::none);
     }
 
-    static ProjectFile read(final Path location) {
+    private static ProjectFile read(final Path location) {
         try {
             return parse(location.toString(), Files.readString(location, StandardCharsets.UTF_8));
         } catch (final IOException e) {

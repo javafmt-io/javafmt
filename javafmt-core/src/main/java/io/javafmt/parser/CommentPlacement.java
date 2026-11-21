@@ -14,9 +14,9 @@ import java.util.stream.Stream;
 @UtilityClass
 public final class CommentPlacement {
 
-    public final String BETWEEN_CODE = "a comment goes on its own line or at the end of a line, not between code";
+    private final String BETWEEN_CODE = "a comment goes on its own line or at the end of a line, not between code";
 
-    public final String UNSUPPORTED = "javafmt cannot keep a comment here; move it above the statement or to the end of a line";
+    private final String UNSUPPORTED = "javafmt cannot keep a comment here; move it above the statement or to the end of a line";
 
     public Optional<ParseException> misplacedComments(final ParsedUnit unit) {
         final var source = unit.source();

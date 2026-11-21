@@ -42,8 +42,4 @@ public record Attribution(Trees trees,
     public List<AttributionError> errorsIn(final CompilationUnitTree unit) {
         return errors.getOrDefault(unit.getSourceFile().toUri(), List.of());
     }
-
-    public String classpath() {
-        return session.classpath();
-    }
 }

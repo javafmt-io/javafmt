@@ -25,7 +25,7 @@ public final class AttributionSession {
         this.fileManager = Objects.requireNonNull(fileManager, "fileManager");
     }
 
-    public String classpath() {
+    String classpath() {
         return classpath;
     }
 

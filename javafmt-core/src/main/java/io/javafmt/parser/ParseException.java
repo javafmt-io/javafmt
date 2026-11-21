@@ -2,7 +2,6 @@ package io.javafmt.parser;
 
 import io.javafmt.Diagnostic;
 import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 
 import java.io.Serial;
 import java.util.List;
@@ -17,11 +16,7 @@ public final class ParseException extends RuntimeException {
     private final transient List<Diagnostic> diagnostics;
 
     ParseException(final String message, final List<Diagnostic> diagnostics) {
-        this(message, diagnostics, null);
-    }
-
-    ParseException(final String message, final List<Diagnostic> diagnostics, @Nullable final Throwable cause) {
-        super(message, cause);
+        super(message);
         this.diagnostics = List.copyOf(Objects.requireNonNull(diagnostics, "diagnostics"));
     }
 }
