@@ -74,7 +74,11 @@ final class FileManagerPool {
         try {
             return work.apply(manager);
         } catch (final Throwable failure) {
-            close(manager);
+            try {
+                close(manager);
+            } catch (final Throwable closing) {
+                failure.addSuppressed(closing);
+            }
             throw failure;
         }
     }

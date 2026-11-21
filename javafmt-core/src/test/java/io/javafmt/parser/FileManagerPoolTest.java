@@ -67,6 +67,20 @@ class FileManagerPoolTest {
         assertThat(pool.idleCount()).isZero();
     }
 
+    @ParameterizedTest
+    @MethodSource("failures")
+    void aManagerThatAlsoFailsToCloseKeepsTheWorksFailure(final Runnable failure) {
+        final var closing = new IllegalStateException("close failed");
+        final var pool = new FileManagerPool(2, () -> managerWhoseCloseThrows(closing));
+        assertThatThrownBy(() -> pool.lend("a", manager -> {
+            failure.run();
+            return manager;
+        }))
+                .hasMessage("work failed")
+                .satisfies(thrown -> assertThat(thrown.getSuppressed()).containsExactly(closing));
+        assertThat(pool.idleCount()).isZero();
+    }
+
     @Test
     void aManagerWhoseWorkReturnsGoesBackToThePool() {
         final var pool = new FileManagerPool(2, this::recordingManager);
@@ -92,5 +106,17 @@ class FileManagerPoolTest {
                     return null;
                 });
         return manager[0];
+    }
+
+    private static StandardJavaFileManager managerWhoseCloseThrows(final RuntimeException closing) {
+        return (StandardJavaFileManager) Proxy.newProxyInstance(
+                StandardJavaFileManager.class.getClassLoader(),
+                new Class<?>[]{StandardJavaFileManager.class},
+                (_, method, _) -> {
+                    if (method.getName().equals("close")) {
+                        throw closing;
+                    }
+                    return null;
+                });
     }
 }
