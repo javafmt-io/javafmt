@@ -23,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 import java.util.Map;
@@ -234,24 +235,20 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     @Test
-    public void testReplacedBinaryAtSamePathIsReprobedRatherThanTrustingAStaleCache(@TempDir final Path dir)
-            throws IOException, InterruptedException {
+    public void testReplacedBinaryAtSamePathIsReprobedRatherThanTrustingAStaleCache(@TempDir final Path dir) throws IOException {
         enableJavafmt();
-        final var path = fakeBinaryReportingVersion(dir, "javafmt 0.2.0");
+        final var path = fakeBinaryReportingVersion(dir, FakeDaemon.VERSION_OUTPUT);
         JavafmtSettings.getInstance(getProject()).setBinaryPath(path.toString());
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         reformat(file);
-        // The 0.2.0 binary passed the gate; it refuses (exit 1) on anything but --version, so this
+        // The supported binary passed the gate; it refuses (exit 1) on anything but --version, so this
         // is the internal-refusal ERROR from an actual format attempt, not the "too old" WARNING.
         assertThat(notifications).isNotEmpty();
         assertThat(notifications.getLast().getType()).isEqualTo(NotificationType.ERROR);
         notifications.clear();
-        // Sleep past a whole-second mtime granularity (some filesystems only track that coarsely)
-        // so the replacement's mtime is observably later, then overwrite the same path with a
-        // binary below the gate. A cache keyed on path alone would still answer "supported" here;
-        // keying on path + size + mtime must not.
-        Thread.sleep(1_100);
+        final var before = Files.getLastModifiedTime(path);
         fakeBinaryReportingVersion(dir, "javafmt 0.0.9");
+        Files.setLastModifiedTime(path, FileTime.from(before.toInstant().plusSeconds(10)));
         reformat(file);
         assertThat(notifications).isNotEmpty();
         assertThat(notifications.getLast().getType()).isEqualTo(NotificationType.WARNING);
@@ -278,7 +275,8 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         final var binary = dir.resolve("javafmt-fake-warm");
         Files.writeString(
                 binary,
-                "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo 'javafmt 0.2.0'\n    exit 0\nfi\necho x >> '" + starts + "'\n"
+                "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo '" + FakeDaemon.VERSION_OUTPUT + "'\n    exit 0\nfi\necho x >> '" + starts
+                        + "'\n"
                         + JavafmtDaemonTest.ECHO_REQUESTS);
         Files.setPosixFilePermissions(binary, PosixFilePermissions.fromString("rwxr-xr-x"));
         JavafmtSettings.getInstance(getProject()).setBinaryPath(binary.toString());
@@ -457,7 +455,7 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         final var script = "#!/bin/sh\n"
                 + "if [ \"$1\" = \"--version\" ]; then\n"
                 + "    echo x >> '" + counterFile + "'\n"
-                + "    echo 'javafmt 0.2.0'\n"
+                + "    echo '" + FakeDaemon.VERSION_OUTPUT + "'\n"
                 + "    exit 0\n"
                 + "fi\n" + JavafmtDaemonTest.ECHO_REQUESTS;
         final var path = dir.resolve("javafmt-fake-counting");

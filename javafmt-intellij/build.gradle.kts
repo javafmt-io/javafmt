@@ -154,7 +154,7 @@ tasks.withType<Javadoc>().configureEach {
 }
 
 tasks.named<Test>("test") {
-    useJUnitPlatform()
+    useJUnitPlatform { excludeEngines("junit-vintage") }
     // The version gate is derived from the plugin's own version, so the test that pins the two
     // together needs the version the build stamped, independently of the generated source.
     systemProperty("javafmt.buildVersion", project.version.toString())

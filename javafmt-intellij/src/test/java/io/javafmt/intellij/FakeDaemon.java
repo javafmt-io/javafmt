@@ -27,6 +27,8 @@ import java.util.stream.Stream;
 
 public final class FakeDaemon {
 
+    static final String VERSION_OUTPUT = "javafmt 99.0.0";
+
     static final String SCOPE_PROBE = "class Probe {}";
 
     static final Map<String, FormatReply> CANNED = Map.of(
@@ -72,7 +74,8 @@ public final class FakeDaemon {
         final var path = dir.resolve(name);
         Files.writeString(
                 path,
-                "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo 'javafmt 0.2.0'\n    exit 0\nfi\nexec '" + java + "' -cp '" + classpath
+                "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then\n    echo '" + VERSION_OUTPUT + "'\n    exit 0\nfi\nexec '" + java + "' -cp '"
+                        + classpath
                         + "' "
                         + FakeDaemon.class.getName()
                         + "\n");

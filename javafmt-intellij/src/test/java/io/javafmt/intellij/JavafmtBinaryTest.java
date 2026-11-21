@@ -27,8 +27,8 @@ class JavafmtBinaryTest {
 
     @Test
     void versionReadsTheBinaryVersionString(@TempDir final Path dir) throws Exception {
-        final var fake = fakeBinaryScript(dir, "#!/bin/sh\necho 'javafmt 0.2.0'\n");
-        assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Reported("javafmt 0.2.0"));
+        final var fake = fakeBinaryScript(dir, "#!/bin/sh\necho '" + FakeDaemon.VERSION_OUTPUT + "'\n");
+        assertThat(new JavafmtBinary(fake).version()).isEqualTo(new JavafmtBinary.VersionProbe.Reported(FakeDaemon.VERSION_OUTPUT));
     }
 
     @Test
