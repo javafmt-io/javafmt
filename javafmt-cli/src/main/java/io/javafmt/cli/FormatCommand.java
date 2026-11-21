@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.Callable;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 @Command(
         name = "javafmt",
@@ -177,6 +178,18 @@ final class FormatCommand implements Callable<Integer> {
     private int serveDaemon() {
         if (check || !paths.isEmpty()) {
             throw new ParameterException(spec.commandLine(), "--daemon reads requests from stdin and cannot be combined with --check or paths");
+        }
+        final var parseResult = spec.commandLine().getParseResult();
+        final var unsupported = Stream.of("--cache", "--exclude", "--ratchet-from", "--diagnostics")
+                .filter(parseResult::hasMatchedOption)
+                .toList();
+        if (!unsupported.isEmpty()) {
+            throw new ParameterException(
+                    spec.commandLine(),
+                    "--daemon does not support " + String.join(", ", unsupported) + "; the daemon formats each request on its own");
+        }
+        if (parseResult.hasMatchedOption("--classpath")) {
+            throw new ParameterException(spec.commandLine(), "--daemon takes the classpath per request, not as --classpath");
         }
         Daemon.serve(json ? Wire.JSON : Wire.BINARY, in, out, threads.orElse(Daemon.DEFAULT_THREADS));
         return ExitCode.OK;

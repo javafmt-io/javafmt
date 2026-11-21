@@ -823,6 +823,26 @@ class CliTest {
         assertThat(run.err()).contains("--daemon reads requests from stdin and cannot be combined with --check or paths");
     }
 
+    @ParameterizedTest
+    @MethodSource("optionsTheDaemonIgnores")
+    void daemonFlag_cannotBeCombinedWithOptionsItDoesNotTake(final String option, final String value, final String reason) {
+        final var run = run("--daemon", option, value);
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err())
+                .contains(option)
+                .contains(reason)
+                .doesNotContain("internal error");
+    }
+
+    private static Stream<Arguments> optionsTheDaemonIgnores() {
+        return Stream.of(
+                Arguments.of("--cache", "c.txt", "does not support"),
+                Arguments.of("--exclude", "**/x", "does not support"),
+                Arguments.of("--ratchet-from", "main", "does not support"),
+                Arguments.of("--diagnostics", "json", "does not support"),
+                Arguments.of("--classpath", "a.jar", "per request"));
+    }
+
     @Test
     void jsonFlag_onlyAppliesToTheDaemon() {
         final var run = runStdin(Fixtures.UNFORMATTED_FOO, "--json");
