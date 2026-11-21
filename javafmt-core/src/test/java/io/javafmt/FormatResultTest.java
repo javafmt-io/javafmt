@@ -24,7 +24,7 @@ class FormatResultTest {
     @Test
     void formatOnInvalidSourceReturnsInputUnchanged() {
         final var garbage = "class {";
-        assertThat(Javafmt.format(garbage).stripTrailing().stripTrailing()).isEqualTo(garbage);
+        assertThat(Javafmt.format(garbage).stripTrailing()).isEqualTo(garbage);
     }
 
     @Test

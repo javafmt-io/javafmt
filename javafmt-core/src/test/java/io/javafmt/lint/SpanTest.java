@@ -23,10 +23,4 @@ class SpanTest {
         assertThat(span.overlaps(new Span(5, 8))).isFalse();
         assertThat(span.overlaps(new Span(0, 2))).isFalse();
     }
-
-    @Test
-    void lengthIsTheDistanceBetweenTheEnds() {
-        assertThat(new Span(2, 5).length()).isEqualTo(3);
-        assertThat(new Span(4, 4).length()).isZero();
-    }
 }

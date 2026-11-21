@@ -27,20 +27,13 @@ class JavafmtTest {
 
     @Test
     void formatNormalisesWhitespace() {
-        assertThat(
-                        Javafmt.format("class Foo { int x; }")
-                                .stripTrailing()
-                                .stripTrailing())
-                .isEqualTo("class Foo {\n\n    int x;\n}");
+        assertThat(Javafmt.format("class Foo { int x; }").stripTrailing()).isEqualTo("class Foo {\n\n    int x;\n}");
     }
 
     @Test
     void formatIsIdempotent() {
         final var source = "class Foo { int x; }";
-        assertThat(
-                        Javafmt.format(Javafmt.format(source))
-                                .stripTrailing()
-                                .stripTrailing())
+        assertThat(Javafmt.format(Javafmt.format(source)).stripTrailing())
                 .isEqualTo(Javafmt.format(source).stripTrailing());
     }
 

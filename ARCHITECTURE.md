@@ -33,7 +33,7 @@ flowchart TB
     engine --> core
 
     daemon["javafmt-daemon<br/>daemon.proto + --daemon server"] --> core
-    cli["javafmt-cli<br/>fat JAR + GraalVM native binary"] --> core
+    cli["javafmt-cli<br/>GraalVM native binary"] --> core
     cli --> daemon
 
     intellij["javafmt-intellij<br/>formats in the IDE by default"] -- "in-process" --> core
