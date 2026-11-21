@@ -14,6 +14,7 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.language.base.plugins.LifecycleBasePlugin;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +25,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -91,13 +91,11 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
     }
 
     static Stream<Path> upToTheRepositoryRoot(final Path directory) {
-        final var ancestors = Stream.iterate(directory.toAbsolutePath().normalize(), Objects::nonNull, Path::getParent)
-                .toList();
-        final var root = IntStream.range(0, ancestors.size())
-                .filter(i -> Files.exists(ancestors.get(i).resolve(".git")))
-                .findFirst()
-                .orElse(ancestors.size() - 1);
-        return ancestors.subList(0, root + 1).stream();
+        return Stream.iterate(directory.toAbsolutePath().normalize(), Objects::nonNull, JavafmtPlugin::parentUnlessRepositoryRoot);
+    }
+
+    private static @Nullable Path parentUnlessRepositoryRoot(final Path directory) {
+        return Files.exists(directory.resolve(".git")) ? null : directory.getParent();
     }
 
     private record PluginProperties(String engineHash, String foojayVersion) {}
@@ -154,7 +152,7 @@ public abstract class JavafmtPlugin implements Plugin<Project> {
             task.usesService(workerSlot);
             task.getEngineDirectory().set(new File(project.getGradle().getGradleUserHomeDir(), "caches/javafmt"));
             task.getProjectDirectory().set(project.getLayout().getProjectDirectory());
-            task.getFormatTaskPath().set(project.getPath().equals(":") ? ":" + FORMAT : project.getPath() + ":" + FORMAT);
+            task.getFormatTaskPath().set(project.absoluteProjectPath(FORMAT));
         }
 
         private List<Path> sourceDirectories(final SourceSet sourceSet) {

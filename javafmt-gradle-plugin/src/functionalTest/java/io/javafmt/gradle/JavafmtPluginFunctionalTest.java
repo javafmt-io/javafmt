@@ -391,7 +391,9 @@ class JavafmtPluginFunctionalTest {
         assertThat(outcome(build.run(":app:javafmtCheck"), ":app:javafmtCheckMain"))
                 .isEqualTo(TaskOutcome.UP_TO_DATE);
         build.write(".javafmt", "");
-        assertThat(build.fail(":app:javafmtCheck").getOutput()).contains("App.java");
+        assertThat(build.fail(":app:javafmtCheck").getOutput())
+                .contains("App.java")
+                .contains("gradle :app:javafmtFormat");
     }
 
     @Test
