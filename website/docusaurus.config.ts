@@ -14,10 +14,11 @@ const config: Config = {
     trailingSlash: false,
 
     onBrokenLinks: 'throw',
+    onBrokenAnchors: 'throw',
 
     markdown: {
         hooks: {
-            onBrokenMarkdownLinks: 'warn',
+            onBrokenMarkdownLinks: 'throw',
         },
     },
 

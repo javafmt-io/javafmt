@@ -109,9 +109,9 @@ Fields, methods, initializer blocks, and enum constants keep the author's order.
 
 ## Single-line constructs
 
-- `if (cond) {stmt;}`: see Braces.
-- `int size() {return size;}`, written that way: see Braces.
-- `x -> {log(x);}`, written that way: see Lambdas.
+- `if (cond) {stmt;}`: see [Braces](#braces).
+- `int size() {return size;}`, written that way: see [Braces](#braces).
+- `x -> {log(x);}`, written that way: see [Lambdas](#lambdas).
 - A record whose components fit on one line stays on one line.
 - An empty body folds: `) {}` and `private X() {}`.
 - Short lambdas inline.
@@ -167,7 +167,7 @@ executor.execute(() -> service.process(
 
 This holds when the line up to the body's first break fits in 150 characters and the other arguments have no comments, nothing that spans several lines, and no block-bodied lambda. Otherwise the arguments wrap at +8 with the lambda among them, and so does a lambda that is not the last argument.
 
-When other arguments come before the lambda, it also has to keep its body's leading chain on one line by the column-80 chain rule (see Method chains), and every chain among those other arguments has to meet that rule on the call's line too. If staying on the call's line would split the body's chain or leave another argument's chain past column 80, the arguments wrap at +8 instead, on one line when they fit there and otherwise one per line:
+When other arguments come before the lambda, it also has to keep its body's leading chain on one line by the column-80 chain rule (see [Method chains](#method-chains)), and every chain among those other arguments has to meet that rule on the call's line too. If staying on the call's line would split the body's chain or leave another argument's chain past column 80, the arguments wrap at +8 instead, on one line when they fit there and otherwise one per line:
 
 ```java
 super(
@@ -189,7 +189,7 @@ Lambda parameters are never `final`.
 
 ## Method chains
 
-- A chain of three or more calls goes on one line, however the author broke it, when it fits in 150 characters and ends by column 80. Otherwise it breaks before each `.`. When its last call takes a block-bodied lambda, the line up to the lambda's `{` has to end by column 80. A chain of two calls only needs the text before its last `.` to end by column 80, so `assertThat(actual).isEqualTo(expected)` stays on one line for longer. The column counts from the start of the line, indentation included, and the rule holds inside another call's arguments too. A two-call chain that is the body of a lambda passed as a call's only argument is exempt while it fits in 150 characters (see Lambdas). So is a two-call chain whose last call is `.stream()`, `.parallelStream()`, `.builder()`, `.newBuilder()` or `.toBuilder()`. Stream and builder chains with a call after that point always break (next rule), and so does a chain that contains a multi-line text block.
+- A chain of three or more calls goes on one line, however the author broke it, when it fits in 150 characters and ends by column 80. Otherwise it breaks before each `.`. When its last call takes a block-bodied lambda, the line up to the lambda's `{` has to end by column 80. A chain of two calls only needs the text before its last `.` to end by column 80, so `assertThat(actual).isEqualTo(expected)` stays on one line for longer. The column counts from the start of the line, indentation included, and the rule holds inside another call's arguments too. A two-call chain that is the body of a lambda passed as a call's only argument is exempt while it fits in 150 characters (see [Lambdas](#lambdas)). So is a two-call chain whose last call is `.stream()`, `.parallelStream()`, `.builder()`, `.newBuilder()` or `.toBuilder()`. Stream and builder chains with a call after that point always break (next rule), and so does a chain that contains a multi-line text block.
 
 ```java
 log.atInfo()
@@ -213,7 +213,7 @@ return audit.toBuilder()
         .build();
 ```
 
-- A chain whose last call ends in a block-bodied lambda stays on one line up to the lambda's `{` when that fits (see Lambdas). Any other part that spans several lines, such as a block lambda in an earlier call, breaks the chain before every `.`.
+- A chain whose last call ends in a block-bodied lambda stays on one line up to the lambda's `{` when that fits (see [Lambdas](#lambdas)). Any other part that spans several lines, such as a block lambda in an earlier call, breaks the chain before every `.`.
 - Continuation indent is 8 spaces past the statement. Dots are not aligned with each other.
 - When the first line of a broken chain wraps its own arguments, they go at +16, past the calls below them:
 
@@ -273,7 +273,7 @@ return Optional.of(requested.compareTo(database) >= 0
         : Direction.ROLLBACK);
 ```
 
-This holds when the line up to the condition's first break fits in 150 characters, the other arguments have no comments and nothing that spans several lines, and no chain on that line breaks the column-80 chain rule (see Method chains). A ternary the author wrote on one line first moves to the next line at +8, with the other arguments, when it fits there.
+This holds when the line up to the condition's first break fits in 150 characters, the other arguments have no comments and nothing that spans several lines, and no chain on that line breaks the column-80 chain rule (see [Method chains](#method-chains)). A ternary the author wrote on one line first moves to the next line at +8, with the other arguments, when it fits there.
 
 ## Enums
 
@@ -314,7 +314,7 @@ public final Money total() {
 - Parameters: annotations inline before `final`: `@Named("primary") final Account account`, `@NonNull final String orderId`, `@Nullable final LocalDate dueDate`.
 - Fields: every annotation in front of the modifiers goes on its own line above the field, as on a method.
 - Local variables: the annotations in front of the modifiers stay inline with the declaration when none of them has arguments and the author wrote them inline (`@Deprecated final int count = total;`). Otherwise each of them goes on its own line above it.
-- An annotation written after the modifiers of a field, local variable, parameter, constructor, or method that returns a value stays after them, beside the type it annotates: `public @Nullable Order find(final String id)`, `private final @Nullable Comparator<Order> order;`, `final @Nullable Order[] orders`. One written after a method's type parameters stays there too: `public static <T> @Nullable T first(final List<T> items)`. A class, interface, enum, record or `void` method has no type for it to annotate, so there it moves in front of the modifiers (see `ModifierOrder`).
+- An annotation written after the modifiers of a field, local variable, parameter, constructor, or method that returns a value stays after them, beside the type it annotates: `public @Nullable Order find(final String id)`, `private final @Nullable Comparator<Order> order;`, `final @Nullable Order[] orders`. One written after a method's type parameters stays there too: `public static <T> @Nullable T first(final List<T> items)`. A class, interface, enum, record or `void` method has no type for it to annotate, so there it moves in front of the modifiers (see [`ModifierOrder`](#auto-fix-rules)).
 - An annotation that fits in 150 characters goes on one line, however the author wrapped it. One that does not ends its first line with `@Name(`, puts each argument on its own line at +8, and closes with `)` right after the last argument. An array value that still does not fit puts one element per line, with `}` on a line of its own:
 
 ```java
@@ -343,7 +343,7 @@ class OrderIntegrationTest {
 })
 ```
 
-- An array inside an annotation follows the rule for every array (see Arrays): a trailing comma when it goes one element per line, none when it fits on one line.
+- An array inside an annotation follows the rule for every array (see [Arrays](#arrays)): a trailing comma when it goes one element per line, none when it fits on one line.
 - A `//` comment after an annotation's last argument keeps its line, and `)` goes on the line below it.
 
 ## Javadoc and comments
@@ -383,7 +383,7 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `FinalCatchParameter` | Adds `final` to every `catch` parameter, after any annotations: `catch (final RuntimeException e)`. Never when the body reassigns it. |
 | `FinalForEachVariable` | Adds `final` to the for-each variable: `for (final var x : xs)`. Never when the loop body reassigns it. |
 | `LocalVarUseVar` | Replaces the declared type of a local with `var` when the source shows the type stays the same: an unqualified `new` of exactly the declared type, whether or not the local is reassigned; and, for a local that is never reassigned, an unqualified diamond of the declared class, which gains the declared type arguments, a cast to the declared type, or a literal of the declared type. With the classpath it also rewrites a factory call that carries the declared type arguments as its witness when javac gives the call exactly the declared type, and a wider declaration such as `List<String> xs = new ArrayList<String>()`, or any other initializer, when javac confirms every use of the local is unchanged. Lambdas, method references, `null` and array initializers keep their declared type, and so does a reassigned local unless its initializer is an unqualified `new` of exactly the declared type. A qualified `new` such as `outer.new Inner()` names a member of the outer object's type, which can differ from the declared `Inner`, so it is rewritten only with the classpath and only when every use stays the same. With FinalLocalVariable the result is `final var`. |
-| `ArrayTrailingComma` | Adds a trailing comma to every non-empty array initializer, inside annotations too. It is printed only when the array goes one element per line (see Arrays). |
+| `ArrayTrailingComma` | Adds a trailing comma to every non-empty array initializer, inside annotations too. It is printed only when the array goes one element per line (see [Arrays](#arrays)). |
 | `DefaultComesLast` | Moves `default` last in arrow switches. A colon-form switch is rewritten only when `default` has its own terminating body and is not part of a label group; otherwise it warns. |
 | `ModifierOrder` | Reorders modifiers to JLS order: `public protected private abstract default static final transient volatile synchronized native strictfp`. Annotations in front of the keywords stay there. An annotation written among or after the keywords goes after them on a field, variable, parameter, constructor, or method that returns a value, and in front of them on a class, interface, enum, record, or `void` method. |
 | `RedundantModifier` | Strips modifiers the JLS implies. |
@@ -395,11 +395,11 @@ Lint rules run before the formatter, in a fixed-point loop. A rule emits an edit
 | `OneStatementPerLine` | Splits multiple statements on one line. A comment between two of them stays at the end of the first one's line. |
 | `NewlineAtEndOfFile` | Ends the file with exactly one line ending, in the file's own style. |
 | `ExplicitInitialization` | Strips redundant default field initializers: `int x = 0;` becomes `int x;`, `Object o = null;` becomes `Object o;`, `boolean b = false;` becomes `boolean b;`. Skipped when the class has a superclass, because the superclass constructor may call an override that assigns the field and `= 0` is then a real write, and when a comment sits inside the text being deleted. |
-| `EnumTrailingComma` | Adds a trailing comma after the last constant. It is printed only when the constants go one per line (see Enums). Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
+| `EnumTrailingComma` | Adds a trailing comma after the last constant. It is printed only when the constants go one per line (see [Enums](#enums)). Leaves an enum with body declarations and a `;` unchanged, and removes a `,` written directly before the `;`. |
 | `ExplodeStarImports` | Replaces a wildcard import with explicit imports for the members the file references. Needs the classpath, and leaves every wildcard alone if any name in the file fails to resolve. |
 | `RedundantTypeArguments` | Drops explicit type arguments the compiler infers anyway: `new Foo<T>()` becomes `new Foo<>()` when the target type is written identically, apart from spacing and comments. With the classpath it also drops type witnesses on generic method calls when, without them, the call still compiles and javac infers the same type arguments and the same type for the call. Type arguments that hold a comment are kept, and so is a witness that carries a type annotation, such as `Stream.<@Nullable T>iterate(...)`. |
 | `RedundantSuperCall` | Removes a no-argument `super()` as the first statement of a constructor body. A comment written inside its parentheses stays where the call was. |
-| `MemberOrder` | Moves nested types other than JUnit `@Nested` classes to the bottom of their enclosing body and a utility class's private constructor below them. See Member ordering. |
+| `MemberOrder` | Moves nested types other than JUnit `@Nested` classes to the bottom of their enclosing body and a utility class's private constructor below them. See [Member ordering](#member-ordering). |
 | `UnusedVariableShouldBeUnnamed` | Renames a variable nothing reads to `_`: catch and lambda parameters, enhanced-for and try-with-resources variables, pattern bindings, and locals with an initializer. Fields, method parameters, locals without an initializer and C-style array declarations are left alone. A variable counts as used when any identifier of its name appears in its scope, so shadowing can only stop a rename, never cause a wrong one. Every integration assumes release 25, so it always fires. |
 
 ### Warning-only rules
