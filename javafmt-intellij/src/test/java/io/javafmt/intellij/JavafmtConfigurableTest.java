@@ -1,6 +1,7 @@
 package io.javafmt.intellij;
 
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.util.ui.UIUtil;
 import org.junit.jupiter.api.Test;
@@ -100,8 +101,9 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
     @Test
     @EnabledOnOs({OS.MAC, OS.LINUX})
     void openingTheSettingsPageDoesNotWaitForASlowBinary(@TempDir final Path dir) throws IOException {
+        final var answered = dir.resolve("answered");
         final var slow = dir.resolve("javafmt-slow");
-        Files.writeString(slow, "#!/bin/sh\nsleep 3\necho 'javafmt 9.9.9'\n");
+        Files.writeString(slow, "#!/bin/sh\nsleep 3\necho 'javafmt 9.9.9'\ntouch '" + answered + "'\n");
         Files.setPosixFilePermissions(slow, PosixFilePermissions.fromString("rwxr-xr-x"));
         JavafmtSettings.getInstance(getProject()).setBinaryPath(slow.toString());
         // reset() runs on the EDT when the Settings dialog opens the page, so probing the binary
@@ -109,6 +111,27 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
         final var start = System.nanoTime();
         configurable.reset();
         assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofSeconds(1));
+        final var status = status().getText();
+        configurable.disposeUIResources();
+        PlatformTestUtil.waitWithEventsDispatching("the probe never answered", () -> Files.exists(answered), 10);
+        final var settled = System.nanoTime() + Duration.ofMillis(500).toNanos();
+        PlatformTestUtil.waitWithEventsDispatching("unreachable", () -> System.nanoTime() > settled, 10);
+        assertThat(status().getText()).isEqualTo(status);
+    }
+
+    @Test
+    @EnabledOnOs({OS.MAC, OS.LINUX})
+    void leavingTheNativeEngineStopsTheProjectsDaemon(@TempDir final Path dir) throws Exception {
+        final var pidFile = dir.resolve("pid");
+        final var binary = BinaryIdentity.of(JavafmtDaemonTest.script(dir, "echo $$ > '" + pidFile + "'\n" + JavafmtDaemonTest.ECHO_REQUESTS))
+                .orElseThrow();
+        JavafmtApplicationSettings.getInstance().setEngine(JavafmtApplicationSettings.Engine.NATIVE);
+        configurable.reset();
+        assertThat(JavafmtDaemons.getInstance(getProject()).format(binary, "class A {}", FileScope.none()))
+                .isInstanceOf(Outcome.Formatted.class);
+        engine().setSelectedItem(JavafmtApplicationSettings.Engine.IN_PROCESS);
+        configurable.apply();
+        JavafmtDaemonTest.awaitExit(Long.parseLong(Files.readString(pidFile).strip()));
     }
 
     @Test
@@ -150,6 +173,10 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
         configurable.reset();
         assertThat(engine().getSelectedItem()).isEqualTo(JavafmtApplicationSettings.Engine.NATIVE);
         assertThat(configurable.isModified()).isFalse();
+    }
+
+    private JBLabel status() {
+        return (JBLabel) findByName(configurable, JavafmtConfigurable.BINARY_STATUS_LABEL_NAME);
     }
 
     private JComboBox<?> engine() {

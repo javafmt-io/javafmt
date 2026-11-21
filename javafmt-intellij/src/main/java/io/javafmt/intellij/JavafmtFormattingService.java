@@ -67,6 +67,12 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
 
     @Override
     @NotNull
+    protected Duration getTimeout() {
+        return JavafmtDaemons.FORMAT_TIMEOUT.plus(JavafmtBinary.TIMEOUT);
+    }
+
+    @Override
+    @NotNull
     protected String getNotificationGroupId() {
         return NOTIFICATION_GROUP;
     }

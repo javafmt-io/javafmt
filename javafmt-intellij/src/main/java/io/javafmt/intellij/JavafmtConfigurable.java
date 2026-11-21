@@ -34,6 +34,8 @@ public final class JavafmtConfigurable implements Configurable {
 
     static final String ENGINE_COMBO_BOX_NAME = "javafmt.engine";
 
+    static final String BINARY_STATUS_LABEL_NAME = "javafmt.binaryStatus";
+
     private final Project project;
 
     private final JBCheckBox enabled = checkBox(ENABLED_CHECKBOX_NAME, "Use javafmt to reformat Java files in this project");
@@ -42,7 +44,7 @@ public final class JavafmtConfigurable implements Configurable {
 
     private final TextFieldWithBrowseButton binaryPath = binaryPathField();
 
-    private final JBLabel binaryStatus = new JBLabel();
+    private final JBLabel binaryStatus = statusLabel();
 
     /** Identifies the newest probe, so an earlier slow one cannot overwrite its answer. */
     private final AtomicInteger statusGeneration = new AtomicInteger();
@@ -75,6 +77,13 @@ public final class JavafmtConfigurable implements Configurable {
         return box;
     }
 
+    private static JBLabel statusLabel() {
+        final var label = new JBLabel();
+        label.setName(BINARY_STATUS_LABEL_NAME);
+        label.setForeground(UIUtil.getContextHelpForeground());
+        return label;
+    }
+
     private static TextFieldWithBrowseButton binaryPathField() {
         final var field = new TextFieldWithBrowseButton();
         field.setName(BINARY_PATH_FIELD_NAME);
@@ -94,7 +103,6 @@ public final class JavafmtConfigurable implements Configurable {
      */
     private void refreshStatus() {
         final var configured = configuredBinaryPath();
-        binaryStatus.setForeground(UIUtil.getContextHelpForeground());
         binaryStatus.setText("checking…");
         final var generation = statusGeneration.incrementAndGet();
         AppExecutorUtil.getAppExecutorService().execute(() -> {
@@ -164,6 +172,9 @@ public final class JavafmtConfigurable implements Configurable {
         settings.setEnabled(enabled.isSelected());
         JavafmtApplicationSettings.getInstance().setEngine(engine.getItem());
         settings.setBinaryPath(configuredBinaryPath());
+        if (engine.getItem() != JavafmtApplicationSettings.Engine.NATIVE) {
+            JavafmtDaemons.stopAll();
+        }
         refreshStatus();
     }
 
@@ -175,6 +186,11 @@ public final class JavafmtConfigurable implements Configurable {
         binaryPath.setText(settings.getBinaryPath());
         enableBinaryPathForNativeEngine();
         refreshStatus();
+    }
+
+    @Override
+    public void disposeUIResources() {
+        statusGeneration.incrementAndGet();
     }
 
     private String configuredBinaryPath() {

@@ -4,12 +4,17 @@ import com.intellij.execution.ExecutionException;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
 @Service(Service.Level.PROJECT)
 public final class JavafmtDaemons implements Disposable {
+
+    static final Duration FORMAT_TIMEOUT = Duration.ofSeconds(120);
 
     private Optional<Running> current = Optional.empty();
 
@@ -28,6 +33,12 @@ public final class JavafmtDaemons implements Disposable {
             return new Outcome.Refused("could not run " + binary.path() + ": " + e.getMessage(), false);
         }
         return daemon.map(running -> running.format(source, scope)).orElseGet(Outcome.Cancelled::new);
+    }
+
+    static void stopAll() {
+        Arrays.stream(ProjectManager.getInstance().getOpenProjects())
+                .flatMap(project -> Optional.ofNullable(project.getServiceIfCreated(JavafmtDaemons.class)).stream())
+                .forEach(JavafmtDaemons::stop);
     }
 
     synchronized void stop() {
@@ -51,7 +62,7 @@ public final class JavafmtDaemons implements Disposable {
             return reusable.map(Running::daemon);
         }
         stop();
-        final var started = JavafmtDaemon.start(binary.path(), JavafmtBinary.TIMEOUT);
+        final var started = JavafmtDaemon.start(binary.path(), FORMAT_TIMEOUT);
         current = Optional.of(new Running(binary, started));
         return Optional.of(started);
     }

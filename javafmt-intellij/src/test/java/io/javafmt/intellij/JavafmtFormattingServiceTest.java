@@ -86,6 +86,12 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
     }
 
     @Test
+    public void testThePlatformWaitsLongerThanTheDaemonsOwnTimeout() {
+        assertThat(JavafmtDaemons.FORMAT_TIMEOUT).isGreaterThan(JavafmtBinary.TIMEOUT);
+        assertThat(service.getTimeout()).isGreaterThan(JavafmtDaemons.FORMAT_TIMEOUT);
+    }
+
+    @Test
     public void testNotActiveWhenDisabled() {
         final var file = myFixture.configureByText("Foo.java", "class Foo {}");
         assertThat(service.canFormat(file)).isFalse();
