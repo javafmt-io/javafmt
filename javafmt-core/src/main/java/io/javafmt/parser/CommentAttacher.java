@@ -258,11 +258,7 @@ final class CommentAttacher {
      * is how {@code TreeFacts.isEnumConstant} tells one from a field.
      */
     private boolean isTheEnumTerminator(final int ch, final Slot slot, final CompilationUnitTree cu, final SourcePositions pos) {
-        return ch == ';'
-            && slot.kind() == Kind.TAIL
-            && slot.previous() instanceof VariableTree v
-            && v.getType() != null
-            && pos.getEndPosition(cu, v.getType()) < 0;
+        return ch == ';' && slot.kind() == Kind.TAIL && slot.previous() instanceof VariableTree v && TreeFacts.isEnumConstant(v, cu, pos);
     }
 
     private void collectCompilationUnit(final CompilationUnitTree cu,
@@ -428,7 +424,9 @@ final class CommentAttacher {
             collectAnnotations(node.getModifiers());
             collectHeaderBraceLine(node, isRecord);
             members(node, isRecord).stream()
-                    .flatMap(member -> member instanceof VariableTree v && !isEnumConstant(v) ? Stream.of(v.getModifiers()) : Stream.empty())
+                    .flatMap(member -> member instanceof VariableTree v && !TreeFacts.isEnumConstant(v, cu, pos)
+                            ? Stream.of(v.getModifiers())
+                            : Stream.empty())
                     .forEach(this::collectAnnotations);
             if (isRecord) {
                 collect(node, recordComponents(node), false);
@@ -542,10 +540,6 @@ final class CommentAttacher {
                             .toList(),
                     false);
             return super.visitPackage(node, null);
-        }
-
-        private boolean isEnumConstant(final VariableTree variable) {
-            return variable.getType() != null && pos.getEndPosition(cu, variable.getType()) < 0;
         }
 
         /**

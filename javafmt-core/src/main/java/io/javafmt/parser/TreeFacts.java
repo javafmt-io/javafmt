@@ -13,6 +13,7 @@ import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.NewClassTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.VariableTree;
+import com.sun.source.util.SourcePositions;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -128,11 +129,15 @@ public final class TreeFacts {
      * with arguments or a class body.
      */
     public boolean isEnumConstant(final VariableTree member) {
+        return isEnumConstant(member, unit.tree(), unit.sourcePositions());
+    }
+
+    public static boolean isEnumConstant(final VariableTree member, final CompilationUnitTree cu, final SourcePositions positions) {
         final var type = member.getType();
         if (type == null) {
             return false;
         }
-        return unit.endOf(type) < 0;
+        return positions.getEndPosition(cu, type) < 0;
     }
 
     /**

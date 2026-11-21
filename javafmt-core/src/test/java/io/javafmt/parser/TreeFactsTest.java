@@ -46,6 +46,10 @@ class TreeFactsTest {
                 .map(m -> (VariableTree) m)
                 .toList();
         assertThat(facts.isEnumConstant(vars.getFirst())).isTrue();
+        assertThat(TreeFacts.isEnumConstant(vars.getFirst(), unit.tree(), unit.sourcePositions()))
+                .isTrue();
+        assertThat(TreeFacts.isEnumConstant(vars.getLast(), unit.tree(), unit.sourcePositions()))
+                .isFalse();
         assertThat(
                 facts.isEnumConstant(vars.stream()
                         .filter(v -> v.getName().contentEquals("LOCK"))
