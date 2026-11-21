@@ -1,6 +1,7 @@
 package io.javafmt.cli;
 
 import io.javafmt.JavafmtVersion;
+import io.javafmt.PathFilter;
 import io.javafmt.ProjectFile;
 import io.javafmt.daemon.Daemon;
 import io.javafmt.daemon.Wire;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.Callable;
+import java.util.regex.PatternSyntaxException;
 
 @Command(
         name = "javafmt",
@@ -72,8 +74,7 @@ final class FormatCommand implements Callable<Integer> {
             description = "Diagnostic format on stderr: text, or json for NDJSON. Default: ${DEFAULT-VALUE}.")
     private DiagnosticsFormat diagnostics = DiagnosticsFormat.TEXT;
 
-    @Option(names = "--exclude", paramLabel = "<glob>", description = "Skip paths matching the glob. Repeatable.")
-    private List<String> excludes = new ArrayList<>();
+    private List<String> excludes = List.of();
 
     @Option(names = "--no-default-excludes", description = "Search build, target, out, generated, node_modules and .git too.")
     private boolean noDefaultExcludes;
@@ -108,6 +109,18 @@ final class FormatCommand implements Callable<Integer> {
         this.err = err;
         this.stdinIsATerminal = stdinIsATerminal;
         this.workingDirectory = workingDirectory;
+    }
+
+    @Option(names = "--exclude", paramLabel = "<glob>", description = "Skip paths matching the glob. Repeatable.")
+    void setExcludes(final List<String> globs) {
+        globs.forEach(glob -> {
+            try {
+                PathFilter.ofGlobs(List.of(glob));
+            } catch (final PatternSyntaxException e) {
+                throw new ParameterException(spec.commandLine(), "--exclude is not a valid glob: " + glob + " (" + e.getDescription() + ")", e);
+            }
+        });
+        this.excludes = List.copyOf(globs);
     }
 
     @Option(

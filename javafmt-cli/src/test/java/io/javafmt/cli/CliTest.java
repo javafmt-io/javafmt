@@ -258,6 +258,27 @@ class CliTest {
     }
 
     @Test
+    void excludeFlag_invalidGlob_isAUsageErrorNamingTheOptionAndTheGlob() {
+        final var run = run("--exclude", "[a", "A.java");
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err())
+                .contains("--exclude")
+                .contains("[a")
+                .doesNotContain("internal error")
+                .doesNotContain("please file a bug")
+                .doesNotContain("\tat ");
+    }
+
+    @Test
+    void excludeFlag_invalidGlob_isAUsageErrorForStdinToo() {
+        final var run = runStdin(Fixtures.UNFORMATTED_FOO, "--exclude", "[a");
+        assertThat(run.exit()).isEqualTo(2);
+        assertThat(run.err())
+                .contains("--exclude")
+                .doesNotContain("internal error");
+    }
+
+    @Test
     void excludeFlag_noValue_failsWithUsefulMessage() {
         final var run = run("--exclude");
         assertThat(run.exit()).isEqualTo(2);
