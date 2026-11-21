@@ -170,6 +170,10 @@ class JavafmtMojoTest {
         Files.setPosixFilePermissions(file, permissions);
         formatMojo(dir).execute();
         assertThat(Files.getPosixFilePermissions(file)).isEqualTo(permissions);
+        assertThat(Files.readString(file)).isEqualTo(FORMATTED);
+        try (final var siblings = Files.list(file.getParent())) {
+            assertThat(siblings.toList()).containsExactly(file);
+        }
     }
 
     @Test
