@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,6 +36,7 @@ import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Gatherers;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -83,14 +85,7 @@ final class BatchFormatter {
     List<FormatResult> formatAll(final List<String> sources, final JavafmtConfig config, final int threads) {
         final var workers = Math.max(1, threads);
         try (final var pool = newPool(workers)) {
-            return formatOn(
-                    pool,
-                    workers,
-                    sources,
-                    sources.stream()
-                            .map(_ -> Set.<String>of())
-                            .toList(),
-                    config);
+            return formatOn(pool, workers, sources, Collections.nCopies(sources.size(), Set.of()), config);
         }
     }
 
@@ -126,8 +121,8 @@ final class BatchFormatter {
                                 path.toAbsolutePath().getParent(), path))
                         .toList())
                 : slices(sizes, SLICE_SIZE);
-        return IntStream.iterate(0, start -> start < slices.size(), start -> start + slicesAtOnce)
-                .mapToObj(start -> slices.subList(start, Math.min(slices.size(), start + slicesAtOnce)))
+        return slices.stream()
+                .gather(Gatherers.windowFixed(slicesAtOnce))
                 .flatMap(wave -> fanOut(
                         slicePool,
                         wave.stream()
@@ -262,8 +257,8 @@ final class BatchFormatter {
 
     List<List<String>> chunks(final List<String> sources, final int threads) {
         final var size = chunkSize(sources.size(), threads);
-        return IntStream.iterate(0, start -> start < sources.size(), start -> start + size)
-                .mapToObj(start -> sources.subList(start, Math.min(sources.size(), start + size)))
+        return sources.stream()
+                .gather(Gatherers.windowFixed(size))
                 .toList();
     }
 
@@ -299,9 +294,7 @@ final class BatchFormatter {
                     formattable.stream()
                             .map(source -> (long) source.length())
                             .toList(),
-                    formattable.stream()
-                            .map(_ -> "")
-                            .toList())
+                    Collections.nCopies(formattable.size(), ""))
                     .stream()
                     .flatMap(batch -> formatAttributed(
                             batch.stream()
@@ -419,14 +412,7 @@ final class BatchFormatter {
                                    final JavafmtConfig config,
                                    final Renderer renderer,
                                    final Function<List<String>, List<Prepared>> parser) {
-        return formatChunk(
-                chunk,
-                chunk.stream()
-                        .map(_ -> Set.<String>of())
-                        .toList(),
-                config,
-                renderer,
-                parser);
+        return formatChunk(chunk, Collections.nCopies(chunk.size(), Set.of()), config, renderer, parser);
     }
 
     /** Parses, lints, and renders one chunk of non-blank sources. */
@@ -644,14 +630,7 @@ final class BatchFormatter {
             && parsed.tree().getModule() != null;
     }
 
-    List<Prepared> fromAttributed(final List<String> chunk, final List<Staged<AttributedUnit>> outcomes) {
-        final var unattributed = JavaParser.parseUnits(chunk);
-        return IntStream.range(0, chunk.size())
-                .mapToObj(i -> prepared(chunk.get(i), outcomes.get(i), unattributed.get(i)))
-                .toList();
-    }
-
-    private Prepared prepared(final String source, final Staged<AttributedUnit> outcome, final Staged<ParsedUnit> unattributed) {
+    Prepared prepared(final String source, final Staged<AttributedUnit> outcome, final Staged<ParsedUnit> unattributed) {
         return switch (outcome) {
             case Staged.Ok<AttributedUnit>(var unit) -> new Prepared(unattributed.map(plain -> LintContext.attributed(unit, plain)), List.of());
             case Staged.Failed<AttributedUnit>(ParseException parseError) -> new Prepared(new Staged.Failed<>(parseError), List.of());

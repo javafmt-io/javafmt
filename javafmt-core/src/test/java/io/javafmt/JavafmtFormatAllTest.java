@@ -1,5 +1,6 @@
 package io.javafmt;
 
+import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.JavaParser;
 import io.javafmt.parser.Staged;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -155,11 +156,8 @@ class JavafmtFormatAllTest {
     @Test
     void aFileJavacCannotAttributeIsFormattedParseOnlyWithAWarning() {
         final var source = "class A {\n    void m() {\n        int x = 1;\n        System.out.println(x);\n    }\n}\n";
-        final var results = BatchFormatter.formatChunk(
-                List.of(source),
-                ANALYZE,
-                BatchFormatter.Renderer.INLINE,
-                chunk -> BatchFormatter.fromAttributed(chunk, List.of(new Staged.Failed<>(new IllegalStateException("javac crashed")))));
+        final var results = BatchFormatter.formatChunk(List.of(source), ANALYZE, BatchFormatter.Renderer.INLINE, chunk -> preparedAfter(
+                chunk, new Staged.Failed<>(new IllegalStateException("javac crashed"))));
         assertThat(results.getFirst().output()).isEqualTo(Javafmt.format(source));
         assertThat(results.getFirst().diagnostics())
                 .singleElement()
@@ -350,5 +348,12 @@ class JavafmtFormatAllTest {
         assertThat(Javafmt.formatWithResult(source, ANALYZE).output()).contains("final var x");
         assertThat(Javafmt.formatWithResult(source, ANALYZE.withLint(false)).output())
                 .doesNotContain("final var x");
+    }
+
+    private static List<BatchFormatter.Prepared> preparedAfter(final List<String> chunk, final Staged<AttributedUnit> outcome) {
+        final var unattributed = JavaParser.parseUnits(chunk);
+        return IntStream.range(0, chunk.size())
+                .mapToObj(i -> BatchFormatter.prepared(chunk.get(i), outcome, unattributed.get(i)))
+                .toList();
     }
 }
