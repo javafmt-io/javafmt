@@ -1,4 +1,3 @@
-import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 import java.security.MessageDigest
@@ -85,12 +84,6 @@ val pluginResources = tasks.register<Sync>("pluginResources") {
 
 sourceSets.main {
     resources.srcDir(pluginResources)
-}
-
-tasks.named<JavaCompile>(functionalTest.compileJavaTaskName) {
-    options.errorprone {
-        check("NullAway", CheckSeverity.OFF)
-    }
 }
 
 abstract class JavaHomes : CommandLineArgumentProvider {

@@ -28,11 +28,13 @@ class LintContextTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     void parseOnly_rejectsNullUnit() {
         assertThatThrownBy(() -> LintContext.parseOnly(null)).isInstanceOf(NullPointerException.class);
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     void attributed_rejectsNullAttributedUnit() {
         assertThatThrownBy(() -> LintContext.attributed(null)).isInstanceOf(NullPointerException.class);
     }

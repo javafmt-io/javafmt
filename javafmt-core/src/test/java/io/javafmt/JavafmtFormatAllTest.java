@@ -10,6 +10,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -329,9 +330,10 @@ class JavafmtFormatAllTest {
         thread.start();
         thread.join();
         assertThat(failure.get()).isNull();
-        assertThat(results.get().getFirst().output()).isEqualTo("class Good {}\n");
-        assertThat(results.get().get(1).output()).isEqualTo(deep);
-        assertThat(results.get().get(1).diagnostics())
+        final var formatted = Objects.requireNonNull(results.get());
+        assertThat(formatted.getFirst().output()).isEqualTo("class Good {}\n");
+        assertThat(formatted.get(1).output()).isEqualTo(deep);
+        assertThat(formatted.get(1).diagnostics())
                 .singleElement()
                 .isInstanceOf(Diagnostic.InternalError.class);
     }

@@ -74,6 +74,7 @@ class PairsTest {
     }
 
     @Test
+    @SuppressWarnings("NullAway")
     void rejectsANullCombiner() {
         assertThatNullPointerException().isThrownBy(() -> Pairs.pairwise(null));
         assertThatNullPointerException().isThrownBy(() -> Pairs.withPrevious(null));

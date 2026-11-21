@@ -4,6 +4,7 @@ import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.ModifiersTree;
 import com.sun.source.tree.Tree;
 import com.sun.source.tree.TreeVisitor;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -73,7 +74,7 @@ class ModifierRendererTest {
             }
 
             @Override
-            public <R, D> R accept(final TreeVisitor<R, D> visitor, final D data) {
+            public <R, D> @Nullable R accept(final TreeVisitor<R, D> visitor, final D data) {
                 return null;
             }
         };

@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
@@ -39,7 +40,7 @@ class DeepExpressionTest {
     @ParameterizedTest
     @EnumSource(Chain.class)
     void formatsTheDeepestChainJavacCanCompile(final Chain chain) {
-        final var source = chain.of(deepestCompilable.get(chain));
+        final var source = chain.of(Objects.requireNonNull(deepestCompilable.get(chain)));
         final var result = Javafmt.formatWithResult(source, JavafmtConfig.defaults());
         assertThat(result.diagnostics()).isEmpty();
         assertThat(Javafmt.format(result.output())).isEqualTo(result.output());
@@ -48,7 +49,7 @@ class DeepExpressionTest {
     @ParameterizedTest
     @EnumSource(Chain.class)
     void formatsTheDeepestChainJavacCanCompileInABatch(final Chain chain) {
-        final var sources = List.of("class Before {}\n", chain.of(deepestCompilable.get(chain)), "class After {}\n");
+        final var sources = List.of("class Before {}\n", chain.of(Objects.requireNonNull(deepestCompilable.get(chain))), "class After {}\n");
         final var results = Javafmt.formatAll(sources, JavafmtConfig.defaults(), 2);
         assertThat(results).allSatisfy(result -> assertThat(result.diagnostics()).isEmpty());
         assertThat(results.get(1).output()).isEqualTo(Javafmt.format(sources.get(1)));

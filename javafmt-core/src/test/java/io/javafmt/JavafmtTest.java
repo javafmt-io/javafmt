@@ -186,6 +186,7 @@ class JavafmtTest {
     @Nested
     class NullChecksTest {
 
+        @SuppressWarnings("NullAway")
         static Stream<Arguments> nullArguments() {
             return Stream.of(
                     argumentSet("format(null)", (ThrowingCallable) () -> Javafmt.format(null)),

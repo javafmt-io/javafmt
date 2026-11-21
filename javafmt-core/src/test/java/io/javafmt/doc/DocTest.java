@@ -40,6 +40,7 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void nullValueThrows() {
             assertThatNullPointerException().isThrownBy(() -> new Doc.Text(null));
         }
@@ -89,6 +90,7 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void nullListThrows() {
             assertThatNullPointerException().isThrownBy(() -> new Doc.Concat((List<Doc>) null));
         }
@@ -121,6 +123,7 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void nullContentsThrows() {
             assertThatNullPointerException().isThrownBy(() -> new Doc.Indent(null));
         }
@@ -163,6 +166,7 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void nullContentsThrows() {
             assertThatNullPointerException().isThrownBy(() -> new Doc.Group(null));
         }
@@ -204,11 +208,13 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void singleSeparator_nullSeparatorThrows() {
             assertThatNullPointerException().isThrownBy(() -> Doc.intersperse((Doc) null, Stream.of(A)));
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void singleSeparator_nullStreamThrows() {
             assertThatNullPointerException().isThrownBy(() -> Doc.intersperse(SEP, (Stream<Doc>) null));
         }
@@ -247,11 +253,13 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void listSeparator_nullSeparatorThrows() {
             assertThatNullPointerException().isThrownBy(() -> Doc.intersperse((List<Doc>) null, Stream.of(A)));
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void listSeparator_nullStreamThrows() {
             assertThatNullPointerException().isThrownBy(() -> Doc.intersperse(List.of(SEP), (Stream<Doc>) null));
         }
@@ -278,11 +286,13 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void nullBreakContentsThrows() {
             assertThatNullPointerException().isThrownBy(() -> new Doc.IfBreak(null, new Doc.Text("f")));
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void nullFlatContentsThrows() {
             assertThatNullPointerException().isThrownBy(() -> new Doc.IfBreak(new Doc.Text("b"), null));
         }
@@ -394,6 +404,7 @@ class DocTest {
         }
 
         @Test
+        @SuppressWarnings("NullAway")
         void nullContentsThrows() {
             assertThatNullPointerException().isThrownBy(() -> Doc.indentedLine(null));
         }

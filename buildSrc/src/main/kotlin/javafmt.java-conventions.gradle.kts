@@ -101,9 +101,3 @@ tasks.withType<JavaCompile>().configureEach {
         option("NullAway:AnnotatedPackages", "io.javafmt")
     }
 }
-
-tasks.named<JavaCompile>("compileTestJava") {
-    options.errorprone {
-        check("NullAway", CheckSeverity.OFF)
-    }
-}

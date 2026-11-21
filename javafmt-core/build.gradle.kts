@@ -1,6 +1,3 @@
-import net.ltgt.gradle.errorprone.CheckSeverity
-import net.ltgt.gradle.errorprone.errorprone
-
 plugins {
     id("javafmt.java-conventions")
     id("javafmt.publish-conventions")
@@ -107,14 +104,6 @@ tasks.named("check") {
 // second copy of the in-memory javac harness.
 dependencies {
     "oracleTestImplementation"(sourceSets["test"].output)
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    if (name.startsWith("compileJmh") || name == "jmhCompileGeneratedClasses") {
-        options.errorprone {
-            check("NullAway", CheckSeverity.OFF)
-        }
-    }
 }
 
 // JMH's bundled ASM 9.0 cannot read Java 25 class files, which breaks any bytecode-rewriting

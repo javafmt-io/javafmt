@@ -84,8 +84,9 @@ record TestBuild(Path dir) {
 
     void delete(final String relative) {
         unchecked(() -> {
-            Files.delete(dir.resolve(relative));
-            return null;
+            final var path = dir.resolve(relative);
+            Files.delete(path);
+            return path;
         });
     }
 

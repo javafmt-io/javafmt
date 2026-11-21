@@ -4,9 +4,12 @@ import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.MethodTree;
 import com.sun.source.util.TreeScanner;
 import io.javafmt.parser.JavaParser;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -90,7 +93,7 @@ class ReassignmentDetectorTest {
 
     private static BlockTree bodyOfTest(final com.sun.source.tree.CompilationUnitTree tree) {
         final var found = new TreeScanner<Void, Void>() {
-            private BlockTree body;
+            private @Nullable BlockTree body;
 
             @Override
             public Void visitMethod(final MethodTree node, final Void p) {
@@ -101,7 +104,7 @@ class ReassignmentDetectorTest {
             }
 
             BlockTree body() {
-                return body;
+                return Objects.requireNonNull(body);
             }
         };
         found.scan(tree, null);

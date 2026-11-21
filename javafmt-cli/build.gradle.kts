@@ -1,4 +1,3 @@
-import net.ltgt.gradle.errorprone.CheckSeverity
 import net.ltgt.gradle.errorprone.errorprone
 import org.graalvm.buildtools.gradle.tasks.BuildNativeImageTask
 import java.io.PrintStream
@@ -48,12 +47,6 @@ configurations.named(nativeDaemonTest.implementationConfigurationName) {
 
 configurations.named(nativeDaemonTest.runtimeOnlyConfigurationName) {
     extendsFrom(configurations.testRuntimeOnly.get())
-}
-
-tasks.named<JavaCompile>(nativeDaemonTest.compileJavaTaskName) {
-    options.errorprone {
-        check("NullAway", CheckSeverity.OFF)
-    }
 }
 
 tasks.register<Test>("nativeDaemonTest") {
