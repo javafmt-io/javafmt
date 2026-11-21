@@ -5,6 +5,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.CharacterCodingException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -16,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SourceFilesTest {
+
+    private static final String UNENCODABLE = "class A { String s = \"" + Character.toString(0xD800) + "\"; }\n";
 
     @TempDir
     Path dir;
@@ -158,5 +161,41 @@ class SourceFilesTest {
         SourceFiles.write(file, "class New {}\n");
         assertThat(Files.exists(file, LinkOption.NOFOLLOW_LINKS)).isTrue();
         assertThat(Files.readString(file)).isEqualTo("class New {}\n");
+    }
+
+    @Test
+    void aFailedWriteOfANewFileLeavesNoFileBehind() throws IOException {
+        assertThatThrownBy(() -> SourceFiles.write(dir.resolve("New.java"), UNENCODABLE))
+                .isInstanceOf(UncheckedIOException.class)
+                .hasCauseInstanceOf(CharacterCodingException.class);
+        try (final var entries = Files.list(dir)) {
+            assertThat(entries).isEmpty();
+        }
+    }
+
+    @Test
+    void aFailedWriteOfAnExistingFileKeepsItsContent() throws IOException {
+        final var file = dir.resolve("A.java");
+        Files.writeString(file, "class A {}");
+        assertThatThrownBy(() -> SourceFiles.write(file, UNENCODABLE)).isInstanceOf(UncheckedIOException.class);
+        assertThat(Files.readString(file)).isEqualTo("class A {}");
+        try (final var entries = Files.list(dir)) {
+            assertThat(entries).containsExactly(file);
+        }
+    }
+
+    @Test
+    void writeGivesANewFileThePermissionsAPlainCreateWould() throws IOException {
+        final var plain = Files.createFile(dir.resolve("Plain.java"));
+        final var file = dir.resolve("New.java");
+        SourceFiles.write(file, "class New {}\n");
+        assertThat(Files.getPosixFilePermissions(file)).isEqualTo(Files.getPosixFilePermissions(plain));
+    }
+
+    @Test
+    void writeThroughASymlinkWhoseTargetIsMissingFailsAndKeepsTheLink() throws IOException {
+        final var link = Files.createSymbolicLink(dir.resolve("A.java"), dir.resolve("missing/A.java"));
+        assertThatThrownBy(() -> SourceFiles.write(link, "class A {}\n")).isInstanceOf(UncheckedIOException.class);
+        assertThat(Files.isSymbolicLink(link)).isTrue();
     }
 }

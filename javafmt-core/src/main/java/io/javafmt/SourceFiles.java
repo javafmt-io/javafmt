@@ -11,6 +11,7 @@ import java.nio.file.AccessDeniedException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
@@ -18,6 +19,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Discovery of {@code .java} regular files, sorted for deterministic output order, and the
@@ -75,11 +77,21 @@ public final class SourceFiles {
         Objects.requireNonNull(file, "file");
         Objects.requireNonNull(content, "content");
         try {
-            final var target = Files.exists(file) ? file.toRealPath() : createEmpty(file);
-            if (!Files.isWritable(target)) {
-                throw new AccessDeniedException(target.toString());
+            if (Files.exists(file, LinkOption.NOFOLLOW_LINKS)) {
+                final var target = file.toRealPath();
+                if (!Files.isWritable(target)) {
+                    throw new AccessDeniedException(target.toString());
+                }
+                swapIntoPlace(target, tempFileNextTo(target), content, true);
+            } else {
+                final var absolute = file.toAbsolutePath();
+                final var target = parentOf(absolute)
+                        .toRealPath()
+                        .resolve(absolute.getFileName().toString());
+                final var temp = target.resolveSibling(
+                        target.getFileName() + UUID.randomUUID().toString() + TEMP_SUFFIX);
+                swapIntoPlace(target, Files.createFile(temp), content, false);
             }
-            swapIntoPlace(target, content, true);
         } catch (final IOException e) {
             throw new UncheckedIOException("Failed to write " + file, e);
         }
@@ -87,9 +99,9 @@ public final class SourceFiles {
 
     /**
      * Replaces {@code file} with {@code content}, written UTF-8, through a sibling temp file
-     * moved into place. Unlike {@link #write}, it never pre-creates the target, does not refuse
-     * a read-only one and keeps no permissions, so it suits disposable files that are always
-     * rewritten whole. The temp file is deleted if the write fails.
+     * moved into place. Unlike {@link #write}, it does not refuse a read-only target and keeps no
+     * permissions, so it suits disposable files that are always rewritten whole. The temp file is
+     * deleted if the write fails.
      *
      * @throws UncheckedIOException if the file cannot be written
      */
@@ -97,20 +109,22 @@ public final class SourceFiles {
         Objects.requireNonNull(file, "file");
         Objects.requireNonNull(content, "content");
         try {
-            swapIntoPlace(file.toAbsolutePath(), content, false);
+            final var target = file.toAbsolutePath();
+            swapIntoPlace(target, tempFileNextTo(target), content, false);
         } catch (final IOException e) {
             throw new UncheckedIOException("Failed to write " + file, e);
         }
     }
 
-    private Path createEmpty(final Path file) throws IOException {
-        Files.createFile(file);
-        return file.toRealPath();
+    private Path tempFileNextTo(final Path target) throws IOException {
+        return Files.createTempFile(parentOf(target), target.getFileName().toString(), TEMP_SUFFIX);
     }
 
-    private void swapIntoPlace(final Path target, final String content, final boolean keepPermissions) throws IOException {
-        final var directory = Objects.requireNonNull(target.getParent(), "parent of " + target);
-        final var temp = Files.createTempFile(directory, target.getFileName().toString(), TEMP_SUFFIX);
+    private Path parentOf(final Path path) {
+        return Objects.requireNonNull(path.getParent(), "parent of " + path);
+    }
+
+    private void swapIntoPlace(final Path target, final Path temp, final String content, final boolean keepPermissions) throws IOException {
         try {
             Files.writeString(temp, content, StandardCharsets.UTF_8);
             if (keepPermissions) {
