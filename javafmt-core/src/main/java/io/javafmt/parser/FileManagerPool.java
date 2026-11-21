@@ -5,15 +5,16 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.tools.StandardJavaFileManager;
 
 /**
  * Idle attribution file managers, keyed by the classpath their task was given. A manager is lent to
- * one caller at a time and comes back when that caller's attribution work is finished. Holds at most
- * {@code capacity} idle managers across all classpaths; returning one past that closes the one idle
- * the longest, so a long-lived host that sees many classpaths keeps neither an unbounded number of
- * managers nor their jar files open.
+ * one caller at a time and comes back when that caller's attribution work is finished, or is closed
+ * if that work throws. Holds at most {@code capacity} idle managers across all classpaths; returning
+ * one past that closes the one idle the longest, so a long-lived host that sees many classpaths keeps
+ * neither an unbounded number of managers nor their jar files open.
  */
 final class FileManagerPool {
 
@@ -31,6 +32,13 @@ final class FileManagerPool {
         }
         this.capacity = capacity;
         this.factory = Objects.requireNonNull(factory, "factory");
+    }
+
+    <T> T lend(final String classpath, final Function<StandardJavaFileManager, T> work) {
+        final var manager = borrow(classpath);
+        final var result = applyOrClose(manager, work);
+        giveBack(classpath, manager);
+        return result;
     }
 
     StandardJavaFileManager borrow(final String classpath) {
@@ -62,11 +70,20 @@ final class FileManagerPool {
         return idle.size() > capacity ? Optional.of(idle.removeLast().manager()) : Optional.empty();
     }
 
+    private static <T> T applyOrClose(final StandardJavaFileManager manager, final Function<StandardJavaFileManager, T> work) {
+        try {
+            return work.apply(manager);
+        } catch (final Throwable failure) {
+            close(manager);
+            throw failure;
+        }
+    }
+
     private static void close(final StandardJavaFileManager manager) {
         try {
             manager.close();
         } catch (final IOException e) {
-            LOG.log(System.Logger.Level.DEBUG, "Could not close an evicted javac file manager", e);
+            LOG.log(System.Logger.Level.DEBUG, "Could not close a javac file manager", e);
         }
     }
 

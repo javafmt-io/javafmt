@@ -113,21 +113,21 @@ public final class JavaParser {
 
     /**
      * Runs {@code work} with an {@link AttributionSession} on {@code classpath}, lending it a pooled
-     * file manager that goes back to the pool when {@code work} returns. Everything that uses the
-     * session's {@link Attribution}s, linting included, belongs inside {@code work}: once it
-     * returns, another caller may be handed the same manager.
+     * file manager that goes back to the pool when {@code work} returns, or is closed if it throws.
+     * Everything that uses the session's {@link Attribution}s, linting included, belongs inside
+     * {@code work}: once it returns, another caller may be handed the same manager.
      */
     public <T> T attributing(final String classpath, final Function<AttributionSession, T> work) {
         Objects.requireNonNull(classpath, "classpath");
         Objects.requireNonNull(work, "work");
-        final var fileManager = ATTRIBUTION_FILE_MANAGERS.borrow(classpath);
-        final var session = new AttributionSession(classpath, fileManager);
-        try {
-            return work.apply(session);
-        } finally {
-            session.end();
-            ATTRIBUTION_FILE_MANAGERS.giveBack(classpath, fileManager);
-        }
+        return ATTRIBUTION_FILE_MANAGERS.lend(classpath, fileManager -> {
+            final var session = new AttributionSession(classpath, fileManager);
+            try {
+                return work.apply(session);
+            } finally {
+                session.end();
+            }
+        });
     }
 
     public CompilationUnitTree parse(final String source) {

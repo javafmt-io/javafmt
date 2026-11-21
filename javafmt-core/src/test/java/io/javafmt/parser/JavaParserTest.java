@@ -99,6 +99,19 @@ class JavaParserTest {
     }
 
     @Test
+    void aFileManagerWhoseWorkThrewIsNeverLentAgain() {
+        final var classpath = System.getProperty("java.io.tmpdir") + "/javafmt-throwing-classpath";
+        final var failed = new AtomicReference<StandardJavaFileManager>();
+        assertThatThrownBy(() -> JavaParser.attributing(classpath, session -> {
+            failed.set(session.fileManager());
+            throw new IllegalStateException("work failed");
+        }))
+                .isInstanceOf(IllegalStateException.class);
+        final var next = JavaParser.attributing(classpath, session -> session.fileManager());
+        assertThat(next).isNotSameAs(failed.get());
+    }
+
+    @Test
     void aSessionRefusesToAttributeAfterItsAttributingCallReturns() {
         final var session = JavaParser.attributing("", Function.identity());
         assertThatThrownBy(() -> session.attribute("class A {}")).isInstanceOf(IllegalStateException.class);

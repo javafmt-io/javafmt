@@ -1,11 +1,16 @@
 package io.javafmt.parser;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.tools.StandardJavaFileManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,6 +40,39 @@ class FileManagerPoolTest {
         final var pool = new FileManagerPool(2, this::recordingManager);
         final var lent = pool.borrow("a");
         assertThat(pool.borrow("a")).isNotSameAs(lent);
+    }
+
+    static Stream<Runnable> failures() {
+        return Stream.of(
+                () -> {
+                    throw new IllegalStateException("work failed");
+                },
+                () -> {
+                    throw new OutOfMemoryError("work failed");
+                });
+    }
+
+    @ParameterizedTest
+    @MethodSource("failures")
+    void aManagerWhoseWorkThrowsIsClosedInsteadOfPooled(final Runnable failure) {
+        final var pool = new FileManagerPool(2, this::recordingManager);
+        final var lent = new AtomicReference<StandardJavaFileManager>();
+        assertThatThrownBy(() -> pool.lend("a", manager -> {
+            lent.set(manager);
+            failure.run();
+            return manager;
+        }))
+                .hasMessage("work failed");
+        assertThat(closed).singleElement().isSameAs(lent.get());
+        assertThat(pool.idleCount()).isZero();
+    }
+
+    @Test
+    void aManagerWhoseWorkReturnsGoesBackToThePool() {
+        final var pool = new FileManagerPool(2, this::recordingManager);
+        final var lent = pool.lend("a", Function.identity());
+        assertThat(closed).isEmpty();
+        assertThat(pool.borrow("a")).isSameAs(lent);
     }
 
     @Test
