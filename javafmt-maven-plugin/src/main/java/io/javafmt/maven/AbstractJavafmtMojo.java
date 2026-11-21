@@ -1,5 +1,6 @@
 package io.javafmt.maven;
 
+import io.javafmt.Diagnostic;
 import io.javafmt.FileResult;
 import io.javafmt.GitRatchet;
 import io.javafmt.GitRatchetException;
@@ -10,6 +11,7 @@ import io.javafmt.SourceFiles;
 import io.javafmt.cache.CacheKey;
 import io.javafmt.cache.FileFormatCache;
 import io.javafmt.cache.FormatCache;
+import org.apache.maven.model.Build;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -25,6 +27,8 @@ import java.util.stream.Stream;
 
 /** Template contract: {@link #execute()} is final; subclasses supply {@link #handle}. */
 abstract class AbstractJavafmtMojo extends AbstractMojo {
+
+    private static final JavafmtConfig CONFIG = JavafmtConfig.defaults();
 
     @Nullable
     @Parameter(defaultValue = "${project}", readonly = true)
@@ -82,18 +86,13 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
 
     @Override
     public final void execute() throws MojoExecutionException {
-        final var p = Objects.requireNonNull(project, "project");
-        final var build = p.getBuild();
-        final var filter = PathFilter.ofGlobs(excludes);
-        final var formatCache = resolveCache(p);
+        final var mavenProject = Objects.requireNonNull(project, "project");
+        final var formatCache = resolveCache(mavenProject);
         try {
             final var files = changedSinceRatchet(
-                    p,
-                    filter.keep(
-                            Stream.concat(walkNullable(build.getSourceDirectory()).stream(), walkNullable(build.getTestSourceDirectory()).stream())
-                                    .toList()));
+                    mavenProject, PathFilter.ofGlobs(excludes).keep(sourceFiles(mavenProject.getBuild())));
             final var poolSize = threads > 0 ? threads : Runtime.getRuntime().availableProcessors();
-            final var results = Javafmt.formatFiles(files, JavafmtConfig.defaults(), formatCache, poolSize);
+            final var results = Javafmt.formatFiles(files, CONFIG, formatCache, poolSize);
             failOnUnreadable(results);
             handle(logDiagnosticsAndKeepCleanFiles(results), formatCache);
             formatCache.save();
@@ -104,28 +103,31 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
         }
     }
 
-    private List<Path> changedSinceRatchet(final MavenProject p, final List<Path> files) {
-        final var ref = ratchetFrom;
-        return ref == null
-                ? files
-                : GitRatchet.since(
+    private static List<Path> sourceFiles(final Build build) {
+        return Stream.of(build.getSourceDirectory(), build.getTestSourceDirectory())
+                .filter(Objects::nonNull)
+                .flatMap(directory -> SourceFiles.walk(Path.of(directory)).stream())
+                .toList();
+    }
+
+    private List<Path> changedSinceRatchet(final MavenProject mavenProject, final List<Path> files) {
+        return Optional.ofNullable(ratchetFrom)
+                .map(ref -> GitRatchet.since(
                                 ref,
-                                Objects.requireNonNull(p.getBasedir(), "basedir")
+                                Objects.requireNonNull(mavenProject.getBasedir(), "basedir")
                                         .toPath())
-                        .keep(files);
+                        .keep(files))
+                .orElse(files);
     }
 
     /** What the goal does with the files that formatted without errors; throws MojoExecutionException to fail the build. */
     abstract void handle(List<FileResult.Formatted> formatted, FormatCache formatCache) throws MojoExecutionException;
 
     private static void failOnUnreadable(final List<FileResult> results) throws MojoExecutionException {
-        final var unreadable = results.stream()
-                .flatMap(result -> result instanceof FileResult.Unreadable u ? Stream.of(u) : Stream.empty())
-                .findFirst();
-        if (unreadable.isPresent()) {
-            throw new MojoExecutionException(
-                    "javafmt: I/O error: Failed to read " + unreadable.get().path(),
-                    unreadable.get().error());
+        for (final var result : results) {
+            if (result instanceof FileResult.Unreadable(var path, var error)) {
+                throw new MojoExecutionException("javafmt: I/O error: Failed to read " + path, error);
+            }
         }
     }
 
@@ -135,27 +137,27 @@ abstract class AbstractJavafmtMojo extends AbstractMojo {
                 .toList();
         formatted.forEach(f -> f.result()
                 .errors()
-                .forEach(d -> getLog().warn("javafmt: " + d.describe(f.path().toString()))));
+                .forEach(d -> getLog().warn(message(f, d))));
         final var clean = formatted.stream()
                 .filter(f -> !f.result().hasErrors())
                 .toList();
         clean.forEach(f -> f.result()
                 .warnings()
-                .forEach(d -> getLog().info("javafmt: " + d.describe(f.path().toString()))));
+                .forEach(d -> getLog().info(message(f, d))));
         return clean;
     }
 
-    private FormatCache resolveCache(final MavenProject p) {
+    private static String message(final FileResult.Formatted file, final Diagnostic diagnostic) {
+        return "javafmt: " + diagnostic.describe(file.path().toString());
+    }
+
+    private FormatCache resolveCache(final MavenProject mavenProject) {
         if (!cache) {
             return FormatCache.noop();
         }
         final var path = cacheFile != null
                 ? Path.of(cacheFile)
-                : Path.of(p.getBuild().getDirectory(), "javafmt.cache");
-        return FileFormatCache.load(path, CacheKey.of(JavafmtConfig.defaults()));
-    }
-
-    private static List<Path> walkNullable(@Nullable final String dir) {
-        return dir == null ? List.of() : SourceFiles.walk(Path.of(dir));
+                : Path.of(mavenProject.getBuild().getDirectory(), "javafmt.cache");
+        return FileFormatCache.load(path, CacheKey.of(CONFIG));
     }
 }

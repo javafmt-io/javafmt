@@ -43,7 +43,11 @@ final class MojoTestSupport {
     }
 
     static JavafmtMojo formatMojo(final Path dir) {
-        return withLog(new JavafmtMojo(projectInMavenLayout(dir), List.of(), Optional.empty()), new CapturingLog());
+        return formatMojo(projectInMavenLayout(dir));
+    }
+
+    static JavafmtMojo formatMojo(final MavenProject project) {
+        return withLog(new JavafmtMojo(project, List.of(), Optional.empty()), new CapturingLog());
     }
 
     static JavafmtMojo formatMojo(final Path dir, final Path cacheFile, final CapturingLog log) {

@@ -6,6 +6,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
@@ -21,6 +22,7 @@ import static io.javafmt.maven.MojoTestSupport.REASSIGNS_A_PARAMETER;
 import static io.javafmt.maven.MojoTestSupport.UNFORMATTED;
 import static io.javafmt.maven.MojoTestSupport.buildProject;
 import static io.javafmt.maven.MojoTestSupport.formatMojo;
+import static io.javafmt.maven.MojoTestSupport.projectInMavenLayout;
 import static io.javafmt.maven.MojoTestSupport.projectInRepositoryWithAnEditedFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
@@ -128,6 +130,21 @@ class JavafmtMojoTest {
     }
 
     @Test
+    void formatGoalSkipsSourceDirectoriesTheBuildLeavesUnset(@TempDir final Path dir) throws Exception {
+        final var main = Files.writeString(
+                Files.createDirectories(dir.resolve("src/main/java")).resolve("Foo.java"), UNFORMATTED);
+        final var test = Files.writeString(
+                Files.createDirectories(dir.resolve("src/test/java")).resolve("FooTest.java"), UNFORMATTED);
+        final var project = projectInMavenLayout(dir);
+        project.getBuild().setSourceDirectory(null);
+        formatMojo(project).execute();
+        assertThat(Files.readString(main)).isEqualTo(UNFORMATTED);
+        assertThat(Files.readString(test)).isEqualTo(FORMATTED);
+        project.getBuild().setTestSourceDirectory(null);
+        assertThatNoException().isThrownBy(formatMojo(project)::execute);
+    }
+
+    @Test
     void theSummaryLineCountsChangedFiles(@TempDir final Path dir) throws Exception {
         final var src = Files.createDirectories(dir.resolve("src/main/java"));
         Files.writeString(src.resolve("Foo.java"), UNFORMATTED);
@@ -210,7 +227,8 @@ class JavafmtMojoTest {
         final var mojo = new JavafmtMojo(buildProject(srcDir), List.of(), Optional.empty());
         assertThatThrownBy(mojo::execute)
                 .isInstanceOf(MojoExecutionException.class)
-                .hasMessage("javafmt: I/O error: Failed to read " + unreadable);
+                .hasMessage("javafmt: I/O error: Failed to read " + unreadable)
+                .hasCauseInstanceOf(CharacterCodingException.class);
         assertThat(Files.readString(normal, StandardCharsets.UTF_8)).isEqualTo(UNFORMATTED);
     }
 
