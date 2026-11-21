@@ -161,7 +161,16 @@ public final class JavafmtFormattingService extends AsyncDocumentFormattingServi
             final var project = context.getProject();
             final var fileName = context.getContainingFile().getName();
             final var content = request.getDocumentText();
-            request.onTextReady(textToInstall(context, project, fileName, content));
+            request.onTextReady(originalIfItEscapes(content, () -> textToInstall(context, project, fileName, content)));
+        }
+
+        private String originalIfItEscapes(final String content, final Supplier<String> text) {
+            try {
+                return text.get();
+            } catch (final Throwable escaped) {
+                request.onTextReady(content);
+                throw escaped;
+            }
         }
 
         private static String textToInstall(final FormattingContext context, final Project project, final String fileName, final String content) {

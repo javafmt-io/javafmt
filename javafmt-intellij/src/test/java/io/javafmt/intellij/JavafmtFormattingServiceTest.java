@@ -14,13 +14,18 @@ import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.ServiceContainerUtil;
 import io.javafmt.Fixtures;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -33,6 +38,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -133,17 +139,35 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
         worker.join();
     }
 
-    @Test
-    public void testThePlatformsCancellationStillPropagates(@TempDir final Path dir) throws IOException {
+    @ParameterizedTest
+    @MethodSource("escapes")
+    void anythingThatEscapesAFormatIsRethrownAfterTheOriginalTextIsInstalledOnce(final Supplier<String> searchPath,
+                                                                                 final Class<? extends Throwable> escaped,
+                                                                                 @TempDir final Path dir)
+            throws IOException {
         enableJavafmt();
-        usePathSearch(dir, () -> {
-            throw new ProcessCanceledException();
-        });
+        usePathSearch(dir, searchPath);
         final var file = myFixture.configureByText("Foo.java", Fixtures.UNFORMATTED_FOO);
         final var installed = new CopyOnWriteArrayList<String>();
         final var task = service.createFormattingTask(new CapturingRequest(file, installed));
-        assertThatThrownBy(task::run).isInstanceOf(ProcessCanceledException.class);
-        assertThat(installed).isEmpty();
+        assertThatThrownBy(task::run).isInstanceOf(escaped);
+        assertThat(installed).containsExactly(Fixtures.UNFORMATTED_FOO);
+    }
+
+    static Stream<Arguments> escapes() {
+        final Supplier<String> cancelled = () -> {
+            throw new ProcessCanceledException();
+        };
+        final Supplier<String> missingClass = () -> {
+            throw new NoClassDefFoundError("io/javafmt/Javafmt");
+        };
+        final Supplier<String> unprintable = () -> {
+            throw new UnprintableFailure();
+        };
+        return Stream.of(
+                Arguments.of(Named.of("the platform's cancellation", cancelled), ProcessCanceledException.class),
+                Arguments.of(Named.of("an error", missingClass), NoClassDefFoundError.class),
+                Arguments.of(Named.of("a failure the failure handler cannot describe", unprintable), UnsupportedOperationException.class));
     }
 
     @Test
@@ -562,6 +586,17 @@ public class JavafmtFormattingServiceTest extends JavafmtIntellijTestCase {
                 + "    exit 0\n"
                 + "fi\n" + JavafmtDaemonTest.ECHO_REQUESTS;
         return FakeBinaries.executable(dir, "javafmt-fake-counting", script);
+    }
+
+    private static final class UnprintableFailure extends RuntimeException {
+
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public String toString() {
+            throw new UnsupportedOperationException("toString");
+        }
     }
 
     private abstract static class PlatformDefaults extends AsyncDocumentFormattingService {
