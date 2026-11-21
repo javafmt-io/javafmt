@@ -92,9 +92,12 @@ public final class Javafmt {
     }
 
     /**
-     * As {@link #formatFiles}, but each result is formatted as the stream reaches it. The stream
-     * holds the threads that do the formatting until it is closed, so close it, with
-     * try-with-resources, even when reading stops early or fails.
+     * As {@link #formatFiles}, but formats as the stream is read, a group of files at a time:
+     * reaching a result formats every file of its group first. Without attribution a group holds
+     * up to 32 MB of source, so most runs are formatted whole before the first result arrives; with
+     * attribution it holds a few batches of up to 128 files. The formatting threads are daemon
+     * threads, so a stream left open does not keep the JVM alive, but they stay, idle, until the
+     * stream is closed: close it, with try-with-resources, even when reading stops early or fails.
      */
     public Stream<FileResult> formatFilesLazily(final List<Path> paths, final JavafmtConfig config, final FormatCache cache, final int threads) {
         Objects.requireNonNull(paths, "paths");

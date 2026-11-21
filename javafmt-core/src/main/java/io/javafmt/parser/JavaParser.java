@@ -35,10 +35,11 @@ import javax.tools.ToolProvider;
  * Parses Java source via the JDK's {@code javax.tools} compiler API.
  *
  * <p><b>Threading.</b> A parse borrows a {@link StandardJavaFileManager} from a shared pool
- * and returns it when the call ends, so javac's boot-classpath scan and {@code JarFile}
- * inflation are paid once per manager rather than once per call. A manager is never used by two
- * calls at once, because it is not thread-safe, and the pool keeps a bounded number of idle
- * managers, however many threads a long-lived host such as the Gradle daemon cycles through.
+ * and returns it when the call ends, or closes it if the call throws, so javac's boot-classpath
+ * scan and {@code JarFile} inflation are paid once per manager rather than once per call. A
+ * manager is never used by two calls at once, because it is not thread-safe, and the pool keeps a
+ * bounded number of idle managers, however many threads a long-lived host such as the Gradle
+ * daemon cycles through.
  * Attribution has a pool of its own: see {@link #attributing}.
  * Per-call: the {@link com.sun.source.util.JavacTask},
  * its diagnostic collector, and the in-memory {@link JavaFileObject}.
