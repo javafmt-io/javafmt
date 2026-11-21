@@ -3,11 +3,9 @@ plugins {
     signing
 }
 
-pluginManager.withPlugin("java") {
-    extensions.configure<JavaPluginExtension> {
-        withJavadocJar()
-        withSourcesJar()
-    }
+extensions.configure<JavaPluginExtension> {
+    withJavadocJar()
+    withSourcesJar()
 }
 
 publishing {
@@ -16,7 +14,7 @@ publishing {
             from(components["java"])
             pom {
                 name.set(project.name)
-                description.set(providers.provider { project.description }.orElse(providers.gradleProperty("javafmt.description")))
+                description.set(providers.provider { project.description })
                 url.set("https://javafmt.io")
                 licenses {
                     license {
@@ -56,8 +54,8 @@ publishing {
 }
 
 signing {
-    val signingKey: String? = System.getenv("JRELEASER_GPG_SECRET_KEY")
-    val signingPassword: String? = System.getenv("JRELEASER_GPG_PASSPHRASE")
+    val signingKey = providers.environmentVariable("JRELEASER_GPG_SECRET_KEY").orNull
+    val signingPassword = providers.environmentVariable("JRELEASER_GPG_PASSPHRASE").orNull
     if (signingKey != null && signingPassword != null) {
         useInMemoryPgpKeys(signingKey, signingPassword)
         sign(publishing.publications["mavenJava"])

@@ -2,8 +2,6 @@ plugins {
     base
 }
 
-description = providers.gradleProperty("javafmt.description").get()
-
 val coverageReports = configurations.create("coverageReports") {
     isCanBeConsumed = false
     isCanBeResolved = true
