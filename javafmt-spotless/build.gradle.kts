@@ -10,8 +10,6 @@ dependencies {
     compileOnly(libs.spotless.lib)
     testImplementation(libs.spotless.lib)
     testImplementation(testFixtures(project(":javafmt-core")))
-    // FormatterFunc.NeedsFile reaches into com.diffplug.spotless.Formatter which statically initializes slf4j.
-    testRuntimeOnly(libs.slf4j.simple)
 }
 
 // Everything above is exercised by calling FormatterStep.format directly. What decides whether a
@@ -19,6 +17,9 @@ dependencies {
 // up-to-date check, the configuration cache — so integrationTest drives a real Gradle build with
 // Gradle TestKit instead.
 val integrationTest = sourceSets.create("integrationTest")
+
+configurations[integrationTest.implementationConfigurationName].extendsFrom(configurations.testImplementation.get())
+configurations[integrationTest.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly.get())
 
 /**
  * The Spotless Gradle plugin, fetched so the generated build can put it on its buildscript
@@ -28,17 +29,10 @@ val integrationTest = sourceSets.create("integrationTest")
 val spotlessPluginRuntime = configurations.create("spotlessPluginRuntime")
 
 dependencies {
-    spotlessPluginRuntime("com.diffplug.spotless:spotless-plugin-gradle:${libs.versions.spotlessGradle.get()}")
+    spotlessPluginRuntime(libs.spotless.gradle.plugin)
     add(integrationTest.implementationConfigurationName, gradleTestKit())
-    add(integrationTest.implementationConfigurationName, platform(libs.junit.bom))
-    add(integrationTest.implementationConfigurationName, libs.junit.jupiter)
-    add(integrationTest.implementationConfigurationName, libs.assertj.core)
-    add(integrationTest.implementationConfigurationName, libs.spotless.lib)
-    add(integrationTest.implementationConfigurationName, project(":javafmt-core"))
-    add(integrationTest.implementationConfigurationName, testFixtures(project(":javafmt-core")))
     add(integrationTest.implementationConfigurationName, sourceSets.main.get().output)
     add(integrationTest.runtimeOnlyConfigurationName, libs.junit.platform.launcher)
-    add(integrationTest.runtimeOnlyConfigurationName, libs.slf4j.simple)
 }
 
 // What the generated build's `buildscript { classpath files(...) }` gets: javafmt-spotless and
@@ -56,7 +50,6 @@ val integrationTestTask = tasks.register<Test>("integrationTest") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     testClassesDirs = integrationTest.output.classesDirs
     classpath = integrationTest.runtimeClasspath
-    useJUnitPlatform()
     inputs.files(generatedBuildClasspath).withNormalizer(ClasspathNormalizer::class)
     // Resolved as the task is realized rather than inside a doFirst: a closure written in the
     // build script cannot be stored in the configuration cache.

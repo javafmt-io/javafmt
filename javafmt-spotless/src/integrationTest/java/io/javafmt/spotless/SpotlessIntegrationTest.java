@@ -33,12 +33,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class SpotlessIntegrationTest {
 
-    /** Formats cleanly but trips the warning-only {@code AvoidStarImport} rule. */
-    private static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Star {\n\n    List<String> xs;\n}\n";
-
-    private static final String TYPE_WITNESS_SOURCE =
-            "import java.util.stream.Stream;\n\nclass Witness {\n\n    Stream<String> names = Stream.<String>of(\"a\");\n}\n";
-
     private static final String DEFAULT_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(projectDir)";
 
     private static final String CLASSPATH_STEP = "io.javafmt.spotless.JavafmtFormatterStep.create(io.javafmt.JavafmtConfig.defaults(), sourceSets.main.compileClasspath.asPath, projectDir)";
@@ -106,21 +100,10 @@ class SpotlessIntegrationTest {
         assertThat(result.getOutput()).doesNotContain("OutOfMemoryError");
     }
 
-    private static void writeGenerated(final Path dir, final int index) {
-        final var source = IntStream.range(0, 2000)
-                .mapToObj(method -> "\n    int compute%d(final int seed) {\n        return seed * %d;\n    }\n".formatted(method, method))
-                .collect(Collectors.joining("", "package orders;\n\nfinal class Order%d {".formatted(index), "}\n"));
-        try {
-            writeSource(dir, "orders/Order" + index + ".java", source);
-        } catch (final IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     @Test
     void aStepGivenTheClasspathRunsTheRulesThatNeedItAndRerunsWhenANestedProjectFileChanges(@TempDir final Path dir) throws IOException {
         writeProject(dir, CLASSPATH_STEP);
-        final var source = writeSource(dir, "Witness.java", TYPE_WITNESS_SOURCE);
+        final var source = writeSource(dir, "Witness.java", Fixtures.TYPE_WITNESS_SOURCE);
         final var projectFile = source.resolveSibling(".javafmt");
         Files.writeString(projectFile, "analyze.skip=RedundantTypeArguments\n");
         build(dir, "spotlessApply", "--configuration-cache");
@@ -137,7 +120,7 @@ class SpotlessIntegrationTest {
     @Test
     void spotlessCheckSurfacesJavafmtsWarningOnlyRules(@TempDir final Path dir) throws IOException {
         writeProject(dir, DEFAULT_STEP);
-        writeSource(dir, "Star.java", STAR_IMPORT_SOURCE);
+        writeSource(dir, "Star.java", Fixtures.STAR_IMPORT_SOURCE);
         final var result = buildAndFail(dir, "spotlessCheck");
         assertThat(result.getOutput()).contains("star import");
     }
@@ -178,6 +161,17 @@ class SpotlessIntegrationTest {
         Files.createDirectories(source.getParent());
         Files.writeString(source, content);
         return source;
+    }
+
+    private static void writeGenerated(final Path dir, final int index) {
+        final var source = IntStream.range(0, 2000)
+                .mapToObj(method -> "\n    int compute%d(final int seed) {\n        return seed * %d;\n    }\n".formatted(method, method))
+                .collect(Collectors.joining("", "package orders;\n\nfinal class Order%d {".formatted(index), "}\n"));
+        try {
+            writeSource(dir, "orders/Order" + index + ".java", source);
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /** Writes the build exactly as {@code docs/intro.md} describes it, bar the injected classpath. */

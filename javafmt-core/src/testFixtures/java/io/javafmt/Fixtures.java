@@ -11,5 +11,10 @@ public final class Fixtures {
 
     public static final String FORMATTED_A = "class A {\n\n    int x;\n}\n";
 
+    public static final String STAR_IMPORT_SOURCE = "import java.util.*;\n\nclass Foo {\n\n    List<String> xs;\n}\n";
+
+    public static final String TYPE_WITNESS_SOURCE =
+            "import java.util.stream.Stream;\n\nclass Foo {\n\n    Stream<String> xs = Stream.<String>of(\"a\");\n}\n";
+
     private Fixtures() {}
 }
