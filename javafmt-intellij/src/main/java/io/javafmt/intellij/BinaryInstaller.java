@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.util.io.NioFiles;
 import com.intellij.util.download.DownloadableFileService;
 import com.intellij.util.io.HttpRequests;
+import io.javafmt.JavafmtVersion;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,7 +42,7 @@ final class BinaryInstaller {
 
     static BinaryInstaller forThisPlugin() {
         return new BinaryInstaller(
-                RELEASES.resolve("v" + JavafmtPluginVersion.VERSION + "/"),
+                RELEASES.resolve("v" + JavafmtVersion.VERSION + "/"),
                 PathManager.getSystemDir().resolve("javafmt"),
                 ReleaseAsset.forThisIde());
     }

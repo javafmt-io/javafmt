@@ -1,5 +1,7 @@
 package io.javafmt.intellij;
 
+import io.javafmt.JavafmtVersion;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +16,7 @@ sealed interface ReleaseAsset {
     String CHECKSUMS_RESOURCE = "/io/javafmt/intellij/native-checksums.txt";
 
     static ReleaseAsset forThisIde() {
-        return forPlatform(JavafmtPluginVersion.VERSION, System.getProperty("os.name"), System.getProperty("os.arch"), bundledChecksums());
+        return forPlatform(JavafmtVersion.VERSION, System.getProperty("os.name"), System.getProperty("os.arch"), bundledChecksums());
     }
 
     static ReleaseAsset forPlatform(final String version, final String osName, final String osArch, final Map<String, String> checksums) {

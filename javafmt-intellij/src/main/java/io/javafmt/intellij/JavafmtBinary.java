@@ -6,6 +6,7 @@ import com.intellij.execution.configurations.PathEnvironmentVariableUtil;
 import com.intellij.execution.process.CapturingProcessHandler;
 import com.intellij.execution.process.ProcessIOExecutorService;
 import com.intellij.execution.process.ProcessOutput;
+import io.javafmt.JavafmtVersion;
 import io.javafmt.daemon.protocol.Diagnostic;
 import io.javafmt.daemon.protocol.Kind;
 import io.javafmt.daemon.protocol.Severity;
@@ -48,7 +49,7 @@ public final class JavafmtBinary {
      * The plugin's own version, parsed once. A {@code -SNAPSHOT} or {@code -rc} suffix is dropped
      * before comparing, so a snapshot build of the plugin accepts the matching release binary.
      */
-    private static final String MINIMUM_VERSION_TEXT = JavafmtPluginVersion.VERSION.split("-")[0];
+    private static final String MINIMUM_VERSION_TEXT = JavafmtVersion.VERSION.split("-")[0];
 
     private static final List<Integer> MINIMUM_VERSION = components(MINIMUM_VERSION_TEXT);
 
