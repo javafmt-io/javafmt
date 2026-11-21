@@ -154,4 +154,10 @@ class MultipleVariableDeclarationsTest {
                 .contains("int a = 1 /* one, two */;")
                 .contains("int b = 2;");
     }
+
+    @Test
+    void aSemicolonInsideACommentBeforeTheRealOneEndsTheDeclarationEarly() {
+        assertThat(LintFixtures.fix(new MultipleVariableDeclarations(), inMethod("int a, b /* c; */ ;")))
+                .isEqualTo("class Fixture {\n    void test() {\n        int a;\n        int b /* c; */ ;\n    }\n}\n");
+    }
 }

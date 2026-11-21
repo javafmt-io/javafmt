@@ -84,7 +84,7 @@ public final class MultipleVariableDeclarations implements ScanningRule {
         }
     }
 
-    private static String withoutComments(final String text) {
+    private static String commentsAsSpaces(final String text) {
         final var comments = CommentScanner.scan(text);
         final var kept = IntStream.rangeClosed(0, comments.size())
                 .mapToObj(i -> text.substring(i == 0 ? 0 : comments.get(i - 1).end(), i == comments.size()
@@ -116,11 +116,9 @@ public final class MultipleVariableDeclarations implements ScanningRule {
         if (baseDims < 0) {
             return List.of();
         }
-        final var sharedModifiersAndElementType = withoutComments(src.substring(groupStart, elementTypeEnd)) + "[]".repeat(baseDims);
+        final var sharedModifiersAndElementType = commentsAsSpaces(src.substring(groupStart, elementTypeEnd)) + "[]".repeat(baseDims);
         final var separators = separatorCommas(group, unit, src, groupStart, spanEnd);
         if (separators.size() != group.size() - 1) {
-            // The declarators and the commas disagree, so something in this span is not what it
-            // looks like. Leaving it alone is the only safe answer.
             return List.of();
         }
         final var prefix = "\n" + indent + sharedModifiersAndElementType + " ";
@@ -204,11 +202,8 @@ public final class MultipleVariableDeclarations implements ScanningRule {
      * back and typically finds it immediately. Returns -1 if no semicolon is found.
      */
     private static int declarationGroupEnd(final String src, final int lastVariableEnd) {
-        var semiPos = lastVariableEnd - 1;
-        while (semiPos < src.length() && src.charAt(semiPos) != ';') {
-            semiPos++;
-        }
-        return semiPos >= src.length() ? -1 : semiPos + 1;
+        final var semiPos = src.indexOf(';', lastVariableEnd - 1);
+        return semiPos < 0 ? -1 : semiPos + 1;
     }
 
     private static Tree elementTypeOf(final Tree type) {

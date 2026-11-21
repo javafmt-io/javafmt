@@ -8,7 +8,6 @@ import com.sun.source.tree.VariableTree;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.ParsedUnit;
-import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -165,13 +164,13 @@ public final class ModifierOrder implements ScanningRule {
                 continue;
             }
             final var matched = matchModifier(src, pos, flags);
-            if (matched == null) {
+            if (matched.isEmpty()) {
                 break;
             }
             annotationBetweenKeywords = annotationBetweenKeywords || !annotationsAfterAKeyword.isEmpty();
-            pos += matched.toString().length();
+            pos += matched.get().toString().length();
             lastItemEnd = pos;
-            keywords.add(matched);
+            keywords.add(matched.get());
         }
         return new Scan(
                 start,
@@ -195,14 +194,10 @@ public final class ModifierOrder implements ScanningRule {
                 .toList();
     }
 
-    @Nullable
-    private static Modifier matchModifier(final String src, final int pos, final Set<Modifier> flags) {
-        for (final var modifier : Modifiers.canonicalOrder()) {
-            if (flags.contains(modifier) && Modifiers.skipModifierKeyword(src, pos, modifier.toString()) >= 0) {
-                return modifier;
-            }
-        }
-        return null;
+    private static Optional<Modifier> matchModifier(final String src, final int pos, final Set<Modifier> flags) {
+        return Modifiers.canonicalOrder().stream()
+                .filter(modifier -> flags.contains(modifier) && Modifiers.skipModifierKeyword(src, pos, modifier.toString()) >= 0)
+                .findFirst();
     }
 
     /**

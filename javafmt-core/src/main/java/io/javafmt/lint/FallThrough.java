@@ -8,6 +8,7 @@ import io.javafmt.parser.ParsedUnit;
 
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 /**
  * Warns when a colon-form switch case (e.g. {@code case 1:}) silently falls through into the
@@ -36,24 +37,16 @@ public final class FallThrough implements WarningRule {
     }
 
     private static void inspect(final List<? extends CaseTree> cases, final List<Diagnostic> diagnostics, final ParsedUnit unit) {
-        for (var i = 0; i < cases.size() - 1; i++) {
-            final var current = cases.get(i);
-            if (current.getCaseKind() != CaseTree.CaseKind.STATEMENT) {
-                continue;
-            }
-            final var statements = current.getStatements();
-            if (statements.isEmpty()) {
-                continue;
-            }
-            final var last = statements.getLast();
-            if (StatementFlow.terminates(last)) {
-                continue;
-            }
-            if (hasFallThroughComment(current, cases.get(i + 1), unit)) {
-                continue;
-            }
-            diagnostics.add(new Diagnostic.Warning(MESSAGE, unit.positionOf(current)));
-        }
+        IntStream.range(0, cases.size() - 1)
+                .filter(i -> fallsThrough(cases.get(i)))
+                .filter(i -> !hasFallThroughComment(cases.get(i), cases.get(i + 1), unit))
+                .forEach(i -> diagnostics.add(new Diagnostic.Warning(MESSAGE, unit.positionOf(cases.get(i)))));
+    }
+
+    private static boolean fallsThrough(final CaseTree current) {
+        return current.getCaseKind() == CaseTree.CaseKind.STATEMENT
+            && !current.getStatements().isEmpty()
+            && !StatementFlow.terminates(current.getStatements().getLast());
     }
 
     private static boolean hasFallThroughComment(final CaseTree current, final CaseTree next, final ParsedUnit unit) {
