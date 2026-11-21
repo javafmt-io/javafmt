@@ -12,6 +12,7 @@ import com.sun.source.tree.VariableTree;
 import com.sun.source.util.TreePath;
 import io.javafmt.parser.AttributedUnit;
 import io.javafmt.parser.Attribution;
+import io.javafmt.parser.AttributionError;
 import io.javafmt.parser.ChainPathScanner;
 import io.javafmt.parser.CommentScanner;
 import io.javafmt.parser.JavaParser;
@@ -21,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -249,8 +249,8 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
      * each paying ~50–200ms for a full attribution).
      *
      * <p>Cascading degradation is safe: stripping a witness whose presence was genuinely
-     * needed makes that call's re-attributed type drift (to an error type or to a wider
-     * inference). The string comparison sees "different" and the rule keeps the witness.
+     * needed changes the call's type or the invoked method's inferred type, or adds an error
+     * inside the call, and in each case the rule keeps the witness.
      * Behaviour is at least as conservative as the per-candidate variant.
      *
      * <p>Types from the original and re-attributed contexts can't be compared with
@@ -266,9 +266,8 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
         }
         final var unit = context.unit();
         final var sorted = sortedByWitness(candidates);
-        final var originalTypeStrings = sorted.stream()
-                .map(c -> attribution.trees().getTypeMirror(c.path()))
-                .map(t -> t == null || t.getKind() == TypeKind.ERROR ? null : t.toString())
+        final var originalTypes = sorted.stream()
+                .map(c -> inferredTypes(attribution, c.path()))
                 .toList();
         final var modifiedSource = stripAllWitnesses(unit.source(), sorted);
         final AttributedUnit reattributed;
@@ -281,9 +280,33 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
             return;
         }
         final var callsByNameStart = callsByMethodNameStart(reattributed.unit());
+        final var newErrorOffsets = newErrorOffsets(attribution.errorsIn(unit.tree()), reattributed, sorted);
         IntStream.range(0, sorted.size())
-                .filter(i -> originalTypeStrings.get(i) != null)
-                .forEach(i -> tryEmitDrop(sorted, i, originalTypeStrings.get(i), reattributed, callsByNameStart, edits));
+                .forEach(i -> originalTypes.get(i)
+                        .ifPresent(types -> tryEmitDrop(sorted, i, types, reattributed, callsByNameStart, newErrorOffsets, edits)));
+    }
+
+    private static Optional<String> inferredTypes(final Attribution attribution, final TreePath call) {
+        final var trees = attribution.trees();
+        final var callType = trees.getTypeMirror(call);
+        final var methodType = trees.getTypeMirror(new TreePath(call, ((MethodInvocationTree) call.getLeaf()).getMethodSelect()));
+        return callType == null || methodType == null || callType.getKind() == TypeKind.ERROR
+                ? Optional.empty()
+                : Optional.of(callType + " " + methodType);
+    }
+
+    private static List<Long> newErrorOffsets(final List<AttributionError> originalErrors,
+                                              final AttributedUnit reattributed,
+                                              final List<WitnessCall> sorted) {
+        final var known = originalErrors.stream()
+                .map(error -> new AttributionError(error.offset() - strippedLengthBefore(sorted, (int) error.offset()), error.message()))
+                .collect(Collectors.toUnmodifiableSet());
+        return reattributed.attribution()
+                .errorsIn(reattributed.unit().tree())
+                .stream()
+                .filter(error -> !known.contains(error))
+                .map(AttributionError::offset)
+                .toList();
     }
 
     private static String stripAllWitnesses(final String src, final List<WitnessCall> sorted) {
@@ -299,25 +322,26 @@ public final class RedundantTypeArguments implements RewriteVerifyingRule {
 
     private static void tryEmitDrop(final List<WitnessCall> sorted,
                                     final int index,
-                                    final String originalTypeString,
+                                    final String originalTypes,
                                     final AttributedUnit reattributed,
                                     final Map<Integer, TreePath> callsByNameStart,
+                                    final List<Long> newErrorOffsets,
                                     final List<LintEdit> edits) {
         final var candidate = sorted.get(index);
         final var translatedNameStart = candidate.methodNameStart() - strippedLengthBefore(sorted, candidate.methodNameStart());
         final var newPath = callsByNameStart.get(translatedNameStart);
-        if (newPath == null) {
-            return;
-        }
-        final var newType = reattributed.attribution()
-                .trees()
-                .getTypeMirror(newPath);
-        if (newType == null || newType.getKind() == TypeKind.ERROR) {
-            return;
-        }
-        if (Objects.equals(originalTypeString, newType.toString())) {
+        if (newPath != null
+            && !hasAnErrorWithin(newPath.getLeaf(), reattributed.unit(), newErrorOffsets)
+            && inferredTypes(reattributed.attribution(), newPath).equals(Optional.of(originalTypes))) {
             edits.add(new LintEdit(candidate.witnessStart(), candidate.witnessEnd(), ""));
         }
+    }
+
+    private static boolean hasAnErrorWithin(final Tree call, final ParsedUnit unit, final List<Long> errorOffsets) {
+        final var start = unit.startOf(call);
+        final var end = unit.endOf(call);
+        return errorOffsets.stream()
+                .anyMatch(offset -> offset < 0 || (offset >= start && offset < end));
     }
 
     /**

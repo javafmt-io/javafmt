@@ -1,5 +1,6 @@
 package io.javafmt.lint;
 
+import io.javafmt.CompileCheck;
 import io.javafmt.Javafmt;
 import io.javafmt.JavafmtConfig;
 import io.javafmt.parser.JavaParser;
@@ -238,6 +239,102 @@ class RedundantTypeArgumentsAnalyzeTest {
                 """;
         final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
         assertThat(formatted).contains("Stream.<Object>of(\"a\")");
+    }
+
+    @Test
+    void aWitnessThatPinsAnOtherwiseUninferredTypeIsKept() {
+        final var source = """
+                import java.util.List;
+                import java.util.function.Function;
+
+                class Fixture {
+
+                    RuleScan test() {
+                        return RuleScan.<MethodTree>collecting(m -> a(m), m -> b(m));
+                    }
+
+                    static String a(final List<MethodTree> methods) {
+                        return "";
+                    }
+
+                    static Integer b(final List<MethodTree> methods) {
+                        return methods.size();
+                    }
+
+                    interface MethodTree {}
+
+                    interface RuleScan {
+
+                        static <T> RuleScan collecting(final Function<List<T>, String> scanner, final Function<List<T>, Integer> finish) {
+                            return new RuleScan() {};
+                        }
+                    }
+                }
+                """;
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
+        assertThat(formatted).contains("RuleScan.<MethodTree>collecting(m -> a(m), m -> b(m))");
+    }
+
+    @Test
+    void aWitnessThatPinsTheLambdaParameterTypeIsKeptWhenTheCallCompilesWithoutIt() {
+        final var source = """
+                import java.util.List;
+                import java.util.function.Function;
+
+                class Fixture {
+
+                    RuleScan test() {
+                        return RuleScan.<MethodTree>collecting(m -> describe(m.getFirst()));
+                    }
+
+                    static String describe(final Object tree) {
+                        return "object";
+                    }
+
+                    static String describe(final MethodTree tree) {
+                        return "method";
+                    }
+
+                    interface MethodTree {}
+
+                    interface RuleScan {
+
+                        static <T> RuleScan collecting(final Function<List<T>, String> scanner) {
+                            return new RuleScan() {};
+                        }
+                    }
+                }
+                """;
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
+        assertThat(formatted).contains("RuleScan.<MethodTree>collecting(m -> describe(m.getFirst()))");
+    }
+
+    @Test
+    void twoWitnessesInOneStatementAreEachVerified() {
+        final var source = """
+                import java.util.stream.Stream;
+
+                class Fixture {
+
+                    Stream<A> test() {
+                        return Stream.<A>of(Foo.<B>bar());
+                    }
+
+                    interface A {}
+
+                    record B() implements A {}
+
+                    static final class Foo {
+
+                        static <T> T bar() {
+                            throw new UnsupportedOperationException();
+                        }
+                    }
+                }
+                """;
+        final var formatted = Javafmt.formatWithResult(source, ANALYZE).output();
+        assertThat(formatted).contains("Foo.<B>bar()");
+        assertThat(CompileCheck.check(formatted)).isInstanceOf(CompileCheck.Outcome.Compiles.class);
     }
 
     @Test
