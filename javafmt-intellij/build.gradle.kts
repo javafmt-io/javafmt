@@ -133,7 +133,7 @@ tasks.named("check") {
 
 intellijPlatform {
     pluginConfiguration {
-        id = "io.javafmt.intellij"
+        id = "io.javafmt"
         name = "javafmt (javafmt.io)"
         version = project.version.toString()
         // patchPluginXml replaces <description> in src/main/resources/META-INF/plugin.xml with
