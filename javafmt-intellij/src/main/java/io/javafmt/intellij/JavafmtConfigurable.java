@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.TextBrowseFolderListener;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
+import com.intellij.psi.codeStyle.CodeStyleSettingsManager;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.dsl.listCellRenderer.BuilderKt;
@@ -167,10 +168,19 @@ public final class JavafmtConfigurable implements Configurable {
     @Override
     public void apply() {
         final var settings = JavafmtSettings.getInstance(project);
+        final var wasEnabled = settings.isEnabled();
         settings.setEnabled(enabled.isSelected());
         JavafmtApplicationSettings.getInstance().setEngine(engine.getItem());
         settings.setBinaryPath(configuredBinaryPath());
+        CodeStyleSettingsManager.getInstance(project).notifyCodeStyleSettingsChanged();
+        if (!wasEnabled && settings.isEnabled()) {
+            createEditorConfigInTheBackground();
+        }
         refreshStatus();
+    }
+
+    private void createEditorConfigInTheBackground() {
+        AppExecutorUtil.getAppExecutorService().execute(() -> JavafmtEditorConfigActivity.createIfEnabled(project));
     }
 
     @Override

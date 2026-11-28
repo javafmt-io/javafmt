@@ -130,6 +130,8 @@ With Red Hat's [Language Support for Java](https://marketplace.visualstudio.com/
 
 Search **javafmt** in *Settings -> Plugins -> Marketplace*. It needs IntelliJ IDEA 2026.2 or later. Turn it on per project under *Settings -> Tools -> javafmt*.
 
+While a project uses javafmt, IntelliJ indents and wraps Java the way javafmt lays it out: 4 spaces, 8 for continuation lines, a 150-character margin, and no wrapping while you type. That keeps what you type from jumping when javafmt reformats the file. Turning javafmt on also creates an `.editorconfig` with the same settings when the project has none, so other editors agree. An existing `.editorconfig` is never touched; IntelliJ still applies the settings above on top of it.
+
 The plugin formats inside the IDE by default. *Formatter (all projects): Native javafmt binary* uses the [`javafmt` binary](#cli) instead, for every project in the IDE: the path set there, else a `javafmt` on `PATH`, else the matching binary downloaded from the GitHub release. Each format's duration goes to `idea.log`, with the engine and whether the file was formatted with the classpath, so the two can be compared.
 
 Either way, the plugin formats each file with the compile classpath of its module, the test classpath for test sources, and runs the [rules that need the classpath](./rules.md#rules-that-need-the-classpath), as the Gradle plugin does in CI. The classpath includes the module's compiled classes, so names declared in the project resolve once it has been built. A file outside every module, such as a scratch file, is formatted without those rules. The `.javafmt` [project file](#project-file) applies too; when it is invalid, the file is left as it was and a notification names the project file and the problem.

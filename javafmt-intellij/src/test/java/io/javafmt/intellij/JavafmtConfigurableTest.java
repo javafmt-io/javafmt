@@ -1,5 +1,6 @@
 package io.javafmt.intellij;
 
+import com.intellij.lang.java.JavaLanguage;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.ui.components.JBLabel;
@@ -62,6 +63,19 @@ public class JavafmtConfigurableTest extends JavafmtIntellijTestCase {
         final var settings = JavafmtSettings.getInstance(getProject());
         assertThat(settings.isEnabled()).isTrue();
         assertThat(configurable.isModified()).isFalse();
+    }
+
+    @Test
+    public void testApplyingEnabledRestylesAFileThatWasAlreadyOpen() {
+        withTheProjectsOwnCodeStyle(() -> {
+            final var file = myFixture.configureByText("A.java", "class A {}");
+            assertThat(computedSettings(file).getRightMargin(JavaLanguage.INSTANCE))
+                    .isNotEqualTo(150);
+            checkBox(JavafmtConfigurable.ENABLED_CHECKBOX_NAME).setSelected(true);
+            configurable.apply();
+            assertThat(computedSettings(file).getRightMargin(JavaLanguage.INSTANCE))
+                    .isEqualTo(150);
+        });
     }
 
     @Test

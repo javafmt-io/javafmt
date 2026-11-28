@@ -1,6 +1,7 @@
 # javafmt
 
 [![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=javafmt-io_javafmt&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=javafmt-io_javafmt)
+[![JetBrains Marketplace](https://img.shields.io/jetbrains/plugin/v/36478?label=JetBrains%20Marketplace)](https://plugins.jetbrains.com/plugin/36478)
 
 A fast, opinionated Java formatter for Java 25+. No options to configure, no XML files to export, no whitespace debates in code review.
 

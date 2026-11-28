@@ -1,5 +1,7 @@
 package io.javafmt.intellij;
 
+import com.intellij.application.options.CodeStyle;
+import com.intellij.application.options.codeStyle.cache.CodeStyleCachingService;
 import com.intellij.ide.scratch.ScratchRootType;
 import com.intellij.lang.java.JavaLanguage;
 import com.intellij.notification.Notification;
@@ -13,7 +15,10 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.codeStyle.CodeStyleManager;
+import com.intellij.psi.codeStyle.CodeStyleSettings;
+import com.intellij.psi.codeStyle.CodeStyleSettingsManager;
 import com.intellij.testFramework.EdtTestUtil;
+import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.VfsTestUtil;
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Base class for javafmt IntelliJ plugin tests on the light Java fixture. Resets {@link JavafmtSettings} after every test. */
@@ -68,6 +74,18 @@ public abstract class JavafmtIntellijTestCase extends LightJavaCodeInsightFixtur
         } finally {
             super.tearDown();
         }
+    }
+
+    protected void withTheProjectsOwnCodeStyle(final Runnable test) {
+        CodeStyleSettingsManager.getInstance(getProject()).dropTemporarySettings();
+        test.run();
+    }
+
+    protected CodeStyleSettings computedSettings(final PsiFile file) {
+        final var computed = new CompletableFuture<Void>();
+        CodeStyleCachingService.getInstance(getProject()).scheduleWhenSettingsComputed(file, () -> computed.complete(null));
+        PlatformTestUtil.waitForFuture(computed, 10_000);
+        return CodeStyle.getSettings(file);
     }
 
     protected void reformat(final PsiFile file) {

@@ -16,6 +16,11 @@
     <extensions defaultExtensionNs="com.intellij">
         <formattingService
             implementation="io.javafmt.intellij.JavafmtFormattingService"/>
+        <codeStyleSettingsModifier
+            implementation="io.javafmt.intellij.JavafmtCodeStyleModifier"
+            order="first"/>
+        <postStartupActivity
+            implementation="io.javafmt.intellij.JavafmtEditorConfigActivity"/>
         <projectConfigurable
             parentId="tools"
             id="io.javafmt.intellij.settings"
